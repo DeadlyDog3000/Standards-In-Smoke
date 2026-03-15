@@ -264,6 +264,7 @@
       <button class="esc-btn" onclick="closeEscMenu()">Resume</button>
       <button class="esc-btn" onclick="showOptionsPanel()">Options</button>
       <button class="esc-btn" onclick="showHotkeyPanel()">Hotkeys</button>
+      <button class="esc-btn" onclick="showUpdateLog()">Update Log</button>
       <button class="esc-btn" onclick="quitToMenu()">Quit to Menu</button>
     </div>
     <div id="escHotkeys" style="display:none;">
@@ -285,6 +286,73 @@
       <h2>Save Game</h2>
       <div id="escSaveSlots" style="max-height:320px;overflow-y:auto;"></div>
       <button class="esc-btn" onclick="hideSavePanel()" style="margin-top:8px;">Back</button>
+    </div>
+    <div id="escUpdateLog" style="display:none;">
+      <h2>Update Log</h2>
+      <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-width:340px;margin:0 auto;max-height:400px;overflow-y:auto;">
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 0.9</b> <span style="color:#888;font-size:11px;">(Save v7)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Balance</b><br>
+          - Unit HP now varies by type (grenadiers tanky, ranged units fragile)<br>
+          - Late-game unit production costs reduced ~25-30%<br>
+          - Damage scales with attacker HP (wounded units hit softer)<br>
+          - Combat units heal +2/turn in own territory, +3 in cities<br>
+          - Science generation increased, science labs cheaper<br>
+          <br>
+          <b style="color:#b8a070;">Barbarian Camps</b><br>
+          - Camps spawn on unexplored territory after turn 5 (40% chance/turn)<br>
+          - Axemen raid and pillage your improvements<br>
+          - Place a unit on a camp to destroy it (respawns in 10 turns)<br>
+          - Workers can repair pillaged buildings within 2 turns<br>
+          - Settle on camps or city sites to found new cities<br>
+          <br>
+          <b style="color:#b8a070;">Win Conditions</b><br>
+          - Score system: cities, territory, techs, military, conquests<br>
+          - Domination victory: eliminate all rivals<br>
+          - Score victory at turn 200: highest score wins<br>
+          - Victory/defeat screens with full score breakdown<br>
+          <br>
+          <b style="color:#b8a070;">Smarter AI</b><br>
+          - AI garrisons undefended cities in peacetime<br>
+          - Wounded AI units retreat to heal<br>
+          - AI prioritizes high-value targets in combat<br>
+          - Dynamic expansion based on available sites and military<br>
+          - Strategic tech selection (military when at war, economy in peace)<br>
+          - Threat-aware production: builds army when enemies are near<br>
+          - AI offers peace treaties (accept/reject in Kingdoms panel)<br>
+          - AI units no longer get stuck on coastlines<br>
+          <br>
+          <b style="color:#b8a070;">UI</b><br>
+          - Attack power and unit stats shown in panels<br>
+          - Turn counter and score in top bar<br>
+          - Military strength and score in Kingdoms panel<br>
+          - Tile yield info in tooltips<br>
+          - Hotkey reference panel<br>
+          - Naval units can now use go-to orders on water<br>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Alpha 0.6</b> <span style="color:#888;font-size:11px;">(Save v6)</span></div>
+        <div style="margin-bottom:12px;">
+          - Go-to orders for multi-turn movement<br>
+          - Ranged combat (crossbowmen, musketeers, etc.)<br>
+          - Unit movement animations<br>
+          - Interactive tutorial for new players<br>
+          - Napoleonic-era units: riflemen, grenadiers, hussars, dragoons, field guns<br>
+          - Naval units: frigates, galleons, men-of-war<br>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Alpha 0.4</b> <span style="color:#888;font-size:11px;">(Save v4)</span></div>
+        <div style="margin-bottom:12px;">
+          - Village sprites and hex art<br>
+          - Perimeter borders for territories<br>
+          - Science system and tech tree<br>
+          - Sound effects and ambient birds<br>
+          - Minimap and camera improvements<br>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Alpha 0.1</b></div>
+        <div>
+          - Initial release: hex map, cities, units, basic AI, diplomacy<br>
+        </div>
+      </div>
+      <button class="esc-btn" onclick="hideUpdateLog()" style="margin-top:8px;">Back</button>
     </div>
     <div id="escOptions" style="display:none;">
       <h2>Options</h2>
@@ -2821,7 +2889,7 @@ function openEscMenu() {
   document.getElementById('escMain').style.display = 'block';
   document.getElementById('escOptions').style.display = 'none';
 }
-function closeEscMenu() { document.getElementById('escMenu').classList.remove('show'); escMenuOpen = false; document.getElementById('escSave').style.display = 'none'; document.getElementById('escHotkeys').style.display = 'none'; document.getElementById('escMain').style.display = 'block'; }
+function closeEscMenu() { document.getElementById('escMenu').classList.remove('show'); escMenuOpen = false; document.getElementById('escSave').style.display = 'none'; document.getElementById('escHotkeys').style.display = 'none'; document.getElementById('escUpdateLog').style.display = 'none'; document.getElementById('escMain').style.display = 'block'; }
 function showOptionsPanel() {
   document.getElementById('escMain').style.display = 'none';
   document.getElementById('escOptions').style.display = 'block';
@@ -2837,6 +2905,14 @@ function showHotkeyPanel() {
 }
 function hideHotkeyPanel() {
   document.getElementById('escHotkeys').style.display = 'none';
+  document.getElementById('escMain').style.display = 'block';
+}
+function showUpdateLog() {
+  document.getElementById('escMain').style.display = 'none';
+  document.getElementById('escUpdateLog').style.display = 'block';
+}
+function hideUpdateLog() {
+  document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
 function showSavePanel() {
@@ -2900,6 +2976,8 @@ window.showSetup = showSetup;
 window.cancelSetup = cancelSetup;
 window.confirmSetupAndStart = confirmSetupAndStart;
 window.showOptionsPanel = showOptionsPanel;
+window.showUpdateLog = showUpdateLog;
+window.hideUpdateLog = hideUpdateLog;
 window.hideOptionsPanel = hideOptionsPanel;
 window.toggleMusic = toggleMusic;
 
