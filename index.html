@@ -292,9 +292,9 @@
       <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-width:340px;margin:0 auto;max-height:400px;overflow-y:auto;">
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
-          <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know on<br><a href="https://github.com/DeadlyDog3000/Standards-In-Smoke/issues" target="_blank" style="color:#6af;text-decoration:underline;">GitHub Issues</a></div>
+          <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 0.9</b> <span style="color:#888;font-size:11px;">(Save v7)</span></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 0.9</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">Balance</b><br>
           - Unit HP now varies by type (grenadiers tanky, ranged units fragile)<br>
@@ -334,6 +334,10 @@
           - Hotkey reference panel<br>
           - Naval units can now use go-to orders on water<br>
           - Camera waits for movement animation before cycling to next unit<br>
+          - Science lab can now be built with just 1 city (was requiring 2)<br>
+          - Compact save format reduces save size ~60%<br>
+          - Delete buttons on save slots to free storage<br>
+          - Fixed ESC key causing browser zoom<br>
           - Update log shown on first launch per version<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Alpha 0.6</b> <span style="color:#888;font-size:11px;">(Save v6)</span></div>
@@ -1165,7 +1169,7 @@ function canBuildImprovement(worker, impKey) {
   if (impKey === 'science_lab') {
     const labCount = tiles.filter(t => t.improvement === 'science_lab' && t.owner === worker.nationId).length;
     const cityCount = cities.filter(c => c.nationId === worker.nationId).length;
-    if (labCount >= Math.floor(cityCount / 2)) return false;
+    if (labCount >= Math.max(1, Math.floor(cityCount / 2))) return false;
   }
   const cost = getImprovementCost(impKey, worker.nationId);
   for (const k in cost) if ((n[k] || 0) < cost[k]) return false;
