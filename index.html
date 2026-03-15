@@ -162,7 +162,7 @@
 
     /* Notification toast */
     #toast {
-      position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 50;
+      position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 110;
       background: rgba(30, 25, 18, 0.95); border: 1px solid rgba(210, 180, 100, 0.6); border-radius: 4px;
       padding: 8px 18px; font-size: 13px; color: #e0c880; display: none; white-space: nowrap;
       transition: opacity 0.3s;
@@ -243,7 +243,7 @@
   <div id="escMenuBox">
     <div id="escMain">
       <h2>Paused</h2>
-      <button class="esc-btn" onclick="saveGame(); showToast('Game saved!');">Save Game</button>
+      <button class="esc-btn" onclick="if(saveGame()) showToast('Game saved!');">Save Game</button>
       <button class="esc-btn" onclick="closeEscMenu()">Resume</button>
       <button class="esc-btn" onclick="showOptionsPanel()">Options</button>
       <button class="esc-btn" onclick="quitToMenu()">Quit to Menu</button>
@@ -270,7 +270,7 @@ const mctx = minimapCanvas.getContext('2d');
 
 let MAP_COLS, MAP_ROWS;
 let VIEW_TILE = 24;
-const MIN_TILE = 8, MAX_TILE = 64;
+const MIN_TILE = 8, MAX_TILE = 128;
 
 // ====================
 // HEX TILE IMAGES
@@ -327,6 +327,7 @@ function pixelToHex(px, py) {
   const w = hexWidth();
   const ch = hexCellH();
   const cs = hexColStep();
+  const facePad = Math.round(w * 1.5 * 4 / 48);
   // Approximate column
   const col = Math.round(px / cs);
   // Adjust row for column offset
@@ -336,7 +337,7 @@ function pixelToHex(px, py) {
   for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) {
     const tc = col + dc, tr = row + dr;
     const tl = hexToPixel(tc, tr);
-    const cx = tl.x + w / 2, cy = tl.y + ch / 2;
+    const cx = tl.x + w / 2, cy = tl.y + facePad + ch / 2;
     const dx = px - cx, dy = py - cy;
     const dist = dx * dx + dy * dy;
     if (dist < bestDist) { bestDist = dist; bestCol = tc; bestRow = tr; }
@@ -387,8 +388,50 @@ bgMusic.addEventListener('ended', () => {
 });
 const clickSound = new Audio('universfield-computer-mouse-click-352734.mp3');
 clickSound.volume = 0.35;
+const achievementSound = new Audio('denielcz-achievement-unlocked-463070.mp3');
+achievementSound.volume = 0.45;
+const chopSound = new Audio('alexzavesa-boards-fall-3-468369.mp3');
+chopSound.volume = 0.5;
+const birdSound = new Audio('eco-art-the-sound-of-birds-in-the-woods-165002.mp3');
+birdSound.loop = true; birdSound.volume = 0;
+let birdsPlaying = false;
 function playClick() { const s = clickSound.cloneNode(); s.volume = 0.35; s.play().catch(() => {}); }
 function playHover() { const s = clickSound.cloneNode(); s.volume = 0.12; s.playbackRate = 1.3; s.play().catch(() => {}); }
+function playAchievement() { const s = achievementSound.cloneNode(); s.volume = 0.45; s.play().catch(() => {}); }
+function playChop() { const s = chopSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {}); }
+function updateAmbientBirds() {
+  if (!musicEnabled) { if (birdsPlaying) { birdSound.pause(); birdsPlaying = false; } return; }
+  let forestVisible = false;
+  if (VIEW_TILE >= 28) {
+    const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
+    const startRow = Math.max(0, camY);
+    const endRow = Math.min(MAP_ROWS, camY + Math.ceil(canvas.height / ch) + 2);
+    const startCol = Math.max(0, camX);
+    const endCol = Math.min(MAP_COLS, camX + Math.ceil(canvas.width / cs) + 2);
+    for (let my = startRow; my < endRow && !forestVisible; my++) {
+      for (let mx = startCol; mx < endCol; mx++) {
+        if (tiles[my * MAP_COLS + mx].type === 5) { forestVisible = true; break; }
+      }
+    }
+  }
+  // Volume scales with zoom: louder the more you zoom in
+  const targetVol = forestVisible ? Math.min(0.6, (VIEW_TILE - 28) / 100 * 0.6 + 0.1) : 0;
+  if (forestVisible && !birdsPlaying) {
+    birdSound.volume = 0;
+    birdSound.play().catch(() => {});
+    birdsPlaying = true;
+  }
+  if (birdsPlaying) {
+    // Smoothly approach target volume
+    const diff = targetVol - birdSound.volume;
+    if (Math.abs(diff) < 0.005) {
+      birdSound.volume = targetVol;
+      if (targetVol <= 0) { birdSound.pause(); birdsPlaying = false; }
+    } else {
+      birdSound.volume = Math.max(0, Math.min(0.6, birdSound.volume + diff * 0.15));
+    }
+  }
+}
 
 const TILE_COLORS = {
   ocean: '#5b8ecf',   // light blue matching water sprite
@@ -432,14 +475,15 @@ const UNIT_DEFS = {
 
 const IMPROVEMENT_DEFS = {
   farm:        { name: 'Farm', icon: '\uD83C\uDF3E', yields: { food: 3 }, cost: { wood: 5 }, validOn: [1, 3] },
-  market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: {}, validOn: [1] },
+  market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: { gold: 6 }, validOn: [1], scalingCost: true },
   mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2 }, cost: { wood: 5 }, validOn: [1, 2] },
   quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2] },
   steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 40, steel: 50 }, validOn: [1] },
   urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1] },
   pasture:     { name: 'Pasture', icon: '\uD83D\uDC11', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [6], tech: 'animal_husbandry' },
   barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1], tech: 'agriculture' },
-  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 3 }, cost: { stone: 20, gold: 30 }, validOn: [1], tech: 'scientific_method' },
+  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 3 }, cost: { stone: 20, gold: 30 }, validOn: [1] },
+  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 3 }, cost: { stone: 20, gold: 30 }, validOn: [1] },
   port:        { name: 'Port', icon: '\u2693', yields: { gold: 2, food: 1 }, cost: { wood: 20, stone: 15 }, validOn: [1], tech: 'navigation', coastal: true },
 };
 
@@ -475,7 +519,6 @@ const TECHS = {
   // PRODUCTION
   animal_husbandry:  { name: 'Animal Husbandry', section: 'production', cost: 30, prereqs: [], unlocks: ['pasture'], desc: 'Unlock pasture improvement for herd tiles.' },
   agriculture:       { name: 'Agriculture', section: 'production', cost: 40, prereqs: ['animal_husbandry'], unlocks: ['barn'], desc: 'Unlock barn improvement for extra food.' },
-  scientific_method: { name: 'Scientific Method', section: 'production', cost: 60, prereqs: [], unlocks: ['science_lab'], desc: 'Unlock science labs that produce science.' },
   // GROWTH
   advanced_scouting: { name: 'Advanced Scouting', section: 'growth', cost: 35, prereqs: [], unlocks: ['veteran_scout'], desc: 'Unlock veteran scout with extended range.' },
   engineering:       { name: 'Engineering', section: 'growth', cost: 45, prereqs: [], unlocks: ['veteran_worker'], desc: 'Unlock veteran worker, faster and more efficient.' },
@@ -504,7 +547,7 @@ function researchTech(nationId, techKey) {
   if (!nationCanResearch(nationId, techKey)) return false;
   nations[nationId].science -= tech.cost;
   nations[nationId].researched.add(techKey);
-  if (nationId === playerNation) showToast(`Researched ${tech.name}!`);
+  if (nationId === playerNation) { showToast(`Researched ${tech.name}!`); playAchievement(); }
   return true;
 }
 
@@ -786,7 +829,7 @@ function foundCity(unit) {
 }
 
 function getCityYields(city) {
-  const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0 };
+  const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0.12 };
   for (const ti of city.ownedTiles) {
     const t = tiles[ti];
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
@@ -812,16 +855,22 @@ function getTotalYields(nationId) {
 // ====================
 // PRODUCTION
 // ====================
+function getScienceBoost(nationId) {
+  const y = getTotalYields(nationId);
+  return 1 + y.science * 0.1; // each science/turn gives +10% production speed
+}
+
 function getProductionTurns(city) {
   if (!city.producing) return 0;
   const costs = PRODUCTION_COSTS[city.producing];
   let total = 0; for (const k in costs) total += costs[k];
-  return Math.max(1, Math.ceil((total - city.productionProgress) / 5));
+  const rate = 5 * getScienceBoost(city.nationId);
+  return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
 function tickProduction(city) {
   if (!city.producing) return;
-  city.productionProgress += 5;
+  city.productionProgress += 5 * getScienceBoost(city.nationId);
   const costs = PRODUCTION_COSTS[city.producing];
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
@@ -840,7 +889,7 @@ function tickProduction(city) {
         if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
       }
       spawnUnit(city.producing, city.nationId, sx, sy);
-      if (city.nationId === playerNation) showToast(`${city.name} produced a ${city.producing}!`);
+      if (city.nationId === playerNation) { showToast(`${city.name} produced a ${city.producing}!`); playAchievement(); }
     }
     city.producing = null; city.productionProgress = 0;
   }
@@ -849,6 +898,17 @@ function tickProduction(city) {
 // ====================
 // IMPROVEMENTS
 // ====================
+function getImprovementCost(impKey, nationId) {
+  const imp = IMPROVEMENT_DEFS[impKey];
+  const cost = {};
+  for (const k in imp.cost) cost[k] = imp.cost[k];
+  if (imp.scalingCost) {
+    const count = tiles.filter(t => t.owner === nationId && t.improvement === impKey).length;
+    for (const k in cost) cost[k] = Math.round(cost[k] * Math.pow(6, count));
+  }
+  return cost;
+}
+
 function canBuildImprovement(worker, impKey) {
   const n = nations[worker.nationId];
   const imp = IMPROVEMENT_DEFS[impKey];
@@ -858,13 +918,15 @@ function canBuildImprovement(worker, impKey) {
   if (!imp.validOn.includes(t.type)) return false;
   if (imp.tech && !nationHasTech(worker.nationId, imp.tech)) return false;
   if (imp.coastal && !isCoastal(worker.x, worker.y)) return false;
-  for (const k in imp.cost) if ((n[k] || 0) < imp.cost[k]) return false;
+  const cost = getImprovementCost(impKey, worker.nationId);
+  for (const k in cost) if ((n[k] || 0) < cost[k]) return false;
   return true;
 }
 
 function buildImprovement(worker, impKey) {
   const n = nations[worker.nationId]; const imp = IMPROVEMENT_DEFS[impKey];
-  for (const k in imp.cost) n[k] -= imp.cost[k];
+  const cost = getImprovementCost(impKey, worker.nationId);
+  for (const k in cost) n[k] -= cost[k];
   tiles[worker.y * MAP_COLS + worker.x].improvement = impKey;
   worker.movesLeft = 0;
 }
@@ -873,7 +935,9 @@ function chopForest(worker) {
   const i = worker.y * MAP_COLS + worker.x; const t = tiles[i];
   if (t.type !== 5) return;
   nations[worker.nationId].wood += 15;
-  t.type = 1; t.color = TILE_COLORS.land; t.baseColor = TILE_COLORS.land; t.spriteKey = 'Grass';
+  const pv = TILE_SPRITES[1];
+  t.type = 1; t.color = TILE_COLORS.land; t.baseColor = TILE_COLORS.land; t.spriteKey = pv[Math.floor(Math.random() * pv.length)];
+  if (worker.nationId === playerNation) playChop();
   worker.movesLeft = 0;
 }
 
@@ -1202,6 +1266,90 @@ function drawHexPath(context, x, y, w, cellH) {
   context.closePath();
 }
 
+// Draw a single edge of a flat-top hex (edgeIndex 0-5: top, top-right, bottom-right, bottom, bottom-left, top-left)
+function drawHexEdge(context, x, y, w, cellH, edgeIndex) {
+  const cx = x + w / 2, cy = y + cellH / 2;
+  const hw = w / 2, hh = cellH / 2;
+  const verts = [
+    [cx - hw * 0.5, cy - hh],  // 0: top-left
+    [cx + hw * 0.5, cy - hh],  // 1: top-right
+    [cx + hw,       cy],        // 2: right
+    [cx + hw * 0.5, cy + hh],  // 3: bottom-right
+    [cx - hw * 0.5, cy + hh],  // 4: bottom-left
+    [cx - hw,       cy],        // 5: left
+  ];
+  const v1 = verts[edgeIndex];
+  const v2 = verts[(edgeIndex + 1) % 6];
+  context.beginPath();
+  context.moveTo(v1[0], v1[1]);
+  context.lineTo(v2[0], v2[1]);
+  context.stroke();
+}
+
+// Draw a small Napoleon-era village overlay on city tiles
+function drawVillageOverlay(context, x, y, w, h) {
+  const cx = x + w * 0.5;
+  const baseY = y + h * 0.45; // sit buildings on the hex face area
+
+  // --- Left building (small house) ---
+  const lbx = cx - w * 0.28;
+  const lbw = w * 0.2, lbh = h * 0.14;
+  context.fillStyle = '#c4a46a';
+  context.fillRect(lbx, baseY - lbh, lbw, lbh);
+  // Roof
+  context.fillStyle = '#6b3a2a';
+  context.beginPath();
+  context.moveTo(lbx - w * 0.02, baseY - lbh);
+  context.lineTo(lbx + lbw * 0.5, baseY - lbh - h * 0.1);
+  context.lineTo(lbx + lbw + w * 0.02, baseY - lbh);
+  context.closePath();
+  context.fill();
+
+  // --- Right building (small house) ---
+  const rbx = cx + w * 0.08;
+  const rbw = w * 0.22, rbh = h * 0.15;
+  context.fillStyle = '#b89860';
+  context.fillRect(rbx, baseY - rbh, rbw, rbh);
+  // Roof
+  context.fillStyle = '#7a4433';
+  context.beginPath();
+  context.moveTo(rbx - w * 0.02, baseY - rbh);
+  context.lineTo(rbx + rbw * 0.5, baseY - rbh - h * 0.11);
+  context.lineTo(rbx + rbw + w * 0.02, baseY - rbh);
+  context.closePath();
+  context.fill();
+
+  // --- Center church (taller, with steeple) ---
+  const chw = w * 0.14, chh = h * 0.2;
+  const chx = cx - chw * 0.5;
+  context.fillStyle = '#d4c49a';
+  context.fillRect(chx, baseY - chh, chw, chh);
+  // Steeple roof (tall pointed)
+  context.fillStyle = '#5a2d1a';
+  context.beginPath();
+  context.moveTo(chx - w * 0.01, baseY - chh);
+  context.lineTo(cx, baseY - chh - h * 0.16);
+  context.lineTo(chx + chw + w * 0.01, baseY - chh);
+  context.closePath();
+  context.fill();
+  // Cross on steeple
+  const crossY = baseY - chh - h * 0.16;
+  context.strokeStyle = '#3a1a0a';
+  context.lineWidth = Math.max(1, w * 0.03);
+  context.beginPath();
+  context.moveTo(cx, crossY - h * 0.04);
+  context.lineTo(cx, crossY);
+  context.moveTo(cx - w * 0.025, crossY - h * 0.025);
+  context.lineTo(cx + w * 0.025, crossY - h * 0.025);
+  context.stroke();
+  context.lineWidth = 1;
+
+  // --- Door on church ---
+  context.fillStyle = '#4a2a1a';
+  const doorW = chw * 0.35, doorH = chh * 0.3;
+  context.fillRect(cx - doorW * 0.5, baseY - doorH, doorW, doorH);
+}
+
 // Helper: screen position for a hex tile (top-left of sprite draw area)
 function hexScreenPos(col, row) {
   const cs = hexColStep(), ch = hexCellH();
@@ -1223,6 +1371,9 @@ function render() {
   const drawH = w * 1.5; // maintain sprite aspect ratio
   // Face padding: the hex face in the sprite starts ~4/48 from top
   const facePad = Math.round(drawH * 4 / 48);
+  // Face height: the actual hex face is a regular flat-top hex (height = w * sqrt(3)/2)
+  // This is taller than ch (the row step) because rows overlap for the isometric cliff effect
+  const faceH = Math.round(w * Math.sqrt(3) / 2);
 
   const startRow = Math.max(0, camY - 1);
   const endRow = Math.min(MAP_ROWS, camY + viewRows + 1);
@@ -1245,6 +1396,9 @@ function render() {
         const img = hexImages[t.spriteKey];
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.drawImage(img, sx, sy, drawW, drawH);
+        }
+        if (t.type === 4 && VIEW_TILE >= 12) {
+          drawVillageOverlay(ctx, sx, sy, drawW, drawH);
         }
         if (t.owner >= 0 && t.owner !== pId) discoverNation(t.owner);
       }
@@ -1274,12 +1428,23 @@ function render() {
     if (t.owner >= 0) {
       const ownerCity = cities.find(c => c.nationId === t.owner && c.contested && c.ownedTiles && c.ownedTiles.has(i));
       ctx.strokeStyle = ownerCity ? '#000000' : nations[t.owner].color;
-      ctx.lineWidth = Math.max(1.5, VIEW_TILE / 10);
-      ctx.globalAlpha = 0.7;
-      drawHexPath(ctx, sx, fy, w, ch);
-      ctx.stroke();
+      ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.85;
+      const neighbors = hexNeighbors(mx, my);
+      const edgeMap = [0, 3, 1, 2, 5, 4];
+      for (let ni = 0; ni < 6; ni++) {
+        const nb = neighbors[ni];
+        const nIdx = nb.row * MAP_COLS + nb.col;
+        const neighborOwner = (nb.col >= 0 && nb.col < MAP_COLS && nb.row >= 0 && nb.row < MAP_ROWS)
+          ? tiles[nIdx].owner : -1;
+        if (neighborOwner !== t.owner) {
+          drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
+        }
+      }
       ctx.globalAlpha = 1.0;
       ctx.lineWidth = 1;
+      ctx.lineCap = 'butt';
     }
   }
 
@@ -1290,7 +1455,7 @@ function render() {
     const pos = hexScreenPos(rx, ry);
     if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
     ctx.fillStyle = buyTileMode ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
-    drawHexPath(ctx, pos.x, pos.y + facePad, w, ch);
+    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
     ctx.fill();
   }
 
@@ -1338,13 +1503,14 @@ function render() {
     if (tiles[hi].revealed.has(pId)) {
       const pos = hexScreenPos(hoveredMX, hoveredMY);
       ctx.fillStyle = tiles[hi].type === 0 ? 'rgba(150,150,150,0.4)' : 'rgba(255,255,255,0.25)';
-      drawHexPath(ctx, pos.x, pos.y + facePad, w, ch);
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
       ctx.fill();
     }
   }
 
   updateCityLabels();
   renderMinimap();
+  updateAmbientBirds();
   document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
   document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
 }
@@ -1446,7 +1612,8 @@ function showUnitPanel(unit) {
       html += '<div class="section-title">Build Improvement</div>';
       for (const key in IMPROVEMENT_DEFS) {
         const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
-        const costStr = Object.entries(imp.cost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
+        const currentCost = getImprovementCost(key, unit.nationId);
+        const costStr = Object.entries(currentCost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
         const yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
         html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} \u2192 ${yieldStr}</span></button>`;
       }
@@ -2032,19 +2199,20 @@ window.doSettle = function() {
   const city = foundCity(selectedUnit);
   if (pendingName) city.name = pendingName;
   showToast(`${city.name} has been founded!`);
+  playAchievement();
   hidePanel(); updateUI(); render();
 };
 
 window.confirmSettle = confirmSettle;
 
 window.doChop = function() {
-  if (!selectedUnit || selectedUnit.type !== 'worker') return;
+  if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   chopForest(selectedUnit);
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 
 window.doBuild = function(key) {
-  if (!selectedUnit || selectedUnit.type !== 'worker') return;
+  if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   buildImprovement(selectedUnit, key);
   showToast(`Built ${IMPROVEMENT_DEFS[key].name}`);
   showUnitPanel(selectedUnit); updateUI(); render();
@@ -2111,10 +2279,17 @@ function deserializeGame(json) {
 
 function saveGame(slot) {
   slot = slot || 'auto';
-  const data = serializeGame();
-  const meta = { nation: nations[playerNation].name, turn: turnNumber, date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}` };
-  localStorage.setItem('sis_save_' + slot, data);
-  localStorage.setItem('sis_meta_' + slot, JSON.stringify(meta));
+  try {
+    const data = serializeGame();
+    const meta = { nation: nations[playerNation].name, turn: turnNumber, date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}` };
+    localStorage.setItem('sis_save_' + slot, data);
+    localStorage.setItem('sis_meta_' + slot, JSON.stringify(meta));
+    return true;
+  } catch (e) {
+    console.error('Save failed:', e);
+    showToast('Save failed! Storage may be full.');
+    return false;
+  }
 }
 
 function autoSave() {
@@ -2224,14 +2399,9 @@ function generateAndPlay(pName, pColor, opponents) {
   pColor = pColor || '#4488cc';
   playerNation = createNation(pName, pColor, true);
 
-  // Spawn near a random map edge, not the center
-  const edge = Math.floor(Math.random() * 4);
-  let rx, ry;
-  const margin = 8;
-  if (edge === 0) { rx = margin + Math.floor(Math.random() * (MAP_COLS / 4)); ry = margin + Math.floor(Math.random() * MAP_ROWS * 0.8); } // left
-  else if (edge === 1) { rx = MAP_COLS - margin - Math.floor(Math.random() * (MAP_COLS / 4)); ry = margin + Math.floor(Math.random() * MAP_ROWS * 0.8); } // right
-  else if (edge === 2) { rx = margin + Math.floor(Math.random() * MAP_COLS * 0.8); ry = margin + Math.floor(Math.random() * (MAP_ROWS / 4)); } // top
-  else { rx = margin + Math.floor(Math.random() * MAP_COLS * 0.8); ry = MAP_ROWS - margin - Math.floor(Math.random() * (MAP_ROWS / 4)); } // bottom
+  // Spawn in the middle of the map
+  const rx = Math.floor(MAP_COLS / 2);
+  const ry = Math.floor(MAP_ROWS / 2);
   const sp = findLandNear(rx, ry, 20);
 
   // Spawn settler, found city, spawn starting units
