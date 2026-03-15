@@ -1,0 +1,2297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standards In Smoke</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: system-ui, sans-serif; color: #e8dcc8; user-select: none; }
+
+    /* Main Menu */
+    #menu {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; gap: 14px;
+      background: url('main_image.jpg') center center / cover no-repeat;
+      position: relative;
+    }
+    #menu::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(10, 8, 5, 0.55);
+      z-index: 0;
+    }
+    #menu > * { position: relative; z-index: 1; }
+    #menu h1 { font-size: 48px; color: #f0e2c0; text-shadow: 2px 2px 6px rgba(0,0,0,0.8), 0 0 20px rgba(180,140,60,0.3); margin-bottom: 2px; letter-spacing: 2px; }
+    #menu h2 { font-size: 18px; color: #c8b89a; font-weight: normal; margin-bottom: 12px; text-shadow: 1px 1px 3px #000; }
+    .menu-btn {
+      padding: 12px 32px; font-size: 18px;
+      background: rgba(240, 230, 210, 0.18); color: #fff;
+      border: 1px solid rgba(200, 180, 140, 0.5); border-radius: 4px; cursor: pointer; min-width: 260px; text-align: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      backdrop-filter: blur(2px);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    .menu-btn:hover { background: rgba(240, 230, 210, 0.3); border-color: rgba(220, 190, 120, 0.7); transform: scale(1.02); }
+    .menu-btn:active { transform: scale(0.97); }
+    .menu-sep { height: 1px; width: 200px; background: rgba(200, 180, 140, 0.3); margin: 4px 0; }
+    .save-slot { font-size: 14px; min-width: 260px; }
+    .save-slot .slot-info { font-size: 11px; color: #b8a88a; display: block; margin-top: 2px; }
+
+    /* Game */
+    #game { display: none; position: relative; width: 100%; height: 100%; }
+    canvas { display: block; image-rendering: pixelated; }
+
+    /* Top Bar */
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 36px; z-index: 30;
+      background: rgba(30, 25, 18, 0.92); border-bottom: 1px solid rgba(160, 140, 100, 0.3);
+      display: flex; align-items: center; padding: 0 10px; gap: 14px; font-size: 13px;
+      color: #e8dcc8;
+    }
+    .res { display: flex; align-items: center; gap: 3px; position: relative; }
+    .res-icon { width: 13px; height: 13px; border-radius: 2px; display: inline-block; }
+    .res-val { font-weight: bold; min-width: 28px; }
+    .res-rate { font-size: 10px; color: #8a9a6a; }
+    #topbar .spacer { flex: 1; }
+    .top-btn {
+      padding: 4px 12px; font-size: 12px;
+      background: rgba(220, 210, 190, 0.12); color: #fff;
+      border: 1px solid rgba(180, 160, 120, 0.4); border-radius: 3px; cursor: pointer; white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s, transform 0.08s;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .top-btn:hover { background: rgba(220, 210, 190, 0.25); border-color: rgba(210, 180, 100, 0.6); }
+    .top-btn:active { transform: scale(0.95); }
+    .top-btn.end-turn { background: rgba(140, 60, 40, 0.25); border-color: rgba(180, 90, 60, 0.5); }
+    .top-btn.end-turn:hover { background: rgba(160, 70, 45, 0.35); }
+
+    /* Panel (right side) */
+    #panel {
+      display: none; position: fixed; right: 10px; bottom: 10px; width: 300px; max-height: 70vh;
+      overflow-y: auto; background: rgba(30, 25, 18, 0.93); border: 1px solid rgba(160, 140, 100, 0.3);
+      border-radius: 6px; padding: 14px; z-index: 25; font-size: 13px;
+    }
+    #panel h3 { color: #e0c880; margin-bottom: 6px; font-size: 15px; }
+    #panel p { color: #c8b8a0; margin-bottom: 10px; line-height: 1.4; }
+    .p-btn {
+      display: block; width: 100%; padding: 7px 12px; margin-bottom: 5px; font-size: 13px;
+      background: rgba(220, 210, 190, 0.1); color: #fff; border: 1px solid rgba(180, 160, 120, 0.3); border-radius: 3px;
+      cursor: pointer; text-align: left; transition: background 0.12s, border-color 0.12s, transform 0.08s;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .p-btn:hover { background: rgba(220, 210, 190, 0.22); border-color: rgba(210, 180, 100, 0.6); transform: translateX(2px); }
+    .p-btn:active { transform: scale(0.97); }
+    .p-btn:disabled { opacity: 0.35; cursor: default; }
+    .p-btn:disabled:hover { background: rgba(220, 210, 190, 0.08); border-color: rgba(180, 160, 120, 0.3); }
+    .p-btn .cost { float: right; color: #a89878; font-size: 11px; }
+    .section-title { color: #9a8a6a; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 5px; }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 10px; }
+    .tab-btn {
+      flex: 1; padding: 5px 8px; font-size: 12px; background: rgba(20, 16, 10, 0.6); color: #a89878;
+      border: 1px solid rgba(140, 120, 80, 0.25); border-radius: 4px 4px 0 0; cursor: pointer; text-align: center;
+    }
+    .tab-btn.active { background: rgba(220, 210, 190, 0.12); color: #e0c880; border-color: rgba(180, 160, 120, 0.4); }
+
+    /* Kingdoms Sidebar */
+    #kingdoms {
+      display: none; position: fixed; left: 10px; top: 46px; width: 220px; max-height: 60vh;
+      overflow-y: auto; background: rgba(30, 25, 18, 0.93); border: 1px solid rgba(160, 140, 100, 0.3);
+      border-radius: 6px; padding: 14px; z-index: 25; font-size: 13px; color: #e8dcc8;
+    }
+    #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
+    .kingdom-row {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(140, 120, 80, 0.2); flex-wrap: wrap;
+    }
+    .kingdom-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(180, 160, 120, 0.4); flex-shrink: 0; }
+    .kingdom-name { flex: 1; min-width: 60px; }
+    .kingdom-status { font-size: 11px; }
+    .diplo-btn {
+      padding: 2px 8px; font-size: 11px; background: rgba(220, 210, 190, 0.1); color: #fff;
+      border: 1px solid rgba(180, 160, 120, 0.3); border-radius: 3px; cursor: pointer;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .diplo-btn:hover { background: rgba(220, 210, 190, 0.2); border-color: rgba(210, 180, 100, 0.6); }
+
+    /* City labels */
+    .city-label {
+      position: absolute; color: #fff; font-size: 11px; font-weight: bold;
+      text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
+      pointer-events: none; white-space: nowrap; transform: translateX(-50%); z-index: 15;
+    }
+
+    /* Turn indicator */
+    #turnInfo {
+      position: fixed; top: 38px; right: 10px; font-size: 12px; color: #a89878; z-index: 25;
+      background: rgba(30, 25, 18, 0.8); padding: 3px 8px; border-radius: 3px;
+    }
+
+    /* Zoom indicator */
+    #zoomInfo {
+      position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #8a7a5a; z-index: 25;
+      background: rgba(30, 25, 18, 0.8); padding: 3px 8px; border-radius: 3px;
+    }
+
+    /* ESC Menu Overlay */
+    #escMenu {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(10, 8, 5, 0.7); justify-content: center; align-items: center;
+    }
+    #escMenu.show { display: flex; }
+    #escMenuBox {
+      background: rgba(30, 25, 18, 0.95); border: 1px solid rgba(160, 140, 100, 0.35); border-radius: 8px;
+      padding: 28px 36px; min-width: 280px; text-align: center;
+    }
+    #escMenuBox h2 { color: #e0c880; margin-bottom: 18px; font-size: 22px; }
+    .esc-btn {
+      display: block; width: 100%; padding: 10px 16px; margin-bottom: 8px; font-size: 15px;
+      background: rgba(220, 210, 190, 0.1); color: #fff; border: 1px solid rgba(180, 160, 120, 0.3); border-radius: 4px;
+      cursor: pointer; text-align: center; transition: background 0.12s, border-color 0.12s, transform 0.08s;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .esc-btn:hover { background: rgba(220, 210, 190, 0.22); border-color: rgba(210, 180, 100, 0.6); transform: scale(1.02); }
+    .esc-btn:active { transform: scale(0.96); }
+
+    /* Minimap */
+    #minimap {
+      position: fixed; bottom: 10px; left: 10px; border: 1px solid rgba(160, 140, 100, 0.35); z-index: 20;
+      image-rendering: pixelated; background: #1a1610; border-radius: 3px;
+    }
+
+    /* Notification toast */
+    #toast {
+      position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 50;
+      background: rgba(30, 25, 18, 0.95); border: 1px solid rgba(210, 180, 100, 0.6); border-radius: 4px;
+      padding: 8px 18px; font-size: 13px; color: #e0c880; display: none; white-space: nowrap;
+      transition: opacity 0.3s;
+    }
+
+    /* Tile tooltip */
+    #tileTooltip {
+      position: fixed; z-index: 40; pointer-events: none; display: none;
+      background: rgba(30, 25, 18, 0.93); border: 1px solid rgba(160, 140, 100, 0.4);
+      border-radius: 4px; padding: 6px 10px; font-size: 12px; color: #e8dcc8;
+      white-space: nowrap; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+      line-height: 1.5;
+    }
+    #tileTooltip .tt-title { color: #e0c880; font-weight: bold; font-size: 13px; }
+    #tileTooltip .tt-detail { color: #b8a888; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>Standards In Smoke</h1>
+  <h2>A Napoleonic-Era Strategy Game</h2>
+  <div id="menuMain">
+    <button class="menu-btn" onclick="showSetup(60, 40)">Small Map (60x40)</button>
+    <button class="menu-btn" onclick="showSetup(120, 80)">Medium Map (120x80)</button>
+    <button class="menu-btn" onclick="showSetup(200, 130)">Large Map (200x130)</button>
+    <button class="menu-btn" onclick="showSetup(300, 200)">Huge Map (300x200)</button>
+    <div class="menu-sep"></div>
+    <div id="saveSlots"></div>
+  </div>
+  <div id="menuSetup" style="display:none;text-align:center;">
+    <h3 style="color:#e0c880;margin-bottom:14px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Customize Your Kingdom</h3>
+    <label style="font-size:14px;color:#c8b89a;">Kingdom Name</label><br>
+    <input id="setupName" type="text" maxlength="24" style="margin:6px 0 14px;padding:8px 14px;width:240px;font-size:16px;background:rgba(20,16,10,0.6);color:#e8dcc8;border:1px solid rgba(180,160,120,0.35);border-radius:4px;text-align:center;" /><br>
+    <label style="font-size:14px;color:#c8b89a;">Banner Colour</label><br>
+    <input id="setupColor" type="color" value="#4488cc" style="margin:6px 0 14px;width:80px;height:36px;background:none;border:1px solid rgba(180,160,120,0.35);border-radius:4px;cursor:pointer;" /><br>
+    <label style="font-size:14px;color:#c8b89a;">Opponents</label><br>
+    <select id="setupOpponents" style="margin:6px 0 14px;padding:8px 14px;width:240px;font-size:16px;background:rgba(20,16,10,0.6);color:#e8dcc8;border:1px solid rgba(180,160,120,0.35);border-radius:4px;text-align:center;">
+      <option value="1">1 Opponent</option>
+      <option value="2">2 Opponents</option>
+      <option value="3" selected>3 Opponents</option>
+      <option value="4">4 Opponents</option>
+      <option value="5">5 Opponents</option>
+      <option value="6">6 Opponents</option>
+    </select><br>
+    <button class="menu-btn" onclick="confirmSetupAndStart()" style="margin-top:6px;">Begin Campaign</button>
+    <button class="menu-btn" onclick="cancelSetup()" style="margin-top:6px;font-size:14px;min-width:160px;">Back</button>
+  </div>
+</div>
+
+<div id="game">
+  <canvas id="map"></canvas>
+  <canvas id="minimap" width="160" height="100"></canvas>
+  <div id="topbar">
+    <div class="res"><span class="res-icon" style="background:#d4a856"></span><span>Gold:</span><span class="res-val" id="resGold">0</span><span class="res-rate" id="rateGold"></span></div>
+    <div class="res"><span class="res-icon" style="background:#8bc34a"></span><span>Food:</span><span class="res-val" id="resFood">0</span><span class="res-rate" id="rateFood"></span></div>
+    <div class="res"><span class="res-icon" style="background:#8d6e3f"></span><span>Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
+    <div class="res"><span class="res-icon" style="background:#9e9e9e"></span><span>Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
+    <div class="res"><span class="res-icon" style="background:#607d8b"></span><span>Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
+    <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span>Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
+    <div class="spacer"></div>
+    <div class="res"><span>Orders:</span><span class="res-val" id="resOrders">0</span></div>
+    <button class="top-btn" onclick="showTechTree()">Tech Tree</button>
+    <button class="top-btn" onclick="toggleKingdoms()">Kingdoms</button>
+    <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()">End Turn</button>
+  </div>
+  <div id="turnInfo">Turn 1</div>
+  <div id="zoomInfo"></div>
+  <div id="panel"></div>
+  <div id="kingdoms"></div>
+  <div id="labels"></div>
+  <div id="toast"></div>
+  <div id="tileTooltip"></div>
+</div>
+
+<!-- ESC Menu -->
+<div id="escMenu">
+  <div id="escMenuBox">
+    <div id="escMain">
+      <h2>Paused</h2>
+      <button class="esc-btn" onclick="saveGame(); showToast('Game saved!');">Save Game</button>
+      <button class="esc-btn" onclick="closeEscMenu()">Resume</button>
+      <button class="esc-btn" onclick="showOptionsPanel()">Options</button>
+      <button class="esc-btn" onclick="quitToMenu()">Quit to Menu</button>
+    </div>
+    <div id="escOptions" style="display:none;">
+      <h2>Options</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:15px;">Music</span>
+        <button class="esc-btn" id="musicToggleBtn" onclick="toggleMusic()" style="width:auto;margin:0;padding:6px 18px;">On</button>
+      </div>
+      <button class="esc-btn" onclick="hideOptionsPanel()">Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================
+// GLOBALS
+// ====================
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimap');
+const mctx = minimapCanvas.getContext('2d');
+
+let MAP_COLS, MAP_ROWS;
+let VIEW_TILE = 24;
+const MIN_TILE = 8, MAX_TILE = 64;
+
+// ====================
+// HEX TILE IMAGES
+// ====================
+const HEX_IMG_W = 32, HEX_IMG_H = 48; // native sprite size
+const hexImages = {};
+const HEX_TILE_FILES = [
+  'Grass','Grass_Pine','Grass_Plants','Grass_Plants2','Grass_Trees',
+  'Water','Water_Duck','Water_Lilypads',
+  'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
+  'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
+  'FrosenWater','FrosenWater_Lilypads',
+];
+let hexImagesLoaded = 0;
+for (const name of HEX_TILE_FILES) {
+  const img = new Image();
+  img.src = `tiles/${name}.png`;
+  img.onload = () => { hexImagesLoaded++; };
+  hexImages[name] = img;
+}
+
+// Map tile types to hex sprite names (arrays = random variant per tile)
+const TILE_SPRITES = {
+  0: ['Water'],                                            // ocean
+  1: ['Grass', 'Grass_Plants', 'Grass_Plants2'],          // plains
+  2: ['Snow', 'Snow_Patch', 'Snow_Plants'],               // mountain
+  3: ['Dirt', 'Dirt_Sprouts'],                             // swamp
+  4: ['Grass'],                                            // city (drawn with overlay)
+  5: ['Grass_Trees', 'Grass_Pine', 'Grass_Trees', 'Grass_Pine'], // forest (more common variants)
+  6: ['Dirt_Pumpkins', 'Grass_Plants'],                    // herd
+  7: ['Snow_Pine', 'Snow_Trees'],                          // gunpowder
+};
+
+// ====================
+// HEX GEOMETRY HELPERS
+// ====================
+// Flat-top hex sprites (32x48 native, hex body ~32w x 28h).
+// odd-q offset (column-offset): odd columns shift down by half cell height.
+// This makes adjacent columns share angled edges (sides line up).
+function hexWidth() { return Math.round(VIEW_TILE * 1.0); }
+function hexCellH() { return Math.round(hexWidth() * 0.72); } // row step: tighter than face height so rows overlap and cover dirt
+function hexColStep() { return Math.round(hexWidth() * 0.75); } // horizontal column spacing (3/4 width for edge-sharing)
+function hexRowStep() { return hexCellH(); } // vertical row spacing = full cell height
+// Pixel position of hex top-left given col,row (column-offset)
+function hexToPixel(col, row) {
+  const cs = hexColStep();
+  const ch = hexCellH();
+  const x = col * cs;
+  const y = row * ch + (col % 2) * Math.round(ch / 2);
+  return { x, y };
+}
+// Convert pixel (screen) position to hex col,row (column-offset)
+function pixelToHex(px, py) {
+  const w = hexWidth();
+  const ch = hexCellH();
+  const cs = hexColStep();
+  // Approximate column
+  const col = Math.round(px / cs);
+  // Adjust row for column offset
+  const row = Math.round((py - (col % 2) * Math.round(ch / 2)) / ch);
+  // Check neighbors to find closest center
+  let bestCol = col, bestRow = row, bestDist = Infinity;
+  for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) {
+    const tc = col + dc, tr = row + dr;
+    const tl = hexToPixel(tc, tr);
+    const cx = tl.x + w / 2, cy = tl.y + ch / 2;
+    const dx = px - cx, dy = py - cy;
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) { bestDist = dist; bestCol = tc; bestRow = tr; }
+  }
+  return { col: bestCol, row: bestRow };
+}
+// Get hex neighbors (odd-q column-offset)
+function hexNeighbors(col, row) {
+  const even = [[0,-1], [0,1], [1,-1], [1,0], [-1,-1], [-1,0]];
+  const odd  = [[0,-1], [0,1], [1,0], [1,1], [-1,0], [-1,1]];
+  const dirs = (col % 2 === 0) ? even : odd;
+  return dirs.map(([dc, dr]) => ({ col: col + dc, row: row + dr }));
+}
+
+let tiles = [];
+let camX = 0, camY = 0, viewCols, viewRows;
+let nations = [];
+let playerNation = 0;
+let units = [];
+let cities = [];
+let discoveredNations = new Set(); // nation IDs the player has encountered
+let selectedUnit = null, selectedCity = null;
+let moveMode = false, buyTileMode = false;
+let reachableTiles = new Set();
+let turnNumber = 1;
+let hoveredMX = -1, hoveredMY = -1, hoveredUnit = null;
+let lastMouseX = 0, lastMouseY = 0;
+let isDragging = false, dragStartX = 0, dragStartY = 0, dragCamStartX = 0, dragCamStartY = 0, dragMoved = false;
+let escMenuOpen = false;
+let pendingMapCols = 0, pendingMapRows = 0;
+let musicEnabled = true;
+const MUSIC_TRACKS = [
+  'Mozart-Serenade-in-G-major(chosic.com).mp3',
+  'Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).mp3',
+  'scott-buckley-permafrost(chosic.com).mp3',
+  'vifotofreesounds-triumph-486750.mp3',
+  'nnchannel-church-choir-297898.mp3',
+  'tunetank-church-choir-349262.mp3',
+];
+let musicTrackIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
+const bgMusic = new Audio(MUSIC_TRACKS[musicTrackIndex]);
+bgMusic.loop = false; bgMusic.volume = 0.35;
+bgMusic.addEventListener('ended', () => {
+  if (!musicEnabled) return;
+  musicTrackIndex = (musicTrackIndex + 1) % MUSIC_TRACKS.length;
+  bgMusic.src = MUSIC_TRACKS[musicTrackIndex];
+  bgMusic.play().catch(() => {});
+});
+const clickSound = new Audio('universfield-computer-mouse-click-352734.mp3');
+clickSound.volume = 0.35;
+function playClick() { const s = clickSound.cloneNode(); s.volume = 0.35; s.play().catch(() => {}); }
+function playHover() { const s = clickSound.cloneNode(); s.volume = 0.12; s.playbackRate = 1.3; s.play().catch(() => {}); }
+
+const TILE_COLORS = {
+  ocean: '#5b8ecf',   // light blue matching water sprite
+  land: '#7db442',    // lush green matching grass sprite
+  mountain: '#e0ddd5', // pale white matching snow sprite
+  swamp: '#8b6d45',   // mud brown matching dirt sprite
+  city: '#7db442',    // same as grass (cities sit on grass)
+  forest: '#5a8c2a',  // deep green matching tree canopy
+  herd: '#8b7a3e',    // earthy brown-green matching dirt/pumpkin sprite
+  gunpowder: '#c8c4b8', // gray-white matching snow pine sprite
+};
+
+const TILE_NAMES = ['Ocean', 'Plains', 'Mountain', 'Swamp', 'City', 'Forest', 'Herd', 'Gunpowder'];
+const TILE_DESCS = [
+  'Deep water, impassable to land units.',
+  'Open grassland, suitable for farming.',
+  'Rocky highlands, good for mining.',
+  'Wetlands, can be farmed.',
+  'Settled land with buildings.',
+  'Dense woodland, provides wood.',
+  'Roaming animals, a source of food.',
+  'Volatile mineral deposits.',
+];
+
+
+const UNIT_DEFS = {
+  settler:        { moves: 6, vision: 4, icon: '\u2691', desc: 'Colonists ready to found a new city.' },
+  scout:          { moves: 11, vision: 7, icon: '\uD83D\uDD2D', desc: 'Fast cavalry scout on horseback. Excellent vision range.' },
+  worker:         { moves: 6, vision: 4, icon: '\uD83D\uDD28', desc: 'Builds improvements on tiles within city borders.' },
+  swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5 },
+  crossbowman:    { moves: 3, vision: 5, icon: '\uD83C\uDFF9', desc: 'Ranged infantry with crossbow. Attacks from distance.', combat: true, atk: 6, ranged: true },
+  cavalry:        { moves: 7, vision: 5, icon: '\uD83D\uDC0E', desc: 'Fast mounted warriors. Require horses.', combat: true, atk: 7 },
+  musketeer:      { moves: 3, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 8, ranged: true },
+  cannon:         { moves: 2, vision: 4, icon: '\uD83D\uDCA3', desc: 'Siege artillery. Devastating vs cities.', combat: true, atk: 10, siege: true },
+  mortar:         { moves: 2, vision: 3, icon: '\uD83D\uDCA5', desc: 'Heavy siege. Extreme city damage.', combat: true, atk: 12, siege: true },
+  veteran_scout:  { moves: 13, vision: 9, icon: '\uD83E\uDDED', desc: 'Elite scout with extended range and vision.' },
+  veteran_worker: { moves: 8, vision: 5, icon: '\u2692', desc: 'Experienced builder. Faster and more efficient.' },
+  frigate:        { moves: 8, vision: 6, icon: '\u2693', desc: 'Armed sailing ship. Rules the seas.', combat: true, atk: 7, naval: true },
+  galleon:        { moves: 6, vision: 5, icon: '\uD83D\uDEA2', desc: 'Heavy warship with cannons.', combat: true, atk: 10, naval: true },
+};
+
+const IMPROVEMENT_DEFS = {
+  farm:        { name: 'Farm', icon: '\uD83C\uDF3E', yields: { food: 3 }, cost: { wood: 5 }, validOn: [1, 3] },
+  market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: {}, validOn: [1] },
+  mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2 }, cost: { wood: 5 }, validOn: [1, 2] },
+  quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2] },
+  steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 40, steel: 50 }, validOn: [1] },
+  urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1] },
+  pasture:     { name: 'Pasture', icon: '\uD83D\uDC11', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [6], tech: 'animal_husbandry' },
+  barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1], tech: 'agriculture' },
+  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 3 }, cost: { stone: 20, gold: 30 }, validOn: [1], tech: 'scientific_method' },
+  port:        { name: 'Port', icon: '\u2693', yields: { gold: 2, food: 1 }, cost: { wood: 20, stone: 15 }, validOn: [1], tech: 'navigation', coastal: true },
+};
+
+const PRODUCTION_COSTS = {
+  settler:        { food: 50 },
+  worker:         { food: 30 },
+  scout:          { food: 20, gold: 10 },
+  swordsman:      { steel: 30, gold: 20 },
+  crossbowman:    { steel: 25, gold: 15 },
+  cavalry:        { food: 20, gold: 25, steel: 10 },
+  musketeer:      { steel: 35, gold: 25 },
+  cannon:         { steel: 50, gold: 30 },
+  mortar:         { steel: 60, gold: 40 },
+  veteran_scout:  { food: 30, gold: 20 },
+  veteran_worker: { food: 25, gold: 15 },
+  frigate:        { wood: 40, gold: 30 },
+  galleon:        { wood: 60, steel: 30, gold: 40 },
+};
+
+// ====================
+// TECH TREE
+// ====================
+const TECHS = {
+  // MILITARY
+  crossbow:        { name: 'Crossbow', section: 'military', cost: 40, prereqs: [], unlocks: ['crossbowman'], desc: 'Unlock crossbowman units.' },
+  cavalry_tactics: { name: 'Cavalry Tactics', section: 'military', cost: 50, prereqs: [], unlocks: ['cavalry'], needsResource: 'horses', desc: 'Unlock cavalry. Requires horses from pastures.' },
+  gunpowder_tech:  { name: 'Gunpowder', section: 'military', cost: 80, prereqs: ['crossbow'], unlocks: ['musketeer'], needsResource: 'gunpowder', desc: 'Unlock musketeers. Requires gunpowder deposits.' },
+  siege_warfare:   { name: 'Siege Warfare', section: 'military', cost: 100, prereqs: ['cavalry_tactics'], unlocks: ['cannon'], desc: 'Unlock cannon siege units.' },
+  advanced_siege:  { name: 'Advanced Siege', section: 'military', cost: 120, prereqs: ['siege_warfare','gunpowder_tech'], unlocks: ['mortar'], desc: 'Unlock mortar heavy siege.' },
+  // NAVAL
+  navigation:      { name: 'Navigation', section: 'military', cost: 55, prereqs: [], unlocks: ['frigate','port'], desc: 'Unlock frigates and port improvements.' },
+  shipbuilding:    { name: 'Shipbuilding', section: 'military', cost: 90, prereqs: ['navigation','gunpowder_tech'], unlocks: ['galleon'], desc: 'Unlock heavy galleon warships.' },
+  // PRODUCTION
+  animal_husbandry:  { name: 'Animal Husbandry', section: 'production', cost: 30, prereqs: [], unlocks: ['pasture'], desc: 'Unlock pasture improvement for herd tiles.' },
+  agriculture:       { name: 'Agriculture', section: 'production', cost: 40, prereqs: ['animal_husbandry'], unlocks: ['barn'], desc: 'Unlock barn improvement for extra food.' },
+  scientific_method: { name: 'Scientific Method', section: 'production', cost: 60, prereqs: [], unlocks: ['science_lab'], desc: 'Unlock science labs that produce science.' },
+  // GROWTH
+  advanced_scouting: { name: 'Advanced Scouting', section: 'growth', cost: 35, prereqs: [], unlocks: ['veteran_scout'], desc: 'Unlock veteran scout with extended range.' },
+  engineering:       { name: 'Engineering', section: 'growth', cost: 45, prereqs: [], unlocks: ['veteran_worker'], desc: 'Unlock veteran worker, faster and more efficient.' },
+};
+
+function nationHasTech(nationId, techKey) {
+  return nations[nationId].researched && nations[nationId].researched.has(techKey);
+}
+
+function nationCanResearch(nationId, techKey) {
+  const tech = TECHS[techKey];
+  if (!tech) return false;
+  if (nationHasTech(nationId, techKey)) return false;
+  for (const p of tech.prereqs) { if (!nationHasTech(nationId, p)) return false; }
+  if (tech.needsResource) {
+    // Check if the nation owns tiles with the needed resource
+    const resType = tech.needsResource === 'horses' ? 6 : 7; // herd=6, gunpowder=7
+    const hasTile = tiles.some((t, i) => t.owner === nationId && t.type === resType);
+    if (!hasTile) return false;
+  }
+  return nations[nationId].science >= tech.cost;
+}
+
+function researchTech(nationId, techKey) {
+  const tech = TECHS[techKey];
+  if (!nationCanResearch(nationId, techKey)) return false;
+  nations[nationId].science -= tech.cost;
+  nations[nationId].researched.add(techKey);
+  if (nationId === playerNation) showToast(`Researched ${tech.name}!`);
+  return true;
+}
+
+function unitRequiresTech(unitType) {
+  for (const key in TECHS) {
+    if (TECHS[key].unlocks.includes(unitType)) return key;
+  }
+  return null;
+}
+
+function improvementRequiresTech(impKey) {
+  return IMPROVEMENT_DEFS[impKey]?.tech || null;
+}
+
+// Check if a tile is coastal (land tile adjacent to ocean)
+function isCoastal(x, y) {
+  if (tiles[y * MAP_COLS + x].type === 0) return false;
+  for (const n of hexNeighbors(x, y)) {
+    if (n.col < 0 || n.col >= MAP_COLS || n.row < 0 || n.row >= MAP_ROWS) continue;
+    if (tiles[n.row * MAP_COLS + n.col].type === 0) return true;
+  }
+  return false;
+}
+
+// Check if a unit can move onto a given tile
+// nx,ny = destination tile coords (optional, for port embark check)
+function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
+  const def = UNIT_DEFS[unitType];
+  if (def.naval) return tileType === 0; // ships only on ocean
+  if (tileType !== 0) return true; // all land units can walk on land
+  // Ocean tile — check if unit can cross water
+  if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
+    // Scouts can freely sail after shipbuilding
+    if (unitType === 'scout' || unitType === 'veteran_scout') return true;
+    // Other land units can embark/disembark only adjacent to a port
+    if (nx !== undefined && ny !== undefined) {
+      for (const nb of hexNeighbors(nx, ny)) {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+        const pt = tiles[nb.row * MAP_COLS + nb.col];
+        if (pt.improvement === 'port' && pt.owner === nationId) return true;
+      }
+    }
+  }
+  return false;
+}
+
+const NATION_NAMES = [
+  'France','Britain','Prussia','Austria','Russia','Spain','Sweden','Ottoman Empire',
+  'Portugal','Netherlands','Denmark','Bavaria','Saxony','Sardinia','Naples','Poland',
+];
+
+const CITY_PREFIXES = ['Austen','Brest','Caen','Dijon','Elba','Flers','Graz','Halle','Jena','Lyon',
+  'Metz','Nantes','Prague','Reims','Sedan','Toulon','Ulm','Valmy','Wagram','York','Zurich','Bonn',
+  'Cadiz','Danzig','Erfurt','Fiume','Mainz','Trier','Genoa','Turin','Milan','Venice','Parma'];
+const CITY_SUFFIXES = ['burg','heim','feld','stadt','dorf','bridge','haven','ford','mouth',
+  'ton','bury','vale','hill','gate','wood','port','shore','cross','hold'];
+
+function randomCityName() {
+  if (Math.random() < 0.45) return CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)];
+  const b = CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)].slice(0, 3 + Math.floor(Math.random() * 2));
+  return b + CITY_SUFFIXES[Math.floor(Math.random() * CITY_SUFFIXES.length)];
+}
+
+function randomColor() {
+  const h = Math.floor(Math.random() * 360);
+  return `hsl(${h}, 70%, 50%)`;
+}
+
+// ====================
+// DISCOVERY
+// ====================
+function discoverNation(nationId) {
+  if (nationId === playerNation || nationId < 0) return;
+  if (discoveredNations.has(nationId)) return;
+  discoveredNations.add(nationId);
+  const n = nations[nationId];
+  if (n && !n.eliminated) showToast(`Discovered ${n.name}!`);
+}
+
+// ====================
+// TOAST NOTIFICATIONS
+// ====================
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block'; el.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 2000);
+}
+
+// ====================
+// NOISE
+// ====================
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function makeNoise(cols, rows, seed, freqs) {
+  const rand = mulberry32(seed);
+  function octave(fX, fY) {
+    const gw = Math.ceil(fX) + 2, gh = Math.ceil(fY) + 2;
+    const grid = []; for (let i = 0; i < gw * gh; i++) grid.push(rand());
+    const out = new Float32Array(cols * rows);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const gx = (x / cols) * fX, gy = (y / rows) * fY;
+      const ix = Math.floor(gx), iy = Math.floor(gy);
+      const fx = gx - ix, fy = gy - iy;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const t = grid[iy * gw + ix] + sx * (grid[iy * gw + ix + 1] - grid[iy * gw + ix]);
+      const b = grid[(iy + 1) * gw + ix] + sx * (grid[(iy + 1) * gw + ix + 1] - grid[(iy + 1) * gw + ix]);
+      out[y * cols + x] = t + sy * (b - t);
+    }
+    return out;
+  }
+  const layers = freqs.map(f => octave(f[0], f[1]));
+  const weights = [0.6, 0.3, 0.1];
+  const result = new Float32Array(cols * rows);
+  for (let i = 0; i < result.length; i++) {
+    let v = 0;
+    for (let l = 0; l < layers.length; l++) v += layers[l][i] * (weights[l] || 0.1);
+    result[i] = v;
+  }
+  return result;
+}
+
+// ====================
+// MAP GENERATION
+// ====================
+function pickSprite(type, i) {
+  const variants = TILE_SPRITES[type];
+  if (!variants || variants.length === 0) return 'Grass';
+  return variants[i % variants.length];
+}
+
+function generateMap() {
+  const seed = (Math.random() * 0xFFFFFFFF) >>> 0;
+  const elev = makeNoise(MAP_COLS, MAP_ROWS, seed, [[4,3],[8,6],[16,12]]);
+  const moist = makeNoise(MAP_COLS, MAP_ROWS, seed + 77777, [[6,5],[12,10],[20,15]]);
+  const forest = makeNoise(MAP_COLS, MAP_ROWS, seed + 55555, [[5,4],[10,8],[18,14]]);
+
+  const herdNoise = makeNoise(MAP_COLS, MAP_ROWS, seed + 99999, [[3,2],[7,5],[14,10]]);
+  // Sprite variant noise for visual variety
+  const spriteRand = mulberry32(seed + 12345);
+  tiles = new Array(MAP_COLS * MAP_ROWS);
+  for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
+    const i = y * MAP_COLS + x;
+    const e = elev[i], m = moist[i], f = forest[i], h = herdNoise[i];
+    let type, color;
+    if (e < 0.38) { type = 0; color = TILE_COLORS.ocean; }
+    else if (e < 0.68) {
+      if (m > 0.6 && e < 0.5) { type = 3; color = TILE_COLORS.swamp; }
+      else if (f > 0.32 && e > 0.40) { type = 5; color = TILE_COLORS.forest; }
+      else if (h > 0.75 && e > 0.42 && e < 0.58 && m < 0.55) { type = 6; color = TILE_COLORS.herd; }
+      else { type = 1; color = TILE_COLORS.land; }
+    } else {
+      // Gunpowder deposits in mountainous areas (rare)
+      if (f > 0.55 && e > 0.72) { type = 7; color = TILE_COLORS.gunpowder; }
+      else { type = 2; color = TILE_COLORS.mountain; }
+    }
+    const sv = Math.floor(spriteRand() * 997);
+    const spriteKey = pickSprite(type, sv);
+    tiles[i] = { type, color, baseColor: color, owner: -1, improvement: null, revealed: new Set(), spriteKey };
+  }
+  units = []; cities = []; nations = []; turnNumber = 1;
+  discoveredNations = new Set();
+}
+
+// ====================
+// NATIONS
+// ====================
+function createNation(name, color, isPlayer) {
+  const id = nations.length;
+  nations.push({
+    id, name, color, isPlayer,
+    gold: 0, food: 0, wood: 0, stone: 0, steel: 0, science: 0,
+    relations: {},
+    loyalty: {},
+    researched: new Set(),
+    eliminated: false,
+  });
+  return id;
+}
+
+// ====================
+// FOG OF WAR
+// ====================
+function revealAround(x, y, radius, nationId) {
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+    if (dx * dx + dy * dy > radius * radius + radius) continue;
+    const tx = x + dx, ty = y + dy;
+    if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+    tiles[ty * MAP_COLS + tx].revealed.add(nationId);
+  }
+}
+
+function revealAllUnits(nationId) {
+  for (const u of units) if (u.nationId === nationId) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
+  for (const c of cities) if (c.nationId === nationId) revealAround(c.x, c.y, 5, nationId);
+}
+
+// ====================
+// TILE OWNERSHIP & BORDERS
+// ====================
+function setCityTiles(city) {
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const tx = city.x + dx, ty = city.y + dy;
+    if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+    const i = ty * MAP_COLS + tx;
+    if (tiles[i].type === 0) continue;
+    if (tiles[i].owner >= 0 && tiles[i].owner !== city.nationId) continue;
+    tiles[i].owner = city.nationId;
+    if (dx === 0 && dy === 0) { tiles[i].type = 4; tiles[i].color = TILE_COLORS.city; tiles[i].baseColor = TILE_COLORS.city; tiles[i].spriteKey = 'Grass'; }
+  }
+}
+
+function buyTile(city, tx, ty) {
+  const n = nations[city.nationId];
+  if (n.gold < 25) return false;
+  const i = ty * MAP_COLS + tx;
+  if (tiles[i].type === 0 || tiles[i].owner >= 0) return false;
+  let adj = false;
+  for (const nb of hexNeighbors(tx, ty)) {
+    if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+    if (tiles[nb.row * MAP_COLS + nb.col].owner === city.nationId) { adj = true; break; }
+  }
+  if (!adj) return false;
+  n.gold -= 25;
+  tiles[i].owner = city.nationId;
+  city.ownedTiles.add(i);
+  return true;
+}
+
+// ====================
+// UNITS
+// ====================
+function spawnUnit(type, nationId, x, y) {
+  const def = UNIT_DEFS[type];
+  const hp = def.combat ? (def.siege ? 8 : 10) : 5;
+  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, vision: def.vision, hp };
+  units.push(u);
+  revealAround(x, y, def.vision, nationId);
+  return u;
+}
+
+function getOrders(nationId) {
+  let o = 0;
+  for (const u of units) if (u.nationId === nationId && u.movesLeft > 0) o++;
+  return o;
+}
+
+// ====================
+// CITY
+// ====================
+function foundCity(unit) {
+  const name = randomCityName();
+  const city = {
+    x: unit.x, y: unit.y, name, nationId: unit.nationId,
+    producing: null, productionProgress: 0,
+    ownedTiles: new Set(),
+  };
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const tx = unit.x + dx, ty = unit.y + dy;
+    if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+    const i = ty * MAP_COLS + tx;
+    if (tiles[i].type !== 0) city.ownedTiles.add(i);
+  }
+  cities.push(city);
+  setCityTiles(city);
+  revealAround(city.x, city.y, 5, unit.nationId);
+  units.splice(units.indexOf(unit), 1);
+  if (selectedUnit === unit) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
+  return city;
+}
+
+function getCityYields(city) {
+  const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0 };
+  for (const ti of city.ownedTiles) {
+    const t = tiles[ti];
+    if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
+      const yields = IMPROVEMENT_DEFS[t.improvement].yields;
+      for (const k in yields) y[k] = (y[k] || 0) + yields[k];
+    }
+    if (t.type === 5 && !t.improvement) y.wood += 1;
+    if (t.type === 6 && !t.improvement) y.food += 0.5; // unimproved herds give a little food
+  }
+  return y;
+}
+
+function getTotalYields(nationId) {
+  const y = { gold: 0.5, food: 0.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0 };
+  for (const c of cities) {
+    if (c.nationId !== nationId) continue;
+    const cy = getCityYields(c);
+    for (const k in cy) y[k] += cy[k];
+  }
+  return y;
+}
+
+// ====================
+// PRODUCTION
+// ====================
+function getProductionTurns(city) {
+  if (!city.producing) return 0;
+  const costs = PRODUCTION_COSTS[city.producing];
+  let total = 0; for (const k in costs) total += costs[k];
+  return Math.max(1, Math.ceil((total - city.productionProgress) / 5));
+}
+
+function tickProduction(city) {
+  if (!city.producing) return;
+  city.productionProgress += 5;
+  const costs = PRODUCTION_COSTS[city.producing];
+  let total = 0; for (const k in costs) total += costs[k];
+  if (city.productionProgress >= total) {
+    const n = nations[city.nationId];
+    let canAfford = true;
+    for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
+    if (canAfford) {
+      for (const k in costs) n[k] -= costs[k];
+      const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
+      let sx = city.x, sy = city.y;
+      for (const nb of hexNeighbors(city.x, city.y)) {
+        const nx = nb.col, ny = nb.row;
+        if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+        const tt = tiles[ny * MAP_COLS + nx].type;
+        if (isNaval ? tt !== 0 : tt === 0) continue;
+        if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
+      }
+      spawnUnit(city.producing, city.nationId, sx, sy);
+      if (city.nationId === playerNation) showToast(`${city.name} produced a ${city.producing}!`);
+    }
+    city.producing = null; city.productionProgress = 0;
+  }
+}
+
+// ====================
+// IMPROVEMENTS
+// ====================
+function canBuildImprovement(worker, impKey) {
+  const n = nations[worker.nationId];
+  const imp = IMPROVEMENT_DEFS[impKey];
+  const i = worker.y * MAP_COLS + worker.x;
+  const t = tiles[i];
+  if (t.improvement || t.owner !== worker.nationId) return false;
+  if (!imp.validOn.includes(t.type)) return false;
+  if (imp.tech && !nationHasTech(worker.nationId, imp.tech)) return false;
+  if (imp.coastal && !isCoastal(worker.x, worker.y)) return false;
+  for (const k in imp.cost) if ((n[k] || 0) < imp.cost[k]) return false;
+  return true;
+}
+
+function buildImprovement(worker, impKey) {
+  const n = nations[worker.nationId]; const imp = IMPROVEMENT_DEFS[impKey];
+  for (const k in imp.cost) n[k] -= imp.cost[k];
+  tiles[worker.y * MAP_COLS + worker.x].improvement = impKey;
+  worker.movesLeft = 0;
+}
+
+function chopForest(worker) {
+  const i = worker.y * MAP_COLS + worker.x; const t = tiles[i];
+  if (t.type !== 5) return;
+  nations[worker.nationId].wood += 15;
+  t.type = 1; t.color = TILE_COLORS.land; t.baseColor = TILE_COLORS.land; t.spriteKey = 'Grass';
+  worker.movesLeft = 0;
+}
+
+// ====================
+// COMBAT
+// ====================
+function canAttack(attacker, tx, ty) {
+  const def = UNIT_DEFS[attacker.type];
+  if (!def.combat) return false;
+  const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
+  if (!target) return false;
+  return nations[attacker.nationId].relations[target.nationId] === 'war';
+}
+
+function doAttack(attacker, tx, ty) {
+  const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
+  if (!target) return;
+  const atkDef = UNIT_DEFS[attacker.type];
+  const atkPower = atkDef.atk || 4;
+  target.hp -= atkPower + Math.floor(Math.random() * 3);
+  // Non-combat units can't fight back
+  const tgtDef = UNIT_DEFS[target.type];
+  if (tgtDef.combat) {
+    attacker.hp -= (tgtDef.atk || 3) * 0.5 + Math.floor(Math.random() * 2);
+  }
+  // Killing units hurts loyalty with that nation (and others notice)
+  changeLoyalty(target.nationId, attacker.nationId, -15);
+  // Other nations also lose some loyalty toward the aggressor
+  for (const n of nations) {
+    if (n.id !== attacker.nationId && n.id !== target.nationId && !n.eliminated) {
+      changeLoyalty(n.id, attacker.nationId, -3);
+    }
+  }
+  if (target.hp <= 0) { units.splice(units.indexOf(target), 1); attacker.x = tx; attacker.y = ty; }
+  if (attacker.hp <= 0) units.splice(units.indexOf(attacker), 1);
+  attacker.movesLeft = 0;
+}
+
+// ====================
+// CITY CAPTURE
+// ====================
+function tickCityCapture() {
+  for (const city of cities) {
+    // Check if an enemy military unit is standing on the city tile
+    const occupier = units.find(u => u.x === city.x && u.y === city.y && u.nationId !== city.nationId && UNIT_DEFS[u.type].combat);
+    if (occupier) {
+      const rel = nations[occupier.nationId].relations[city.nationId];
+      if (rel === 'war') {
+        if (!city.captureProgress) city.captureProgress = {};
+        if (!city.captureProgress[occupier.nationId]) city.captureProgress[occupier.nationId] = 0;
+        city.captureProgress[occupier.nationId]++;
+        city.contested = true;
+        if (city.captureProgress[occupier.nationId] >= 4) {
+          // City captured!
+          const oldOwner = city.nationId;
+          city.nationId = occupier.nationId;
+          city.captureProgress = {};
+          city.contested = false;
+          // Transfer tile ownership
+          for (const ti of city.ownedTiles) {
+            if (tiles[ti].owner === oldOwner) tiles[ti].owner = occupier.nationId;
+          }
+          tiles[city.y * MAP_COLS + city.x].owner = occupier.nationId;
+          if (occupier.nationId === playerNation) showToast(`${city.name} has been captured!`);
+          else if (oldOwner === playerNation) showToast(`${city.name} has fallen to ${nations[occupier.nationId].name}!`);
+        } else {
+          if (occupier.nationId === playerNation) showToast(`Occupying ${city.name}: ${city.captureProgress[occupier.nationId]}/4 turns`);
+        }
+        continue;
+      }
+    }
+    // No valid occupier — reset capture progress and contested state
+    city.captureProgress = {};
+    city.contested = false;
+  }
+}
+
+// ====================
+// LOYALTY SYSTEM
+// ====================
+function getLoyalty(fromId, toId) {
+  return nations[fromId].loyalty[toId] || 50;
+}
+function changeLoyalty(fromId, toId, amount) {
+  if (!nations[fromId].loyalty) nations[fromId].loyalty = {};
+  nations[fromId].loyalty[toId] = Math.max(-100, Math.min(100, (nations[fromId].loyalty[toId] || 50) + amount));
+}
+function getLoyaltyLabel(val) {
+  if (val >= 80) return 'Friendly';
+  if (val >= 50) return 'Neutral';
+  if (val >= 20) return 'Suspicious';
+  if (val >= 0) return 'Hostile';
+  return 'Furious';
+}
+function getLoyaltyColor(val) {
+  if (val >= 80) return '#4a4';
+  if (val >= 50) return '#aa4';
+  if (val >= 20) return '#a84';
+  return '#e44';
+}
+function sendGift(nationId, resource, amount) {
+  const pn = nations[playerNation];
+  if ((pn[resource] || 0) < amount) { showToast('Not enough ' + resource + '!'); return; }
+  pn[resource] -= amount;
+  nations[nationId][resource] = (nations[nationId][resource] || 0) + amount;
+  changeLoyalty(nationId, playerNation, Math.floor(amount / 2));
+  showToast(`Sent ${amount} ${resource} to ${nations[nationId].name}. Loyalty improved!`);
+  updateUI(); renderKingdoms();
+}
+
+// ====================
+// ELIMINATION & VICTORY
+// ====================
+function checkElimination() {
+  for (const n of nations) {
+    if (n.eliminated || n.isPlayer) continue;
+    const hasCities = cities.some(c => c.nationId === n.id);
+    if (!hasCities) {
+      n.eliminated = true;
+      // Transfer all remaining units to whoever eliminated them (took their last city)
+      // For simplicity, transfer to player if player took last city, else absorb to nearest nation
+      const theirUnits = units.filter(u => u.nationId === n.id);
+      for (const u of theirUnits) {
+        u.nationId = playerNation;
+        revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, playerNation);
+      }
+      showToast(`${n.name} has been eliminated! Their units join your cause.`);
+    }
+  }
+  // Check if player lost all cities
+  if (!cities.some(c => c.nationId === playerNation) && turnNumber > 1) {
+    showToast('You have been defeated...');
+    return;
+  }
+  // Victory check
+  const alive = nations.filter(n => !n.eliminated && !n.isPlayer);
+  if (alive.length === 0 && nations.length > 1 && turnNumber > 1) {
+    showVictory();
+  }
+}
+
+function showVictory() {
+  const panel = document.getElementById('panel');
+  panel.innerHTML = `<h3 style="color:#d4a856;font-size:20px;text-align:center;">\uD83C\uDFC6 Victory!</h3>
+    <p style="text-align:center;font-size:15px;">All rival kingdoms have fallen.<br><strong>${nations[playerNation].name}</strong> rules supreme!</p>
+    <p style="text-align:center;color:#888;">Turn ${turnNumber} | ${cities.filter(c => c.nationId === playerNation).length} cities</p>
+    <button class="p-btn" onclick="quitToMenu()" style="text-align:center;">Return to Menu</button>`;
+  panel.style.display = 'block';
+}
+
+// ====================
+// AI TURN
+// ====================
+function aiTurn(nationId) {
+  const n = nations[nationId];
+  if (n.eliminated) return;
+
+  // AI loyalty check — declare war if furious
+  for (let otherId = 0; otherId < nations.length; otherId++) {
+    if (otherId === nationId || nations[otherId].eliminated) continue;
+    const loy = getLoyalty(nationId, otherId);
+    if (loy <= 0 && n.relations[otherId] !== 'war') {
+      n.relations[otherId] = 'war';
+      nations[otherId].relations[nationId] = 'war';
+      if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(loy)})`);
+    }
+    // Slow loyalty decay toward neutral
+    if (loy > 50) changeLoyalty(nationId, otherId, -1);
+    else if (loy < 50) changeLoyalty(nationId, otherId, 1);
+  }
+
+  const aiUnits = units.filter(u => u.nationId === nationId);
+  for (const u of [...aiUnits]) {
+    if (!units.includes(u)) continue;
+    if (u.type === 'settler' && u.movesLeft > 0) {
+      const ti = u.y * MAP_COLS + u.x;
+      if ([1, 3, 5, 6].includes(tiles[ti].type)) foundCity(u);
+      else moveAIUnitMultiple(u, u.movesLeft);
+    } else if ((u.type === 'worker' || u.type === 'veteran_worker') && u.movesLeft > 0) {
+      const ti = u.y * MAP_COLS + u.x; const t = tiles[ti];
+      if (t.owner === nationId && !t.improvement && t.type !== 4) {
+        if (t.type === 5) chopForest(u);
+        else if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
+        else if (canBuildImprovement(u, 'farm')) buildImprovement(u, 'farm');
+        else if (canBuildImprovement(u, 'mine')) buildImprovement(u, 'mine');
+        else if (canBuildImprovement(u, 'science_lab')) buildImprovement(u, 'science_lab');
+        else moveAIUnitMultiple(u, u.movesLeft);
+      } else moveAIUnitMultiple(u, u.movesLeft);
+    } else if (UNIT_DEFS[u.type].combat && u.movesLeft > 0) {
+      // All combat units: try to attack enemies or move toward enemy cities
+      let attacked = false;
+      for (const enemy of units) {
+        if (enemy.nationId === nationId) continue;
+        if (n.relations[enemy.nationId] !== 'war') continue;
+        const isAdj = hexNeighbors(u.x, u.y).some(nb => nb.col === enemy.x && nb.row === enemy.y);
+        if (isAdj) { doAttack(u, enemy.x, enemy.y); attacked = true; break; }
+      }
+      if (!attacked) {
+        let target = null, bestDist = Infinity;
+        for (const c of cities) {
+          if (c.nationId === nationId) continue;
+          if (n.relations[c.nationId] !== 'war') continue;
+          const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
+          if (d < bestDist) { bestDist = d; target = c; }
+        }
+        if (target) moveAIToward(u, target.x, target.y, u.movesLeft);
+        else moveAIUnitMultiple(u, u.movesLeft);
+      }
+    } else if ((u.type === 'scout' || u.type === 'veteran_scout') && u.movesLeft > 0) {
+      moveAIUnitMultiple(u, u.movesLeft);
+    } else if (u.movesLeft > 0) {
+      moveAIUnitMultiple(u, u.movesLeft);
+    }
+    if (units.includes(u)) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
+  }
+  const aiCities = cities.filter(c => c.nationId === nationId);
+  for (const c of aiCities) {
+    if (!c.producing) {
+      const workers = units.filter(u => u.nationId === nationId && (u.type === 'worker' || u.type === 'veteran_worker')).length;
+      const combatUnits = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat).length;
+      const atWar = Object.values(n.relations).some(r => r === 'war');
+      // Pick best available combat unit
+      let bestCombat = 'swordsman';
+      if (nationHasTech(nationId, 'advanced_siege')) bestCombat = 'mortar';
+      else if (nationHasTech(nationId, 'gunpowder_tech')) bestCombat = 'musketeer';
+      else if (nationHasTech(nationId, 'cavalry_tactics')) bestCombat = 'cavalry';
+      else if (nationHasTech(nationId, 'crossbow')) bestCombat = 'crossbowman';
+      const scouts = units.filter(u => u.nationId === nationId && (u.type === 'scout' || u.type === 'veteran_scout')).length;
+      if (scouts < 2) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
+      else if (workers < aiCities.length) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
+      else if (atWar && combatUnits < 3) c.producing = bestCombat;
+      else if (aiCities.length < 3 && n.food >= 50) c.producing = 'settler';
+      else if (scouts < 4 && Math.random() < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
+      else c.producing = bestCombat;
+    }
+    tickProduction(c);
+    const y = getCityYields(c); for (const k in y) n[k] = (n[k] || 0) + y[k];
+  }
+  // AI auto-research: pick a random affordable tech
+  n.science = n.science || 0;
+  for (const tKey in TECHS) {
+    if (nationCanResearch(nationId, tKey)) { researchTech(nationId, tKey); break; }
+  }
+}
+
+function moveAIUnitMultiple(u, steps) {
+  for (let s = 0; s < steps && u.movesLeft > 0; s++) {
+    const nbs = hexNeighbors(u.x, u.y).sort(() => Math.random() - 0.5);
+    let moved = false;
+    for (const nb of nbs) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      if (!unitCanTraverse(u.type, tiles[ny * MAP_COLS + nx].type, u.nationId, nx, ny)) continue;
+      if (units.some(o => o.x === nx && o.y === ny)) continue;
+      u.x = nx; u.y = ny; u.movesLeft--; moved = true;
+      const owner = tiles[ny * MAP_COLS + nx].owner;
+      if (owner >= 0 && owner !== u.nationId) {
+        changeLoyalty(owner, u.nationId, -3);
+      }
+      break;
+    }
+    if (!moved) break;
+  }
+}
+
+function moveAIToward(u, tx, ty, steps) {
+  for (let s = 0; s < steps && u.movesLeft > 0; s++) {
+    let bestDir = null, bestDist = Math.abs(tx - u.x) + Math.abs(ty - u.y);
+    for (const nb of hexNeighbors(u.x, u.y)) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      if (!unitCanTraverse(u.type, tiles[ny * MAP_COLS + nx].type, u.nationId, nx, ny)) continue;
+      if (units.some(o => o.x === nx && o.y === ny && o.nationId === u.nationId)) continue;
+      const d = Math.abs(tx - nx) + Math.abs(ty - ny);
+      if (d < bestDist) { bestDist = d; bestDir = nb; }
+    }
+    if (bestDir) {
+      u.x = bestDir.col; u.y = bestDir.row; u.movesLeft--;
+      const owner = tiles[u.y * MAP_COLS + u.x].owner;
+      if (owner >= 0 && owner !== u.nationId) changeLoyalty(owner, u.nationId, -3);
+    } else break;
+  }
+}
+
+// ====================
+// TURN
+// ====================
+function endTurn() {
+  // Base passive income
+  for (const n of nations) { n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; }
+  // Player city yields & production
+  const pn = nations[playerNation];
+  for (const c of cities) {
+    if (c.nationId !== playerNation) continue;
+    tickProduction(c);
+    const y = getCityYields(c); for (const k in y) pn[k] += y[k];
+  }
+  for (let i = 0; i < nations.length; i++) { if (i !== playerNation) aiTurn(i); }
+  tickCityCapture();
+  checkElimination();
+  for (const u of units) u.movesLeft = u.maxMoves;
+  turnNumber++;
+  revealAllUnits(playerNation);
+  selectedUnit = null; selectedCity = null;
+  moveMode = false; reachableTiles.clear();
+  hidePanel();
+  autoSave();
+  render(); updateUI();
+}
+
+// ====================
+// RENDERING
+// ====================
+// Draw a flat-top hex path at (x,y) with given width and cell height
+function drawHexPath(context, x, y, w, cellH) {
+  const cx = x + w / 2, cy = y + cellH / 2;
+  const hw = w / 2, hh = cellH / 2;
+  // Flat-top hex vertices (matching sprite art)
+  context.beginPath();
+  context.moveTo(cx - hw * 0.5, cy - hh);  // top-left
+  context.lineTo(cx + hw * 0.5, cy - hh);  // top-right
+  context.lineTo(cx + hw,       cy);        // right
+  context.lineTo(cx + hw * 0.5, cy + hh);  // bottom-right
+  context.lineTo(cx - hw * 0.5, cy + hh);  // bottom-left
+  context.lineTo(cx - hw,       cy);        // left
+  context.closePath();
+}
+
+// Helper: screen position for a hex tile (top-left of sprite draw area)
+function hexScreenPos(col, row) {
+  const cs = hexColStep(), ch = hexCellH();
+  const worldX = col * cs;
+  const worldY = row * ch + (col % 2) * Math.round(ch / 2);
+  return { x: worldX - camX * cs, y: worldY - camY * ch };
+}
+
+function render() {
+  const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
+  viewCols = Math.ceil(canvas.width / cs) + 3;
+  viewRows = Math.ceil(canvas.height / ch) + 3;
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const pId = playerNation;
+
+  // Sprite draw dimensions: native is 32x48 (ratio 1:1.5)
+  const drawW = w;
+  const drawH = w * 1.5; // maintain sprite aspect ratio
+  // Face padding: the hex face in the sprite starts ~4/48 from top
+  const facePad = Math.round(drawH * 4 / 48);
+
+  const startRow = Math.max(0, camY - 1);
+  const endRow = Math.min(MAP_ROWS, camY + viewRows + 1);
+  const startCol = Math.max(0, camX - 1);
+  const endCol = Math.min(MAP_COLS, camX + viewCols + 1);
+
+  // --- Pass 1: Draw all sprites in correct z-order ---
+  // Even columns first (higher/behind), then odd columns (lower/in front)
+  for (let my = startRow; my < endRow; my++) {
+    for (let pass = 0; pass <= 1; pass++) {
+      for (let mx = startCol; mx < endCol; mx++) {
+        if (mx % 2 !== pass) continue;
+        const i = my * MAP_COLS + mx;
+        const t = tiles[i];
+        const pos = hexScreenPos(mx, my);
+        const sx = pos.x, sy = pos.y;
+        if (sx < -w * 2 || sy < -ch * 2 || sx > canvas.width + w || sy > canvas.height + ch) continue;
+        if (!t.revealed.has(pId)) continue;
+
+        const img = hexImages[t.spriteKey];
+        if (img && img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, sx, sy, drawW, drawH);
+        }
+        if (t.owner >= 0 && t.owner !== pId) discoverNation(t.owner);
+      }
+    }
+  }
+
+  // --- Pass 2: Draw all borders and icons on top of all sprites ---
+  // Offset by facePad to align with hex face position in sprite
+  for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
+    const i = my * MAP_COLS + mx;
+    const t = tiles[i];
+    const pos = hexScreenPos(mx, my);
+    const sx = pos.x, fy = pos.y + facePad; // fy = face y position (shifted down to match sprite face)
+    if (sx < -w * 2 || fy < -ch * 2 || sx > canvas.width + w || fy > canvas.height + ch) continue;
+    if (!t.revealed.has(pId)) continue;
+
+    if (t.improvement && VIEW_TILE >= 16) {
+      const imp = IMPROVEMENT_DEFS[t.improvement];
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = `${Math.max(9, w * 0.4)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
+    }
+
+    if (t.owner >= 0) {
+      const ownerCity = cities.find(c => c.nationId === t.owner && c.contested && c.ownedTiles && c.ownedTiles.has(i));
+      ctx.strokeStyle = ownerCity ? '#000000' : nations[t.owner].color;
+      ctx.lineWidth = Math.max(1.5, VIEW_TILE / 10);
+      ctx.globalAlpha = 0.7;
+      drawHexPath(ctx, sx, fy, w, ch);
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = 1;
+    }
+  }
+
+  // Reachable tiles overlay
+  if (moveMode || buyTileMode) for (const key of reachableTiles) {
+    const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
+    if (!tiles[key].revealed.has(pId)) continue;
+    const pos = hexScreenPos(rx, ry);
+    if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    ctx.fillStyle = buyTileMode ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
+    drawHexPath(ctx, pos.x, pos.y + facePad, w, ch);
+    ctx.fill();
+  }
+
+  // Units
+  for (const u of units) {
+    if (!tiles[u.y * MAP_COLS + u.x].revealed.has(pId) && u.nationId !== pId) continue;
+    const pos = hexScreenPos(u.x, u.y);
+    if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    if (u.nationId !== pId) discoverNation(u.nationId);
+    const nCol = nations[u.nationId].color;
+    const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2;
+    const rad = w * 0.32;
+    ctx.fillStyle = nCol;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+    if (VIEW_TILE >= 14) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `${Math.max(10, w * 0.45)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(UNIT_DEFS[u.type].icon, cx, cy);
+    }
+    // HP bar
+    const uDef = UNIT_DEFS[u.type];
+    const maxHp = uDef.combat ? (uDef.siege ? 8 : 10) : 5;
+    if (u.hp < maxHp && VIEW_TILE >= 12) {
+      const barW = rad * 2 - 2;
+      ctx.fillStyle = '#400'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW, 3);
+      ctx.fillStyle = '#0f0'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW * (u.hp / maxHp), 3);
+    }
+    if (selectedUnit === u) {
+      ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, rad + 2, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 1;
+    } else if (hoveredUnit === u) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, rad + 2, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
+  // Hover highlight
+  if (hoveredMX >= 0 && hoveredMY >= 0 && hoveredMX < MAP_COLS && hoveredMY < MAP_ROWS) {
+    const hi = hoveredMY * MAP_COLS + hoveredMX;
+    if (tiles[hi].revealed.has(pId)) {
+      const pos = hexScreenPos(hoveredMX, hoveredMY);
+      ctx.fillStyle = tiles[hi].type === 0 ? 'rgba(150,150,150,0.4)' : 'rgba(255,255,255,0.25)';
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, ch);
+      ctx.fill();
+    }
+  }
+
+  updateCityLabels();
+  renderMinimap();
+  document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
+  document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+}
+
+function updateCityLabels() {
+  const c = document.getElementById('labels');
+  c.innerHTML = '';
+  const w = hexWidth(), ch = hexCellH();
+  for (const city of cities) {
+    if (!tiles[city.y * MAP_COLS + city.x].revealed.has(playerNation)) continue;
+    const pos = hexScreenPos(city.x, city.y);
+    const drawH = w * 1.5;
+    const fp = Math.round(drawH * 2 / 48);
+    const sx = pos.x + w / 2;
+    const sy = pos.y + fp - Math.max(4, ch * 0.15);
+    if (sx < -100 || sy < -20 || sx > canvas.width + 100 || sy > canvas.height + 20) continue;
+    const el = document.createElement('div');
+    el.className = 'city-label';
+    el.style.left = sx + 'px'; el.style.top = sy + 'px';
+    el.style.color = city.contested ? '#000' : nations[city.nationId].color;
+    el.style.fontSize = Math.max(9, w * 0.4) + 'px';
+    let label = city.name;
+    if (city.contested && city.captureProgress) {
+      const maxProg = Math.max(0, ...Object.values(city.captureProgress));
+      if (maxProg > 0) label += ` (${maxProg}/4)`;
+    }
+    el.textContent = label;
+    c.appendChild(el);
+  }
+}
+
+// ====================
+// MINIMAP
+// ====================
+function renderMinimap() {
+  if (!MAP_COLS) return;
+  const mw = 160, mh = Math.round(mw * MAP_ROWS / MAP_COLS * 0.85);
+  minimapCanvas.width = mw; minimapCanvas.height = mh;
+  minimapCanvas.style.width = mw + 'px'; minimapCanvas.style.height = mh + 'px';
+
+  const scaleX = mw / MAP_COLS, scaleY = mh / MAP_ROWS;
+  mctx.fillStyle = '#1a1610'; mctx.fillRect(0, 0, mw, mh);
+
+  const step = Math.max(1, Math.floor(MAP_COLS / mw));
+  for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
+    const i = y * MAP_COLS + x; const t = tiles[i];
+    if (!t.revealed.has(playerNation)) { mctx.fillStyle = '#555'; }
+    else mctx.fillStyle = t.color;
+    const px = Math.floor(x * scaleX * 0.75);
+    const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
+    mctx.fillRect(px, py, Math.ceil(scaleX * step * 0.75), Math.ceil(scaleY * step));
+  }
+  for (const c of cities) {
+    mctx.fillStyle = nations[c.nationId].color;
+    mctx.fillRect(Math.floor(c.x * scaleX * 0.75) - 1, Math.floor(c.y * scaleY + (c.x % 2) * scaleY * 0.5) - 1, 3, 3);
+  }
+  mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
+  mctx.strokeRect(camX * scaleX * 0.75, camY * scaleY, viewCols * scaleX * 0.75, viewRows * scaleY);
+}
+
+// ====================
+// UI
+// ====================
+function updateUI() {
+  const n = nations[playerNation];
+  const y = getTotalYields(playerNation);
+  document.getElementById('resGold').textContent = Math.floor(n.gold);
+  document.getElementById('resFood').textContent = Math.floor(n.food);
+  document.getElementById('resWood').textContent = Math.floor(n.wood);
+  document.getElementById('resStone').textContent = Math.floor(n.stone);
+  document.getElementById('resSteel').textContent = Math.floor(n.steel);
+  document.getElementById('resScience').textContent = Math.floor(n.science);
+  document.getElementById('rateGold').textContent = `+${y.gold.toFixed(1)}`;
+  document.getElementById('rateFood').textContent = `+${y.food.toFixed(1)}`;
+  document.getElementById('rateWood').textContent = `+${y.wood.toFixed(1)}`;
+  document.getElementById('rateStone').textContent = `+${y.stone.toFixed(1)}`;
+  document.getElementById('rateSteel').textContent = `+${y.steel.toFixed(1)}`;
+  document.getElementById('rateScience').textContent = `+${(y.science||0).toFixed(1)}`;
+  document.getElementById('resOrders').textContent = getOrders(playerNation);
+}
+
+function hidePanel() { document.getElementById('panel').style.display = 'none'; }
+
+function showUnitPanel(unit) {
+  selectedCity = null;
+  const panel = document.getElementById('panel');
+  const def = UNIT_DEFS[unit.type];
+  const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
+  let html = `<h3>${def.icon} ${typeName}</h3><p>${def.desc}<br>Moves: ${unit.movesLeft}/${unit.maxMoves} | Vision: ${unit.vision} | HP: ${unit.hp}</p>`;
+  if (unit.type === 'settler') {
+    const ti = unit.y * MAP_COLS + unit.x;
+    const canSettle = [1, 3, 5, 6].includes(tiles[ti].type);
+    html += `<button class="p-btn" onclick="confirmSettle()" ${!canSettle ? 'disabled' : ''}>Found City (F)</button>`;
+  }
+  if (unit.type === 'worker' || unit.type === 'veteran_worker') {
+    const ti = unit.y * MAP_COLS + unit.x; const t = tiles[ti];
+    if (t.type === 5) html += `<button class="p-btn" onclick="doChop()">Chop Forest <span class="cost">+15 wood</span></button>`;
+    if (t.owner === unit.nationId && !t.improvement && t.type !== 4) {
+      html += '<div class="section-title">Build Improvement</div>';
+      for (const key in IMPROVEMENT_DEFS) {
+        const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
+        const costStr = Object.entries(imp.cost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
+        const yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+        html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} \u2192 ${yieldStr}</span></button>`;
+      }
+    }
+  }
+  if (UNIT_DEFS[unit.type].combat) html += `<p style="font-size:11px;color:#a66">Can attack enemies at war during move.</p>`;
+  html += `<button class="p-btn" onclick="deselectUnit()">Deselect</button>`;
+  panel.innerHTML = html; panel.style.display = 'block';
+}
+
+function showCityPanel(city) {
+  selectedUnit = null; moveMode = false; reachableTiles.clear();
+  selectedCity = city;
+  const panel = document.getElementById('panel');
+  const y = getCityYields(city);
+  const yStr = Object.entries(y).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
+  let prodStr = city.producing ? `${city.producing} (${getProductionTurns(city)} turns)` : 'None';
+  let html = `<h3>\uD83C\uDFF0 ${city.name}</h3>`;
+  html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}</p>`;
+  html += `<div class="tab-bar">
+    <button class="tab-btn active" id="tabProd" onclick="showCityTab('prod')">Production</button>
+    <button class="tab-btn" id="tabTiles" onclick="showCityTab('tiles')">Tiles</button>
+  </div><div id="cityTabContent"></div>`;
+  panel.innerHTML = html; panel.style.display = 'block';
+  showCityTab('prod');
+}
+
+function showCityTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const tabEl = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (tabEl) tabEl.classList.add('active');
+  const content = document.getElementById('cityTabContent');
+  if (!content || !selectedCity) return;
+  const n = nations[selectedCity.nationId];
+  if (tab === 'prod') {
+    const nId = selectedCity.nationId;
+    let html = '<div class="section-title">Growth</div>';
+    const growthUnits = ['worker', 'scout', 'settler', 'veteran_scout', 'veteran_worker'];
+    for (const type of growthUnits) {
+      const techReq = unitRequiresTech(type);
+      if (techReq && !nationHasTech(nId, techReq)) continue;
+      const costs = PRODUCTION_COSTS[type]; const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
+      const typeName = type.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+      const icon = UNIT_DEFS[type].icon;
+      const active = selectedCity.producing === type;
+      html += `<button class="p-btn" onclick="setProd('${type}')" ${active ? 'style="border-color:#d4a856"' : ''}>${icon} ${typeName} <span class="cost">${costStr}</span></button>`;
+    }
+    html += '<div class="section-title">Military</div>';
+    const militaryUnits = ['swordsman', 'crossbowman', 'cavalry', 'musketeer', 'cannon', 'mortar'];
+    for (const type of militaryUnits) {
+      const techReq = unitRequiresTech(type);
+      if (techReq && !nationHasTech(nId, techReq)) continue;
+      const costs = PRODUCTION_COSTS[type]; const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
+      const typeName = type.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+      const icon = UNIT_DEFS[type].icon;
+      const active = selectedCity.producing === type;
+      html += `<button class="p-btn" onclick="setProd('${type}')" ${active ? 'style="border-color:#d4a856"' : ''}>${icon} ${typeName} <span class="cost">${costStr}</span></button>`;
+    }
+    // Naval units - only if city has a port
+    const hasPort = [...selectedCity.ownedTiles].some(ti => tiles[ti].improvement === 'port');
+    if (hasPort) {
+      html += '<div class="section-title">Naval</div>';
+      const navalUnits = ['frigate', 'galleon'];
+      for (const type of navalUnits) {
+        const techReq = unitRequiresTech(type);
+        if (techReq && !nationHasTech(nId, techReq)) continue;
+        const costs = PRODUCTION_COSTS[type]; const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
+        const typeName = type.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+        const icon = UNIT_DEFS[type].icon;
+        const active = selectedCity.producing === type;
+        html += `<button class="p-btn" onclick="setProd('${type}')" ${active ? 'style="border-color:#d4a856"' : ''}>${icon} ${typeName} <span class="cost">${costStr}</span></button>`;
+      }
+    }
+    html += `<p style="font-size:11px;color:#888;margin-top:6px">Research the Tech Tree (T) to unlock more!</p>`;
+    content.innerHTML = html;
+  } else if (tab === 'tiles') {
+    let html = `<p>Buy adjacent tiles for 25 gold. (You have ${Math.floor(n.gold)} gold)</p>`;
+    html += `<button class="p-btn" onclick="enterBuyTileMode()">Select Tile to Buy</button>`;
+    content.innerHTML = html;
+  }
+}
+
+function enterBuyTileMode() {
+  buyTileMode = true; moveMode = false; reachableTiles.clear();
+  if (!selectedCity) return;
+  const city = selectedCity;
+  for (const ti of city.ownedTiles) {
+    const tx = ti % MAP_COLS, ty = Math.floor(ti / MAP_COLS);
+    for (const nb of hexNeighbors(tx, ty)) {
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+      const ni = nb.row * MAP_COLS + nb.col;
+      if (tiles[ni].type !== 0 && tiles[ni].owner < 0) reachableTiles.add(ni);
+    }
+  }
+  render();
+}
+
+function setProd(type) {
+  if (!selectedCity) return;
+  selectedCity.producing = type; selectedCity.productionProgress = 0;
+  showCityPanel(selectedCity);
+}
+
+// ====================
+// SETTLE CONFIRMATION
+// ====================
+function confirmSettle() {
+  if (!selectedUnit || selectedUnit.type !== 'settler') return;
+  const panel = document.getElementById('panel');
+  const name = randomCityName();
+  // Store pending name
+  selectedUnit._pendingCityName = name;
+  let html = `<h3>\u2691 Found City</h3>`;
+  html += `<p>Your settlers wish to found a city here.<br>The city shall be called: <strong style="color:#d4a856">${name}</strong></p>`;
+  html += `<button class="p-btn" onclick="doSettle()" style="border-color:#4a4;color:#afa">Confirm - Found ${name}</button>`;
+  html += `<button class="p-btn" onclick="showUnitPanel(selectedUnit)">Cancel</button>`;
+  panel.innerHTML = html; panel.style.display = 'block';
+}
+
+// ====================
+// KINGDOMS SIDEBAR
+// ====================
+function toggleKingdoms() {
+  const el = document.getElementById('kingdoms');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') renderKingdoms();
+}
+
+function renderKingdoms() {
+  const el = document.getElementById('kingdoms');
+  let html = '<h3>Kingdoms</h3>';
+  for (const n of nations) {
+    // Don't show nations the player hasn't discovered yet
+    if (n.id !== playerNation && !discoveredNations.has(n.id)) continue;
+    if (n.eliminated && n.id !== playerNation) {
+      html += `<div class="kingdom-row" style="opacity:0.4">
+        <span class="kingdom-dot" style="background:${n.color}"></span>
+        <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">Eliminated</span></span>
+      </div>`;
+      continue;
+    }
+    const rel = n.id === playerNation ? 'You' : (nations[playerNation].relations[n.id] || 'peace');
+    const relColor = rel === 'war' ? '#e44' : (rel === 'You' ? '#d4a856' : '#4a4');
+    const cityCount = cities.filter(c => c.nationId === n.id).length;
+    const unitCount = units.filter(u => u.nationId === n.id).length;
+    html += `<div class="kingdom-row">
+      <span class="kingdom-dot" style="background:${n.color}"></span>
+      <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">${cityCount} cities, ${unitCount} units</span>`;
+    if (n.id !== playerNation) {
+      const loy = getLoyalty(n.id, playerNation);
+      const loyLabel = getLoyaltyLabel(loy);
+      const loyColor = getLoyaltyColor(loy);
+      html += `<br><span style="font-size:10px;color:${loyColor}">${loyLabel} (${Math.round(loy)})</span>`;
+    }
+    html += `</span>
+      <span class="kingdom-status" style="color:${relColor}">${rel}</span>`;
+    if (n.id !== playerNation) {
+      const action = rel === 'war' ? 'peace' : 'war';
+      html += ` <button class="diplo-btn" onclick="toggleDiplomacy(${n.id})">Declare ${action}</button>`;
+      html += ` <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold">Gift 20g</button>`;
+    }
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+window.sendGift = sendGift;
+
+// ====================
+// TECH TREE UI
+// ====================
+let techTreeOpen = false;
+function showTechTree() {
+  const panel = document.getElementById('panel');
+  techTreeOpen = true;
+  selectedUnit = null; selectedCity = null; moveMode = false; reachableTiles.clear();
+  const n = nations[playerNation];
+  let html = `<h3>\uD83C\uDF33 Tech Tree</h3><p>Science: ${Math.floor(n.science)}</p>`;
+  const sections = { military: 'Military', production: 'Production', growth: 'Growth' };
+  for (const [sKey, sName] of Object.entries(sections)) {
+    html += `<div class="section-title">${sName}</div>`;
+    for (const [tKey, tech] of Object.entries(TECHS)) {
+      if (tech.section !== sKey) continue;
+      const researched = nationHasTech(playerNation, tKey);
+      const canDo = nationCanResearch(playerNation, tKey);
+      const prereqsMet = tech.prereqs.every(p => nationHasTech(playerNation, p));
+      let status = '';
+      if (researched) status = ' \u2705';
+      else if (!prereqsMet) status = ' \uD83D\uDD12';
+      else if (tech.needsResource) {
+        const resType = tech.needsResource === 'horses' ? 6 : 7;
+        const has = tiles.some((t, i) => t.owner === playerNation && t.type === resType);
+        if (!has) status = ` (need ${tech.needsResource})`;
+      }
+      const unlockStr = tech.unlocks.join(', ');
+      html += `<button class="p-btn" onclick="doResearch('${tKey}')" ${!canDo || researched ? 'disabled' : ''}>
+        ${tech.name}${status} <span class="cost">${tech.cost} science \u2192 ${unlockStr}</span>
+      </button>`;
+    }
+  }
+  html += `<button class="p-btn" onclick="closeTechTree()">Close</button>`;
+  panel.innerHTML = html; panel.style.display = 'block';
+  render();
+}
+function closeTechTree() { techTreeOpen = false; hidePanel(); render(); }
+window.showTechTree = showTechTree;
+window.closeTechTree = closeTechTree;
+window.doResearch = function(tKey) {
+  if (researchTech(playerNation, tKey)) {
+    showTechTree(); updateUI();
+  }
+};
+
+function toggleDiplomacy(nationId) {
+  const pn = nations[playerNation];
+  const current = pn.relations[nationId] || 'peace';
+  const next = current === 'war' ? 'peace' : 'war';
+  pn.relations[nationId] = next; nations[nationId].relations[playerNation] = next;
+  if (next === 'war') showToast(`War declared on ${nations[nationId].name}!`);
+  else showToast(`Peace with ${nations[nationId].name}`);
+  renderKingdoms();
+}
+
+// ====================
+// ESC MENU
+// ====================
+function openEscMenu() {
+  document.getElementById('escMenu').classList.add('show'); escMenuOpen = true;
+  document.getElementById('escMain').style.display = 'block';
+  document.getElementById('escOptions').style.display = 'none';
+}
+function closeEscMenu() { document.getElementById('escMenu').classList.remove('show'); escMenuOpen = false; }
+function showOptionsPanel() {
+  document.getElementById('escMain').style.display = 'none';
+  document.getElementById('escOptions').style.display = 'block';
+  document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
+}
+function hideOptionsPanel() {
+  document.getElementById('escOptions').style.display = 'none';
+  document.getElementById('escMain').style.display = 'block';
+}
+function toggleMusic() {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled) { bgMusic.play().catch(() => {}); }
+  else { bgMusic.pause(); }
+  document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
+}
+function startMusic() {
+  if (musicEnabled) bgMusic.play().catch(() => {});
+}
+function quitToMenu() {
+  closeEscMenu();
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('menu').style.display = 'flex';
+  document.getElementById('menuMain').style.display = 'block';
+  document.getElementById('menuSetup').style.display = 'none';
+  refreshSaveSlots();
+}
+
+// Nation setup screen
+function showSetup(cols, rows) {
+  pendingMapCols = cols; pendingMapRows = rows;
+  document.getElementById('menuMain').style.display = 'none';
+  document.getElementById('menuSetup').style.display = 'block';
+  // Pre-fill with random name
+  document.getElementById('setupName').value = NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)];
+  document.getElementById('setupColor').value = '#4488cc';
+}
+function cancelSetup() {
+  document.getElementById('menuSetup').style.display = 'none';
+  document.getElementById('menuMain').style.display = 'block';
+}
+function confirmSetupAndStart() {
+  const name = document.getElementById('setupName').value.trim() || 'Unknown Kingdom';
+  const color = document.getElementById('setupColor').value;
+  const opponents = parseInt(document.getElementById('setupOpponents').value) || 3;
+  startGame(pendingMapCols, pendingMapRows, name, color, opponents);
+}
+window.showSetup = showSetup;
+window.cancelSetup = cancelSetup;
+window.confirmSetupAndStart = confirmSetupAndStart;
+window.showOptionsPanel = showOptionsPanel;
+window.hideOptionsPanel = hideOptionsPanel;
+window.toggleMusic = toggleMusic;
+
+// ====================
+// TILE TOOLTIP
+// ====================
+const tooltipEl = document.getElementById('tileTooltip');
+function updateTileTooltip(mx, my, screenX, screenY) {
+  if (mx < 0 || my < 0 || mx >= MAP_COLS || my >= MAP_ROWS || isDragging) {
+    tooltipEl.style.display = 'none'; return;
+  }
+  const i = my * MAP_COLS + mx;
+  const t = tiles[i];
+  if (!t.revealed.has(playerNation)) { tooltipEl.style.display = 'none'; return; }
+  const name = TILE_NAMES[t.type] || 'Unknown';
+  const desc = TILE_DESCS[t.type] || '';
+  let html = `<div class="tt-title">${name}</div>`;
+  html += `<div class="tt-detail">${desc}</div>`;
+  if (t.owner >= 0) {
+    html += `<div class="tt-detail">Owner: <span style="color:${nations[t.owner].color}">${nations[t.owner].name}</span></div>`;
+  }
+  if (t.improvement) {
+    const imp = IMPROVEMENT_DEFS[t.improvement];
+    if (imp) {
+      const yStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+      html += `<div class="tt-detail">${imp.icon} ${imp.name} (${yStr})</div>`;
+    }
+  }
+  if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">+1 wood/turn</div>`;
+  if (t.type === 6 && !t.improvement) html += `<div class="tt-detail">+0.5 food/turn</div>`;
+  // Show unit on this tile
+  const u = units.find(u => u.x === mx && u.y === my && t.revealed.has(playerNation));
+  if (u) {
+    const def = UNIT_DEFS[u.type];
+    const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
+    html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${nations[u.nationId].name}</span>)</div>`;
+  }
+  tooltipEl.innerHTML = html;
+  tooltipEl.style.display = 'block';
+  // Position: offset from cursor, keep on screen
+  let tx = screenX + 16, ty = screenY + 16;
+  const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+  if (tx + tw > window.innerWidth - 8) tx = screenX - tw - 8;
+  if (ty + th > window.innerHeight - 8) ty = screenY - th - 8;
+  tooltipEl.style.left = tx + 'px'; tooltipEl.style.top = ty + 'px';
+}
+
+// ====================
+// INPUT HANDLERS
+// ====================
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 0) {
+    isDragging = true; dragMoved = false;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    dragCamStartX = camX; dragCamStartY = camY;
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  lastMouseX = e.clientX; lastMouseY = e.clientY;
+  const colS = hexColStep(), cellH = hexCellH();
+  if (isDragging) {
+    const dx = dragStartX - e.clientX, dy = dragStartY - e.clientY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, dragCamStartX + Math.round(dx / colS)));
+    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, dragCamStartY + Math.round(dy / cellH)));
+  }
+  const worldPx = e.clientX + camX * colS;
+  const worldPy = e.clientY + camY * cellH;
+  const hex = pixelToHex(worldPx, worldPy);
+  const mx = hex.col, my = hex.row;
+  if (mx !== hoveredMX || my !== hoveredMY) {
+    hoveredMX = mx; hoveredMY = my;
+    // Check if hovering over a new unit or city
+    const hu = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
+    const hc = !hu && cities.find(c => c.x === mx && c.y === my && c.nationId === playerNation);
+    if (hu && hu !== hoveredUnit) { hoveredUnit = hu; playHover(); }
+    else if (hc && !hoveredUnit && hoveredUnit !== hc) { playHover(); hoveredUnit = null; }
+    else if (!hu && !hc) { hoveredUnit = null; }
+  }
+  updateTileTooltip(mx, my, e.clientX, e.clientY);
+  render();
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (e.button === 0) { isDragging = false; canvas.style.cursor = 'default'; }
+});
+canvas.addEventListener('mouseleave', () => { hoveredMX = -1; hoveredMY = -1; isDragging = false; canvas.style.cursor = 'default'; tooltipEl.style.display = 'none'; render(); });
+
+// Zoom with scroll wheel
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const oldTile = VIEW_TILE;
+  const oldCS = hexColStep(), oldCH = hexCellH();
+  const mx = e.clientX, my = e.clientY;
+  const worldX = camX + mx / oldCS;
+  const worldY = camY + my / oldCH;
+
+  if (e.deltaY < 0) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(2, Math.round(VIEW_TILE * 0.15)));
+  else VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(2, Math.round(VIEW_TILE * 0.15)));
+
+  const newCS = hexColStep(), newCH = hexCellH();
+  camX = Math.max(0, Math.round(worldX - mx / newCS));
+  camY = Math.max(0, Math.round(worldY - my / newCH));
+  viewCols = Math.ceil(canvas.width / newCS) + 3;
+  viewRows = Math.ceil(canvas.height / newCH) + 3;
+  camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
+  camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
+  render(); updateUI();
+}, { passive: false });
+
+canvas.addEventListener('click', (e) => {
+  if (dragMoved) { dragMoved = false; return; }
+  const colS = hexColStep(), cellH = hexCellH();
+  const worldPx = e.clientX + camX * colS;
+  const worldPy = e.clientY + camY * cellH;
+  const hex = pixelToHex(worldPx, worldPy);
+  const mx = hex.col, my = hex.row;
+  if (mx < 0 || mx >= MAP_COLS || my < 0 || my >= MAP_ROWS) return;
+  const ti = my * MAP_COLS + mx;
+
+  if (buyTileMode && selectedCity) {
+    if (reachableTiles.has(ti)) {
+      buyTile(selectedCity, mx, my);
+      buyTileMode = false; reachableTiles.clear();
+      showCityPanel(selectedCity); updateUI(); render();
+    } else { buyTileMode = false; reachableTiles.clear(); render(); }
+    return;
+  }
+
+  if (moveMode && selectedUnit) {
+    if (reachableTiles.has(ti)) {
+      if (UNIT_DEFS[selectedUnit.type].combat && canAttack(selectedUnit, mx, my)) {
+        doAttack(selectedUnit, mx, my);
+      } else if (units.some(u => u.x === mx && u.y === my && u !== selectedUnit)) {
+        moveMode = false; reachableTiles.clear(); render(); return;
+      } else {
+        const dist = bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
+        selectedUnit.x = mx; selectedUnit.y = my;
+        selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
+        revealAround(mx, my, UNIT_DEFS[selectedUnit.type].vision, selectedUnit.nationId);
+        // Loyalty penalty for entering other nations' territory
+        const tileOwner = tiles[my * MAP_COLS + mx].owner;
+        if (tileOwner >= 0 && tileOwner !== selectedUnit.nationId) {
+          changeLoyalty(tileOwner, selectedUnit.nationId, -5);
+        }
+      }
+      moveMode = false; reachableTiles.clear();
+      if (selectedUnit && units.includes(selectedUnit)) showUnitPanel(selectedUnit);
+      else hidePanel();
+      updateUI(); render();
+    } else { moveMode = false; reachableTiles.clear(); render(); }
+    return;
+  }
+
+  const clickedUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
+  if (clickedUnit) {
+    playClick();
+    selectedUnit = clickedUnit; selectedCity = null;
+    buyTileMode = false;
+    // Auto-enter move mode when clicking a unit with moves left
+    if (clickedUnit.movesLeft > 0) {
+      moveMode = false; reachableTiles.clear();
+      enterMoveMode();
+    } else {
+      moveMode = false; reachableTiles.clear();
+    }
+    showUnitPanel(clickedUnit); render(); return;
+  }
+
+  const clickedCity = cities.find(c => c.x === mx && c.y === my && c.nationId === playerNation);
+  if (clickedCity) {
+    playClick();
+    selectedCity = clickedCity; selectedUnit = null;
+    moveMode = false; reachableTiles.clear(); buyTileMode = false;
+    showCityPanel(clickedCity); render(); return;
+  }
+
+  selectedUnit = null; selectedCity = null;
+  moveMode = false; reachableTiles.clear(); buyTileMode = false;
+  hidePanel(); render();
+});
+
+// Minimap click to jump camera
+minimapCanvas.addEventListener('click', (e) => {
+  const rect = minimapCanvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width * MAP_COLS;
+  const my = (e.clientY - rect.top) / rect.height * MAP_ROWS;
+  camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, Math.round(mx - viewCols / 2)));
+  camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, Math.round(my - viewRows / 2)));
+  render();
+});
+
+function bfsDist(sx, sy, ex, ey, unit) {
+  const start = sy * MAP_COLS + sx, end = ey * MAP_COLS + ex;
+  const visited = new Map(); visited.set(start, 0);
+  const queue = [{ key: start, dist: 0 }];
+  while (queue.length > 0) {
+    const { key, dist } = queue.shift();
+    if (key === end) return dist;
+    const cx = key % MAP_COLS, cy = Math.floor(key / MAP_COLS);
+    for (const nb of hexNeighbors(cx, cy)) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      const nk = ny * MAP_COLS + nx;
+      if (!unitCanTraverse(unit.type, tiles[nk].type, unit.nationId, nx, ny)) continue;
+      const nd = dist + 1;
+      if (nd > unit.movesLeft) continue;
+      if (visited.has(nk) && visited.get(nk) <= nd) continue;
+      visited.set(nk, nd);
+      queue.push({ key: nk, dist: nd });
+    }
+  }
+  return unit.movesLeft;
+}
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (escMenuOpen) closeEscMenu();
+    else if (moveMode || buyTileMode) { moveMode = false; buyTileMode = false; reachableTiles.clear(); render(); }
+    else openEscMenu();
+    return;
+  }
+  if (escMenuOpen) return;
+  // Don't capture keys when typing in an input
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  // Hotkeys (WASD handled by interval)
+  if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
+  if (e.key === 'e') { endTurn(); e.preventDefault(); }
+  if (e.key === 't') { showTechTree(); e.preventDefault(); }
+});
+
+// WASD camera movement
+const keysDown = {};
+document.addEventListener('keydown', (e) => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  keysDown[e.key.toLowerCase()] = true;
+});
+document.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = false; });
+setInterval(() => {
+  if (!MAP_COLS || escMenuOpen) return;
+  let dx = 0, dy = 0;
+  if (keysDown['w'] || keysDown['arrowup']) dy = -2;
+  if (keysDown['s'] || keysDown['arrowdown']) dy = 2;
+  if (keysDown['a'] || keysDown['arrowleft']) dx = -2;
+  if (keysDown['d'] || keysDown['arrowright']) dx = 2;
+  if (dx || dy) {
+    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, camX + dx));
+    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, camY + dy));
+    const rrCS = hexColStep(), rrCH = hexCellH();
+    const hh = pixelToHex(lastMouseX + camX * rrCS, lastMouseY + camY * rrCH);
+    hoveredMX = hh.col; hoveredMY = hh.row;
+    render();
+  }
+}, 50);
+
+// ====================
+// GLOBAL ACTION FUNCTIONS
+// ====================
+window.enterMoveMode = function() {
+  if (!selectedUnit || selectedUnit.movesLeft <= 0) return;
+  moveMode = true; buyTileMode = false; reachableTiles.clear();
+  const u = selectedUnit;
+  const start = u.y * MAP_COLS + u.x;
+  const visited = new Map(); visited.set(start, 0);
+  const queue = [{ key: start, dist: 0 }];
+  while (queue.length > 0) {
+    const { key, dist } = queue.shift();
+    const cx = key % MAP_COLS, cy = Math.floor(key / MAP_COLS);
+    for (const nb of hexNeighbors(cx, cy)) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      const nk = ny * MAP_COLS + nx;
+      if (!unitCanTraverse(u.type, tiles[nk].type, u.nationId, nx, ny)) continue;
+      const nd = dist + 1;
+      if (nd > u.movesLeft) continue;
+      if (visited.has(nk) && visited.get(nk) <= nd) continue;
+      if (units.some(o => o.x === nx && o.y === ny && o !== u && o.nationId === u.nationId)) continue;
+      visited.set(nk, nd);
+      reachableTiles.add(nk);
+      queue.push({ key: nk, dist: nd });
+    }
+  }
+  if (UNIT_DEFS[u.type].combat) {
+    for (const enemy of units) {
+      if (enemy.nationId === u.nationId) continue;
+      if (nations[u.nationId].relations[enemy.nationId] !== 'war') continue;
+      const dist = Math.abs(enemy.x - u.x) + Math.abs(enemy.y - u.y);
+      if (dist <= u.movesLeft) reachableTiles.add(enemy.y * MAP_COLS + enemy.x);
+    }
+  }
+  render();
+};
+
+window.doSettle = function() {
+  if (!selectedUnit || selectedUnit.type !== 'settler') return;
+  const pendingName = selectedUnit._pendingCityName;
+  const city = foundCity(selectedUnit);
+  if (pendingName) city.name = pendingName;
+  showToast(`${city.name} has been founded!`);
+  hidePanel(); updateUI(); render();
+};
+
+window.confirmSettle = confirmSettle;
+
+window.doChop = function() {
+  if (!selectedUnit || selectedUnit.type !== 'worker') return;
+  chopForest(selectedUnit);
+  showUnitPanel(selectedUnit); updateUI(); render();
+};
+
+window.doBuild = function(key) {
+  if (!selectedUnit || selectedUnit.type !== 'worker') return;
+  buildImprovement(selectedUnit, key);
+  showToast(`Built ${IMPROVEMENT_DEFS[key].name}`);
+  showUnitPanel(selectedUnit); updateUI(); render();
+};
+
+window.deselectUnit = function() {
+  selectedUnit = null; moveMode = false; reachableTiles.clear();
+  hidePanel(); render();
+};
+
+window.setProd = setProd;
+window.showCityTab = showCityTab;
+window.enterBuyTileMode = enterBuyTileMode;
+window.toggleKingdoms = toggleKingdoms;
+window.toggleDiplomacy = toggleDiplomacy;
+window.endTurn = endTurn;
+window.generateAndPlay = generateAndPlay;
+window.openEscMenu = openEscMenu;
+window.closeEscMenu = closeEscMenu;
+window.showOptions = showOptionsPanel;
+window.quitToMenu = quitToMenu;
+window.showUnitPanel = showUnitPanel;
+window.playClick = playClick;
+
+// ====================
+// SAVE / LOAD
+// ====================
+function serializeGame() {
+  // Convert tile revealed Sets to arrays
+  const sTiles = tiles.map(t => ({
+    type: t.type, color: t.color, baseColor: t.baseColor, owner: t.owner,
+    improvement: t.improvement, revealed: [...t.revealed], spriteKey: t.spriteKey,
+  }));
+  const sCities = cities.map(c => ({
+    x: c.x, y: c.y, name: c.name, nationId: c.nationId,
+    producing: c.producing, productionProgress: c.productionProgress,
+    ownedTiles: [...c.ownedTiles],
+    captureProgress: c.captureProgress || {}, contested: c.contested || false,
+  }));
+  const sNations = nations.map(n => ({ ...n, researched: [...(n.researched || [])] }));
+  return JSON.stringify({
+    v: 4, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units, cities: sCities,
+    playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
+  });
+}
+
+function deserializeGame(json) {
+  const d = JSON.parse(json);
+  if (!d.v || d.v < 2) { showToast('Incompatible save version'); return false; }
+  MAP_COLS = d.MAP_COLS; MAP_ROWS = d.MAP_ROWS;
+  tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
+  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0 }));
+  units = d.units;
+  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles) }));
+  playerNation = d.playerNation;
+  turnNumber = d.turnNumber;
+  camX = d.camX; camY = d.camY;
+  VIEW_TILE = d.VIEW_TILE || 24;
+  discoveredNations = new Set(d.discoveredNations || []);
+  selectedUnit = null; selectedCity = null;
+  moveMode = false; buyTileMode = false; reachableTiles.clear();
+  return true;
+}
+
+function saveGame(slot) {
+  slot = slot || 'auto';
+  const data = serializeGame();
+  const meta = { nation: nations[playerNation].name, turn: turnNumber, date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}` };
+  localStorage.setItem('sis_save_' + slot, data);
+  localStorage.setItem('sis_meta_' + slot, JSON.stringify(meta));
+}
+
+function autoSave() {
+  try { saveGame('auto'); } catch(e) {}
+}
+
+function loadGame(slot) {
+  const data = localStorage.getItem('sis_save_' + slot);
+  if (!data) { showToast('No save found'); return; }
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
+  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  if (deserializeGame(data)) {
+    hidePanel();
+    document.getElementById('kingdoms').style.display = 'none';
+    showToast('Game loaded!');
+    startMusic();
+    render(); updateUI();
+  }
+}
+
+function deleteSave(slot) {
+  localStorage.removeItem('sis_save_' + slot);
+  localStorage.removeItem('sis_meta_' + slot);
+  refreshSaveSlots();
+}
+
+function refreshSaveSlots() {
+  const el = document.getElementById('saveSlots');
+  let html = '';
+  const slots = ['auto', 'slot1', 'slot2', 'slot3'];
+  const labels = ['Auto Save', 'Save Slot 1', 'Save Slot 2', 'Save Slot 3'];
+  for (let i = 0; i < slots.length; i++) {
+    const meta = localStorage.getItem('sis_meta_' + slots[i]);
+    if (meta) {
+      const m = JSON.parse(meta);
+      html += `<button class="menu-btn save-slot" onclick="loadGame('${slots[i]}')">${labels[i]} - Load<span class="slot-info">${m.nation} | Turn ${m.turn} | ${m.size} | ${m.date}</span></button>`;
+    }
+  }
+  if (!html) html = '<p style="color:#666;font-size:14px;text-align:center">No saved games</p>';
+  el.innerHTML = html;
+}
+
+window.saveGame = saveGame;
+window.loadGame = loadGame;
+window.deleteSave = deleteSave;
+
+// ====================
+// GAME START
+// ====================
+function findLandNear(cx, cy, radius) {
+  for (let r = 0; r <= radius; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.abs(dx) + Math.abs(dy) > r) continue;
+    const tx = cx + dx, ty = cy + dy;
+    if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+    const t = tiles[ty * MAP_COLS + tx].type;
+    if (t === 1 || t === 3 || t === 5 || t === 6) return { x: tx, y: ty };
+  }
+  for (let i = 0; i < tiles.length; i++) if (tiles[i].type === 1) return { x: i % MAP_COLS, y: Math.floor(i / MAP_COLS) };
+  return { x: cx, y: cy };
+}
+
+function spawnAINations(count) {
+  const usedNames = new Set([nations[playerNation].name]);
+  for (let i = 0; i < count; i++) {
+    let name;
+    do { name = NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)]; } while (usedNames.has(name));
+    usedNames.add(name);
+    const nId = createNation(name, randomColor(), false);
+    nations[playerNation].relations[nId] = 'peace'; nations[nId].relations[playerNation] = 'peace';
+    nations[playerNation].loyalty[nId] = 50; nations[nId].loyalty[playerNation] = 50;
+    for (let j = 0; j < nId; j++) {
+      nations[j].relations[nId] = 'peace'; nations[nId].relations[j] = 'peace';
+      nations[j].loyalty[nId] = 50; nations[nId].loyalty[j] = 50;
+    }
+    let attempts = 0, sp;
+    do {
+      sp = findLandNear(Math.floor(Math.random() * MAP_COLS), Math.floor(Math.random() * MAP_ROWS), 10);
+      attempts++;
+    } while (attempts < 50 && units.some(u => Math.abs(u.x - sp.x) + Math.abs(u.y - sp.y) < 15));
+    const settler = spawnUnit('settler', nId, sp.x, sp.y);
+    const aiCity = foundCity(settler);
+    aiCity.producing = 'settler';
+    for (const uType of ['worker', 'swordsman', 'scout']) {
+      const wp = findLandNear(sp.x + Math.floor(Math.random()*3)-1, sp.y + Math.floor(Math.random()*3)-1, 5);
+      spawnUnit(uType, nId, wp.x, wp.y);
+    }
+  }
+}
+
+function startGame(cols, rows, pName, pColor, opponents) {
+  MAP_COLS = cols; MAP_ROWS = rows;
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
+  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  generateAndPlay(pName, pColor, opponents);
+  startMusic();
+}
+
+function generateAndPlay(pName, pColor, opponents) {
+  generateMap();
+  pName = pName || NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)];
+  pColor = pColor || '#4488cc';
+  playerNation = createNation(pName, pColor, true);
+
+  // Spawn near a random map edge, not the center
+  const edge = Math.floor(Math.random() * 4);
+  let rx, ry;
+  const margin = 8;
+  if (edge === 0) { rx = margin + Math.floor(Math.random() * (MAP_COLS / 4)); ry = margin + Math.floor(Math.random() * MAP_ROWS * 0.8); } // left
+  else if (edge === 1) { rx = MAP_COLS - margin - Math.floor(Math.random() * (MAP_COLS / 4)); ry = margin + Math.floor(Math.random() * MAP_ROWS * 0.8); } // right
+  else if (edge === 2) { rx = margin + Math.floor(Math.random() * MAP_COLS * 0.8); ry = margin + Math.floor(Math.random() * (MAP_ROWS / 4)); } // top
+  else { rx = margin + Math.floor(Math.random() * MAP_COLS * 0.8); ry = MAP_ROWS - margin - Math.floor(Math.random() * (MAP_ROWS / 4)); } // bottom
+  const sp = findLandNear(rx, ry, 20);
+
+  // Spawn settler, found city, spawn starting units
+  const settlerUnit = spawnUnit('settler', playerNation, sp.x, sp.y);
+  const startCity = foundCity(settlerUnit);
+  startCity.producing = 'settler';
+  for (const uType of ['swordsman', 'scout', 'worker']) {
+    const lp = findLandNear(sp.x + Math.floor(Math.random()*3)-1, sp.y + Math.floor(Math.random()*3)-1, 4);
+    spawnUnit(uType, playerNation, lp.x, lp.y);
+  }
+
+  // Zoom in and center camera on spawn
+  VIEW_TILE = 32;
+  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
+  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  const cx = Math.floor(viewCols / 2), cy = Math.floor(viewRows / 2);
+  camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, sp.x - cx));
+  camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, sp.y - cy));
+  revealAllUnits(playerNation);
+
+  const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
+  spawnAINations(aiCount);
+
+  selectedUnit = null; selectedCity = null;
+  moveMode = false; reachableTiles.clear(); buyTileMode = false;
+  hidePanel();
+  document.getElementById('kingdoms').style.display = 'none';
+  updateUI(); render();
+  showToast(`You are ${pName}. Found your empire!`);
+}
+
+window.addEventListener('resize', () => {
+  if (!MAP_COLS) return;
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
+  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  render();
+});
+
+// Init save slots on load
+refreshSaveSlots();
+
+// Start music on first user interaction (browsers block autoplay)
+let musicStarted = false;
+document.addEventListener('click', function initMusic() {
+  if (!musicStarted && musicEnabled) {
+    bgMusic.play().catch(() => {});
+    musicStarted = true;
+  }
+}, { once: false });
+
+// Global: play hover sound on ANY button mouseenter, click sound on ANY button click
+document.addEventListener('mouseover', (e) => {
+  const btn = e.target.closest('button, .menu-btn, .p-btn, .top-btn, .esc-btn, .diplo-btn, .tab-btn');
+  if (btn) playHover();
+});
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button, .menu-btn, .p-btn, .top-btn, .esc-btn, .diplo-btn, .tab-btn');
+  if (btn) playClick();
+});
+</script>
+</body>
+</html>
