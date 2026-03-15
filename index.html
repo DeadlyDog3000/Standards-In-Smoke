@@ -394,19 +394,20 @@ const MUSIC_TRACKS = [
   'Mozart-Serenade-in-G-major(chosic.com).mp3',
   'Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).mp3',
   'scott-buckley-permafrost(chosic.com).mp3',
-  'vifotofreesounds-triumph-486750.mp3',
   'nnchannel-church-choir-297898.mp3',
   'tunetank-church-choir-349262.mp3',
 ];
 let musicTrackIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
 const bgMusic = new Audio(MUSIC_TRACKS[musicTrackIndex]);
 bgMusic.loop = false; bgMusic.volume = 0.35;
-bgMusic.addEventListener('ended', () => {
+function playNextTrack() {
   if (!musicEnabled) return;
   musicTrackIndex = (musicTrackIndex + 1) % MUSIC_TRACKS.length;
   bgMusic.src = MUSIC_TRACKS[musicTrackIndex];
   bgMusic.play().catch(() => {});
-});
+}
+bgMusic.addEventListener('ended', playNextTrack);
+bgMusic.addEventListener('error', playNextTrack);
 const clickSound = new Audio('universfield-computer-mouse-click-352734.mp3');
 clickSound.volume = 0.35;
 const achievementSound = new Audio('denielcz-achievement-unlocked-463070.mp3');
