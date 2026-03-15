@@ -290,6 +290,10 @@
     <div id="escUpdateLog" style="display:none;">
       <h2>Update Log</h2>
       <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-width:340px;margin:0 auto;max-height:400px;overflow-y:auto;">
+        <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
+          <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
+          <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know on<br><a href="https://github.com/DeadlyDog3000/Standards-In-Smoke/issues" target="_blank" style="color:#6af;text-decoration:underline;">GitHub Issues</a></div>
+        </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 0.9</b> <span style="color:#888;font-size:11px;">(Save v7)</span></div>
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">Balance</b><br>
@@ -329,6 +333,8 @@
           - Tile yield info in tooltips<br>
           - Hotkey reference panel<br>
           - Naval units can now use go-to orders on water<br>
+          - Camera waits for movement animation before cycling to next unit<br>
+          - Update log shown on first launch per version<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Alpha 0.6</b> <span style="color:#888;font-size:11px;">(Save v6)</span></div>
         <div style="margin-bottom:12px;">
@@ -3184,8 +3190,8 @@ canvas.addEventListener('click', (e) => {
       } else {
         const animPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
         const dist = animPath ? animPath.length : bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
+        const movedUnit = selectedUnit;
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
-        if (animPath && animPath.length > 0) startUnitAnimation(selectedUnit, animPath);
         selectedUnit.x = mx; selectedUnit.y = my;
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
         revealAround(mx, my, UNIT_DEFS[selectedUnit.type].vision, selectedUnit.nationId);
@@ -3193,6 +3199,20 @@ canvas.addEventListener('click', (e) => {
         const tileOwner = tiles[my * MAP_COLS + mx].owner;
         if (tileOwner >= 0 && tileOwner !== selectedUnit.nationId) {
           changeLoyalty(tileOwner, selectedUnit.nationId, -5);
+        }
+        moveMode = false; reachableTiles.clear();
+        if (animPath && animPath.length > 0) {
+          // Defer cycling until animation finishes
+          startUnitAnimation(movedUnit, animPath, () => {
+            if (movedUnit && units.includes(movedUnit)) {
+              if (movedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
+              selectedUnit = movedUnit;
+              showUnitPanel(movedUnit);
+            } else { cycleToNextUnit(); }
+            updateUI(); render();
+          });
+          updateUI(); render();
+          return;
         }
       }
       moveMode = false; reachableTiles.clear();
@@ -3353,7 +3373,9 @@ function animationTick(timestamp) {
       a.progress = 0;
       if (a.step >= a.path.length) {
         a.unit._animating = false;
+        const cb = a.onComplete;
         animatingUnits.splice(i, 1);
+        if (cb) cb();
         continue;
       }
     }
@@ -3371,9 +3393,9 @@ function animationTick(timestamp) {
   else { animationBlocking = false; lastAnimTime = 0; }
 }
 
-function startUnitAnimation(unit, path) {
-  if (!path || path.length === 0) return;
-  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: unit.x, startY: unit.y });
+function startUnitAnimation(unit, path, onComplete) {
+  if (!path || path.length === 0) { if (onComplete) onComplete(); return; }
+  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: unit.x, startY: unit.y, onComplete });
   unit._animating = true;
   if (!animationBlocking) {
     animationBlocking = true; lastAnimTime = 0;
