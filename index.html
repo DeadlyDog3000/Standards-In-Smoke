@@ -2915,6 +2915,14 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
+const CURRENT_VERSION = 'beta-0.9';
+function showUpdateLogPopup() {
+  const seen = localStorage.getItem('sis_update_log_seen');
+  if (seen === CURRENT_VERSION) return;
+  localStorage.setItem('sis_update_log_seen', CURRENT_VERSION);
+  openEscMenu();
+  showUpdateLog();
+}
 function showSavePanel() {
   document.getElementById('escMain').style.display = 'none';
   const el = document.getElementById('escSaveSlots');
@@ -3646,6 +3654,7 @@ function loadGame(slot) {
     startMusic();
     startAutoSaveTimer();
     render(); updateUI();
+    showUpdateLogPopup();
   }
 }
 
@@ -3828,6 +3837,7 @@ function generateAndPlay(pName, pColor, opponents) {
   document.getElementById('kingdoms').style.display = 'none';
   updateUI(); render();
   showToast(`You are ${pName}. Found your empire!`);
+  showUpdateLogPopup();
   startTutorial();
 }
 
