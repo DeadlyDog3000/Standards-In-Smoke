@@ -2939,7 +2939,10 @@ function showSavePanel() {
     const meta = localStorage.getItem('sis_meta_' + slots[i]);
     let info = 'Empty';
     if (meta) { const m = JSON.parse(meta); info = `${m.nation} | Turn ${m.turn} | ${m.size} | ${m.date}`; }
-    html += `<button class="esc-btn" style="font-size:13px;text-align:left;line-height:1.4;" onclick="if(saveGame('${slots[i]}')) showToast('Saved to ${labels[i]}!'); showSavePanel();">${labels[i]}<br><span style="font-size:11px;color:#aaa;">${info}</span></button>`;
+    html += `<div style="display:flex;gap:4px;margin-bottom:4px;">`;
+    html += `<button class="esc-btn" style="flex:1;font-size:13px;text-align:left;line-height:1.4;margin:0;" onclick="if(saveGame('${slots[i]}')) showToast('Saved to ${labels[i]}!'); showSavePanel();">${labels[i]}<br><span style="font-size:11px;color:#aaa;">${info}</span></button>`;
+    if (meta) html += `<button class="esc-btn" style="width:36px;margin:0;color:#e44;font-size:16px;" onclick="deleteSave('${slots[i]}'); showSavePanel();" title="Delete save">X</button>`;
+    html += `</div>`;
   }
   el.innerHTML = html;
   document.getElementById('escSave').style.display = 'block';
@@ -3406,6 +3409,7 @@ function startUnitAnimation(unit, path, onComplete) {
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    e.preventDefault();
     if (escMenuOpen) closeEscMenu();
     else if (moveMode || buyTileMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
@@ -3588,11 +3592,13 @@ window.playClick = playClick;
 // SAVE / LOAD
 // ====================
 function serializeGame() {
-  // Convert tile revealed Sets to arrays
-  const sTiles = tiles.map(t => ({
-    type: t.type, color: t.color, baseColor: t.baseColor, owner: t.owner,
-    improvement: t.improvement, revealed: [...t.revealed], spriteKey: t.spriteKey,
-  }));
+  // Compact tile format: strip derivable fields (color, baseColor, spriteKey)
+  const sTiles = tiles.map(t => {
+    const ct = { t: t.type, o: t.owner, r: [...t.revealed] };
+    if (t.improvement) ct.i = t.improvement;
+    if (t.spriteKey) ct.s = t.spriteKey;
+    return ct;
+  });
   const sCities = cities.map(c => ({
     x: c.x, y: c.y, name: c.name, nationId: c.nationId,
     producing: c.producing, productionProgress: c.productionProgress,
@@ -3606,7 +3612,7 @@ function serializeGame() {
     return su;
   });
   return JSON.stringify({
-    v: 7, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
+    v: 8, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
     playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
     barbarianCamps, citySites, pillaged,
   });
@@ -3616,7 +3622,19 @@ function deserializeGame(json) {
   const d = JSON.parse(json);
   if (!d.v || d.v < 2) { showToast('Incompatible save version'); return false; }
   MAP_COLS = d.MAP_COLS; MAP_ROWS = d.MAP_ROWS;
-  tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
+  const TILE_COLOR_BY_TYPE = [TILE_COLORS.ocean, TILE_COLORS.land, TILE_COLORS.mountain, TILE_COLORS.swamp, TILE_COLORS.city, TILE_COLORS.forest, TILE_COLORS.herd, TILE_COLORS.gunpowder];
+  if (d.v >= 8) {
+    // Compact tile format
+    tiles = d.tiles.map((t, i) => {
+      const type = t.t;
+      const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
+      const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
+      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey };
+    });
+  } else {
+    // Legacy verbose format (v2-v7)
+    tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
+  }
   nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, wantsPeace: n.wantsPeace || {} }));
   units = d.units;
   cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles) }));
@@ -3643,7 +3661,7 @@ function saveGame(slot) {
     return true;
   } catch (e) {
     console.error('Save failed:', e);
-    showToast('Save failed! Storage may be full.');
+    showToast('Save failed! Storage full. Delete old saves from the Save menu.');
     return false;
   }
 }
