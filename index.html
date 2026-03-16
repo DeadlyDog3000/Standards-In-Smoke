@@ -2977,7 +2977,7 @@ function triggerEvent() {
   evt.choices.forEach((ch, idx) => {
     const effectStr = Object.entries(ch.effects).map(([k, v]) => {
       const sign = v > 0 ? '+' : '';
-      const label = k === 'legitimacy' ? '👑' : k.charAt(0).toUpperCase() + k.slice(1);
+      const label = k === 'legitimacy' ? '⚜' : k.charAt(0).toUpperCase() + k.slice(1);
       return `${sign}${v} ${label}`;
     }).join(', ');
     // Gray out choices the player can't afford
