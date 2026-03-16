@@ -365,11 +365,20 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.1</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.2</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Barbarians</b><br>
+          - Barbarians are now more common by default (80% density, earlier spawns)<br>
+          - Advanced Barbarian Settings panel with 7 configurable sliders: spawn turn, spawn chance, max units per camp, respawn delay, raid range, raider interval, camp spacing<br>
+          - All barbarian settings are saved and loaded with your game<br>
+          <br>
           <b style="color:#b8a070;">Main Menu</b><br>
           - Rotating background slideshow with smooth crossfade transitions<br>
-          - Ambient bird and town sounds no longer play on the main menu<br>
+          - All game SFX stop when returning to menu (music keeps playing)<br>
+          <br>
+          <b style="color:#b8a070;">UI</b><br>
+          - Readable EB Garamond font for all body text and buttons<br>
+          - Uncial Antiqua calligraphy font reserved for headings<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.0</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -3207,7 +3216,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-1.1';
+const CURRENT_VERSION = 'beta-1.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
