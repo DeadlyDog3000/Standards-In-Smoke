@@ -232,9 +232,63 @@
       <option value="6">6 Opponents</option>
     </select><br>
     <label style="font-size:14px;color:#c8b89a;">Barbarian Camps</label><br>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0 14px;">
-      <input id="setupBarbarians" type="range" min="0" max="100" value="60" style="width:180px;cursor:pointer;" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
-      <span id="barbLabel" style="font-size:14px;color:#e8dcc8;min-width:36px;">60%</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0 4px;">
+      <input id="setupBarbarians" type="range" min="0" max="100" value="80" style="width:180px;cursor:pointer;" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
+      <span id="barbLabel" style="font-size:14px;color:#e8dcc8;min-width:36px;">80%</span>
+    </div>
+    <div id="barbAdvancedToggle" style="margin:2px 0 8px;">
+      <a href="#" onclick="event.preventDefault();document.getElementById('barbAdvanced').style.display=document.getElementById('barbAdvanced').style.display==='none'?'block':'none';this.textContent=document.getElementById('barbAdvanced').style.display==='none'?'Advanced Barbarian Settings ▸':'Advanced Barbarian Settings ▾'" style="font-size:12px;color:#8a7a5a;text-decoration:none;">Advanced Barbarian Settings ▸</a>
+    </div>
+    <div id="barbAdvanced" style="display:none;text-align:left;max-width:300px;margin:0 auto 10px;background:rgba(20,16,10,0.5);border:1px solid rgba(160,140,100,0.25);border-radius:6px;padding:12px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">First Spawn Turn</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbSpawnTurn" type="range" min="1" max="30" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnTurnLabel').textContent=this.value" />
+          <span id="barbSpawnTurnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">3</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">Spawn Chance</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbSpawnChance" type="range" min="10" max="100" value="60" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnChanceLabel').textContent=this.value+'%'" />
+          <span id="barbSpawnChanceLabel" style="font-size:12px;color:#e8dcc8;min-width:34px;text-align:right;">60%</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">Max Units Per Camp</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbMaxUnits" type="range" min="1" max="12" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbMaxUnitsLabel').textContent=this.value" />
+          <span id="barbMaxUnitsLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">Respawn Delay (turns)</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbRespawn" type="range" min="3" max="30" value="8" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRespawnLabel').textContent=this.value" />
+          <span id="barbRespawnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">8</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">Raid Range</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbRaidRange" type="range" min="5" max="50" value="20" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaidRangeLabel').textContent=this.value" />
+          <span id="barbRaidRangeLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">20</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:#c8b89a;">Raider Spawn Interval</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbRaiderInterval" type="range" min="1" max="10" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaiderIntervalLabel').textContent=this.value+' turns'" />
+          <span id="barbRaiderIntervalLabel" style="font-size:12px;color:#e8dcc8;min-width:50px;text-align:right;">3 turns</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:#c8b89a;">Camp Spacing</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="setupBarbCampSpacing" type="range" min="3" max="20" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbCampSpacingLabel').textContent=this.value" />
+          <span id="barbCampSpacingLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
+        </span>
+      </div>
     </div>
     <button class="menu-btn" onclick="confirmSetupAndStart()" style="margin-top:6px;">Begin Campaign</button>
     <button class="menu-btn" onclick="cancelSetup()" style="margin-top:6px;font-size:14px;min-width:160px;">Back</button>
@@ -533,7 +587,14 @@ let animatingUnits = [], animationBlocking = false;
 let reachableTiles = new Set();
 let turnNumber = 1;
 let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0, suppressedBy: -1 }
-let barbarianDensity = 0.6; // 0 to 1, default 60%
+let barbarianDensity = 0.8; // 0 to 1, default 80%
+let barbSpawnTurn = 3;      // turn barbarians start spawning
+let barbSpawnChance = 0.6;  // base chance per turn to spawn a new camp
+let barbMaxUnits = 6;       // max units per camp
+let barbRespawnTurns = 8;   // turns before destroyed camp respawns
+let barbRaidRange = 20;     // max distance barbarians will raid toward cities
+let barbRaiderInterval = 3; // spawn extra raider every N turns
+let barbCampSpacing = 6;    // minimum distance between camps
 let citySites = []; // { x, y, settled: false }
 let pillaged = []; // { tileIndex, originalImprovement, turnPillaged }
 let hoveredMX = -1, hoveredMY = -1, hoveredUnit = null;
@@ -1563,8 +1624,8 @@ function spawnBarbarianCamp() {
     if (t.revealed.has(playerNation)) { attempts++; continue; }
     if (t.owner >= 0) { attempts++; continue; }
     // Not too close to cities or other camps
-    const tooClose = cities.some(c => Math.abs(c.x - rx) + Math.abs(c.y - ry) < 8) ||
-                     barbarianCamps.some(b => Math.abs(b.x - rx) + Math.abs(b.y - ry) < 8);
+    const tooClose = cities.some(c => Math.abs(c.x - rx) + Math.abs(c.y - ry) < barbCampSpacing + 2) ||
+                     barbarianCamps.some(b => Math.abs(b.x - rx) + Math.abs(b.y - ry) < barbCampSpacing);
     if (tooClose) { attempts++; continue; }
     // Create a barbarian nation for this camp
     const barbNationId = createNation('Barbarians', '#8b0000', false);
@@ -1589,11 +1650,11 @@ function spawnBarbarianCamp() {
 
 function tickBarbarianCamps() {
   if (barbarianDensity <= 0) return;
-  // Spawn new camps after turn 5
-  if (turnNumber >= 5) {
+  // Spawn new camps after configured turn
+  if (turnNumber >= barbSpawnTurn) {
     const activeCamps = barbarianCamps.filter(b => !b.destroyed).length;
-    const maxCamps = Math.max(1, Math.floor(MAP_COLS * MAP_ROWS / 2000 * barbarianDensity));
-    if (activeCamps < maxCamps && Math.random() < 0.4 * barbarianDensity) {
+    const maxCamps = Math.max(1, Math.floor(MAP_COLS * MAP_ROWS / 1500 * barbarianDensity));
+    if (activeCamps < maxCamps && Math.random() < barbSpawnChance * barbarianDensity) {
       spawnBarbarianCamp();
     }
   }
@@ -1604,7 +1665,7 @@ function tickBarbarianCamps() {
       const unitOnCamp = units.some(u => u.x === camp.x && u.y === camp.y && !isBarbarianNation(u.nationId));
       if (unitOnCamp) {
         camp.destroyedTurn = turnNumber; // reset timer while occupied
-      } else if (turnNumber - camp.destroyedTurn >= 10) {
+      } else if (turnNumber - camp.destroyedTurn >= barbRespawnTurns) {
         // Respawn the camp
         const ti = camp.y * MAP_COLS + camp.x;
         if (tiles[ti].type !== 4 && tiles[ti].type !== 0) {
@@ -1642,11 +1703,11 @@ function tickBarbarianCamps() {
       // Camp keeps 1 axeman on it, may spawn more to raid
       const campGuard = units.find(u => u.x === camp.x && u.y === camp.y && u.nationId === camp.nationId);
       const campUnits = units.filter(u => u.nationId === camp.nationId);
-      if (!campGuard && campUnits.length < 4) {
+      if (!campGuard && campUnits.length < barbMaxUnits) {
         spawnUnit('barbarian_axeman', camp.nationId, camp.x, camp.y);
       }
-      // Spawn an extra raider periodically (every 4 turns)
-      if (turnNumber % 4 === 0 && campUnits.length < 4) {
+      // Spawn an extra raider periodically
+      if (turnNumber % barbRaiderInterval === 0 && campUnits.length < barbMaxUnits) {
         const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 3);
         if (!units.some(u => u.x === lp.x && u.y === lp.y)) {
           spawnUnit('barbarian_axeman', camp.nationId, lp.x, lp.y);
@@ -1699,7 +1760,7 @@ function barbarianAI(nationId) {
       const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
       if (d < bestDist) { bestDist = d; target = c; }
     }
-    if (target && bestDist <= 20) {
+    if (target && bestDist <= barbRaidRange) {
       // Move toward city, prioritizing tiles with improvements to pillage along the way
       moveBarbarianToward(u, target.x, target.y, u.movesLeft);
     } else {
@@ -3188,6 +3249,10 @@ function startMusic() {
 function quitToMenu() {
   closeEscMenu();
   stopAutoSaveTimer();
+  // Stop all game audio except music
+  marchSound.pause(); marchSound.currentTime = 0;
+  birdSound.pause(); birdsPlaying = false;
+  townSound.pause(); townPlaying = false;
   document.getElementById('game').style.display = 'none';
   document.getElementById('menu').style.display = 'flex';
   document.getElementById('menuMain').style.display = 'block';
@@ -3237,7 +3302,14 @@ function confirmSetupAndStart() {
   const name = document.getElementById('setupName').value.trim() || 'Unknown Kingdom';
   const color = document.getElementById('setupColor').value;
   const opponents = parseInt(document.getElementById('setupOpponents').value) || 3;
-  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 60) / 100;
+  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 80) / 100;
+  barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
+  barbSpawnChance = (parseInt(document.getElementById('setupBarbSpawnChance').value) || 60) / 100;
+  barbMaxUnits = parseInt(document.getElementById('setupBarbMaxUnits').value) || 6;
+  barbRespawnTurns = parseInt(document.getElementById('setupBarbRespawn').value) || 8;
+  barbRaidRange = parseInt(document.getElementById('setupBarbRaidRange').value) || 20;
+  barbRaiderInterval = parseInt(document.getElementById('setupBarbRaiderInterval').value) || 3;
+  barbCampSpacing = parseInt(document.getElementById('setupBarbCampSpacing').value) || 6;
   startGame(pendingMapCols, pendingMapRows, name, color, opponents);
 }
 window.showSetup = showSetup;
@@ -3871,6 +3943,7 @@ function serializeGame() {
     v: 8, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
     playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
     barbarianCamps, citySites, pillaged, barbarianDensity,
+    barbSpawnTurn, barbSpawnChance, barbMaxUnits, barbRespawnTurns, barbRaidRange, barbRaiderInterval, barbCampSpacing,
   });
 }
 
@@ -3902,7 +3975,14 @@ function deserializeGame(json) {
   barbarianCamps = d.barbarianCamps || [];
   citySites = d.citySites || [];
   pillaged = d.pillaged || [];
-  barbarianDensity = d.barbarianDensity !== undefined ? d.barbarianDensity : 0.6;
+  barbarianDensity = d.barbarianDensity !== undefined ? d.barbarianDensity : 0.8;
+  barbSpawnTurn = d.barbSpawnTurn || 3;
+  barbSpawnChance = d.barbSpawnChance || 0.6;
+  barbMaxUnits = d.barbMaxUnits || 6;
+  barbRespawnTurns = d.barbRespawnTurns || 8;
+  barbRaidRange = d.barbRaidRange || 20;
+  barbRaiderInterval = d.barbRaiderInterval || 3;
+  barbCampSpacing = d.barbCampSpacing || 6;
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; reachableTiles.clear();
   return true;
