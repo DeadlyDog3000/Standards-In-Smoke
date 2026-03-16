@@ -2926,10 +2926,10 @@ const EVENTS = [
     { label: 'Send troops to restore order', effects: { legitimacy: -3, steel: -5 } },
     { label: 'Promise reforms', effects: { legitimacy: 2 } }
   ]},
-  { id: 'diplomat', title: 'Foreign Diplomat', text: 'An emissary from a distant land arrives seeking an alliance.', choices: [
-    { label: 'Welcome them warmly', effects: { gold: -10, legitimacy: 3, science: 5 } },
-    { label: 'Demand tribute instead', effects: { gold: 15, legitimacy: -2 } },
-    { label: 'Send them away', effects: {} }
+  { id: 'diplomat', title: 'Foreign Diplomat', diplomatic: true, text: 'An emissary from {NATION} arrives at your court seeking closer ties.', choices: [
+    { label: 'Welcome them warmly', effects: { gold: -10, legitimacy: 3, science: 5, loyalty: 8 } },
+    { label: 'Demand tribute instead', effects: { gold: 15, legitimacy: -2, loyalty: -10 } },
+    { label: 'Send them away', effects: { loyalty: -5 } }
   ]},
   { id: 'plague', title: 'Outbreak of Disease', text: 'A sickness spreads through your settlements. Your physicians seek guidance.', choices: [
     { label: 'Quarantine the sick', effects: { food: -10, legitimacy: 2 } },
@@ -2941,10 +2941,10 @@ const EVENTS = [
     { label: 'Sell mining rights', effects: { gold: 25 } },
     { label: 'Stockpile strategically', effects: { steel: 10, stone: 10 } }
   ]},
-  { id: 'spy', title: 'Enemy Spy Captured', text: 'Your guards have captured a foreign agent skulking near the palace.', choices: [
-    { label: 'Interrogate for intelligence', effects: { science: 10, legitimacy: -1 } },
-    { label: 'Execute publicly', effects: { legitimacy: 3 } },
-    { label: 'Release as goodwill', effects: { legitimacy: 1, gold: 5 } }
+  { id: 'spy', title: 'Enemy Spy Captured', diplomatic: true, text: 'Your guards have captured a spy from {NATION} skulking near the palace.', choices: [
+    { label: 'Interrogate for intelligence', effects: { science: 10, legitimacy: -1, loyalty: -8 } },
+    { label: 'Execute publicly', effects: { legitimacy: 3, loyalty: -15 } },
+    { label: 'Return them as goodwill', effects: { legitimacy: 1, gold: 5, loyalty: 6 } }
   ]},
   { id: 'festival', title: 'Grand Festival', text: 'The people request a grand celebration to honor recent victories.', choices: [
     { label: 'Spare no expense', effects: { gold: -30, food: -15, legitimacy: 8 } },
@@ -2965,24 +2965,68 @@ const EVENTS = [
     { label: 'Emergency relief effort', effects: { gold: -15, wood: -10, legitimacy: 5 } },
     { label: 'Rebuild with taxes', effects: { gold: 10, legitimacy: -4 } },
     { label: 'Focus on key areas only', effects: { wood: -5, legitimacy: 1 } }
+  ]},
+  { id: 'trade_offer', title: 'Trade Proposal', diplomatic: true, text: '{NATION} sends a delegation proposing a trade agreement — their grain for your steel.', choices: [
+    { label: 'Accept the deal', effects: { food: 20, steel: -10, loyalty: 8 } },
+    { label: 'Counter-offer in our favour', effects: { food: 10, steel: -5, loyalty: 2 } },
+    { label: 'Refuse — we need our steel', effects: { loyalty: -4 } }
+  ]},
+  { id: 'border_tension', title: 'Border Incident', diplomatic: true, text: 'Soldiers from {NATION} have been spotted crossing into your territory. Their commander claims it was a navigational error.', choices: [
+    { label: 'Accept their explanation', effects: { loyalty: 3 } },
+    { label: 'Demand a formal apology', effects: { legitimacy: 2, loyalty: -5 } },
+    { label: 'Reinforce the border', effects: { steel: -10, legitimacy: 1, loyalty: -8 } }
+  ]},
+  { id: 'royal_marriage', title: 'Marriage Proposal', diplomatic: true, text: 'A noble house in {NATION} proposes a marriage alliance with your court.', choices: [
+    { label: 'Accept graciously', effects: { gold: -15, loyalty: 12, legitimacy: 3 } },
+    { label: 'Politely decline', effects: { loyalty: -3 } },
+    { label: 'Demand a dowry', effects: { gold: 20, loyalty: -6, legitimacy: -2 } }
+  ]},
+  { id: 'refugee_crisis', title: 'Refugees at the Border', diplomatic: true, text: 'Hundreds of refugees flee famine in {NATION} and seek shelter in your lands.', choices: [
+    { label: 'Welcome them (more workers)', effects: { food: -15, loyalty: 6, legitimacy: 4 } },
+    { label: 'Send them back', effects: { loyalty: -8, legitimacy: -2 } },
+    { label: 'Demand {NATION} pay for their care', effects: { gold: 10, loyalty: -5 } }
+  ]},
+  { id: 'arms_deal', title: 'Arms Deal', diplomatic: true, text: '{NATION} offers to sell you a stockpile of weapons at a discount.', choices: [
+    { label: 'Buy the weapons', effects: { gold: -20, steel: 15, loyalty: 5 } },
+    { label: 'Decline — could be a trap', effects: { loyalty: -2 } },
+    { label: 'Steal them instead', effects: { steel: 20, loyalty: -15, legitimacy: -3 } }
+  ]},
+  { id: 'insult', title: 'Diplomatic Insult', diplomatic: true, text: 'The ruler of {NATION} has publicly mocked your kingdom at a grand banquet.', choices: [
+    { label: 'Ignore it — rise above', effects: { legitimacy: -2, loyalty: -3 } },
+    { label: 'Respond with a witty retort', effects: { legitimacy: 2, loyalty: -5 } },
+    { label: 'Demand a public apology', effects: { legitimacy: 3, loyalty: -10 } }
   ]}
 ];
 
+let currentEventNation = null; // Track which nation a diplomatic event is about
 function triggerEvent() {
-  const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  // Find valid nations for diplomatic events (discovered, not eliminated, not barbarian, not player)
+  const validDiploNations = nations.filter(n => !n.isBarbarian && !n.eliminated && n.id !== playerNation && discoveredNations.has(n.id));
+  // Filter events: diplomatic events need a valid nation
+  const available = EVENTS.filter(e => !e.diplomatic || validDiploNations.length > 0);
+  if (available.length === 0) return;
+  const evt = available[Math.floor(Math.random() * available.length)];
+  currentEventNation = null;
+  let eventText = evt.text;
+  if (evt.diplomatic && validDiploNations.length > 0) {
+    const dn = validDiploNations[Math.floor(Math.random() * validDiploNations.length)];
+    currentEventNation = dn.id;
+    const nationTag = `<strong style="color:${dn.color}">${dn.name}</strong>`;
+    eventText = eventText.replace(/\{NATION\}/g, nationTag);
+  }
   const modal = document.getElementById('eventModal');
   const card = document.getElementById('eventCard');
-  let html = `<h3>${evt.title}</h3><p>${evt.text}</p>`;
+  let html = `<h3>${evt.title}</h3><p>${eventText}</p>`;
   const pn = nations[playerNation];
   evt.choices.forEach((ch, idx) => {
     const effectStr = Object.entries(ch.effects).map(([k, v]) => {
       const sign = v > 0 ? '+' : '';
-      const label = k === 'legitimacy' ? '⚜' : k.charAt(0).toUpperCase() + k.slice(1);
+      const label = k === 'legitimacy' ? '⚜' : k === 'loyalty' ? 'Relations' : k.charAt(0).toUpperCase() + k.slice(1);
       return `${sign}${v} ${label}`;
     }).join(', ');
-    // Gray out choices the player can't afford
+    // Gray out choices the player can't afford (skip loyalty - not a resource)
     const canAfford = Object.entries(ch.effects).every(([k, v]) => {
-      if (v >= 0) return true;
+      if (v >= 0 || k === 'loyalty') return true;
       if (k === 'legitimacy') return (pn.legitimacy || 50) + v >= 0;
       return (pn[k] || 0) + v >= 0;
     });
@@ -3000,7 +3044,12 @@ function applyEventChoice(eventId, choiceIndex) {
   const choice = evt.choices[choiceIndex];
   const n = nations[playerNation];
   for (const [key, val] of Object.entries(choice.effects)) {
-    if (key === 'legitimacy') {
+    if (key === 'loyalty') {
+      if (currentEventNation !== null) {
+        changeLoyalty(currentEventNation, playerNation, val);
+        changeLoyalty(playerNation, currentEventNation, val);
+      }
+    } else if (key === 'legitimacy') {
       n.legitimacy = Math.min(100, Math.max(0, (n.legitimacy || 50) + val));
     } else {
       n[key] = Math.max(0, (n[key] || 0) + val);
