@@ -14,9 +14,16 @@
     #menu {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 100vh; gap: 14px;
-      background: url('main_image.jpg') center center / cover no-repeat;
       position: relative;
+      background: #0a0805;
     }
+    .menu-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center center; background-repeat: no-repeat;
+      transition: opacity 2s ease-in-out;
+    }
+    #menuBgA { opacity: 1; z-index: 0; }
+    #menuBgB { opacity: 0; z-index: 0; }
     #menu::before {
       content: ''; position: absolute; inset: 0;
       background: rgba(10, 8, 5, 0.55);
@@ -196,6 +203,8 @@
 <body>
 
 <div id="menu">
+  <div id="menuBgA" class="menu-bg" style="background-image:url('main_image1.jpg')"></div>
+  <div id="menuBgB" class="menu-bg"></div>
   <h1>Standards In Smoke</h1>
   <h2>A Napoleonic-Era Strategy Game</h2>
   <div id="menuMain">
@@ -300,6 +309,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.1</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Main Menu</b><br>
+          - Rotating background slideshow with smooth crossfade transitions<br>
+          - Ambient bird and town sounds no longer play on the main menu<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.0</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -627,7 +642,10 @@ function stopMarchSound() {
   marchSound.currentTime = 0;
 }
 function updateAmbientBirds() {
-  if (!MAP_COLS) return;
+  if (!MAP_COLS || document.getElementById('menu').style.display !== 'none') {
+    if (birdsPlaying) { birdSound.pause(); birdsPlaying = false; }
+    return;
+  }
   let forestVisible = false;
   if (VIEW_TILE >= 28) {
     const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
@@ -660,7 +678,10 @@ function updateAmbientBirds() {
   }
 }
 function updateAmbientTown() {
-  if (!MAP_COLS) return;
+  if (!MAP_COLS || document.getElementById('menu').style.display !== 'none') {
+    if (townPlaying) { townSound.pause(); townPlaying = false; }
+    return;
+  }
   let townVisible = false;
   if (VIEW_TILE >= 28) {
     const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
@@ -3124,7 +3145,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-1.0';
+const CURRENT_VERSION = 'beta-1.1';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -3171,7 +3192,32 @@ function quitToMenu() {
   document.getElementById('menuMain').style.display = 'block';
   document.getElementById('menuSetup').style.display = 'none';
   refreshSaveSlots();
+  startMenuSlideshow();
 }
+
+// Menu background slideshow
+const menuImages = ['main_image1.jpg','main_image2.png','main_image3.png','main_image4.png','main_image5.png','main_image6.png'];
+let menuSlideIdx = 0;
+let menuSlideTimer = null;
+let menuBgFlip = false; // false = A is visible, true = B is visible
+function startMenuSlideshow() {
+  if (menuSlideTimer) return;
+  // Preload all images
+  menuImages.forEach(src => { const img = new Image(); img.src = src; });
+  menuSlideTimer = setInterval(() => {
+    menuSlideIdx = (menuSlideIdx + 1) % menuImages.length;
+    const incoming = menuBgFlip ? document.getElementById('menuBgA') : document.getElementById('menuBgB');
+    const outgoing = menuBgFlip ? document.getElementById('menuBgB') : document.getElementById('menuBgA');
+    incoming.style.backgroundImage = "url('" + menuImages[menuSlideIdx] + "')";
+    incoming.style.opacity = '1';
+    outgoing.style.opacity = '0';
+    menuBgFlip = !menuBgFlip;
+  }, 8000);
+}
+function stopMenuSlideshow() {
+  if (menuSlideTimer) { clearInterval(menuSlideTimer); menuSlideTimer = null; }
+}
+startMenuSlideshow();
 
 // Nation setup screen
 function showSetup(cols, rows) {
@@ -3893,6 +3939,7 @@ function loadGame(slot) {
   const data = localStorage.getItem('sis_save_' + slot);
   if (!data) { showToast('No save found'); return; }
   document.getElementById('menu').style.display = 'none';
+  stopMenuSlideshow();
   document.getElementById('game').style.display = 'block';
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
@@ -4033,6 +4080,7 @@ window.skipTutorial = function() {
 function startGame(cols, rows, pName, pColor, opponents) {
   MAP_COLS = cols; MAP_ROWS = rows;
   document.getElementById('menu').style.display = 'none';
+  stopMenuSlideshow();
   document.getElementById('game').style.display = 'block';
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
