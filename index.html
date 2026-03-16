@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Standards In Smoke</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: system-ui, sans-serif; color: #e8dcc8; user-select: none; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: 'Pinyon Script', cursive; color: #e8dcc8; user-select: none; }
 
     /* Main Menu */
     #menu {
@@ -21,7 +22,7 @@
       z-index: 0;
     }
     #menu > * { position: relative; z-index: 1; }
-    #menu h1 { font-size: 48px; color: #f0e2c0; text-shadow: 2px 2px 6px rgba(0,0,0,0.8), 0 0 20px rgba(180,140,60,0.3); margin-bottom: 2px; letter-spacing: 2px; }
+    #menu h1 { font-size: 86px; color: #f0e2c0; font-style: italic; text-shadow: 2px 3px 8px rgba(0,0,0,0.8), 0 0 30px rgba(180,140,60,0.4); margin-bottom: 6px; letter-spacing: 3px; }
     #menu h2 { font-size: 18px; color: #c8b89a; font-weight: normal; margin-bottom: 12px; text-shadow: 1px 1px 3px #000; }
     .menu-btn {
       padding: 12px 32px; font-size: 18px;
@@ -219,6 +220,11 @@
       <option value="5">5 Opponents</option>
       <option value="6">6 Opponents</option>
     </select><br>
+    <label style="font-size:14px;color:#c8b89a;">Barbarian Camps</label><br>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0 14px;">
+      <input id="setupBarbarians" type="range" min="0" max="100" value="60" style="width:180px;cursor:pointer;" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
+      <span id="barbLabel" style="font-size:14px;color:#e8dcc8;min-width:36px;">60%</span>
+    </div>
     <button class="menu-btn" onclick="confirmSetupAndStart()" style="margin-top:6px;">Begin Campaign</button>
     <button class="menu-btn" onclick="cancelSetup()" style="margin-top:6px;font-size:14px;min-width:160px;">Back</button>
   </div>
@@ -293,6 +299,35 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.0</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Sound Effects</b><br>
+          - Marching SFX plays during unit movement animations<br>
+          - Musket shots for musketeers, riflemen, dragoons<br>
+          - Cannon volleys for cannons and mortars (multiple synchronized shots)<br>
+          - Field gun volleys for field artillery<br>
+          - Naval broadside volleys for galleons and men-of-war<br>
+          - Town ambient sounds near cities and urban tiles (like forest birds)<br>
+          - Combat sounds only play for battles the player can see<br>
+          <br>
+          <b style="color:#b8a070;">Deep Diplomacy</b><br>
+          - AI thinks like a ruler: evaluates city proximity, military threats, territory encroachment<br>
+          - Happiness decays -0.5 per turn (trust erodes naturally)<br>
+          - Cities within 12 tiles cause -9 happiness (border tension)<br>
+          - Military buildup near borders increases suspicion<br>
+          - Territory encroachment near AI cities angers them<br>
+          - Power imbalance: much stronger neighbors feel threatening<br>
+          - Shared enemies build trust (+2), attacking friends causes distrust<br>
+          - Trade bonus while at peace with cities (+0.3/turn)<br>
+          - War declared at -100 happiness (was 0)<br>
+          - Declaring war immediately sets target to Hostile<br>
+          - New loyalty tiers: Cautious, Sworn Enemy<br>
+          <br>
+          <b style="color:#b8a070;">UI & Settings</b><br>
+          - Calligraphy font throughout the game<br>
+          - Large italicized title on main menu<br>
+          - Barbarian camp density slider in game setup (default 60%)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 0.9</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -481,6 +516,7 @@ let animatingUnits = [], animationBlocking = false;
 let reachableTiles = new Set();
 let turnNumber = 1;
 let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0, suppressedBy: -1 }
+let barbarianDensity = 0.6; // 0 to 1, default 60%
 let citySites = []; // { x, y, settled: false }
 let pillaged = []; // { tileIndex, originalImprovement, turnPillaged }
 let hoveredMX = -1, hoveredMY = -1, hoveredUnit = null;
@@ -522,6 +558,17 @@ function playAchievement() { const s = achievementSound.cloneNode(); s.volume = 
 function playChop() { const s = chopSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {}); }
 const battleSound = new Audio('battle.mp3');
 battleSound.volume = 0.5;
+const marchSound = new Audio('marching_loop.mp3');
+marchSound.loop = true; marchSound.volume = 0.4;
+const musketSound = new Audio('musket_shot.mp3');
+musketSound.volume = 0.5;
+const cannonShotSound = new Audio('cannon_shot.mp3');
+cannonShotSound.volume = 0.5;
+const fieldGunSound = new Audio('field_gun_shot.mp3');
+fieldGunSound.volume = 0.5;
+const townSound = new Audio('town.mp3');
+townSound.loop = true; townSound.volume = 0;
+let townPlaying = false;
 // Event log
 const eventLogEntries = [];
 function logEvent(msg) {
@@ -537,6 +584,46 @@ function playBattleSound() {
   const s = battleSound.cloneNode(); s.volume = 0.5; s.currentTime = 0;
   s.play().catch(() => {});
   setTimeout(() => { try { s.pause(); } catch(e) {} }, 4000);
+}
+function fireVolley(baseSound, count, intervalMs, vol) {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const s = baseSound.cloneNode();
+      s.volume = vol * (0.85 + Math.random() * 0.15);
+      s.playbackRate = 0.95 + Math.random() * 0.1;
+      s.play().catch(() => {});
+    }, i * intervalMs);
+  }
+}
+function canPlayerSee(x, y) {
+  if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS) return false;
+  return tiles[y * MAP_COLS + x].revealed.has(playerNation);
+}
+function playCombatSound(unitType, x, y) {
+  if (x !== undefined && y !== undefined && !canPlayerSee(x, y)) return;
+  const gunpowderRanged = ['musketeer', 'rifleman', 'dragoon'];
+  const cannonTypes = ['cannon', 'mortar'];
+  const fieldGunTypes = ['field_gun'];
+  const navalGunTypes = ['galleon', 'man_of_war'];
+  if (gunpowderRanged.includes(unitType)) {
+    const s = musketSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {});
+  } else if (cannonTypes.includes(unitType)) {
+    fireVolley(cannonShotSound, 3, 400, 0.5);
+  } else if (fieldGunTypes.includes(unitType)) {
+    fireVolley(fieldGunSound, 3, 300, 0.5);
+  } else if (navalGunTypes.includes(unitType)) {
+    fireVolley(cannonShotSound, 4, 350, 0.45);
+  } else {
+    playBattleSound();
+  }
+}
+function startMarchSound() {
+  marchSound.currentTime = 0;
+  marchSound.play().catch(() => {});
+}
+function stopMarchSound() {
+  marchSound.pause();
+  marchSound.currentTime = 0;
 }
 function updateAmbientBirds() {
   if (!MAP_COLS) return;
@@ -568,6 +655,38 @@ function updateAmbientBirds() {
       if (targetVol <= 0) { birdSound.pause(); birdsPlaying = false; }
     } else {
       birdSound.volume = Math.max(0, Math.min(0.6, birdSound.volume + diff * 0.15));
+    }
+  }
+}
+function updateAmbientTown() {
+  if (!MAP_COLS) return;
+  let townVisible = false;
+  if (VIEW_TILE >= 28) {
+    const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
+    const startRow = Math.max(0, camY);
+    const endRow = Math.min(MAP_ROWS, camY + Math.ceil(canvas.height / ch) + 2);
+    const startCol = Math.max(0, camX);
+    const endCol = Math.min(MAP_COLS, camX + Math.ceil(canvas.width / cs) + 2);
+    for (let my = startRow; my < endRow && !townVisible; my++) {
+      for (let mx = startCol; mx < endCol; mx++) {
+        const t = tiles[my * MAP_COLS + mx];
+        if (t.improvement === 'urban' || cities.some(c => c.x === mx && c.y === my)) { townVisible = true; break; }
+      }
+    }
+  }
+  const targetVol = townVisible ? Math.min(0.5, (VIEW_TILE - 28) / 100 * 0.5 + 0.1) : 0;
+  if (townVisible && !townPlaying) {
+    townSound.volume = 0;
+    townSound.play().catch(() => {});
+    townPlaying = true;
+  }
+  if (townPlaying) {
+    const diff = targetVol - townSound.volume;
+    if (Math.abs(diff) < 0.005) {
+      townSound.volume = targetVol;
+      if (targetVol <= 0) { townSound.pause(); townPlaying = false; }
+    } else {
+      townSound.volume = Math.max(0, Math.min(0.5, townSound.volume + diff * 0.15));
     }
   }
 }
@@ -1220,7 +1339,7 @@ function canAttack(attacker, tx, ty) {
 function doAttack(attacker, tx, ty) {
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return;
-  playBattleSound();
+  playCombatSound(attacker.type, tx, ty);
   const atkDef = UNIT_DEFS[attacker.type];
   const tgtDef = UNIT_DEFS[target.type];
   // Capture workers and scouts instead of killing them
@@ -1318,20 +1437,24 @@ function getLoyalty(fromId, toId) {
 }
 function changeLoyalty(fromId, toId, amount) {
   if (!nations[fromId].loyalty) nations[fromId].loyalty = {};
-  nations[fromId].loyalty[toId] = Math.max(-100, Math.min(100, (nations[fromId].loyalty[toId] || 50) + amount));
+  nations[fromId].loyalty[toId] = Math.max(-200, Math.min(100, (nations[fromId].loyalty[toId] || 50) + amount));
 }
 function getLoyaltyLabel(val) {
   if (val >= 80) return 'Friendly';
   if (val >= 50) return 'Neutral';
-  if (val >= 20) return 'Suspicious';
-  if (val >= 0) return 'Hostile';
-  return 'Furious';
+  if (val >= 20) return 'Cautious';
+  if (val >= -20) return 'Suspicious';
+  if (val >= -60) return 'Hostile';
+  if (val >= -100) return 'Furious';
+  return 'Sworn Enemy';
 }
 function getLoyaltyColor(val) {
   if (val >= 80) return '#4a4';
   if (val >= 50) return '#aa4';
   if (val >= 20) return '#a84';
-  return '#e44';
+  if (val >= -20) return '#c64';
+  if (val >= -60) return '#e44';
+  return '#f22';
 }
 function sendGift(nationId, resource, amount) {
   const pn = nations[playerNation];
@@ -1442,11 +1565,12 @@ function spawnBarbarianCamp() {
 }
 
 function tickBarbarianCamps() {
+  if (barbarianDensity <= 0) return;
   // Spawn new camps after turn 5
   if (turnNumber >= 5) {
     const activeCamps = barbarianCamps.filter(b => !b.destroyed).length;
-    const maxCamps = Math.max(2, Math.floor(MAP_COLS * MAP_ROWS / 2000));
-    if (activeCamps < maxCamps && Math.random() < 0.4) {
+    const maxCamps = Math.max(1, Math.floor(MAP_COLS * MAP_ROWS / 2000 * barbarianDensity));
+    if (activeCamps < maxCamps && Math.random() < 0.4 * barbarianDensity) {
       spawnBarbarianCamp();
     }
   }
@@ -1773,17 +1897,88 @@ function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
 
-  // AI loyalty check — declare war if furious, seek peace if loyalty recovered
+  // AI diplomacy — think like a ruler
+  const aiCitiesAll = cities.filter(c => c.nationId === nationId);
   for (let otherId = 0; otherId < nations.length; otherId++) {
     if (otherId === nationId || nations[otherId].eliminated || nations[otherId].isBarbarian) continue;
     const loy = getLoyalty(nationId, otherId);
-    if (loy <= 0 && n.relations[otherId] !== 'war') {
+
+    // --- Per-turn happiness decay (distrust over time) ---
+    changeLoyalty(nationId, otherId, -0.5);
+
+    // --- City proximity: close cities feel threatening ---
+    const otherCities = cities.filter(c => c.nationId === otherId);
+    for (const ac of aiCitiesAll) {
+      for (const oc of otherCities) {
+        const dist = Math.abs(ac.x - oc.x) + Math.abs(ac.y - oc.y);
+        if (dist < 12) changeLoyalty(nationId, otherId, -9);
+        else if (dist < 20) changeLoyalty(nationId, otherId, -3);
+      }
+    }
+
+    // --- Military buildup near our borders feels threatening ---
+    const theirMilitary = units.filter(u => u.nationId === otherId && UNIT_DEFS[u.type].combat);
+    let troopsNearBorder = 0;
+    for (const u of theirMilitary) {
+      for (const ac of aiCitiesAll) {
+        if (Math.abs(u.x - ac.x) + Math.abs(u.y - ac.y) <= 10) { troopsNearBorder++; break; }
+      }
+    }
+    if (troopsNearBorder >= 3) changeLoyalty(nationId, otherId, -4);
+    else if (troopsNearBorder >= 1) changeLoyalty(nationId, otherId, -1);
+
+    // --- Territory encroachment: they own tiles near our cities ---
+    let encroachCount = 0;
+    for (const ac of aiCitiesAll) {
+      for (let dy = -4; dy <= 4; dy++) {
+        for (let dx = -4; dx <= 4; dx++) {
+          const tx = ac.x + dx, ty = ac.y + dy;
+          if (tx < 0 || ty < 0 || tx >= MAP_COLS || ty >= MAP_ROWS) continue;
+          if (tiles[ty * MAP_COLS + tx].owner === otherId) encroachCount++;
+        }
+      }
+    }
+    if (encroachCount >= 8) changeLoyalty(nationId, otherId, -3);
+    else if (encroachCount >= 3) changeLoyalty(nationId, otherId, -1);
+
+    // --- Power imbalance: they are much stronger, we feel threatened ---
+    const ourMilitary = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat).length;
+    const theirMilCount = theirMilitary.length;
+    if (theirMilCount > ourMilitary * 2 && theirMilCount >= 4) changeLoyalty(nationId, otherId, -2);
+
+    // --- They are at war with someone we like ---
+    for (let thirdId = 0; thirdId < nations.length; thirdId++) {
+      if (thirdId === nationId || thirdId === otherId || nations[thirdId].eliminated || nations[thirdId].isBarbarian) continue;
+      if (nations[otherId].relations[thirdId] === 'war' && getLoyalty(nationId, thirdId) >= 60) {
+        changeLoyalty(nationId, otherId, -1);
+      }
+    }
+
+    // --- Shared enemy bonus: both at war with same nation ---
+    for (let thirdId = 0; thirdId < nations.length; thirdId++) {
+      if (thirdId === nationId || thirdId === otherId || nations[thirdId].eliminated || nations[thirdId].isBarbarian) continue;
+      if (n.relations[thirdId] === 'war' && nations[otherId].relations[thirdId] === 'war') {
+        changeLoyalty(nationId, otherId, 2);
+      }
+    }
+
+    // --- Trade bonus: if at peace and both have cities, small trust growth ---
+    if (n.relations[otherId] === 'peace' && aiCitiesAll.length > 0 && otherCities.length > 0) {
+      changeLoyalty(nationId, otherId, 0.3);
+    }
+
+    // --- Declare war at -100 ---
+    const updatedLoy = getLoyalty(nationId, otherId);
+    if (updatedLoy <= -100 && n.relations[otherId] !== 'war') {
       n.relations[otherId] = 'war';
       nations[otherId].relations[nationId] = 'war';
-      if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(loy)})`);
+      // The target immediately views the aggressor as hostile
+      const otherLoy = getLoyalty(otherId, nationId);
+      if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
+      if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(updatedLoy)})`);
     }
-    // Peace seeking
-    if (n.relations[otherId] === 'war' && loy > 30) {
+    // Peace seeking — only if loyalty recovers above 0
+    if (n.relations[otherId] === 'war' && updatedLoy > 0) {
       if (otherId === playerNation) {
         if (!n.wantsPeace) n.wantsPeace = {};
         if (!n.wantsPeace[otherId]) {
@@ -1792,15 +1987,12 @@ function aiTurn(nationId) {
         }
       } else {
         const otherLoy = getLoyalty(otherId, nationId);
-        if (otherLoy > 30) {
+        if (otherLoy > 0) {
           n.relations[otherId] = 'peace';
           nations[otherId].relations[nationId] = 'peace';
         }
       }
     }
-    // Slow loyalty decay toward neutral
-    if (loy > 50) changeLoyalty(nationId, otherId, -1);
-    else if (loy < 50) changeLoyalty(nationId, otherId, 1);
   }
 
   const aiCities = cities.filter(c => c.nationId === nationId);
@@ -1910,7 +2102,7 @@ function aiTurn(nationId) {
           bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio));
           changeLoyalty(bestTarget.nationId, nationId, -10);
           if (bestTarget.hp <= 0) units.splice(units.indexOf(bestTarget), 1);
-          playBattleSound();
+          playCombatSound(u.type, u.x, u.y);
           u.movesLeft = 0; attacked = true;
         }
       }
@@ -2493,6 +2685,7 @@ function render() {
   updateCityLabels();
   renderMinimap();
   updateAmbientBirds();
+  updateAmbientTown();
   document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
   document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
 }
@@ -2886,7 +3079,12 @@ function toggleDiplomacy(nationId) {
   const current = pn.relations[nationId] || 'peace';
   const next = current === 'war' ? 'peace' : 'war';
   pn.relations[nationId] = next; nations[nationId].relations[playerNation] = next;
-  if (next === 'war') showToast(`War declared on ${nations[nationId].name}!`);
+  if (next === 'war') {
+    // Target immediately views us as hostile
+    const theirLoy = getLoyalty(nationId, playerNation);
+    if (theirLoy > -60) nations[nationId].loyalty[playerNation] = -60;
+    showToast(`War declared on ${nations[nationId].name}!`);
+  }
   else showToast(`Peace with ${nations[nationId].name}`);
   renderKingdoms();
 }
@@ -2925,7 +3123,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-0.9';
+const CURRENT_VERSION = 'beta-1.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -2991,6 +3189,7 @@ function confirmSetupAndStart() {
   const name = document.getElementById('setupName').value.trim() || 'Unknown Kingdom';
   const color = document.getElementById('setupColor').value;
   const opponents = parseInt(document.getElementById('setupOpponents').value) || 3;
+  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 60) / 100;
   startGame(pendingMapCols, pendingMapRows, name, color, opponents);
 }
 window.showSetup = showSetup;
@@ -3402,7 +3601,12 @@ function animationTick(timestamp) {
 
 function startUnitAnimation(unit, path, onComplete) {
   if (!path || path.length === 0) { if (onComplete) onComplete(); return; }
-  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: unit.x, startY: unit.y, onComplete });
+  startMarchSound();
+  const wrappedComplete = () => {
+    stopMarchSound();
+    if (onComplete) onComplete();
+  };
+  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: unit.x, startY: unit.y, onComplete: wrappedComplete });
   unit._animating = true;
   if (!animationBlocking) {
     animationBlocking = true; lastAnimTime = 0;
@@ -3483,7 +3687,7 @@ window.doRangedAttack = function(tx, ty) {
   if (target.hp <= 0) units.splice(units.indexOf(target), 1);
   selectedUnit.movesLeft = 0;
   rangedMode = false;
-  playBattleSound();
+  playCombatSound(selectedUnit.type);
   cycleToNextUnit();
   updateUI(); render();
 };
@@ -3618,7 +3822,7 @@ function serializeGame() {
   return JSON.stringify({
     v: 8, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
     playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
-    barbarianCamps, citySites, pillaged,
+    barbarianCamps, citySites, pillaged, barbarianDensity,
   });
 }
 
@@ -3650,6 +3854,7 @@ function deserializeGame(json) {
   barbarianCamps = d.barbarianCamps || [];
   citySites = d.citySites || [];
   pillaged = d.pillaged || [];
+  barbarianDensity = d.barbarianDensity !== undefined ? d.barbarianDensity : 0.6;
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; reachableTiles.clear();
   return true;
