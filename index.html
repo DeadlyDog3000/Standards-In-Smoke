@@ -199,6 +199,28 @@
     .log-entry { border-bottom: 1px solid rgba(100,80,50,0.2); padding: 2px 0; }
     .log-entry:last-child { border-bottom: none; }
     .log-turn { color: #8a7a5a; font-size: 10px; }
+
+    /* Event Modal */
+    #eventModal {
+      display: none; position: fixed; inset: 0; z-index: 150;
+      background: rgba(10, 8, 5, 0.85);
+      align-items: center; justify-content: center;
+    }
+    #eventModal.active { display: flex; }
+    .event-card {
+      background: rgba(40, 35, 22, 0.95); border: 1px solid rgba(212, 168, 86, 0.5);
+      border-radius: 8px; padding: 28px 32px; max-width: 420px; text-align: center;
+    }
+    .event-card h3 { color: #e0c880; font-size: 20px; margin-bottom: 10px; font-family: 'Uncial Antiqua', cursive; }
+    .event-card p { color: #c8b8a0; font-size: 14px; line-height: 1.6; margin-bottom: 18px; }
+    .event-choice {
+      display: block; width: 100%; padding: 10px 14px; margin-bottom: 8px; font-size: 13px;
+      background: rgba(220, 210, 190, 0.1); color: #fff; border: 1px solid rgba(180, 160, 120, 0.3);
+      border-radius: 4px; cursor: pointer; text-align: left; font-family: 'EB Garamond', serif;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .event-choice:hover { background: rgba(220, 210, 190, 0.22); border-color: rgba(210, 180, 100, 0.6); }
+    .event-effect { float: right; color: #a89878; font-size: 11px; }
   </style>
 </head>
 <body>
@@ -306,6 +328,7 @@
     <div class="res"><span class="res-icon" style="background:#607d8b"></span><span>Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
     <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span>Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
     <div class="spacer"></div>
+    <div class="res"><span style="color:#d4a856">⚜</span><span>Legitimacy:</span><span class="res-val" id="resLegitimacy">50</span></div>
     <div class="res"><span>Orders:</span><span class="res-val" id="resOrders">0</span></div>
     <div class="res" style="margin-left:6px"><span style="color:#b8a070">Turn</span><span class="res-val" id="turnCounter">1</span></div>
     <div class="res"><span style="color:#d4a856">Score:</span><span class="res-val" id="playerScore">0</span></div>
@@ -321,6 +344,9 @@
   <div id="toast"></div>
   <div id="tileTooltip"></div>
   <div id="eventLog"></div>
+  <div id="eventModal">
+    <div class="event-card" id="eventCard"></div>
+  </div>
 </div>
 
 <!-- Tutorial Overlay -->
@@ -366,6 +392,28 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.5</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Old World-Inspired Systems</b><br>
+          - Orders system: limited actions per turn (base 3 + 1/city + legitimacy bonus)<br>
+          - First action per unit costs 1 order; subsequent moves with that unit are free<br>
+          - AI also uses orders for balanced gameplay<br>
+          <br>
+          <b style="color:#b8a070;">Legitimacy</b><br>
+          - New resource (0-100) shown in topbar with fleur-de-lis<br>
+          - Increases from cities, winning battles, capturing cities, and event choices<br>
+          - Decreases from losing units, losing cities, and event choices<br>
+          - Affects max orders per turn and score<br>
+          <br>
+          <b style="color:#b8a070;">Narrative Events</b><br>
+          - 12 Napoleonic-era events with meaningful choices every 4 turns<br>
+          - Events affect resources and legitimacy<br>
+          - Includes: Bountiful Harvest, Desertion, Traveling Merchant, Provincial Unrest, and more<br>
+          <br>
+          <b style="color:#b8a070;">Bug Fixes</b><br>
+          - Fixed defeat screen showing "undefined" for military count<br>
+          - Keyboard hotkeys and camera no longer work during event modals<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.4</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -698,6 +746,11 @@ fieldGunSound.volume = 0.5;
 const townSound = new Audio('town.mp3');
 townSound.loop = true; townSound.volume = 0;
 let townPlaying = false;
+// Orders system (Old World style)
+let ordersRemaining = 0;
+let activatedUnits = new Set();
+let eventModalOpen = false;
+
 // Event log
 const eventLogEntries = [];
 function logEvent(msg) {
@@ -1144,6 +1197,7 @@ function createNation(name, color, isPlayer) {
   nations.push({
     id, name, color, isPlayer,
     gold: 10, food: 10, wood: 10, stone: 5, steel: 5, science: 0,
+    legitimacy: 50,
     relations: {},
     loyalty: {},
     researched: new Set(),
@@ -1235,6 +1289,26 @@ function getOrders(nationId) {
   let o = 0;
   for (const u of units) if (u.nationId === nationId && u.movesLeft > 0) o++;
   return o;
+}
+
+function getMaxOrders(nationId) {
+  const n = nations[nationId];
+  if (!n || n.eliminated || n.isBarbarian) return 99;
+  const cityCount = cities.filter(c => c.nationId === nationId).length;
+  const leg = n.legitimacy || 50;
+  return 3 + cityCount + Math.floor(leg / 25);
+}
+
+function tryActivateUnit(unit) {
+  if (activatedUnits.has(unit)) return true;
+  if (ordersRemaining <= 0) {
+    showToast('No orders remaining!');
+    return false;
+  }
+  ordersRemaining--;
+  activatedUnits.add(unit);
+  updateUI();
+  return true;
 }
 
 // ====================
@@ -1524,6 +1598,14 @@ function doAttack(attacker, tx, ty) {
     }
   }
   if (target.hp <= 0) {
+    // Legitimacy: +2 for killing an enemy unit
+    if (!nations[attacker.nationId].isBarbarian) {
+      nations[attacker.nationId].legitimacy = Math.min(100, (nations[attacker.nationId].legitimacy || 50) + 2);
+    }
+    // Legitimacy: -1 for losing a unit (for the dead unit's nation)
+    if (!nations[target.nationId].isBarbarian) {
+      nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
+    }
     units.splice(units.indexOf(target), 1);
     // Only move attacker to target's tile if adjacent and traversable
     const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
@@ -1531,8 +1613,18 @@ function doAttack(attacker, tx, ty) {
       attacker.x = tx; attacker.y = ty;
     }
   }
-  if (attacker.hp <= 0) units.splice(units.indexOf(attacker), 1);
-  attacker.movesLeft = 0;
+  if (attacker.hp <= 0) {
+    // Legitimacy: +2 for the defender's nation killing the attacker
+    if (!nations[target.nationId].isBarbarian) {
+      nations[target.nationId].legitimacy = Math.min(100, (nations[target.nationId].legitimacy || 50) + 2);
+    }
+    // Legitimacy: -1 for the attacker's nation losing the unit
+    if (!nations[attacker.nationId].isBarbarian) {
+      nations[attacker.nationId].legitimacy = Math.max(0, (nations[attacker.nationId].legitimacy || 50) - 1);
+    }
+    units.splice(units.indexOf(attacker), 1);
+  }
+  if (units.includes(attacker)) attacker.movesLeft = 0;
 }
 
 // ====================
@@ -1569,6 +1661,13 @@ function tickCityCapture() {
                 u.movesLeft = 0;
               }
             }
+          }
+          // Legitimacy: +3 for capturing a city, -3 for losing one
+          if (!nations[occupier.nationId].isBarbarian) {
+            nations[occupier.nationId].legitimacy = Math.min(100, (nations[occupier.nationId].legitimacy || 50) + 3);
+          }
+          if (!nations[oldOwner].isBarbarian) {
+            nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 3);
           }
           if (occupier.nationId === playerNation) showToast(`${city.name} has been captured!`);
           else if (oldOwner === playerNation) showToast(`${city.name} has fallen to ${nations[occupier.nationId].name}!`);
@@ -1931,6 +2030,7 @@ function getScore(nationId) {
     score += UNIT_DEFS[u.type].combat ? 3 : 1;
   }
   score += nations.filter(n => n.eliminated && !n.isBarbarian && n.eliminatedBy === nationId).length * 20;
+  score += Math.floor((nations[nationId].legitimacy || 50) / 10);
   score -= Math.floor(turnNumber * 0.5);
   return Math.max(0, score);
 }
@@ -2055,7 +2155,7 @@ function showDefeat(type, winnerId) {
         Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
         Territory: ${s.tileCount} tiles (+${Math.floor(s.tileCount / 5)})<br>
         Technologies: ${s.techCount} (+${s.techCount * 5})<br>
-        Military: ${s.militaryCount} units (+${s.militaryCount * 2})<br>
+        Military: ${s.combatCount} units (+${s.combatCount * 2})<br>
         Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
         Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
         Time penalty: -${Math.floor(turnNumber * 0.5)}
@@ -2227,9 +2327,13 @@ function aiTurn(nationId) {
     }
   }
 
+  let aiOrdersLeft = getMaxOrders(nationId);
   const aiUnits = units.filter(u => u.nationId === nationId);
   for (const u of [...aiUnits]) {
     if (!units.includes(u)) continue;
+    // AI order check: each unit activation costs 1 order
+    if (u.movesLeft > 0 && aiOrdersLeft <= 0) continue;
+    if (u.movesLeft > 0) aiOrdersLeft--;
     if (u.type === 'settler' && u.movesLeft > 0) {
       if (canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u);
       else {
@@ -2325,7 +2429,11 @@ function aiTurn(nationId) {
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? 1.5 : 1.0;
           bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus);
           changeLoyalty(bestTarget.nationId, nationId, -10);
-          if (bestTarget.hp <= 0) units.splice(units.indexOf(bestTarget), 1);
+          if (bestTarget.hp <= 0) {
+            if (!nations[nationId].isBarbarian) nations[nationId].legitimacy = Math.min(100, (nations[nationId].legitimacy || 50) + 2);
+            if (!nations[bestTarget.nationId].isBarbarian) nations[bestTarget.nationId].legitimacy = Math.max(0, (nations[bestTarget.nationId].legitimacy || 50) - 1);
+            units.splice(units.indexOf(bestTarget), 1);
+          }
           playCombatSound(u.type, u.x, u.y);
           u.movesLeft = 0; attacked = true;
         }
@@ -2584,6 +2692,15 @@ function endTurn() {
     // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
   }
   turnNumber++;
+  // Legitimacy tick: +0.5 per city for non-barbarian nations, clamped 0-100
+  for (let i = 0; i < nations.length; i++) {
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    const nationCityCount = cities.filter(c => c.nationId === i).length;
+    nations[i].legitimacy = Math.min(100, Math.max(0, (nations[i].legitimacy || 50) + nationCityCount * 0.5));
+  }
+  // Reset orders for player
+  ordersRemaining = getMaxOrders(playerNation);
+  activatedUnits = new Set();
   revealAllUnits(playerNation);
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear();
@@ -2591,7 +2708,117 @@ function endTurn() {
   autoSave();
   cycleToNextUnit();
   updateUI(); render();
+  // Trigger events every 4 turns starting turn 4 (after UI update so modal appears on top)
+  if (turnNumber > 3 && turnNumber % 4 === 0) triggerEvent();
 }
+
+// ====================
+// EVENTS SYSTEM (Old World style)
+// ====================
+const EVENTS = [
+  { id: 'harvest', title: 'Bountiful Harvest', text: 'Favorable weather has blessed your fields with an abundant harvest.', choices: [
+    { label: 'Store the surplus', effects: { food: 30 } },
+    { label: 'Sell at market', effects: { gold: 20, food: 10 } },
+    { label: 'Feast for the people', effects: { legitimacy: 5, food: -10 } }
+  ]},
+  { id: 'deserters', title: 'Desertion in the Ranks', text: 'Cold nights and poor rations have driven some soldiers to abandon their posts.', choices: [
+    { label: 'Increase rations', effects: { food: -15, legitimacy: 3 } },
+    { label: 'Execute the deserters as example', effects: { legitimacy: -5 } },
+    { label: 'Offer amnesty and a bonus', effects: { gold: -20, legitimacy: 2 } }
+  ]},
+  { id: 'merchant', title: 'Traveling Merchant', text: 'A merchant caravan arrives with exotic goods and offers to trade.', choices: [
+    { label: 'Buy exotic weapons', effects: { gold: -25, steel: 15 } },
+    { label: 'Buy provisions', effects: { gold: -15, food: 20 } },
+    { label: 'Tax the merchants', effects: { gold: 10, legitimacy: -2 } }
+  ]},
+  { id: 'rebellion', title: 'Provincial Unrest', text: 'Peasants in a distant province grow restless, demanding lower taxes.', choices: [
+    { label: 'Lower taxes', effects: { gold: -20, legitimacy: 5 } },
+    { label: 'Send troops to restore order', effects: { legitimacy: -3, steel: -5 } },
+    { label: 'Promise reforms', effects: { legitimacy: 2 } }
+  ]},
+  { id: 'diplomat', title: 'Foreign Diplomat', text: 'An emissary from a distant land arrives seeking an alliance.', choices: [
+    { label: 'Welcome them warmly', effects: { gold: -10, legitimacy: 3, science: 5 } },
+    { label: 'Demand tribute instead', effects: { gold: 15, legitimacy: -2 } },
+    { label: 'Send them away', effects: {} }
+  ]},
+  { id: 'plague', title: 'Outbreak of Disease', text: 'A sickness spreads through your settlements. Your physicians seek guidance.', choices: [
+    { label: 'Quarantine the sick', effects: { food: -10, legitimacy: 2 } },
+    { label: 'Fund medical research', effects: { gold: -20, science: 10 } },
+    { label: 'Pray for deliverance', effects: { legitimacy: -2 } }
+  ]},
+  { id: 'mine_discovery', title: 'Rich Mineral Vein', text: 'Miners have struck a rich vein of ore in the mountains.', choices: [
+    { label: 'Expand the mine', effects: { steel: 20, wood: -10 } },
+    { label: 'Sell mining rights', effects: { gold: 25 } },
+    { label: 'Stockpile strategically', effects: { steel: 10, stone: 10 } }
+  ]},
+  { id: 'spy', title: 'Enemy Spy Captured', text: 'Your guards have captured a foreign agent skulking near the palace.', choices: [
+    { label: 'Interrogate for intelligence', effects: { science: 10, legitimacy: -1 } },
+    { label: 'Execute publicly', effects: { legitimacy: 3 } },
+    { label: 'Release as goodwill', effects: { legitimacy: 1, gold: 5 } }
+  ]},
+  { id: 'festival', title: 'Grand Festival', text: 'The people request a grand celebration to honor recent victories.', choices: [
+    { label: 'Spare no expense', effects: { gold: -30, food: -15, legitimacy: 8 } },
+    { label: 'Modest celebration', effects: { gold: -10, legitimacy: 3 } },
+    { label: 'Decline \u2014 resources are needed', effects: { legitimacy: -3 } }
+  ]},
+  { id: 'engineers', title: 'Skilled Engineers', text: 'A group of talented engineers seeks patronage in your court.', choices: [
+    { label: 'Hire them all', effects: { gold: -20, science: 15, stone: 10 } },
+    { label: 'Hire a few', effects: { gold: -10, science: 8 } },
+    { label: 'Decline their services', effects: {} }
+  ]},
+  { id: 'smugglers', title: 'Smuggler Ring', text: 'Your officials have uncovered a network of smugglers operating in your ports.', choices: [
+    { label: 'Crack down hard', effects: { gold: 15, legitimacy: 2 } },
+    { label: 'Look the other way (they pay well)', effects: { gold: 25, legitimacy: -3 } },
+    { label: 'Recruit them as spies', effects: { science: 8, legitimacy: -1 } }
+  ]},
+  { id: 'storm', title: 'Great Storm', text: 'A terrible storm ravages the countryside, destroying crops and homes.', choices: [
+    { label: 'Emergency relief effort', effects: { gold: -15, wood: -10, legitimacy: 5 } },
+    { label: 'Rebuild with taxes', effects: { gold: 10, legitimacy: -4 } },
+    { label: 'Focus on key areas only', effects: { wood: -5, legitimacy: 1 } }
+  ]}
+];
+
+function triggerEvent() {
+  const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const modal = document.getElementById('eventModal');
+  const card = document.getElementById('eventCard');
+  let html = `<h3>${evt.title}</h3><p>${evt.text}</p>`;
+  evt.choices.forEach((ch, idx) => {
+    const effectStr = Object.entries(ch.effects).map(([k, v]) => {
+      const sign = v > 0 ? '+' : '';
+      const label = k === 'legitimacy' ? 'Leg' : k.charAt(0).toUpperCase() + k.slice(1);
+      return `${sign}${v} ${label}`;
+    }).join(', ');
+    html += `<button class="event-choice" onclick="applyEventChoice('${evt.id}', ${idx})">${ch.label}${effectStr ? `<span class="event-effect">${effectStr}</span>` : ''}</button>`;
+  });
+  card.innerHTML = html;
+  modal.classList.add('active');
+  eventModalOpen = true;
+}
+
+function applyEventChoice(eventId, choiceIndex) {
+  const evt = EVENTS.find(e => e.id === eventId);
+  if (!evt) return;
+  const choice = evt.choices[choiceIndex];
+  const n = nations[playerNation];
+  for (const [key, val] of Object.entries(choice.effects)) {
+    if (key === 'legitimacy') {
+      n.legitimacy = Math.min(100, Math.max(0, (n.legitimacy || 50) + val));
+    } else {
+      n[key] = Math.max(0, (n[key] || 0) + val);
+    }
+  }
+  const effectStr = Object.entries(choice.effects).map(([k, v]) => {
+    const sign = v > 0 ? '+' : '';
+    return `${sign}${v} ${k}`;
+  }).join(', ');
+  if (effectStr) logEvent(`${evt.title}: ${choice.label} (${effectStr})`);
+  else logEvent(`${evt.title}: ${choice.label}`);
+  document.getElementById('eventModal').classList.remove('active');
+  eventModalOpen = false;
+  updateUI(); render();
+}
+window.applyEventChoice = applyEventChoice;
 
 // ====================
 // RENDERING
@@ -3029,7 +3256,8 @@ function updateUI() {
   document.getElementById('rateStone').textContent = `+${y.stone.toFixed(1)}`;
   document.getElementById('rateSteel').textContent = `+${y.steel.toFixed(1)}`;
   document.getElementById('rateScience').textContent = `+${(y.science||0).toFixed(1)}`;
-  document.getElementById('resOrders').textContent = getOrders(playerNation);
+  document.getElementById('resLegitimacy').textContent = Math.floor(n.legitimacy || 50);
+  document.getElementById('resOrders').textContent = ordersRemaining + ' / ' + getMaxOrders(playerNation);
   document.getElementById('turnCounter').textContent = turnNumber;
   document.getElementById('playerScore').textContent = getScore(playerNation);
 }
@@ -3220,6 +3448,7 @@ function setProd(type) {
 // ====================
 function confirmSettle() {
   if (!selectedUnit || selectedUnit.type !== 'settler') return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const panel = document.getElementById('panel');
   const name = randomCityName();
   // Store pending name
@@ -3409,7 +3638,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-1.4';
+const CURRENT_VERSION = 'beta-1.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -3669,7 +3898,7 @@ canvas.addEventListener('wheel', (e) => {
 
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
-  if (animationBlocking) return;
+  if (animationBlocking || eventModalOpen) return;
   const colS = hexColStep(), cellH = hexCellH();
   const worldPx = e.clientX + camX * colS;
   const worldPy = e.clientY + camY * cellH;
@@ -3692,6 +3921,9 @@ canvas.addEventListener('click', (e) => {
     if (target && nations[selectedUnit.nationId].relations[target.nationId] === 'war') {
       const rangeTiles = getHexesInRange(selectedUnit.x, selectedUnit.y, 2);
       if (rangeTiles.some(rt => rt.x === mx && rt.y === my)) {
+        if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) {
+          rangedMode = false; render(); return;
+        }
         doRangedAttack(mx, my);
         return;
       }
@@ -3714,6 +3946,10 @@ canvas.addEventListener('click', (e) => {
 
   if (moveMode && selectedUnit) {
     if (reachableTiles.has(ti)) {
+      // Orders check: first action by this unit costs 1 order
+      if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) {
+        moveMode = false; reachableTiles.clear(); render(); return;
+      }
       if (UNIT_DEFS[selectedUnit.type].combat && canAttack(selectedUnit, mx, my)) {
         doAttack(selectedUnit, mx, my);
       } else if (units.some(u => u.x === mx && u.y === my && u !== selectedUnit)) {
@@ -3946,12 +4182,13 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
+    if (eventModalOpen) return; // Can't ESC out of events, must choose
     if (escMenuOpen) closeEscMenu();
     else if (moveMode || buyTileMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
     return;
   }
-  if (escMenuOpen) return;
+  if (escMenuOpen || eventModalOpen) return;
   // Don't capture keys when typing in an input
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -3974,7 +4211,7 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = false; });
 setInterval(() => {
-  if (!MAP_COLS || escMenuOpen) return;
+  if (!MAP_COLS || escMenuOpen || eventModalOpen) return;
   let dx = 0, dy = 0;
   if (keysDown['w'] || keysDown['arrowup']) dy = -2;
   if (keysDown['s'] || keysDown['arrowdown']) dy = 2;
@@ -4021,7 +4258,16 @@ window.doRangedAttack = function(tx, ty) {
   for (const n of nations) {
     if (n.id !== selectedUnit.nationId && n.id !== target.nationId && !n.eliminated) changeLoyalty(n.id, selectedUnit.nationId, -2);
   }
-  if (target.hp <= 0) units.splice(units.indexOf(target), 1);
+  if (target.hp <= 0) {
+    // Legitimacy: +2 for killing, -1 for the dead unit's nation
+    if (!nations[selectedUnit.nationId].isBarbarian) {
+      nations[selectedUnit.nationId].legitimacy = Math.min(100, (nations[selectedUnit.nationId].legitimacy || 50) + 2);
+    }
+    if (!nations[target.nationId].isBarbarian) {
+      nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
+    }
+    units.splice(units.indexOf(target), 1);
+  }
   selectedUnit.movesLeft = 0;
   rangedMode = false;
   playCombatSound(selectedUnit.type);
@@ -4093,6 +4339,7 @@ window.confirmSettle = confirmSettle;
 
 window.doChop = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   chopForest(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
   showUnitPanel(selectedUnit); updateUI(); render();
@@ -4100,6 +4347,7 @@ window.doChop = function() {
 
 window.doRepair = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   if (!canRepairTile(selectedUnit, selectedUnit.x, selectedUnit.y)) return;
   repairTile(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
@@ -4108,6 +4356,7 @@ window.doRepair = function() {
 
 window.doBuild = function(key) {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   buildImprovement(selectedUnit, key);
   showToast(`Built ${IMPROVEMENT_DEFS[key].name}`);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
@@ -4121,6 +4370,7 @@ window.deselectUnit = function() {
 
 window.fortifyUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
   showToast('Unit fortified (+20% defense)');
@@ -4129,6 +4379,7 @@ window.fortifyUnit = function() {
 
 window.restUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const def = UNIT_DEFS[selectedUnit.type];
   const maxHp = def.hp || 10;
   if (selectedUnit.hp >= maxHp) return;
@@ -4203,7 +4454,7 @@ function deserializeGame(json) {
     // Legacy verbose format (v2-v7)
     tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
   }
-  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, wantsPeace: n.wantsPeace || {} }));
+  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {} }));
   units = d.units;
   cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles) }));
   playerNation = d.playerNation;
@@ -4224,6 +4475,8 @@ function deserializeGame(json) {
   barbCampSpacing = d.barbCampSpacing || 6;
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; reachableTiles.clear();
+  ordersRemaining = getMaxOrders(playerNation);
+  activatedUnits = new Set();
   return true;
 }
 
@@ -4452,6 +4705,8 @@ function generateAndPlay(pName, pColor, opponents) {
 
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false;
+  ordersRemaining = getMaxOrders(playerNation);
+  activatedUnits = new Set();
   hidePanel();
   document.getElementById('kingdoms').style.display = 'none';
   updateUI(); render();
