@@ -221,6 +221,88 @@
     }
     .event-choice:hover { background: rgba(220, 210, 190, 0.22); border-color: rgba(210, 180, 100, 0.6); }
     .event-effect { float: right; color: #a89878; font-size: 11px; }
+
+    /* Setup Card */
+    .setup-card {
+      background: rgba(30, 25, 18, 0.92);
+      border: 2px solid rgba(212, 168, 86, 0.4);
+      border-radius: 12px;
+      padding: 32px 40px;
+      max-width: 600px;
+      width: 90vw;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .setup-card::-webkit-scrollbar { width: 6px; }
+    .setup-card::-webkit-scrollbar-thumb { background: rgba(160,140,100,0.4); border-radius: 3px; }
+    .setup-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(160, 140, 100, 0.2);
+    }
+    .setup-section:last-child { border-bottom: none; margin-bottom: 0; }
+    .setup-section-title {
+      font-family: 'Uncial Antiqua', cursive;
+      color: #e0c880;
+      font-size: 16px;
+      margin-bottom: 12px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    }
+    .setup-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .setup-label {
+      font-size: 14px;
+      color: #c8b89a;
+    }
+    .setup-input {
+      padding: 8px 14px;
+      font-size: 15px;
+      background: rgba(20, 16, 10, 0.6);
+      color: #e8dcc8;
+      border: 1px solid rgba(180, 160, 120, 0.35);
+      border-radius: 4px;
+      font-family: 'EB Garamond', serif;
+    }
+    .setup-input:focus {
+      outline: none;
+      border-color: rgba(212, 168, 86, 0.6);
+    }
+    .color-grid {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .color-swatch:hover { transform: scale(1.1); }
+    .color-swatch.selected { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      cursor: pointer;
+      max-width: 160px;
+    }
+    .slider-val {
+      font-size: 13px;
+      color: #e8dcc8;
+      min-width: 40px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -231,89 +313,194 @@
   <h1>Standards In Smoke</h1>
   <h2>A Napoleonic-Era Strategy Game</h2>
   <div id="menuMain">
-    <button class="menu-btn" onclick="showSetup(60, 40)">Small Map (60x40)</button>
-    <button class="menu-btn" onclick="showSetup(120, 80)">Medium Map (120x80)</button>
-    <button class="menu-btn" onclick="showSetup(200, 130)">Large Map (200x130)</button>
-    <button class="menu-btn" onclick="showSetup(300, 200)">Huge Map (300x200)</button>
-    <div class="menu-sep"></div>
-    <div id="saveSlots"></div>
+    <button class="menu-btn" onclick="showNewGame()">New Game</button>
+    <button class="menu-btn" onclick="resumeLastGame()">Resume Last Game</button>
+    <button class="menu-btn" onclick="showMenuOptions()">Options</button>
   </div>
-  <div id="menuSetup" style="display:none;text-align:center;">
-    <h3 style="color:#e0c880;margin-bottom:14px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Customize Your Kingdom</h3>
-    <label style="font-size:14px;color:#c8b89a;">Kingdom Name</label><br>
-    <input id="setupName" type="text" maxlength="24" style="margin:6px 0 14px;padding:8px 14px;width:240px;font-size:16px;background:rgba(20,16,10,0.6);color:#e8dcc8;border:1px solid rgba(180,160,120,0.35);border-radius:4px;text-align:center;" /><br>
-    <label style="font-size:14px;color:#c8b89a;">Banner Colour</label><br>
-    <input id="setupColor" type="color" value="#4488cc" style="margin:6px 0 14px;width:80px;height:36px;background:none;border:1px solid rgba(180,160,120,0.35);border-radius:4px;cursor:pointer;" /><br>
-    <label style="font-size:14px;color:#c8b89a;">Opponents</label><br>
-    <select id="setupOpponents" style="margin:6px 0 14px;padding:8px 14px;width:240px;font-size:16px;background:rgba(20,16,10,0.6);color:#e8dcc8;border:1px solid rgba(180,160,120,0.35);border-radius:4px;text-align:center;">
-      <option value="1">1 Opponent</option>
-      <option value="2">2 Opponents</option>
-      <option value="3" selected>3 Opponents</option>
-      <option value="4">4 Opponents</option>
-      <option value="5">5 Opponents</option>
-      <option value="6">6 Opponents</option>
-    </select><br>
-    <label style="font-size:14px;color:#c8b89a;">Barbarian Camps</label><br>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0 4px;">
-      <input id="setupBarbarians" type="range" min="0" max="100" value="80" style="width:180px;cursor:pointer;" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
-      <span id="barbLabel" style="font-size:14px;color:#e8dcc8;min-width:36px;">80%</span>
+  <div id="menuSetup" style="display:none;">
+    <div class="setup-card">
+      <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:26px;margin-bottom:22px;text-align:center;text-shadow:2px 2px 6px rgba(0,0,0,0.7);letter-spacing:1px;">Forge Your Empire</h3>
+
+      <!-- Section 1: Your Kingdom -->
+      <div class="setup-section">
+        <div class="setup-section-title">Your Kingdom</div>
+        <div class="setup-row">
+          <span class="setup-label">Kingdom Name</span>
+          <input id="setupName" type="text" maxlength="24" class="setup-input" style="width:220px;text-align:center;" />
+        </div>
+        <div style="margin-bottom:4px;">
+          <span class="setup-label">Banner Colour</span>
+          <div class="color-grid" style="margin-top:8px;">
+            <div class="color-swatch selected" data-color="#4488cc" style="background:#4488cc;" onclick="selectColorSwatch('#4488cc')"></div>
+            <div class="color-swatch" data-color="#cc4444" style="background:#cc4444;" onclick="selectColorSwatch('#cc4444')"></div>
+            <div class="color-swatch" data-color="#44aa44" style="background:#44aa44;" onclick="selectColorSwatch('#44aa44')"></div>
+            <div class="color-swatch" data-color="#cc8844" style="background:#cc8844;" onclick="selectColorSwatch('#cc8844')"></div>
+            <div class="color-swatch" data-color="#8844cc" style="background:#8844cc;" onclick="selectColorSwatch('#8844cc')"></div>
+            <div class="color-swatch" data-color="#44cccc" style="background:#44cccc;" onclick="selectColorSwatch('#44cccc')"></div>
+            <div class="color-swatch" data-color="#cc44aa" style="background:#cc44aa;" onclick="selectColorSwatch('#cc44aa')"></div>
+            <div class="color-swatch" data-color="#888888" style="background:#888888;" onclick="selectColorSwatch('#888888')"></div>
+            <div class="color-swatch" data-color="#cccc44" style="background:#cccc44;" onclick="selectColorSwatch('#cccc44')"></div>
+            <div class="color-swatch" data-color="#224466" style="background:#224466;" onclick="selectColorSwatch('#224466')"></div>
+            <div class="color-swatch" data-color="#664422" style="background:#664422;" onclick="selectColorSwatch('#664422')"></div>
+            <div class="color-swatch" data-color="#446622" style="background:#446622;" onclick="selectColorSwatch('#446622')"></div>
+            <input id="setupColor" type="color" value="#4488cc" style="width:32px;height:32px;background:none;border:1px solid rgba(180,160,120,0.35);border-radius:4px;cursor:pointer;padding:0;" title="Custom colour" oninput="document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'))" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: World -->
+      <div class="setup-section">
+        <div class="setup-section-title">World</div>
+        <div class="setup-row">
+          <span class="setup-label">Map Size</span>
+          <select id="setupMapSize" class="setup-input" style="width:180px;">
+            <option value="small">Small (60x40)</option>
+            <option value="medium" selected>Medium (120x80)</option>
+            <option value="large">Large (200x130)</option>
+            <option value="huge">Huge (300x200)</option>
+          </select>
+        </div>
+        <div class="setup-row">
+          <span class="setup-label">Opponents</span>
+          <select id="setupOpponents" class="setup-input" style="width:180px;">
+            <option value="1">1 Opponent</option>
+            <option value="2">2 Opponents</option>
+            <option value="3" selected>3 Opponents</option>
+            <option value="4">4 Opponents</option>
+            <option value="5">5 Opponents</option>
+            <option value="6">6 Opponents</option>
+          </select>
+        </div>
+        <div class="setup-row">
+          <span class="setup-label">Difficulty</span>
+          <select id="setupDifficulty" class="setup-input" style="width:180px;">
+            <option value="easy">Easy</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 3: Barbarians -->
+      <div class="setup-section">
+        <div class="setup-section-title">Barbarians</div>
+        <div class="setup-row">
+          <span class="setup-label">Barbarian Density</span>
+          <div class="slider-row">
+            <input id="setupBarbarians" type="range" min="0" max="100" value="80" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
+            <span id="barbLabel" class="slider-val">80%</span>
+          </div>
+        </div>
+        <div style="margin-top:4px;">
+          <a href="#" onclick="event.preventDefault();var el=document.getElementById('barbAdvanced');el.style.display=el.style.display==='none'?'block':'none';this.textContent=el.style.display==='none'?'Advanced Settings \u25B8':'Advanced Settings \u25BE'" style="font-size:12px;color:#8a7a5a;text-decoration:none;">Advanced Settings &#9656;</a>
+        </div>
+        <div id="barbAdvanced" style="display:none;text-align:left;margin-top:10px;background:rgba(20,16,10,0.5);border:1px solid rgba(160,140,100,0.25);border-radius:6px;padding:12px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">First Spawn Turn</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbSpawnTurn" type="range" min="1" max="30" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnTurnLabel').textContent=this.value" />
+              <span id="barbSpawnTurnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">3</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">Spawn Chance</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbSpawnChance" type="range" min="10" max="100" value="60" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnChanceLabel').textContent=this.value+'%'" />
+              <span id="barbSpawnChanceLabel" style="font-size:12px;color:#e8dcc8;min-width:34px;text-align:right;">60%</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">Max Units Per Camp</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbMaxUnits" type="range" min="1" max="12" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbMaxUnitsLabel').textContent=this.value" />
+              <span id="barbMaxUnitsLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">Respawn Delay (turns)</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbRespawn" type="range" min="3" max="30" value="8" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRespawnLabel').textContent=this.value" />
+              <span id="barbRespawnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">8</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">Raid Range</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbRaidRange" type="range" min="5" max="50" value="20" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaidRangeLabel').textContent=this.value" />
+              <span id="barbRaidRangeLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">20</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#c8b89a;">Raider Spawn Interval</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbRaiderInterval" type="range" min="1" max="10" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaiderIntervalLabel').textContent=this.value+' turns'" />
+              <span id="barbRaiderIntervalLabel" style="font-size:12px;color:#e8dcc8;min-width:50px;text-align:right;">3 turns</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:#c8b89a;">Camp Spacing</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <input id="setupBarbCampSpacing" type="range" min="3" max="20" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbCampSpacingLabel').textContent=this.value" />
+              <span id="barbCampSpacingLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Buttons -->
+      <div style="text-align:center;margin-top:8px;">
+        <button class="menu-btn" onclick="confirmSetupAndStart()" style="margin-bottom:8px;font-size:20px;padding:14px 40px;">Begin Campaign</button><br>
+        <button class="menu-btn" onclick="cancelSetup()" style="font-size:14px;min-width:160px;padding:8px 20px;">Back</button>
+      </div>
     </div>
-    <div id="barbAdvancedToggle" style="margin:2px 0 8px;">
-      <a href="#" onclick="event.preventDefault();document.getElementById('barbAdvanced').style.display=document.getElementById('barbAdvanced').style.display==='none'?'block':'none';this.textContent=document.getElementById('barbAdvanced').style.display==='none'?'Advanced Barbarian Settings ▸':'Advanced Barbarian Settings ▾'" style="font-size:12px;color:#8a7a5a;text-decoration:none;">Advanced Barbarian Settings ▸</a>
-    </div>
-    <div id="barbAdvanced" style="display:none;text-align:left;max-width:300px;margin:0 auto 10px;background:rgba(20,16,10,0.5);border:1px solid rgba(160,140,100,0.25);border-radius:6px;padding:12px 16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">First Spawn Turn</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbSpawnTurn" type="range" min="1" max="30" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnTurnLabel').textContent=this.value" />
-          <span id="barbSpawnTurnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">3</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">Spawn Chance</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbSpawnChance" type="range" min="10" max="100" value="60" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbSpawnChanceLabel').textContent=this.value+'%'" />
-          <span id="barbSpawnChanceLabel" style="font-size:12px;color:#e8dcc8;min-width:34px;text-align:right;">60%</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">Max Units Per Camp</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbMaxUnits" type="range" min="1" max="12" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbMaxUnitsLabel').textContent=this.value" />
-          <span id="barbMaxUnitsLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">Respawn Delay (turns)</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbRespawn" type="range" min="3" max="30" value="8" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRespawnLabel').textContent=this.value" />
-          <span id="barbRespawnLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">8</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">Raid Range</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbRaidRange" type="range" min="5" max="50" value="20" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaidRangeLabel').textContent=this.value" />
-          <span id="barbRaidRangeLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">20</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:#c8b89a;">Raider Spawn Interval</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbRaiderInterval" type="range" min="1" max="10" value="3" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbRaiderIntervalLabel').textContent=this.value+' turns'" />
-          <span id="barbRaiderIntervalLabel" style="font-size:12px;color:#e8dcc8;min-width:50px;text-align:right;">3 turns</span>
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;color:#c8b89a;">Camp Spacing</span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <input id="setupBarbCampSpacing" type="range" min="3" max="20" value="6" style="width:100px;cursor:pointer;" oninput="document.getElementById('barbCampSpacingLabel').textContent=this.value" />
-          <span id="barbCampSpacingLabel" style="font-size:12px;color:#e8dcc8;min-width:24px;text-align:right;">6</span>
-        </span>
+  </div>
+  <div id="menuOptions" style="display:none;text-align:center;max-width:400px;width:90vw;">
+    <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:18px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Options</h3>
+    <div style="background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;text-align:left;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:15px;color:#c8b89a;">Music</span>
+        <button class="menu-btn" id="menuMusicToggle" onclick="toggleMusic();this.textContent=musicEnabled?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
       </div>
     </div>
-    <button class="menu-btn" onclick="confirmSetupAndStart()" style="margin-top:6px;">Begin Campaign</button>
-    <button class="menu-btn" onclick="cancelSetup()" style="margin-top:6px;font-size:14px;min-width:160px;">Back</button>
+    <div style="background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;">
+      <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:15px;margin-bottom:12px;">Saved Games</div>
+      <div id="menuSaveSlots" style="max-height:250px;overflow-y:auto;"></div>
+    </div>
+    <button class="menu-btn" onclick="showMenuUpdateLog()" style="margin-bottom:8px;">Update Log</button>
+    <button class="menu-btn" onclick="hideMenuOptions()">Back</button>
+  </div>
+  <div id="menuUpdateLog" style="display:none;text-align:center;max-width:420px;width:90vw;">
+    <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:18px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Update Log</h3>
+    <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-height:60vh;overflow-y:auto;background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;">
+      <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
+        <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
+        <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.5</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Old World-Inspired Systems</b><br>
+        - Orders system: limited actions per turn (base 3 + 1/city + legitimacy bonus)<br>
+        - First action per unit costs 1 order; subsequent moves with that unit are free<br>
+        - AI also uses orders for balanced gameplay<br>
+        <br>
+        <b style="color:#b8a070;">Legitimacy</b><br>
+        - New resource (0-100) shown in topbar with fleur-de-lis<br>
+        - Increases from cities, winning battles, capturing cities, and event choices<br>
+        - Decreases from losing units, losing cities, and event choices<br>
+        - Affects max orders per turn and score<br>
+        <br>
+        <b style="color:#b8a070;">Narrative Events</b><br>
+        - 12 Napoleonic-era events with meaningful choices every 4 turns<br>
+        - Events affect resources and legitimacy<br>
+        - Includes: Bountiful Harvest, Desertion, Traveling Merchant, Provincial Unrest, and more<br>
+        <br>
+        <b style="color:#b8a070;">Bug Fixes</b><br>
+        - Fixed defeat screen showing "undefined" for military count<br>
+        - Keyboard hotkeys and camera no longer work during event modals<br>
+      </div>
+      <div style="color:#888;font-size:11px;text-align:center;">See in-game ESC menu for full history.</div>
+    </div>
+    <button class="menu-btn" onclick="hideMenuUpdateLog()">Back</button>
   </div>
 </div>
 
@@ -700,8 +887,9 @@ let hoveredMX = -1, hoveredMY = -1, hoveredUnit = null;
 let lastMouseX = 0, lastMouseY = 0;
 let isDragging = false, dragStartX = 0, dragStartY = 0, dragCamStartX = 0, dragCamStartY = 0, dragMoved = false;
 let escMenuOpen = false;
-let pendingMapCols = 0, pendingMapRows = 0;
+// pendingMapCols/pendingMapRows removed - map size now selected via dropdown in setup
 let musicEnabled = true;
+let gameDifficulty = 'normal';
 const MUSIC_TRACKS = [
   'Mozart-Serenade-in-G-major(chosic.com).mp3',
   'Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).mp3',
@@ -3672,7 +3860,10 @@ function toggleMusic() {
   musicEnabled = !musicEnabled;
   if (musicEnabled) { bgMusic.play().catch(() => {}); }
   else { bgMusic.pause(); }
-  document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
+  const escBtn = document.getElementById('musicToggleBtn');
+  if (escBtn) escBtn.textContent = musicEnabled ? 'On' : 'Off';
+  const menuBtn = document.getElementById('menuMusicToggle');
+  if (menuBtn) menuBtn.textContent = musicEnabled ? 'On' : 'Off';
 }
 function startMusic() {
   if (musicEnabled) bgMusic.play().catch(() => {});
@@ -3691,7 +3882,8 @@ function quitToMenu() {
   document.getElementById('menu').style.display = 'flex';
   document.getElementById('menuMain').style.display = 'block';
   document.getElementById('menuSetup').style.display = 'none';
-  refreshSaveSlots();
+  document.getElementById('menuOptions').style.display = 'none';
+  document.getElementById('menuUpdateLog').style.display = 'none';
   startMenuSlideshow();
 }
 
@@ -3720,13 +3912,60 @@ function stopMenuSlideshow() {
 startMenuSlideshow();
 
 // Nation setup screen
-function showSetup(cols, rows) {
-  pendingMapCols = cols; pendingMapRows = rows;
+function showNewGame() {
   document.getElementById('menuMain').style.display = 'none';
   document.getElementById('menuSetup').style.display = 'block';
-  // Pre-fill with random name
   document.getElementById('setupName').value = NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)];
-  document.getElementById('setupColor').value = '#4488cc';
+  selectColorSwatch('#4488cc');
+}
+function resumeLastGame() {
+  const data = localStorage.getItem('sis_save_auto');
+  if (!data) { showToast('No saved game found'); return; }
+  loadGame('auto');
+}
+function showMenuOptions() {
+  document.getElementById('menuMain').style.display = 'none';
+  document.getElementById('menuOptions').style.display = 'block';
+  document.getElementById('menuMusicToggle').textContent = musicEnabled ? 'On' : 'Off';
+  refreshMenuSaveSlots();
+}
+function hideMenuOptions() {
+  document.getElementById('menuOptions').style.display = 'none';
+  document.getElementById('menuMain').style.display = 'block';
+}
+function showMenuUpdateLog() {
+  document.getElementById('menuOptions').style.display = 'none';
+  document.getElementById('menuUpdateLog').style.display = 'block';
+}
+function hideMenuUpdateLog() {
+  document.getElementById('menuUpdateLog').style.display = 'none';
+  document.getElementById('menuOptions').style.display = 'block';
+}
+function selectColorSwatch(color) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  const swatch = document.querySelector('.color-swatch[data-color="' + color + '"]');
+  if (swatch) swatch.classList.add('selected');
+  document.getElementById('setupColor').value = color;
+}
+function refreshMenuSaveSlots() {
+  const el = document.getElementById('menuSaveSlots');
+  const slots = ['auto', 'slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8'];
+  const labels = ['Auto Save', 'Save 1', 'Save 2', 'Save 3', 'Save 4', 'Save 5', 'Save 6', 'Save 7', 'Save 8'];
+  let html = '';
+  let hasAnySave = false;
+  for (let i = 0; i < slots.length; i++) {
+    const meta = localStorage.getItem('sis_meta_' + slots[i]);
+    if (meta) {
+      hasAnySave = true;
+      const m = JSON.parse(meta);
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<button class="menu-btn" onclick="loadGame(\'' + slots[i] + '\')" style="flex:1;min-width:auto;font-size:14px;padding:8px 12px;">' + labels[i] + '<span class="slot-info">' + m.nation + ' | Turn ' + m.turn + ' | ' + m.size + '</span></button>' +
+        '<button class="menu-btn" onclick="deleteSave(\'' + slots[i] + '\');refreshMenuSaveSlots()" style="min-width:auto;padding:8px 12px;font-size:13px;background:rgba(180,60,40,0.2);border-color:rgba(180,90,60,0.4);">Delete</button>' +
+        '</div>';
+    }
+  }
+  if (!hasAnySave) html = '<p style="color:#666;font-size:14px;text-align:center;">No saved games</p>';
+  el.innerHTML = html;
 }
 function cancelSetup() {
   document.getElementById('menuSetup').style.display = 'none';
@@ -3736,6 +3975,10 @@ function confirmSetupAndStart() {
   const name = document.getElementById('setupName').value.trim() || 'Unknown Kingdom';
   const color = document.getElementById('setupColor').value;
   const opponents = parseInt(document.getElementById('setupOpponents').value) || 3;
+  const mapSize = document.getElementById('setupMapSize').value;
+  const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
+  const [cols, rows] = sizes[mapSize] || sizes.medium;
+  gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
   barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 80) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
   barbSpawnChance = (parseInt(document.getElementById('setupBarbSpawnChance').value) || 60) / 100;
@@ -3744,9 +3987,16 @@ function confirmSetupAndStart() {
   barbRaidRange = parseInt(document.getElementById('setupBarbRaidRange').value) || 20;
   barbRaiderInterval = parseInt(document.getElementById('setupBarbRaiderInterval').value) || 3;
   barbCampSpacing = parseInt(document.getElementById('setupBarbCampSpacing').value) || 6;
-  startGame(pendingMapCols, pendingMapRows, name, color, opponents);
+  startGame(cols, rows, name, color, opponents);
 }
-window.showSetup = showSetup;
+window.showNewGame = showNewGame;
+window.resumeLastGame = resumeLastGame;
+window.showMenuOptions = showMenuOptions;
+window.hideMenuOptions = hideMenuOptions;
+window.showMenuUpdateLog = showMenuUpdateLog;
+window.hideMenuUpdateLog = hideMenuUpdateLog;
+window.selectColorSwatch = selectColorSwatch;
+window.refreshMenuSaveSlots = refreshMenuSaveSlots;
 window.cancelSetup = cancelSetup;
 window.confirmSetupAndStart = confirmSetupAndStart;
 window.showOptionsPanel = showOptionsPanel;
@@ -4434,6 +4684,7 @@ function serializeGame() {
     playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
     barbarianCamps, citySites, pillaged, barbarianDensity,
     barbSpawnTurn, barbSpawnChance, barbMaxUnits, barbRespawnTurns, barbRaidRange, barbRaiderInterval, barbCampSpacing,
+    gameDifficulty,
   });
 }
 
@@ -4473,6 +4724,7 @@ function deserializeGame(json) {
   barbRaidRange = d.barbRaidRange || 20;
   barbRaiderInterval = d.barbRaiderInterval || 3;
   barbCampSpacing = d.barbCampSpacing || 6;
+  gameDifficulty = d.gameDifficulty || 'normal';
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; reachableTiles.clear();
   ordersRemaining = getMaxOrders(playerNation);
@@ -4531,23 +4783,11 @@ function loadGame(slot) {
 function deleteSave(slot) {
   localStorage.removeItem('sis_save_' + slot);
   localStorage.removeItem('sis_meta_' + slot);
-  refreshSaveSlots();
 }
 
 function refreshSaveSlots() {
-  const el = document.getElementById('saveSlots');
-  let html = '';
-  const slots = ['auto', 'slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8'];
-  const labels = ['Auto Save', 'Save Slot 1', 'Save Slot 2', 'Save Slot 3', 'Save Slot 4', 'Save Slot 5', 'Save Slot 6', 'Save Slot 7', 'Save Slot 8'];
-  for (let i = 0; i < slots.length; i++) {
-    const meta = localStorage.getItem('sis_meta_' + slots[i]);
-    if (meta) {
-      const m = JSON.parse(meta);
-      html += `<button class="menu-btn save-slot" onclick="loadGame('${slots[i]}')">${labels[i]} - Load<span class="slot-info">${m.nation} | Turn ${m.turn} | ${m.size} | ${m.date}</span></button>`;
-    }
-  }
-  if (!html) html = '<p style="color:#666;font-size:14px;text-align:center">No saved games</p>';
-  el.innerHTML = html;
+  // Legacy stub - save slots are now in the Options menu
+  refreshMenuSaveSlots();
 }
 
 window.saveGame = saveGame;
