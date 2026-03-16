@@ -476,27 +476,17 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
-      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.5</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.6</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">Old World-Inspired Systems</b><br>
-        - Orders system: limited actions per turn (base 3 + 1/city + legitimacy bonus)<br>
-        - First action per unit costs 1 order; subsequent moves with that unit are free<br>
-        - AI also uses orders for balanced gameplay<br>
-        <br>
-        <b style="color:#b8a070;">Legitimacy</b><br>
-        - New resource (0-100) shown in topbar with fleur-de-lis<br>
-        - Increases from cities, winning battles, capturing cities, and event choices<br>
-        - Decreases from losing units, losing cities, and event choices<br>
-        - Affects max orders per turn and score<br>
-        <br>
-        <b style="color:#b8a070;">Narrative Events</b><br>
-        - 12 Napoleonic-era events with meaningful choices every 4 turns<br>
-        - Events affect resources and legitimacy<br>
-        - Includes: Bountiful Harvest, Desertion, Traveling Merchant, Provincial Unrest, and more<br>
+        <b style="color:#b8a070;">Menu Overhaul</b><br>
+        - Clean 3-button main menu: New Game, Resume Last Game, Options<br>
+        - Stylized "Forge Your Empire" setup screen with sections and color swatches<br>
+        - Map size and difficulty selectors in setup<br>
+        - Options panel with music toggle, save management, and update log<br>
         <br>
         <b style="color:#b8a070;">Bug Fixes</b><br>
-        - Fixed defeat screen showing "undefined" for military count<br>
-        - Keyboard hotkeys and camera no longer work during event modals<br>
+        - Fixed multiple music instances playing simultaneously<br>
+        - Update log popup no longer shows pause screen when closed<br>
       </div>
       <div style="color:#888;font-size:11px;text-align:center;">See in-game ESC menu for full history.</div>
     </div>
@@ -579,6 +569,18 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.6</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Menu Overhaul</b><br>
+          - Clean 3-button main menu: New Game, Resume Last Game, Options<br>
+          - Stylized "Forge Your Empire" setup screen with sections and color swatches<br>
+          - Map size and difficulty selectors in setup<br>
+          - Options panel with music toggle, save management, and update log<br>
+          <br>
+          <b style="color:#b8a070;">Bug Fixes</b><br>
+          - Fixed multiple music instances playing simultaneously<br>
+          - Update log popup no longer shows pause screen when closed<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.5</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -3822,15 +3824,22 @@ function showUpdateLog() {
   document.getElementById('escMain').style.display = 'none';
   document.getElementById('escUpdateLog').style.display = 'block';
 }
+let updateLogIsPopup = false;
 function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
-  document.getElementById('escMain').style.display = 'block';
+  if (updateLogIsPopup) {
+    updateLogIsPopup = false;
+    closeEscMenu();
+  } else {
+    document.getElementById('escMain').style.display = 'block';
+  }
 }
-const CURRENT_VERSION = 'beta-1.5';
+const CURRENT_VERSION = 'beta-1.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
   localStorage.setItem('sis_update_log_seen', CURRENT_VERSION);
+  updateLogIsPopup = true;
   openEscMenu();
   showUpdateLog();
 }
@@ -3866,7 +3875,10 @@ function toggleMusic() {
   if (menuBtn) menuBtn.textContent = musicEnabled ? 'On' : 'Off';
 }
 function startMusic() {
-  if (musicEnabled) bgMusic.play().catch(() => {});
+  if (!musicEnabled) return;
+  // Avoid duplicate playback - only play if not already playing
+  if (!bgMusic.paused) return;
+  bgMusic.play().catch(() => {});
 }
 function quitToMenu() {
   closeEscMenu();
@@ -4970,10 +4982,10 @@ refreshSaveSlots();
 let musicStarted = false;
 document.addEventListener('click', function initMusic() {
   if (!musicStarted && musicEnabled) {
-    bgMusic.play().catch(() => {});
+    if (bgMusic.paused) bgMusic.play().catch(() => {});
     musicStarted = true;
   }
-}, { once: false });
+}, { once: true });
 
 // Global: play hover sound on ANY button mouseenter, click sound on ANY button click
 document.addEventListener('mouseover', (e) => {
