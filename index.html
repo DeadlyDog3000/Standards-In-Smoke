@@ -348,6 +348,7 @@
         <b>G</b> &mdash; Go To order<br>
         <b>R</b> &mdash; Ranged Attack<br>
         <b>V</b> &mdash; Fortify Unit<br>
+        <b>H</b> &mdash; Rest &amp; Heal<br>
         <b>WASD / Arrows</b> &mdash; Pan camera<br>
         <b>+/-</b> &mdash; Zoom in/out<br>
         <b>Escape</b> &mdash; Menu
@@ -365,6 +366,17 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.4</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Gameplay</b><br>
+          - Rest &amp; Heal (H key): wounded units can rest to heal +3 HP (+5 in cities), uses full turn<br>
+          - Resting also fortifies the unit<br>
+          <br>
+          <b style="color:#b8a070;">Victory &amp; Defeat</b><br>
+          - Full-screen game over overlay when your empire falls<br>
+          - Full-screen victory overlay with score breakdown<br>
+          - Fixed defeat screen showing wrong territory count<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.3</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -1989,48 +2001,70 @@ function getScoreBreakdown(nationId) {
 }
 
 function showVictory(type) {
-  const panel = document.getElementById('panel');
+  hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `Turn 200 reached. <strong>${nations[playerNation].name}</strong> has the highest score!`
-    : `All rival kingdoms have fallen. <strong>${nations[playerNation].name}</strong> rules supreme!`;
-  panel.innerHTML = `<h3 style="color:#d4a856;font-size:20px;text-align:center;">\uD83C\uDFC6 ${typeLabel}!</h3>
-    <p style="text-align:center;font-size:15px;">${desc}</p>
-    <div class="section-title">Score Breakdown</div>
-    <p style="font-size:12px;line-height:1.6;color:#c8b8a0;">
-      Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
-      Territory: ${s.tileCount} tiles (+${s.tileCount * 2})<br>
-      Technologies: ${s.techCount} (+${s.techCount * 5})<br>
-      Military: ${s.combatCount} units (+${s.combatCount * 3})<br>
-      Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
-      Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
-      Time penalty: -${Math.floor(turnNumber * 0.5)}<br>
-      <strong style="color:#d4a856;font-size:14px;">Total Score: ${s.total}</strong>
-    </p>
-    <p style="text-align:center;color:#888;">Turn ${turnNumber}</p>
-    <button class="p-btn" onclick="quitToMenu()" style="text-align:center;">Return to Menu</button>`;
-  panel.style.display = 'block';
+  const desc = type === 'score' ? `Turn 200 reached. <strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> has the highest score!`
+    : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> rules supreme!`;
+  const overlay = document.createElement('div');
+  overlay.id = 'victoryOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(10,8,3,0.92);display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
+    <h1 style="color:#d4a856;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(212,168,86,0.5);">${typeLabel}!</h1>
+    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
+    <div style="background:rgba(40,35,20,0.6);border:1px solid rgba(212,168,86,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
+      <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Score Breakdown</h3>
+      <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
+        Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
+        Territory: ${s.tileCount} tiles (+${Math.floor(s.tileCount / 5)})<br>
+        Technologies: ${s.techCount} (+${s.techCount * 5})<br>
+        Military: ${s.combatCount} units (+${s.combatCount * 2})<br>
+        Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
+        Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
+        Time penalty: -${Math.floor(turnNumber * 0.5)}<br>
+        <strong style="color:#d4a856;font-size:15px;">Total Score: ${s.total}</strong>
+      </div>
+    </div>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
+    <button class="menu-btn" onclick="document.getElementById('victoryOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
 function showDefeat(type, winnerId) {
-  const panel = document.getElementById('panel');
+  hidePanel();
   const s = getScoreBreakdown(playerNation);
-  let desc;
+  let title, desc;
   if (type === 'score') {
     const winner = nations[winnerId];
+    title = 'Defeat by Score';
     desc = `Turn 200 reached. <strong style="color:${winner.color}">${winner.name}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
-    desc = `<strong>${nations[playerNation].name}</strong> has fallen. Your civilization is no more.`;
+    title = 'Your Empire Has Fallen';
+    desc = `<strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> has been conquered. Your civilization is no more.`;
   }
-  panel.innerHTML = `<h3 style="color:#e44;font-size:20px;text-align:center;">Defeat</h3>
-    <p style="text-align:center;font-size:15px;">${desc}</p>
-    <div class="section-title">Your Score</div>
-    <p style="font-size:12px;line-height:1.6;color:#c8b8a0;">
-      <strong style="color:#c88;font-size:14px;">Final Score: ${s.total}</strong><br>
-      Turn ${turnNumber} | ${s.cityCount} cities | ${s.techCount} techs
-    </p>
-    <button class="p-btn" onclick="quitToMenu()" style="text-align:center;">Return to Menu</button>`;
-  panel.style.display = 'block';
+  const overlay = document.createElement('div');
+  overlay.id = 'defeatOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(10,5,3,0.92);display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
+    <h1 style="color:#c44;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(200,60,40,0.5);">${title}</h1>
+    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
+    <div style="background:rgba(40,30,20,0.6);border:1px solid rgba(160,100,60,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
+      <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Final Score: ${s.total}</h3>
+      <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
+        Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
+        Territory: ${s.tileCount} tiles (+${Math.floor(s.tileCount / 5)})<br>
+        Technologies: ${s.techCount} (+${s.techCount * 5})<br>
+        Military: ${s.militaryCount} units (+${s.militaryCount * 2})<br>
+        Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
+        Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
+        Time penalty: -${Math.floor(turnNumber * 0.5)}
+      </div>
+    </div>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
+    <button class="menu-btn" onclick="document.getElementById('defeatOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
 // ====================
@@ -3071,6 +3105,10 @@ function showUnitPanel(unit) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
     }
   }
+  if (unit.nationId === playerNation && def.combat && unit.movesLeft > 0 && unit.hp < (def.hp || 10)) {
+    const healAmt = cities.some(c => c.x === unit.x && c.y === unit.y) ? 5 : 3;
+    html += `<button class="p-btn" onclick="restUnit()">Rest &amp; Heal (H) <span class="cost">+${healAmt} HP, ends turn</span></button>`;
+  }
   if (unit.nationId === playerNation) {
     html += `<button class="p-btn" onclick="enterGotoMode()">Go To (G)</button>`;
     if (unit.gotoX !== undefined) html += `<button class="p-btn" onclick="cancelGoto()">Cancel Go To (${unit.gotoX},${unit.gotoY})</button>`;
@@ -3371,7 +3409,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-1.3';
+const CURRENT_VERSION = 'beta-1.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -3413,6 +3451,9 @@ function startMusic() {
 function quitToMenu() {
   closeEscMenu();
   stopAutoSaveTimer();
+  // Remove victory/defeat overlays if present
+  const vo = document.getElementById('victoryOverlay'); if (vo) vo.remove();
+  const do2 = document.getElementById('defeatOverlay'); if (do2) do2.remove();
   // Stop all game audio except music
   marchSound.pause(); marchSound.currentTime = 0;
   birdSound.pause(); birdsPlaying = false;
@@ -3919,6 +3960,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
   if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
+  if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
 });
@@ -4082,6 +4124,20 @@ window.fortifyUnit = function() {
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
   showToast('Unit fortified (+20% defense)');
+  cycleToNextUnit(); updateUI(); render();
+};
+
+window.restUnit = function() {
+  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  const def = UNIT_DEFS[selectedUnit.type];
+  const maxHp = def.hp || 10;
+  if (selectedUnit.hp >= maxHp) return;
+  const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y);
+  const healAmt = inCity ? 5 : 3;
+  selectedUnit.hp = Math.min(maxHp, selectedUnit.hp + healAmt);
+  selectedUnit.movesLeft = 0;
+  selectedUnit.fortified = true; // resting also fortifies
+  showToast(`Unit healed +${healAmt} HP (${selectedUnit.hp}/${maxHp})`);
   cycleToNextUnit(); updateUI(); render();
 };
 
