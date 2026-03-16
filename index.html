@@ -347,6 +347,7 @@
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
         <b>R</b> &mdash; Ranged Attack<br>
+        <b>V</b> &mdash; Fortify Unit<br>
         <b>WASD / Arrows</b> &mdash; Pan camera<br>
         <b>+/-</b> &mdash; Zoom in/out<br>
         <b>Escape</b> &mdash; Menu
@@ -364,6 +365,35 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.3</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Combat Overhaul</b><br>
+          - Terrain defense bonuses: Forest +25%, Mountain +35%, Swamp +15%, City +40%<br>
+          - Fortify units (V key) for +20% defense bonus; auto-fortifies if stationary<br>
+          - Siege units (cannons, mortars, field guns) deal +50% damage vs cities<br>
+          - Melee kills no longer teleport attacker across impassable terrain<br>
+          <br>
+          <b style="color:#b8a070;">Diplomacy Rebalance</b><br>
+          - Loyalty now drifts toward neutral instead of constantly decaying to war<br>
+          - Stronger trade and shared-enemy bonuses for stable alliances<br>
+          - AI forms coalitions against dominant empires (40%+ cities)<br>
+          - War warnings: toasts at Hostile and Imminent thresholds<br>
+          <br>
+          <b style="color:#b8a070;">Economy</b><br>
+          - Unit maintenance: military units cost 0.5 gold/turn (2 free per city)<br>
+          - Gold rate in top bar now shows net income after maintenance<br>
+          <br>
+          <b style="color:#b8a070;">AI</b><br>
+          - Diversified army composition (AI builds mix of available unit types)<br>
+          - Emergency production: AI cancels civilian builds under heavy threat<br>
+          <br>
+          <b style="color:#b8a070;">Bug Fixes</b><br>
+          - Fixed AI ranged attacks ignoring terrain and fortification defense<br>
+          - Fixed movement animation playing backwards<br>
+          - Fixed barbarian camp respawn timer ignoring configured delay<br>
+          - Fixed tutorial replaying every new game after being skipped<br>
+          - Fixed peace toggle not clearing stale peace offers in UI<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.2</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -1453,7 +1483,20 @@ function doAttack(attacker, tx, ty) {
   const atkPower = atkDef.atk || 4;
   const atkMaxHp = atkDef.hp || 10;
   const atkHpRatio = attacker.hp / atkMaxHp;
-  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 3)) * (0.5 + 0.5 * atkHpRatio));
+  // Terrain defense bonus for defender
+  const defTi = ty * MAP_COLS + tx;
+  const defTerrain = tiles[defTi].type;
+  const inCity = cities.some(c => c.x === tx && c.y === ty);
+  const defTerrainBonus = inCity ? 0.6 :               // city: 40% damage reduction
+                          (defTerrain === 5) ? 0.75 :   // forest: 25% damage reduction
+                          (defTerrain === 2) ? 0.65 :   // mountain: 35% damage reduction
+                          (defTerrain === 3) ? 0.85 :   // swamp: 15% damage reduction
+                          1.0;
+  // Fortification bonus for defender (didn't move last turn)
+  const fortBonus = target.fortified ? 0.8 : 1.0;
+  // Siege bonus: siege units deal 50% extra damage to units in cities
+  const siegeBonus = (atkDef.siege && inCity) ? 1.5 : 1.0;
+  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 3)) * (0.5 + 0.5 * atkHpRatio) * defTerrainBonus * fortBonus * siegeBonus);
   // Non-combat units can't fight back
   if (tgtDef.combat) {
     const tgtMaxHp = tgtDef.hp || 10;
@@ -1468,7 +1511,14 @@ function doAttack(attacker, tx, ty) {
       changeLoyalty(n.id, attacker.nationId, -3);
     }
   }
-  if (target.hp <= 0) { units.splice(units.indexOf(target), 1); attacker.x = tx; attacker.y = ty; }
+  if (target.hp <= 0) {
+    units.splice(units.indexOf(target), 1);
+    // Only move attacker to target's tile if adjacent and traversable
+    const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
+    if (isAdj && unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty)) {
+      attacker.x = tx; attacker.y = ty;
+    }
+  }
   if (attacker.hp <= 0) units.splice(units.indexOf(attacker), 1);
   attacker.movesLeft = 0;
 }
@@ -1996,18 +2046,22 @@ function aiTurn(nationId) {
     if (otherId === nationId || nations[otherId].eliminated || nations[otherId].isBarbarian) continue;
     const loy = getLoyalty(nationId, otherId);
 
-    // --- Per-turn happiness decay (distrust over time) ---
-    changeLoyalty(nationId, otherId, -0.5);
+    // --- Per-turn loyalty drift (trends toward neutral, not constant decay) ---
+    // If loyalty > 30, slow decay. If loyalty < 30, slow recovery. Creates stable equilibrium.
+    if (loy > 30) changeLoyalty(nationId, otherId, -0.3);
+    else if (loy < 20) changeLoyalty(nationId, otherId, 0.2);
 
     // --- City proximity: close cities feel threatening ---
     const otherCities = cities.filter(c => c.nationId === otherId);
+    let cityTension = 0;
     for (const ac of aiCitiesAll) {
       for (const oc of otherCities) {
         const dist = Math.abs(ac.x - oc.x) + Math.abs(ac.y - oc.y);
-        if (dist < 12) changeLoyalty(nationId, otherId, -9);
-        else if (dist < 20) changeLoyalty(nationId, otherId, -3);
+        if (dist < 12) cityTension += 4;
+        else if (dist < 20) cityTension += 1;
       }
     }
+    changeLoyalty(nationId, otherId, -Math.min(cityTension, 6)); // cap city proximity penalty
 
     // --- Military buildup near our borders feels threatening ---
     const theirMilitary = units.filter(u => u.nationId === otherId && UNIT_DEFS[u.type].combat);
@@ -2017,8 +2071,8 @@ function aiTurn(nationId) {
         if (Math.abs(u.x - ac.x) + Math.abs(u.y - ac.y) <= 10) { troopsNearBorder++; break; }
       }
     }
-    if (troopsNearBorder >= 3) changeLoyalty(nationId, otherId, -4);
-    else if (troopsNearBorder >= 1) changeLoyalty(nationId, otherId, -1);
+    if (troopsNearBorder >= 3) changeLoyalty(nationId, otherId, -3);
+    else if (troopsNearBorder >= 1) changeLoyalty(nationId, otherId, -0.5);
 
     // --- Territory encroachment: they own tiles near our cities ---
     let encroachCount = 0;
@@ -2031,19 +2085,19 @@ function aiTurn(nationId) {
         }
       }
     }
-    if (encroachCount >= 8) changeLoyalty(nationId, otherId, -3);
-    else if (encroachCount >= 3) changeLoyalty(nationId, otherId, -1);
+    if (encroachCount >= 8) changeLoyalty(nationId, otherId, -2);
+    else if (encroachCount >= 3) changeLoyalty(nationId, otherId, -0.5);
 
     // --- Power imbalance: they are much stronger, we feel threatened ---
     const ourMilitary = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat).length;
     const theirMilCount = theirMilitary.length;
-    if (theirMilCount > ourMilitary * 2 && theirMilCount >= 4) changeLoyalty(nationId, otherId, -2);
+    if (theirMilCount > ourMilitary * 2 && theirMilCount >= 4) changeLoyalty(nationId, otherId, -1.5);
 
     // --- They are at war with someone we like ---
     for (let thirdId = 0; thirdId < nations.length; thirdId++) {
       if (thirdId === nationId || thirdId === otherId || nations[thirdId].eliminated || nations[thirdId].isBarbarian) continue;
       if (nations[otherId].relations[thirdId] === 'war' && getLoyalty(nationId, thirdId) >= 60) {
-        changeLoyalty(nationId, otherId, -1);
+        changeLoyalty(nationId, otherId, -0.5);
       }
     }
 
@@ -2051,17 +2105,37 @@ function aiTurn(nationId) {
     for (let thirdId = 0; thirdId < nations.length; thirdId++) {
       if (thirdId === nationId || thirdId === otherId || nations[thirdId].eliminated || nations[thirdId].isBarbarian) continue;
       if (n.relations[thirdId] === 'war' && nations[otherId].relations[thirdId] === 'war') {
-        changeLoyalty(nationId, otherId, 2);
+        changeLoyalty(nationId, otherId, 3);
       }
     }
 
-    // --- Trade bonus: if at peace and both have cities, small trust growth ---
+    // --- Trade bonus: if at peace and both have cities, trust grows ---
     if (n.relations[otherId] === 'peace' && aiCitiesAll.length > 0 && otherCities.length > 0) {
-      changeLoyalty(nationId, otherId, 0.3);
+      changeLoyalty(nationId, otherId, 0.8);
+    }
+
+    // --- Coalition against dominant player: if someone controls 40%+ of all cities, everyone distrusts them ---
+    const allCityCount = cities.length;
+    const otherCityCount = otherCities.length;
+    if (allCityCount > 0 && otherCityCount / allCityCount >= 0.4) {
+      changeLoyalty(nationId, otherId, -3);
+    }
+
+    // --- Warn player of deteriorating relations (once per threshold) ---
+    const updatedLoy = getLoyalty(nationId, otherId);
+    if (otherId === playerNation && n.relations[otherId] !== 'war') {
+      if (!n._warWarned) n._warWarned = {};
+      if (updatedLoy <= -70 && !n._warWarned.hostile) {
+        showToast(`${n.name} grows hostile! (${getLoyaltyLabel(updatedLoy)})`);
+        n._warWarned.hostile = true;
+      } else if (updatedLoy <= -90 && !n._warWarned.imminent) {
+        showToast(`War with ${n.name} is imminent!`);
+        n._warWarned.imminent = true;
+      }
+      if (updatedLoy > -60) n._warWarned = {}; // reset if relations improve
     }
 
     // --- Declare war at -100 ---
-    const updatedLoy = getLoyalty(nationId, otherId);
     if (updatedLoy <= -100 && n.relations[otherId] !== 'war') {
       n.relations[otherId] = 'war';
       nations[otherId].relations[nationId] = 'war';
@@ -2083,6 +2157,22 @@ function aiTurn(nationId) {
         if (otherLoy > 0) {
           n.relations[otherId] = 'peace';
           nations[otherId].relations[nationId] = 'peace';
+        }
+      }
+    }
+  }
+
+  // Coalition mechanic: if any nation controls 50%+ of cities, form alliance against them
+  const totalCityCount = cities.length;
+  if (totalCityCount >= 4) {
+    for (let domId = 0; domId < nations.length; domId++) {
+      if (domId === nationId || nations[domId].eliminated || nations[domId].isBarbarian) continue;
+      const domCities = cities.filter(c => c.nationId === domId).length;
+      if (domCities / totalCityCount >= 0.5 && n.relations[domId] !== 'war') {
+        // Boost loyalty toward other non-dominant nations (rally allies)
+        for (let allyId = 0; allyId < nations.length; allyId++) {
+          if (allyId === nationId || allyId === domId || nations[allyId].eliminated || nations[allyId].isBarbarian) continue;
+          if (nations[allyId].relations[domId] === 'war') changeLoyalty(nationId, allyId, 5);
         }
       }
     }
@@ -2192,7 +2282,14 @@ function aiTurn(nationId) {
           const atkPower = UNIT_DEFS[u.type].atk || 4;
           const rMaxHp = UNIT_DEFS[u.type].hp || 10;
           const rHpRatio = u.hp / rMaxHp;
-          bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio));
+          // Apply terrain and fortification defense for ranged target
+          const aiRTi = bestTarget.y * MAP_COLS + bestTarget.x;
+          const aiRTerrain = tiles[aiRTi].type;
+          const aiRInCity = cities.some(c => c.x === bestTarget.x && c.y === bestTarget.y);
+          const aiRTerrainBonus = aiRInCity ? 0.6 : (aiRTerrain === 5) ? 0.75 : (aiRTerrain === 2) ? 0.65 : (aiRTerrain === 3) ? 0.85 : 1.0;
+          const aiRFortBonus = bestTarget.fortified ? 0.8 : 1.0;
+          const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? 1.5 : 1.0;
+          bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus);
           changeLoyalty(bestTarget.nationId, nationId, -10);
           if (bestTarget.hp <= 0) units.splice(units.indexOf(bestTarget), 1);
           playCombatSound(u.type, u.x, u.y);
@@ -2250,16 +2347,30 @@ function aiTurn(nationId) {
     if (units.includes(u)) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
   }
   // Production (uses aiCities, combatUnits, atWar, threatLevel from above)
+  // Pick combat unit — diversify army composition
+  const availCombat = ['swordsman'];
+  if (nationHasTech(nationId, 'crossbow')) availCombat.push('crossbowman');
+  if (nationHasTech(nationId, 'cavalry_tactics')) availCombat.push('cavalry');
+  if (nationHasTech(nationId, 'gunpowder_tech')) availCombat.push('musketeer');
+  if (nationHasTech(nationId, 'bayonet_drill')) availCombat.push('grenadier');
+  if (nationHasTech(nationId, 'rifling')) availCombat.push('rifleman');
+  if (nationHasTech(nationId, 'hussar_tactics')) availCombat.push('hussar');
+  if (nationHasTech(nationId, 'dragoon_tactics')) availCombat.push('dragoon');
+  if (nationHasTech(nationId, 'siege_warfare')) availCombat.push('cannon');
+  if (nationHasTech(nationId, 'advanced_siege')) availCombat.push('mortar');
+  if (nationHasTech(nationId, 'field_artillery')) availCombat.push('field_gun');
+  const topStart = Math.max(0, availCombat.length - 3);
   for (const c of aiCities) {
+    // Emergency: cancel current non-military production when under heavy threat
+    if (threatLevel > 20 && c.producing && !UNIT_DEFS[c.producing]?.combat) {
+      const emergUnit = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
+      c.producing = emergUnit; c.productionProgress = 0;
+    }
     if (!c.producing) {
       const workers = units.filter(u => u.nationId === nationId && (u.type === 'worker' || u.type === 'veteran_worker')).length;
       const combatCount = combatUnits.length;
-      // Pick best available combat unit
-      let bestCombat = 'swordsman';
-      if (nationHasTech(nationId, 'advanced_siege')) bestCombat = 'mortar';
-      else if (nationHasTech(nationId, 'gunpowder_tech')) bestCombat = 'musketeer';
-      else if (nationHasTech(nationId, 'cavalry_tactics')) bestCombat = 'cavalry';
-      else if (nationHasTech(nationId, 'crossbow')) bestCombat = 'crossbowman';
+      // Prefer advanced units but mix in variety (pick from top 3)
+      const bestCombat = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
       const scouts = units.filter(u => u.nationId === nationId && (u.type === 'scout' || u.type === 'veteran_scout')).length;
       // Threat-aware: if enemies near cities, always build military
       if (threatLevel > 0) {
@@ -2387,6 +2498,16 @@ function endTurn() {
     nations[i].food -= consumption;
     if (nations[i].food < 0) nations[i].food = 0;
   }
+  // Unit maintenance: military units cost gold per turn
+  for (let i = 0; i < nations.length; i++) {
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    const milUnits = units.filter(u => u.nationId === i && UNIT_DEFS[u.type].combat);
+    const freeMil = cities.filter(c => c.nationId === i).length * 2; // 2 free military units per city
+    const paidUnits = Math.max(0, milUnits.length - freeMil);
+    const maintenance = paidUnits * 0.5; // 0.5 gold per excess military unit
+    nations[i].gold -= maintenance;
+    if (nations[i].gold < 0) nations[i].gold = 0;
+  }
   for (let i = 0; i < nations.length; i++) {
     if (i === playerNation) continue;
     if (isBarbarianNation(i)) barbarianAI(i);
@@ -2415,8 +2536,19 @@ function endTurn() {
       }
     }
   }
+  // Track which units didn't move this turn (before resetting moves)
+  // Units that were already fortified (manually or auto) and didn't move stay fortified
+  // Units that moved this turn lose fortification
+  const didntMove = new Set(units.filter(u => UNIT_DEFS[u.type].combat && (u.movesLeft === u.maxMoves || u.fortified)));
   for (const u of units) u.movesLeft = u.maxMoves;
   processGotoOrders();
+  // After goto orders execute, update fortification status
+  for (const u of units) {
+    if (!UNIT_DEFS[u.type].combat) continue;
+    if (didntMove.has(u) && u.movesLeft === u.maxMoves) u.fortified = true; // didn't move and goto didn't move them
+    else if (!didntMove.has(u)) u.fortified = false; // moved this turn
+    // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
+  }
   turnNumber++;
   revealAllUnits(playerNation);
   selectedUnit = null; selectedCity = null;
@@ -2662,7 +2794,7 @@ function render() {
           drawHexPath(ctx, sx, fy, w, faceH);
           ctx.fill();
           if (VIEW_TILE >= 20) {
-            const turnsLeft = Math.max(0, 10 - (turnNumber - camp.destroyedTurn));
+            const turnsLeft = Math.max(0, barbRespawnTurns - (turnNumber - camp.destroyedTurn));
             if (turnsLeft > 0 && camp.destroyedTurn > -100) {
               ctx.fillStyle = 'rgba(0,0,0,0.5)';
               ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.22, 0, Math.PI * 2); ctx.fill();
@@ -2851,7 +2983,11 @@ function updateUI() {
   document.getElementById('resStone').textContent = Math.floor(n.stone);
   document.getElementById('resSteel').textContent = Math.floor(n.steel);
   document.getElementById('resScience').textContent = Math.floor(n.science);
-  document.getElementById('rateGold').textContent = `+${y.gold.toFixed(1)}`;
+  const playerMilUnits = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type].combat).length;
+  const playerFreeMil = cities.filter(c => c.nationId === playerNation).length * 2;
+  const playerMaintenance = Math.max(0, playerMilUnits - playerFreeMil) * 0.5;
+  const netGold = y.gold - playerMaintenance;
+  document.getElementById('rateGold').textContent = `${netGold >= 0 ? '+' : ''}${netGold.toFixed(1)}`;
   const foodCons = getFoodConsumption(playerNation);
   const netFood = y.food - foodCons;
   document.getElementById('rateFood').textContent = `${netFood >= 0 ? '+' : ''}${netFood.toFixed(1)}`;
@@ -2887,7 +3023,18 @@ function showUnitPanel(unit) {
   const def = UNIT_DEFS[unit.type];
   const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
   let statsLine = `Moves: ${unit.movesLeft}/${unit.maxMoves} | Vision: ${unit.vision} | HP: ${unit.hp}/${def.hp || (def.combat ? 10 : 5)}`;
-  if (def.combat) { statsLine += ` | ATK: ${def.atk}`; if (def.ranged) statsLine += ' (ranged)'; if (def.siege) statsLine += ' (siege)'; }
+  if (def.combat) {
+    statsLine += ` | ATK: ${def.atk}`;
+    if (def.ranged) statsLine += ' (ranged)';
+    if (def.siege) statsLine += ' (siege)';
+    if (unit.fortified) statsLine += ' | Fortified';
+    // Show terrain defense
+    const uti = unit.y * MAP_COLS + unit.x;
+    const uTerrain = tiles[uti].type;
+    const defLabel = (uTerrain === 5) ? 'Forest +25%' : (uTerrain === 2) ? 'Mountain +35%' : (uTerrain === 3) ? 'Swamp +15%' :
+                     (cities.some(c => c.x === unit.x && c.y === unit.y)) ? 'City +40%' : null;
+    if (defLabel) statsLine += ` | DEF: ${defLabel}`;
+  }
   let html = `<h3>${def.icon} ${typeName}</h3><p>${def.desc}<br>${statsLine}</p>`;
   if (unit.type === 'settler') {
     const check = canFoundCity(unit.x, unit.y, unit.nationId);
@@ -2918,7 +3065,12 @@ function showUnitPanel(unit) {
   if (UNIT_DEFS[unit.type].ranged && unit.movesLeft > 0 && unit.nationId === playerNation) {
     html += `<button class="p-btn" onclick="enterRangedMode()">Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
   }
-  if (UNIT_DEFS[unit.type].combat) html += `<p style="font-size:11px;color:#a66">Can attack enemies at war during move.</p>`;
+  if (UNIT_DEFS[unit.type].combat) {
+    html += `<p style="font-size:11px;color:#a66">Can attack enemies at war during move.</p>`;
+    if (unit.nationId === playerNation && unit.movesLeft > 0) {
+      html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
+    }
+  }
   if (unit.nationId === playerNation) {
     html += `<button class="p-btn" onclick="enterGotoMode()">Go To (G)</button>`;
     if (unit.gotoX !== undefined) html += `<button class="p-btn" onclick="cancelGoto()">Cancel Go To (${unit.gotoX},${unit.gotoY})</button>`;
@@ -3178,7 +3330,10 @@ function toggleDiplomacy(nationId) {
     if (theirLoy > -60) nations[nationId].loyalty[playerNation] = -60;
     showToast(`War declared on ${nations[nationId].name}!`);
   }
-  else showToast(`Peace with ${nations[nationId].name}`);
+  else {
+    showToast(`Peace with ${nations[nationId].name}`);
+    if (nations[nationId].wantsPeace) nations[nationId].wantsPeace[playerNation] = false;
+  }
   renderKingdoms();
 }
 
@@ -3216,7 +3371,7 @@ function hideUpdateLog() {
   document.getElementById('escUpdateLog').style.display = 'none';
   document.getElementById('escMain').style.display = 'block';
 }
-const CURRENT_VERSION = 'beta-1.2';
+const CURRENT_VERSION = 'beta-1.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -3526,6 +3681,7 @@ canvas.addEventListener('click', (e) => {
         const animPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
         const dist = animPath ? animPath.length : bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
         const movedUnit = selectedUnit;
+        const origX = selectedUnit.x, origY = selectedUnit.y;
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
         selectedUnit.x = mx; selectedUnit.y = my;
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
@@ -3545,7 +3701,7 @@ canvas.addEventListener('click', (e) => {
               showUnitPanel(movedUnit);
             } else { cycleToNextUnit(); }
             updateUI(); render();
-          });
+          }, origX, origY);
           updateUI(); render();
           return;
         }
@@ -3728,14 +3884,16 @@ function animationTick(timestamp) {
   else { animationBlocking = false; lastAnimTime = 0; }
 }
 
-function startUnitAnimation(unit, path, onComplete) {
+function startUnitAnimation(unit, path, onComplete, originX, originY) {
   if (!path || path.length === 0) { if (onComplete) onComplete(); return; }
   startMarchSound();
   const wrappedComplete = () => {
     stopMarchSound();
     if (onComplete) onComplete();
   };
-  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: unit.x, startY: unit.y, onComplete: wrappedComplete });
+  const sx = originX !== undefined ? originX : unit.x;
+  const sy = originY !== undefined ? originY : unit.y;
+  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
   unit._animating = true;
   if (!animationBlocking) {
     animationBlocking = true; lastAnimTime = 0;
@@ -3760,6 +3918,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
+  if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
 });
@@ -3807,7 +3966,14 @@ window.doRangedAttack = function(tx, ty) {
   const atkPower = UNIT_DEFS[selectedUnit.type].atk || 4;
   const rMaxHp = UNIT_DEFS[selectedUnit.type].hp || 10;
   const rHpRatio = selectedUnit.hp / rMaxHp;
-  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio));
+  // Terrain and fortification defense for ranged target
+  const rDefTi = ty * MAP_COLS + tx;
+  const rDefTerrain = tiles[rDefTi].type;
+  const rInCity = cities.some(c => c.x === tx && c.y === ty);
+  const rTerrainBonus = rInCity ? 0.6 : (rDefTerrain === 5) ? 0.75 : (rDefTerrain === 2) ? 0.65 : (rDefTerrain === 3) ? 0.85 : 1.0;
+  const rFortBonus = target.fortified ? 0.8 : 1.0;
+  const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? 1.5 : 1.0;
+  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus);
   // Ranged: target doesn't fight back
   changeLoyalty(target.nationId, selectedUnit.nationId, -10);
   for (const n of nations) {
@@ -3911,6 +4077,14 @@ window.deselectUnit = function() {
   hidePanel(); render();
 };
 
+window.fortifyUnit = function() {
+  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  selectedUnit.fortified = true;
+  selectedUnit.movesLeft = 0;
+  showToast('Unit fortified (+20% defense)');
+  cycleToNextUnit(); updateUI(); render();
+};
+
 window.setProd = setProd;
 window.showCityTab = showCityTab;
 window.enterBuyTileMode = enterBuyTileMode;
@@ -3942,7 +4116,7 @@ function serializeGame() {
     ownedTiles: [...c.ownedTiles],
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
   }));
-  const sNations = nations.map(n => ({ ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }));
+  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; return sn; });
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
@@ -4137,6 +4311,7 @@ const TUTORIAL_STEPS = [
 let tutorialActive = false, tutorialStep = 0;
 
 function startTutorial() {
+  if (localStorage.getItem('sis_tutorial_done') === 'true') return;
   tutorialActive = true; tutorialStep = 0;
   showTutorialStep();
 }
