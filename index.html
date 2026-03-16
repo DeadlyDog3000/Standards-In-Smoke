@@ -2973,13 +2973,21 @@ function triggerEvent() {
   const modal = document.getElementById('eventModal');
   const card = document.getElementById('eventCard');
   let html = `<h3>${evt.title}</h3><p>${evt.text}</p>`;
+  const pn = nations[playerNation];
   evt.choices.forEach((ch, idx) => {
     const effectStr = Object.entries(ch.effects).map(([k, v]) => {
       const sign = v > 0 ? '+' : '';
-      const label = k === 'legitimacy' ? 'Leg' : k.charAt(0).toUpperCase() + k.slice(1);
+      const label = k === 'legitimacy' ? '👑' : k.charAt(0).toUpperCase() + k.slice(1);
       return `${sign}${v} ${label}`;
     }).join(', ');
-    html += `<button class="event-choice" onclick="applyEventChoice('${evt.id}', ${idx})">${ch.label}${effectStr ? `<span class="event-effect">${effectStr}</span>` : ''}</button>`;
+    // Gray out choices the player can't afford
+    const canAfford = Object.entries(ch.effects).every(([k, v]) => {
+      if (v >= 0) return true;
+      if (k === 'legitimacy') return (pn.legitimacy || 50) + v >= 0;
+      return (pn[k] || 0) + v >= 0;
+    });
+    const disabled = canAfford ? '' : ' disabled style="opacity:0.4;cursor:default;"';
+    html += `<button class="event-choice"${disabled} onclick="applyEventChoice('${evt.id}', ${idx})">${ch.label}${effectStr ? `<span class="event-effect">${effectStr}</span>` : ''}</button>`;
   });
   card.innerHTML = html;
   modal.classList.add('active');
