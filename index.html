@@ -1702,10 +1702,12 @@ function foundCity(unit) {
   // Also handle destroyed camps
   const destroyedCamp = barbarianCamps.find(b => b.x === unit.x && b.y === unit.y && b.destroyed);
   if (destroyedCamp) destroyedCamp.destroyedTurn = -999; // won't respawn
+  const isCapital = !cities.some(c => c.nationId === unit.nationId);
   const city = {
     x: unit.x, y: unit.y, name, nationId: unit.nationId,
     producing: null, productionProgress: 0,
     ownedTiles: new Set(),
+    isCapital,
   };
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
     const tx = unit.x + dx, ty = unit.y + dy;
@@ -3303,7 +3305,7 @@ const EVENTS = [
     { label: 'Demand a dowry', effects: { gold: 20, loyalty: -6, legitimacy: -2 } }
   ]},
   { id: 'refugee_crisis', title: 'Refugees at the Border', diplomatic: true, text: 'Hundreds of refugees flee famine in {NATION} and seek shelter in your lands.', choices: [
-    { label: 'Welcome them (more workers)', effects: { food: -15, loyalty: 6, legitimacy: 4 } },
+    { label: 'Welcome them (+1 worker at capital)', effects: { food: -15, loyalty: 6, legitimacy: 4, spawnWorker: true } },
     { label: 'Send them back', effects: { loyalty: -8, legitimacy: -2 } },
     { label: 'Demand {NATION} pay for their care', effects: { gold: 10, loyalty: -5 } }
   ]},
@@ -3340,14 +3342,14 @@ function triggerEvent() {
   let html = `<h3>${evt.title}</h3><p>${eventText}</p>`;
   const pn = nations[playerNation];
   evt.choices.forEach((ch, idx) => {
-    const effectStr = Object.entries(ch.effects).map(([k, v]) => {
+    const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker').map(([k, v]) => {
       const sign = v > 0 ? '+' : '';
       const label = k === 'legitimacy' ? '⚜' : k === 'loyalty' ? 'Relations' : k.charAt(0).toUpperCase() + k.slice(1);
       return `${sign}${v} ${label}`;
     }).join(', ');
-    // Gray out choices the player can't afford (skip loyalty - not a resource)
+    // Gray out choices the player can't afford (skip loyalty and special effects - not resources)
     const canAfford = Object.entries(ch.effects).every(([k, v]) => {
-      if (v >= 0 || k === 'loyalty') return true;
+      if (v >= 0 || k === 'loyalty' || k === 'spawnWorker') return true;
       if (k === 'legitimacy') return (pn.legitimacy || 50) + v >= 0;
       return (pn[k] || 0) + v >= 0;
     });
@@ -3372,11 +3374,18 @@ function applyEventChoice(eventId, choiceIndex) {
       }
     } else if (key === 'legitimacy') {
       n.legitimacy = Math.min(100, Math.max(0, (n.legitimacy || 50) + val));
+    } else if (key === 'spawnWorker') {
+      const capital = cities.find(c => c.nationId === playerNation && c.isCapital);
+      if (capital) {
+        const workerType = nationHasTech(playerNation, 'engineering') ? 'veteran_worker' : 'worker';
+        spawnUnit(workerType, playerNation, capital.x, capital.y);
+        showToast('A new worker has arrived at your capital!');
+      }
     } else {
       n[key] = Math.max(0, (n[key] || 0) + val);
     }
   }
-  const effectStr = Object.entries(choice.effects).map(([k, v]) => {
+  const effectStr = Object.entries(choice.effects).filter(([k]) => k !== 'spawnWorker').map(([k, v]) => {
     const sign = v > 0 ? '+' : '';
     return `${sign}${v} ${k}`;
   }).join(', ');
@@ -3772,7 +3781,7 @@ function updateCityLabels() {
     el.style.left = sx + 'px'; el.style.top = sy + 'px';
     el.style.color = city.contested ? '#000' : nations[city.nationId].color;
     el.style.fontSize = Math.max(9, w * 0.4) + 'px';
-    let label = city.name;
+    let label = city.isCapital ? '\u2655 ' + city.name : city.name;
     if (city.contested && city.captureProgress) {
       const maxProg = Math.max(0, ...Object.values(city.captureProgress));
       if (maxProg > 0) label += ` (${maxProg}/4)`;
@@ -3958,7 +3967,7 @@ function showCityPanel(city) {
   const y = getCityYields(city);
   const yStr = Object.entries(y).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
   let prodStr = city.producing ? `${city.producing} (${getProductionTurns(city)} turns)` : 'None';
-  let html = `<h3>\uD83C\uDFF0 ${city.name}</h3>`;
+  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}</h3>`;
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}</p>`;
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
@@ -5252,6 +5261,7 @@ function serializeGame() {
     producing: c.producing, productionProgress: c.productionProgress,
     ownedTiles: [...c.ownedTiles],
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
+    isCapital: c.isCapital || false,
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; return sn; });
   const sUnits = units.map(u => {
@@ -5295,7 +5305,13 @@ function deserializeGame(json) {
   }
   nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
   units = d.units;
-  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles) }));
+  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false }));
+  // Infer capitals for old saves: first city per nation is capital
+  const capitalSet = new Set();
+  for (const c of cities) {
+    if (!capitalSet.has(c.nationId) && !c.isCapital) { c.isCapital = true; }
+    if (c.isCapital) capitalSet.add(c.nationId);
+  }
   playerNation = d.playerNation;
   turnNumber = d.turnNumber;
   camX = d.camX; camY = d.camY;
