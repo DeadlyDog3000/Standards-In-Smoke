@@ -4123,20 +4123,24 @@ function render() {
 
   // --- Fog of war: dim revealed-but-not-visible tiles ---
   if (currentVisionSet) {
-    for (let my = startRow; my < endRow; my++) {
-      for (let pass = 0; pass <= 1; pass++) {
-        for (let mx = startCol; mx < endCol; mx++) {
-          if (mx % 2 !== pass) continue;
-          const i = my * MAP_COLS + mx;
-          const t = tiles[i];
-          if (!t.revealed.has(pId)) continue;
-          if (currentVisionSet.has(i)) continue; // Currently visible — no fog
-          const pos = hexScreenPos(mx, my);
-          if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
-          ctx.fillStyle = 'rgba(10, 8, 5, 0.45)';
-          ctx.fillRect(pos.x, pos.y, drawW, drawH);
-        }
-      }
+    for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
+      const i = my * MAP_COLS + mx;
+      const t = tiles[i];
+      if (!t.revealed.has(pId)) continue;
+      if (currentVisionSet.has(i)) continue; // Currently visible — no fog
+      const pos = hexScreenPos(mx, my);
+      const fy = pos.y + facePad;
+      if (pos.x < -w * 2 || fy < -ch * 2 || pos.x > canvas.width + w || fy > canvas.height + ch) continue;
+      // Check if this tile is at the edge of vision (adjacent to a visible tile)
+      const nbs = hexNeighbors(mx, my);
+      const isEdge = nbs.some(nb => {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
+        return currentVisionSet.has(nb.row * MAP_COLS + nb.col);
+      });
+      // Softer fog at vision edge, darker further away
+      ctx.fillStyle = isEdge ? 'rgba(10, 8, 5, 0.3)' : 'rgba(10, 8, 5, 0.5)';
+      drawHexPath(ctx, pos.x, fy, w, faceH);
+      ctx.fill();
     }
   }
 
