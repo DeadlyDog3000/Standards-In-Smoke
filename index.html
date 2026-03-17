@@ -514,6 +514,21 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.0</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">City Loyalty &amp; Rebellion</b><br>
+        - Cities now have civilian population that grows over time<br>
+        - Each citizen needs 2 jobs &mdash; provided by tile improvements<br>
+        - Insufficient jobs cause rising discontent<br>
+        - High discontent triggers rebellion &mdash; barbarian rebels spawn around the city<br>
+        - Rebellion severity scales with how bad conditions are<br>
+        - City panel shows population, jobs, mood, and discontent bar<br>
+        <br>
+        <b style="color:#b8a070;">Fog of War</b><br>
+        - Enemy units hidden outside current vision range<br>
+        - City vision radius now scales with population (5&ndash;8 tiles)<br>
+        - Scouts retain their higher vision range (7&ndash;9 tiles)<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.9</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Battle Animations &amp; Combat Feedback</b><br>
@@ -728,6 +743,19 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.0</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">City Loyalty & Rebellion</b><br>
+          - Civilian population grows over time based on food<br>
+          - Each citizen needs 2 jobs (from improvements)<br>
+          - Discontent rises without enough jobs, triggers rebellion<br>
+          - Rebellion spawns barbarian rebels around the city<br>
+          - City panel shows population, jobs, mood & discontent<br>
+          <br>
+          <b style="color:#b8a070;">Fog of War</b><br>
+          - Enemy units hidden outside current vision<br>
+          - City vision scales with population (5-8 tiles)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.9</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
@@ -2037,7 +2065,10 @@ function revealAround(x, y, radius, nationId) {
 
 function revealAllUnits(nationId) {
   for (const u of units) if (u.nationId === nationId) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
-  for (const c of cities) if (c.nationId === nationId) revealAround(c.x, c.y, 5, nationId);
+  for (const c of cities) if (c.nationId === nationId) {
+    const cr = 5 + Math.min(3, Math.floor((c.population || 1) / 3));
+    revealAround(c.x, c.y, cr, nationId);
+  }
 }
 
 // ====================
@@ -2175,6 +2206,7 @@ function foundCity(unit) {
     producing: null, productionProgress: 0,
     ownedTiles: new Set(),
     isCapital,
+    population: 1, discontent: 0,
   };
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
     const tx = unit.x + dx, ty = unit.y + dy;
@@ -3711,6 +3743,75 @@ function getFoodConsumption(nationId) {
   return consumption;
 }
 
+function getCityJobs(city) {
+  let jobs = 1; // city center provides 1 job
+  for (const ti of city.ownedTiles) {
+    if (tiles[ti].improvement) jobs += 1;
+  }
+  return jobs;
+}
+
+function getCityLoyaltyStatus(city) {
+  const jobs = getCityJobs(city);
+  const needed = city.population * 2;
+  if (jobs >= needed) return { status: 'content', label: 'Content', color: '#6a6' };
+  const deficit = needed - jobs;
+  if (deficit <= 2) return { status: 'uneasy', label: 'Uneasy', color: '#cc6' };
+  if (deficit <= 4) return { status: 'unhappy', label: 'Unhappy', color: '#c80' };
+  return { status: 'furious', label: 'Furious', color: '#c33' };
+}
+
+function tickCityLoyalty() {
+  for (const city of cities) {
+    if (nations[city.nationId]?.isBarbarian) continue;
+    // Population growth: +1 pop every 8 turns per city, faster with more food
+    const cy = getCityYields(city);
+    const foodBonus = Math.max(0, cy.food - city.population); // surplus food
+    const growthChance = 0.12 + foodBonus * 0.02; // base ~12% + 2% per surplus food
+    if (Math.random() < growthChance) city.population = (city.population || 1) + 1;
+    // Loyalty: check jobs vs population need
+    const jobs = getCityJobs(city);
+    const needed = city.population * 2;
+    if (jobs >= needed) {
+      city.discontent = Math.max(0, (city.discontent || 0) - 2);
+    } else {
+      const deficit = needed - jobs;
+      city.discontent = (city.discontent || 0) + deficit;
+    }
+    // Rebellion threshold: 15 discontent triggers revolt
+    if (city.discontent >= 15) {
+      triggerRebellion(city);
+      city.discontent = 0;
+    }
+  }
+}
+
+function triggerRebellion(city) {
+  const severity = Math.min(6, Math.max(2, Math.floor(city.discontent / 5)));
+  // Find a barbarian nation to use
+  let barbNation = nations.findIndex(n => n.isBarbarian && !n.eliminated);
+  if (barbNation < 0) barbNation = 0; // fallback
+  const neighbors = hexNeighbors(city.x, city.y);
+  let spawned = 0;
+  for (const nb of neighbors) {
+    if (spawned >= severity) break;
+    if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+    const t = tiles[nb.row * MAP_COLS + nb.col];
+    if (t.type === 0) continue; // skip ocean
+    if (units.some(u => u.x === nb.col && u.y === nb.row)) continue;
+    const barbType = turnNumber >= 40 ? 'barbarian_brute' : turnNumber >= 20 ? 'barbarian_raider' : 'barbarian_axeman';
+    spawnUnit(barbType, barbNation, nb.col, nb.row);
+    spawned++;
+  }
+  if (city.nationId === playerNation) {
+    showToast(`Rebellion in ${city.name}! ${spawned} rebels have risen!`);
+    addFloatingText(city.x, city.y, 'REBELLION!', '#f44', 2500, 16);
+    screenShake(6, 400);
+  }
+  // Population drops from the chaos
+  city.population = Math.max(1, city.population - Math.floor(severity / 2));
+}
+
 function endTurn() {
   if (battleReplayActive || animationBlocking) return; // Block during battle replay
   // Base passive income (skip barbarians)
@@ -3756,6 +3857,7 @@ function finishEndTurn() {
   tickWorkerBuilds();
   tickBarbarianCamps();
   tickPillaged();
+  tickCityLoyalty();
   tickCityCapture();
   checkElimination();
   // Heal combat units in owned territory
@@ -4122,8 +4224,9 @@ function computeCurrentVision() {
   }
   for (const c of cities) {
     if (c.nationId !== playerNation) continue;
-    for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
-      if (dx * dx + dy * dy > 30) continue;
+    const cr = 5 + Math.min(3, Math.floor((c.population || 1) / 3)); // 5-8 based on pop
+    for (let dy = -cr; dy <= cr; dy++) for (let dx = -cr; dx <= cr; dx++) {
+      if (dx * dx + dy * dy > cr * cr + cr) continue;
       const tx = c.x + dx, ty = c.y + dy;
       if (tx >= 0 && tx < MAP_COLS && ty >= 0 && ty < MAP_ROWS) vis.add(ty * MAP_COLS + tx);
     }
@@ -4776,7 +4879,16 @@ function showCityPanel(city) {
   let prodStr = city.producing ? `${city.producing} (${getProductionTurns(city)} turns)` : 'None';
   const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
   let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
+  const pop = city.population || 1;
+  const jobs = getCityJobs(city);
+  const needed = pop * 2;
+  const loyalty = getCityLoyaltyStatus(city);
+  const discontentPct = Math.min(100, Math.round((city.discontent || 0) / 15 * 100));
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}</p>`;
+  html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
+  html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
+  if (city.discontent > 0) html += `<div style="margin-top:3px;height:4px;background:rgba(0,0,0,0.3);border-radius:2px;"><div style="width:${discontentPct}%;height:100%;background:${discontentPct > 60 ? '#c33' : '#c80'};border-radius:2px;"></div></div>`;
+  html += `</div>`;
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
     const canRush = nations[city.nationId].gold >= rushCost;
@@ -5217,7 +5329,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-1.9';
+const CURRENT_VERSION = 'beta-2.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -6241,6 +6353,7 @@ function serializeGame() {
     ownedTiles: [...c.ownedTiles],
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
     isCapital: c.isCapital || false,
+    population: c.population || 1, discontent: c.discontent || 0,
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; return sn; });
   const sUnits = units.map(u => {
@@ -6284,7 +6397,7 @@ function deserializeGame(json) {
   }
   nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
   units = d.units;
-  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false }));
+  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0 }));
   // Infer capitals for old saves: first city per nation is capital
   const capitalSet = new Set();
   for (const c of cities) {
