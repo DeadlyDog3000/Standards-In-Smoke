@@ -812,7 +812,6 @@ const TILE_SPRITES = {
   4: ['Grass'],                                            // city (drawn with overlay)
   5: ['Grass_Trees', 'Grass_Pine', 'Grass_Trees', 'Grass_Pine'], // forest (more common variants)
   6: ['Dirt_Pumpkins', 'Grass_Plants'],                    // herd
-  7: ['Snow_Pine', 'Snow_Trees'],                          // gunpowder
 };
 
 // ====================
@@ -1081,10 +1080,9 @@ const TILE_COLORS = {
   city: '#7db442',    // same as grass (cities sit on grass)
   forest: '#5a8c2a',  // deep green matching tree canopy
   herd: '#8b7a3e',    // earthy brown-green matching dirt/pumpkin sprite
-  gunpowder: '#c8c4b8', // gray-white matching snow pine sprite
 };
 
-const TILE_NAMES = ['Ocean', 'Plains', 'Mountain', 'Swamp', 'City', 'Forest', 'Herd', 'Gunpowder'];
+const TILE_NAMES = ['Ocean', 'Plains', 'Mountain', 'Swamp', 'City', 'Forest', 'Herd'];
 const TILE_DESCS = [
   'Deep water, impassable to land units.',
   'Open grassland, suitable for farming.',
@@ -1125,7 +1123,7 @@ const UNIT_DEFS = {
 const IMPROVEMENT_DEFS = {
   farm:        { name: 'Farm', icon: '\uD83C\uDF3E', yields: { food: 3 }, cost: { wood: 5 }, validOn: [1, 3, 5], buildTurns: 2 },
   market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: { gold: 6 }, validOn: [1, 5], scalingCost: true, buildTurns: 3 },
-  mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2, gunpowder: 2 }, cost: { wood: 5 }, validOn: [1, 2, 7], buildTurns: 2 },
+  mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2, gunpowder: 2 }, cost: { wood: 5 }, validOn: [1, 2], buildTurns: 2 },
   quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2], buildTurns: 2 },
   steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 20, steel: 25 }, validOn: [1, 5], buildTurns: 5 },
   urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1, 5], buildTurns: 3 },
@@ -1165,7 +1163,7 @@ const TECHS = {
   // MILITARY - Early
   crossbow:        { name: 'Crossbow', section: 'military', cost: 40, prereqs: [], unlocks: ['crossbowman'], desc: 'Unlock crossbowman units.' },
   cavalry_tactics: { name: 'Cavalry Tactics', section: 'military', cost: 50, prereqs: [], unlocks: ['cavalry'], needsResource: 'horses', desc: 'Unlock cavalry. Requires horses from pastures.' },
-  gunpowder_tech:  { name: 'Gunpowder', section: 'military', cost: 80, prereqs: ['crossbow'], unlocks: ['musketeer'], needsResource: 'gunpowder', desc: 'Unlock musketeers. Requires gunpowder deposits.' },
+  gunpowder_tech:  { name: 'Gunpowder', section: 'military', cost: 80, prereqs: ['crossbow'], unlocks: ['musketeer'], desc: 'Unlock musketeers. Requires crossbow research.' },
   siege_warfare:   { name: 'Siege Warfare', section: 'military', cost: 100, prereqs: ['cavalry_tactics'], unlocks: ['cannon'], desc: 'Unlock cannon siege units.' },
   advanced_siege:  { name: 'Advanced Siege', section: 'military', cost: 120, prereqs: ['siege_warfare','gunpowder_tech'], unlocks: ['mortar'], desc: 'Unlock mortar heavy siege.' },
   // MILITARY - Napoleonic
@@ -1197,9 +1195,11 @@ function nationCanResearch(nationId, techKey) {
   if (nationHasTech(nationId, techKey)) return false;
   for (const p of tech.prereqs) { if (!nationHasTech(nationId, p)) return false; }
   if (tech.needsResource) {
-    const resType = tech.needsResource === 'horses' ? 6 : 7; // herd=6, gunpowder=7
-    const hasTile = tiles.some((t, i) => t.owner === nationId && t.type === resType);
-    if (!hasTile) return false;
+    const resType = tech.needsResource === 'horses' ? 6 : -1; // herd=6
+    if (resType >= 0) {
+      const hasTile = tiles.some((t, i) => t.owner === nationId && t.type === resType);
+      if (!hasTile) return false;
+    }
   }
   return true; // no longer requires having all science upfront
 }
@@ -1443,9 +1443,7 @@ function generateMap() {
       else if (h > 0.75 && e > 0.42 && e < 0.58 && m < 0.55) { type = 6; color = TILE_COLORS.herd; }
       else { type = 1; color = TILE_COLORS.land; }
     } else {
-      // Gunpowder deposits in mountainous areas (rare)
-      if (f > 0.55 && e > 0.72) { type = 7; color = TILE_COLORS.gunpowder; }
-      else { type = 2; color = TILE_COLORS.mountain; }
+      { type = 2; color = TILE_COLORS.mountain; }
     }
     const sv = Math.floor(spriteRand() * 997);
     const spriteKey = pickSprite(type, sv);
@@ -4179,9 +4177,11 @@ function showTechTree() {
       }
       else if (!prereqsMet) { status = ' [Locked]'; blocked = 'Requires: ' + tech.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', '); }
       else if (tech.needsResource) {
-        const resType = tech.needsResource === 'horses' ? 6 : 7;
-        const has = tiles.some((t, i) => t.owner === playerNation && t.type === resType);
-        if (!has) { status = ` (need ${tech.needsResource})`; blocked = `Need ${tech.needsResource} resource in your territory`; }
+        const resType = tech.needsResource === 'horses' ? 6 : -1;
+        if (resType >= 0) {
+          const has = tiles.some((t, i) => t.owner === playerNation && t.type === resType);
+          if (!has) { status = ` (need ${tech.needsResource})`; blocked = `Need ${tech.needsResource} resource in your territory`; }
+        }
       }
       const unlockStr = tech.unlocks.map(u => {
         const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
@@ -5165,18 +5165,18 @@ function deserializeGame(json) {
   const d = JSON.parse(json);
   if (!d.v || d.v < 2) { showToast('Incompatible save version'); return false; }
   MAP_COLS = d.MAP_COLS; MAP_ROWS = d.MAP_ROWS;
-  const TILE_COLOR_BY_TYPE = [TILE_COLORS.ocean, TILE_COLORS.land, TILE_COLORS.mountain, TILE_COLORS.swamp, TILE_COLORS.city, TILE_COLORS.forest, TILE_COLORS.herd, TILE_COLORS.gunpowder];
+  const TILE_COLOR_BY_TYPE = [TILE_COLORS.ocean, TILE_COLORS.land, TILE_COLORS.mountain, TILE_COLORS.swamp, TILE_COLORS.city, TILE_COLORS.forest, TILE_COLORS.herd];
   if (d.v >= 8) {
     // Compact tile format
     tiles = d.tiles.map((t, i) => {
-      const type = t.t;
+      const type = t.t === 7 ? 2 : t.t; // convert old gunpowder tiles to mountain
       const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
       const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
       return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey };
     });
   } else {
     // Legacy verbose format (v2-v7)
-    tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
+    tiles = d.tiles.map(t => { const type = t.type === 7 ? 2 : t.type; return { ...t, type, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(type, Math.floor(Math.random() * 997)) }; });
   }
   nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
   units = d.units;
