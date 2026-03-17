@@ -986,7 +986,7 @@ function pickDevice(mode) {
 
 let MAP_COLS, MAP_ROWS;
 let VIEW_TILE = 24;
-let isMobileMode = false;
+var isMobileMode = false;
 const MIN_TILE = 8, MAX_TILE = 128;
 
 // ====================
@@ -999,7 +999,7 @@ const HEX_TILE_FILES = [
   'Water','Water_Duck','Water_Lilypads',
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
   'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
-  'FrosenWater','FrosenWater_Lilypads',
+  'FrozenWater','FrosenWater_Lilypads',
 ];
 let hexImagesLoaded = 0;
 for (const name of HEX_TILE_FILES) {
@@ -2376,7 +2376,7 @@ function tickBarbarianCamps() {
 
   for (const camp of barbarianCamps) {
     if (camp.destroyed) {
-      // Check if 10 turns have passed without a unit on the destroyed camp
+      // Check if barbRespawnTurns have passed without a unit on the destroyed camp
       const unitOnCamp = units.some(u => u.x === camp.x && u.y === camp.y && !isBarbarianNation(u.nationId));
       if (unitOnCamp) {
         camp.destroyedTurn = turnNumber; // reset timer while occupied
@@ -2692,9 +2692,9 @@ function showVictory(type) {
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Score Breakdown</h3>
       <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
         Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
-        Territory: ${s.tileCount} tiles (+${Math.floor(s.tileCount / 5)})<br>
+        Territory: ${s.tileCount} tiles (+${s.tileCount * 2})<br>
         Technologies: ${s.techCount} (+${s.techCount * 5})<br>
-        Military: ${s.combatCount} units (+${s.combatCount * 2})<br>
+        Military: ${s.combatCount} units (+${s.combatCount * 3})<br>
         Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
         Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
         Time penalty: -${Math.floor(turnNumber * 0.5)}<br>
@@ -2789,9 +2789,9 @@ function showDefeat(type, winnerId) {
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Final Score: ${s.total}</h3>
       <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
         Cities: ${s.cityCount} (+${s.cityCount * 10})<br>
-        Territory: ${s.tileCount} tiles (+${Math.floor(s.tileCount / 5)})<br>
+        Territory: ${s.tileCount} tiles (+${s.tileCount * 2})<br>
         Technologies: ${s.techCount} (+${s.techCount * 5})<br>
-        Military: ${s.combatCount} units (+${s.combatCount * 2})<br>
+        Military: ${s.combatCount} units (+${s.combatCount * 3})<br>
         Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
         Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
         Time penalty: -${Math.floor(turnNumber * 0.5)}
@@ -4862,7 +4862,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   }
   const destroyedCampHere = barbarianCamps.find(b => b.x === mx && b.y === my && b.destroyed);
   if (destroyedCampHere && destroyedCampHere.destroyedTurn > -100) {
-    const turnsLeft = Math.max(0, 10 - (turnNumber - destroyedCampHere.destroyedTurn));
+    const turnsLeft = Math.max(0, barbRespawnTurns - (turnNumber - destroyedCampHere.destroyedTurn));
     if (turnsLeft > 0) html += `<div class="tt-detail" style="color:#c66">Destroyed camp - respawns in ${turnsLeft} turns</div>`;
     html += `<div class="tt-detail" style="color:#7f7">Can settle here</div>`;
   }
