@@ -4383,7 +4383,7 @@ function renderKingdoms() {
           const cost = Math.round(20 * tradeMarkup);
           const theyHave = Math.floor(nations[n.id][res] || 0);
           const canAfford = nations[playerNation].gold >= cost && theyHave >= 20;
-          html += `<button class="diplo-btn" style="font-size:10px;margin:1px;" ${canAfford ? '' : 'disabled'} onclick="requestTrade(${n.id},'${res}')" title="${theyHave < 20 ? 'They don\\'t have enough' : cost + ' gold for 20 ' + res}">20 ${res} <span style="color:#d4a856;font-size:9px;">(${cost}g)</span></button> `;
+          html += `<button class="diplo-btn" style="font-size:10px;margin:1px;" ${canAfford ? '' : 'disabled'} onclick="requestTrade(${n.id},'${res}')" title="${theyHave < 20 ? "They don't have enough" : cost + ' gold for 20 ' + res}">20 ${res} <span style="color:#d4a856;font-size:9px;">(${cost}g)</span></button> `;
         }
         html += `</div>`;
         html += `</div>`;
