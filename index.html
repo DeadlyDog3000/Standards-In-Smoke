@@ -4071,6 +4071,17 @@ function showUnitPanel(unit) {
   panel.innerHTML = html; panel.style.display = 'block';
 }
 
+function renameCity() {
+  if (!selectedCity || selectedCity.nationId !== playerNation) return;
+  const newName = prompt('Rename city:', selectedCity.name);
+  if (newName && newName.trim()) {
+    selectedCity.name = newName.trim().substring(0, 20);
+    showCityPanel(selectedCity);
+    render();
+    showToast(`City renamed to ${selectedCity.name}`);
+  }
+}
+
 function showCityPanel(city) {
   selectedUnit = null; moveMode = false; reachableTiles.clear();
   selectedCity = city;
@@ -4078,7 +4089,8 @@ function showCityPanel(city) {
   const y = getCityYields(city);
   const yStr = Object.entries(y).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
   let prodStr = city.producing ? `${city.producing} (${getProductionTurns(city)} turns)` : 'None';
-  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}</h3>`;
+  const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
+  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}</p>`;
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
