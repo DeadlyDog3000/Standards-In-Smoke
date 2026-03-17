@@ -476,6 +476,41 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.7</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Diplomacy Overhaul</b><br>
+        - Closed borders by default: units cannot enter foreign territory without permission<br>
+        - Open Borders agreements: request access to allied territory<br>
+        - War Help and Barbarian Pact diplomatic agreements<br>
+        - Resource trading with AI nations<br>
+        - AI requests diplomacy based on loyalty levels<br>
+        <br>
+        <b style="color:#b8a070;">Turn-Based Research</b><br>
+        - Tech research now takes multiple turns based on science/turn output<br>
+        - Progress bar shows current research status in topbar and tech tree<br>
+        - Higher-cost techs take proportionally longer to research<br>
+        <br>
+        <b style="color:#b8a070;">Worker Build Times</b><br>
+        - Improvements now take multiple turns to build (2-5 turns depending on quality)<br>
+        - Veteran workers build 1 turn faster<br>
+        - Workers stay in place and show progress while constructing<br>
+        - Start with 2 workers (player and AI)<br>
+        <br>
+        <b style="color:#b8a070;">Barbarian Rework</b><br>
+        - More hostile: faster spawning, more units, larger raid range<br>
+        - New unit progression: Axemen (early), Raiders (turn 20+), Brutes (turn 40+)<br>
+        - Barbarians hunt nearby units and target improvements<br>
+        - Barbarians now raze captured cities instead of occupying them<br>
+        <br>
+        <b style="color:#b8a070;">Economy &amp; Resources</b><br>
+        - Gunpowder resource: produced by mines, required for gunpowder-era units<br>
+        - Forests no longer produce passive wood (chop or build lumbermills)<br>
+        - Lumbermill tech and improvement: 3 wood/turn on forest tiles<br>
+        <br>
+        <b style="color:#b8a070;">Territory</b><br>
+        - Cities auto-expand 2 tiles every 5 turns<br>
+        - Gray border lines between cities within the same nation<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.6</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Menu Overhaul</b><br>
@@ -570,6 +605,41 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.7</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Diplomacy Overhaul</b><br>
+          - Closed borders by default: units cannot enter foreign territory without permission<br>
+          - Open Borders agreements: request access to allied territory<br>
+          - War Help and Barbarian Pact diplomatic agreements<br>
+          - Resource trading with AI nations<br>
+          - AI requests diplomacy based on loyalty levels<br>
+          <br>
+          <b style="color:#b8a070;">Turn-Based Research</b><br>
+          - Tech research now takes multiple turns based on science/turn output<br>
+          - Progress bar shows current research status in topbar and tech tree<br>
+          - Higher-cost techs take proportionally longer to research<br>
+          <br>
+          <b style="color:#b8a070;">Worker Build Times</b><br>
+          - Improvements now take multiple turns to build (2-5 turns depending on quality)<br>
+          - Veteran workers build 1 turn faster<br>
+          - Workers stay in place and show progress while constructing<br>
+          - Start with 2 workers (player and AI)<br>
+          <br>
+          <b style="color:#b8a070;">Barbarian Rework</b><br>
+          - More hostile: faster spawning, more units, larger raid range<br>
+          - New unit progression: Axemen (early), Raiders (turn 20+), Brutes (turn 40+)<br>
+          - Barbarians hunt nearby units and target improvements<br>
+          - Barbarians now raze captured cities instead of occupying them<br>
+          <br>
+          <b style="color:#b8a070;">Economy &amp; Resources</b><br>
+          - Gunpowder resource: produced by mines, required for gunpowder-era units<br>
+          - Forests no longer produce passive wood (chop or build lumbermills)<br>
+          - Lumbermill tech and improvement: 3 wood/turn on forest tiles<br>
+          <br>
+          <b style="color:#b8a070;">Territory</b><br>
+          - Cities auto-expand 2 tiles every 5 turns<br>
+          - Gray border lines between cities within the same nation<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.6</b> <span style="color:#888;font-size:11px;">(Save v8)</span></div>
         <div style="margin-bottom:12px;">
@@ -4269,7 +4339,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-1.6';
+const CURRENT_VERSION = 'beta-1.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
