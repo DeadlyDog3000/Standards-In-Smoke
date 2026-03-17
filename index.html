@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=Pinyon+Script&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: 'EB Garamond', 'Uncial Antiqua', serif; color: #e8dcc8; user-select: none; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: 'EB Garamond', 'Uncial Antiqua', serif; color: #e8dcc8; -webkit-user-select: none; user-select: none; }
     button, select, input, .menu-btn, .top-btn, .p-btn, .esc-btn { font-family: 'EB Garamond', 'Uncial Antiqua', serif; }
     h1, h2, h3 { font-family: 'Uncial Antiqua', 'Pinyon Script', cursive; }
 
@@ -38,7 +38,7 @@
       background: rgba(240, 230, 210, 0.18); color: #fff;
       border: 1px solid rgba(200, 180, 140, 0.5); border-radius: 4px; cursor: pointer; min-width: 260px; text-align: center;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
       text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       letter-spacing: 0.5px;
       font-weight: 500;
@@ -51,7 +51,7 @@
 
     /* Game */
     #game { display: none; position: relative; width: 100%; height: 100%; }
-    canvas { display: block; image-rendering: pixelated; }
+    canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 
     /* Top Bar */
     #topbar {
@@ -167,7 +167,7 @@
     /* Minimap */
     #minimap {
       position: fixed; top: 44px; left: 10px; border: 1px solid rgba(160, 140, 100, 0.35); z-index: 20;
-      image-rendering: pixelated; background: #1a1610; border-radius: 3px;
+      image-rendering: pixelated; image-rendering: crisp-edges; background: #1a1610; border-radius: 3px;
     }
 
     /* Notification toast */
@@ -193,6 +193,7 @@
       overflow-y: auto; background: rgba(15, 12, 8, 0.85); border: 1px solid rgba(160,140,100,0.3);
       border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #b8a888;
       pointer-events: auto; z-index: 10; line-height: 1.5;
+      scrollbar-width: thin; scrollbar-color: rgba(160,140,100,0.4) transparent;
     }
     #eventLog::-webkit-scrollbar { width: 4px; }
     #eventLog::-webkit-scrollbar-thumb { background: rgba(160,140,100,0.4); border-radius: 2px; }
@@ -232,6 +233,7 @@
       width: 90vw;
       max-height: 85vh;
       overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: rgba(160,140,100,0.4) transparent;
     }
     .setup-card::-webkit-scrollbar { width: 6px; }
     .setup-card::-webkit-scrollbar-thumb { background: rgba(160,140,100,0.4); border-radius: 3px; }
@@ -1087,6 +1089,19 @@ let MAP_COLS, MAP_ROWS;
 let VIEW_TILE = 24;
 var isMobileMode = false;
 const MIN_TILE = 8, MAX_TILE = 128;
+
+// ====================
+// COMBAT & BALANCE CONSTANTS
+// ====================
+const TERRAIN_DEFENSE = { city: 0.6, forest: 0.75, mountain: 0.65, swamp: 0.85, open: 1.0 };
+const FORT_BONUS = 0.8;       // Fortified units take 20% less damage
+const SIEGE_BONUS = 1.5;      // Siege units deal 50% more to cities
+const HEAL_IN_CITY = 3;       // HP healed per turn in a city
+const HEAL_IN_TERRITORY = 2;  // HP healed per turn in owned territory
+const CITY_VISION_BASE = 5;   // Base city vision radius
+const CITY_VISION_MAX_BONUS = 3; // Max extra vision from population
+const FREE_MIL_PER_CITY = 2;  // Free military units before maintenance costs
+const UNIT_MAINTENANCE = 0.5; // Gold per excess military unit per turn
 
 // ====================
 // HEX TILE IMAGES
@@ -2063,12 +2078,14 @@ function revealAround(x, y, radius, nationId) {
     if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
     tiles[ty * MAP_COLS + tx].revealed.add(nationId);
   }
+  if (nationId === playerNation) visionDirty = true;
 }
+function invalidateVision() { visionDirty = true; }
 
 function revealAllUnits(nationId) {
-  for (const u of units) if (u.nationId === nationId) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
+  for (const u of units) if (u.nationId === nationId) revealAround(u.x, u.y, UNIT_DEFS[u.type]?.vision || 5, nationId);
   for (const c of cities) if (c.nationId === nationId) {
-    const cr = 5 + Math.min(3, Math.floor((c.population || 1) / 3));
+    const cr = CITY_VISION_BASE + Math.min(CITY_VISION_MAX_BONUS, Math.floor((c.population || 1) / 3));
     revealAround(c.x, c.y, cr, nationId);
   }
 }
@@ -2218,7 +2235,9 @@ function foundCity(unit) {
   }
   cities.push(city);
   setCityTiles(city);
-  revealAround(city.x, city.y, 5, unit.nationId);
+  _tileCityMapDirty = true;
+  minimapDirty = true;
+  revealAround(city.x, city.y, CITY_VISION_BASE, unit.nationId);
   units.splice(units.indexOf(unit), 1);
   if (selectedUnit === unit) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
   return city;
@@ -2429,6 +2448,13 @@ function chopForest(worker) {
 // ====================
 // COMBAT
 // ====================
+function getTerrainDefense(tileType, inCity) {
+  if (inCity) return TERRAIN_DEFENSE.city;
+  if (tileType === 5) return TERRAIN_DEFENSE.forest;
+  if (tileType === 2) return TERRAIN_DEFENSE.mountain;
+  if (tileType === 3) return TERRAIN_DEFENSE.swamp;
+  return TERRAIN_DEFENSE.open;
+}
 function estimateCombat(attacker, tx, ty) {
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return null;
@@ -2438,9 +2464,9 @@ function estimateCombat(attacker, tx, ty) {
   const defTi = ty * MAP_COLS + tx;
   const defTerrain = tiles[defTi].type;
   const inCity = cities.some(c => c.x === tx && c.y === ty);
-  const terrainBonus = inCity ? 0.6 : (defTerrain === 5) ? 0.75 : (defTerrain === 2) ? 0.65 : (defTerrain === 3) ? 0.85 : 1.0;
-  const fortBonus = target.fortified ? 0.8 : 1.0;
-  const siegeBonus = (atkDef.siege && inCity) ? 1.5 : 1.0;
+  const terrainBonus = getTerrainDefense(defTerrain, inCity);
+  const fortBonus = target.fortified ? FORT_BONUS : 1.0;
+  const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
   const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus);
   let estRetaliation = 0;
   if (tgtDef.combat && !atkDef.ranged) {
@@ -2496,15 +2522,11 @@ function doAttack(attacker, tx, ty) {
   const defTi = ty * MAP_COLS + tx;
   const defTerrain = tiles[defTi].type;
   const inCity = cities.some(c => c.x === tx && c.y === ty);
-  const defTerrainBonus = inCity ? 0.6 :               // city: 40% damage reduction
-                          (defTerrain === 5) ? 0.75 :   // forest: 25% damage reduction
-                          (defTerrain === 2) ? 0.65 :   // mountain: 35% damage reduction
-                          (defTerrain === 3) ? 0.85 :   // swamp: 15% damage reduction
-                          1.0;
+  const defTerrainBonus = getTerrainDefense(defTerrain, inCity);
   // Fortification bonus for defender (didn't move last turn)
-  const fortBonus = target.fortified ? 0.8 : 1.0;
+  const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   // Siege bonus: siege units deal 50% extra damage to units in cities
-  const siegeBonus = (atkDef.siege && inCity) ? 1.5 : 1.0;
+  const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
   target.hp -= Math.round((atkPower + Math.floor(Math.random() * 3)) * (0.5 + 0.5 * atkHpRatio) * defTerrainBonus * fortBonus * siegeBonus);
   // Non-combat units can't fight back
   if (tgtDef.combat) {
@@ -2554,6 +2576,7 @@ function doAttack(attacker, tx, ty) {
     units.splice(units.indexOf(attacker), 1);
   }
   if (units.includes(attacker)) attacker.movesLeft = 0;
+  if (defenderDied || attackerDied) visionDirty = true;
 
   // Record battle event for replay
   addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
@@ -2565,7 +2588,7 @@ function doAttack(attacker, tx, ty) {
 function tickCityCapture() {
   for (const city of [...cities]) {
     // Check if an enemy military unit is standing on the city tile
-    const occupier = units.find(u => u.x === city.x && u.y === city.y && u.nationId !== city.nationId && UNIT_DEFS[u.type].combat);
+    const occupier = units.find(u => u.x === city.x && u.y === city.y && u.nationId !== city.nationId && UNIT_DEFS[u.type]?.combat);
     if (occupier) {
       const rel = nations[occupier.nationId].relations[city.nationId];
       if (rel === 'war') {
@@ -2903,7 +2926,7 @@ function barbarianAI(nationId) {
       const d = Math.abs(enemy.x - u.x) + Math.abs(enemy.y - u.y);
       if (d <= 6 && d < huntDist) {
         // Prefer non-combat units (workers, settlers, scouts)
-        const isPrey = !UNIT_DEFS[enemy.type].combat;
+        const isPrey = !UNIT_DEFS[enemy.type]?.combat;
         if (isPrey || d <= 3) { huntDist = d; huntTarget = enemy; }
       }
     }
@@ -3033,7 +3056,7 @@ function getScore(nationId) {
   score += (nations[nationId].researched ? nations[nationId].researched.size : 0) * 5;
   for (const u of units) {
     if (u.nationId !== nationId) continue;
-    score += UNIT_DEFS[u.type].combat ? 3 : 1;
+    score += UNIT_DEFS[u.type]?.combat ? 3 : 1;
   }
   score += nations.filter(n => n.eliminated && !n.isBarbarian && n.eliminatedBy === nationId).length * 20;
   score += Math.floor((nations[nationId].legitimacy || 50) / 10);
@@ -3065,7 +3088,7 @@ function checkElimination() {
       for (const u of theirUnits) {
         u.nationId = conqueror;
         u.movesLeft = 0;
-        revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, conqueror);
+        revealAround(u.x, u.y, UNIT_DEFS[u.type]?.vision || 5, conqueror);
       }
       if (conqueror === playerNation) showToast(`${n.name} has been conquered! Their resources and units are yours.`);
       else showToast(`${n.name} has been eliminated by ${nations[conqueror].name}!`);
@@ -3100,8 +3123,8 @@ function getScoreBreakdown(nationId) {
   const cityCount = cities.filter(c => c.nationId === nationId).length;
   const tileCount = tiles.filter(t => t.owner === nationId).length;
   const techCount = nations[nationId].researched ? nations[nationId].researched.size : 0;
-  const combatCount = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat).length;
-  const civilianCount = units.filter(u => u.nationId === nationId && !UNIT_DEFS[u.type].combat).length;
+  const combatCount = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
+  const civilianCount = units.filter(u => u.nationId === nationId && !UNIT_DEFS[u.type]?.combat).length;
   const eliminated = nations.filter(n => n.eliminated && !n.isBarbarian && n.eliminatedBy === nationId).length;
   return { cityCount, tileCount, techCount, combatCount, civilianCount, eliminated, total: getScore(nationId) };
 }
@@ -3240,8 +3263,22 @@ function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
 
+  // Pre-compute military units by nation (avoids repeated .filter() in diplomacy loop)
+  const militaryByNation = new Map();
+  for (const u of units) {
+    if (!UNIT_DEFS[u.type]?.combat) continue;
+    if (!militaryByNation.has(u.nationId)) militaryByNation.set(u.nationId, []);
+    militaryByNation.get(u.nationId).push(u);
+  }
+  // Pre-compute cities by nation
+  const citiesByNation = new Map();
+  for (const c of cities) {
+    if (!citiesByNation.has(c.nationId)) citiesByNation.set(c.nationId, []);
+    citiesByNation.get(c.nationId).push(c);
+  }
+
   // AI diplomacy — think like a ruler
-  const aiCitiesAll = cities.filter(c => c.nationId === nationId);
+  const aiCitiesAll = citiesByNation.get(nationId) || [];
   for (let otherId = 0; otherId < nations.length; otherId++) {
     if (otherId === nationId || nations[otherId].eliminated || nations[otherId].isBarbarian) continue;
     const loy = getLoyalty(nationId, otherId);
@@ -3252,7 +3289,7 @@ function aiTurn(nationId) {
     else if (loy < 20) changeLoyalty(nationId, otherId, 0.2);
 
     // --- City proximity: close cities feel threatening ---
-    const otherCities = cities.filter(c => c.nationId === otherId);
+    const otherCities = citiesByNation.get(otherId) || [];
     let cityTension = 0;
     for (const ac of aiCitiesAll) {
       for (const oc of otherCities) {
@@ -3264,7 +3301,7 @@ function aiTurn(nationId) {
     changeLoyalty(nationId, otherId, -Math.min(cityTension, 6)); // cap city proximity penalty
 
     // --- Military buildup near our borders feels threatening ---
-    const theirMilitary = units.filter(u => u.nationId === otherId && UNIT_DEFS[u.type].combat);
+    const theirMilitary = militaryByNation.get(otherId) || [];
     let troopsNearBorder = 0;
     for (const u of theirMilitary) {
       for (const ac of aiCitiesAll) {
@@ -3289,7 +3326,7 @@ function aiTurn(nationId) {
     else if (encroachCount >= 3) changeLoyalty(nationId, otherId, -0.5);
 
     // --- Power imbalance: they are much stronger, we feel threatened ---
-    const ourMilitary = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat).length;
+    const ourMilitary = (militaryByNation.get(nationId) || []).length;
     const theirMilCount = theirMilitary.length;
     if (theirMilCount > ourMilitary * 2 && theirMilCount >= 4) changeLoyalty(nationId, otherId, -1.5);
 
@@ -3350,8 +3387,8 @@ function aiTurn(nationId) {
 
     // --- Declare war when hostile — but only if army is ready ---
     if (updatedLoy <= -60 && n.relations[otherId] !== 'war') {
-      const aiArmySize = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
-      const aiCityCount = cities.filter(c => c.nationId === nationId).length;
+      const aiArmySize = (militaryByNation.get(nationId) || []).length;
+      const aiCityCount = aiCitiesAll.length;
       const minArmyForWar = Math.max(4, aiCityCount * 3);
       // If army is strong enough, or loyalty is extremely low (can't hold back)
       if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
@@ -3388,7 +3425,7 @@ function aiTurn(nationId) {
   if (totalCityCount >= 4) {
     for (let domId = 0; domId < nations.length; domId++) {
       if (domId === nationId || nations[domId].eliminated || nations[domId].isBarbarian) continue;
-      const domCities = cities.filter(c => c.nationId === domId).length;
+      const domCities = (citiesByNation.get(domId) || []).length;
       if (domCities / totalCityCount >= 0.5 && n.relations[domId] !== 'war') {
         // Boost loyalty toward other non-dominant nations (rally allies)
         for (let allyId = 0; allyId < nations.length; allyId++) {
@@ -3399,15 +3436,15 @@ function aiTurn(nationId) {
     }
   }
 
-  const aiCities = cities.filter(c => c.nationId === nationId);
+  const aiCities = citiesByNation.get(nationId) || [];
   const atWar = Object.entries(n.relations).some(([id, r]) => r === 'war' && !nations[id]?.isBarbarian);
-  const combatUnits = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type].combat);
+  const combatUnits = militaryByNation.get(nationId) || [];
 
   // Compute threat level near cities
   let threatLevel = 0;
   for (const c of aiCities) {
     for (const eu of units) {
-      if (eu.nationId === nationId || !UNIT_DEFS[eu.type].combat) continue;
+      if (eu.nationId === nationId || !UNIT_DEFS[eu.type]?.combat) continue;
       if (n.relations[eu.nationId] !== 'war') continue;
       const d = Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y);
       if (d <= 8) threatLevel += (UNIT_DEFS[eu.type].atk || 0);
@@ -3481,7 +3518,7 @@ function aiTurn(nationId) {
           } else moveAIUnitMultiple(u, u.movesLeft);
         }
       }
-    } else if (UNIT_DEFS[u.type].combat && u.movesLeft > 0) {
+    } else if (UNIT_DEFS[u.type]?.combat && u.movesLeft > 0) {
       // Attack first — units cannot move and attack in the same turn
       let attacked = false;
       // Ranged attack with target prioritization
@@ -3492,7 +3529,7 @@ function aiTurn(nationId) {
           const enemy = units.find(e => e.x === rt.x && e.y === rt.y && e.nationId !== nationId && n.relations[e.nationId] === 'war');
           if (enemy) {
             let score = 0;
-            if (!UNIT_DEFS[enemy.type].combat) score += 20;
+            if (!UNIT_DEFS[enemy.type]?.combat) score += 20;
             const atkPower = UNIT_DEFS[u.type].atk || 4;
             if (enemy.hp <= atkPower) score += 15;
             score += (UNIT_DEFS[enemy.type].atk || 0);
@@ -3509,9 +3546,9 @@ function aiTurn(nationId) {
           const aiRTi = bestTarget.y * MAP_COLS + bestTarget.x;
           const aiRTerrain = tiles[aiRTi].type;
           const aiRInCity = cities.some(c => c.x === bestTarget.x && c.y === bestTarget.y);
-          const aiRTerrainBonus = aiRInCity ? 0.6 : (aiRTerrain === 5) ? 0.75 : (aiRTerrain === 2) ? 0.65 : (aiRTerrain === 3) ? 0.85 : 1.0;
-          const aiRFortBonus = bestTarget.fortified ? 0.8 : 1.0;
-          const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? 1.5 : 1.0;
+          const aiRTerrainBonus = getTerrainDefense(aiRTerrain, aiRInCity);
+          const aiRFortBonus = bestTarget.fortified ? FORT_BONUS : 1.0;
+          const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? SIEGE_BONUS : 1.0;
           bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus);
           changeLoyalty(bestTarget.nationId, nationId, -10);
           const aiRDmg = aiRTargetHpBefore - bestTarget.hp;
@@ -3534,7 +3571,7 @@ function aiTurn(nationId) {
           const isAdj = hexNeighbors(u.x, u.y).some(nb => nb.col === enemy.x && nb.row === enemy.y);
           if (!isAdj) continue;
           let score = 0;
-          if (!UNIT_DEFS[enemy.type].combat) score += 20;
+          if (!UNIT_DEFS[enemy.type]?.combat) score += 20;
           const atkPower = UNIT_DEFS[u.type].atk || 4;
           if (enemy.hp <= atkPower) score += 15;
           score += (UNIT_DEFS[enemy.type].atk || 0);
@@ -3568,7 +3605,7 @@ function aiTurn(nationId) {
         if (threatLevel > 0) {
           let nearestThreat = null, nearDist = Infinity;
           for (const c of aiCities) {
-            const threat = units.some(eu => eu.nationId !== nationId && UNIT_DEFS[eu.type].combat && n.relations[eu.nationId] === 'war' && Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y) <= 5);
+            const threat = units.some(eu => eu.nationId !== nationId && UNIT_DEFS[eu.type]?.combat && n.relations[eu.nationId] === 'war' && Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y) <= 5);
             if (threat) {
               const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
               if (d < nearDist) { nearDist = d; nearestThreat = c; }
@@ -3593,7 +3630,7 @@ function aiTurn(nationId) {
     } else if (u.movesLeft > 0) {
       moveAIUnitMultiple(u, u.movesLeft);
     }
-    if (units.includes(u)) revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, nationId);
+    if (units.includes(u)) revealAround(u.x, u.y, UNIT_DEFS[u.type]?.vision || 5, nationId);
   }
   // Production (uses aiCities, combatUnits, atWar, threatLevel from above)
   // Pick combat unit — diversify army composition
@@ -3816,6 +3853,9 @@ function triggerRebellion(city) {
 
 function endTurn() {
   if (battleReplayActive || animationBlocking) return; // Block during battle replay
+  visionDirty = true;
+  minimapDirty = true;
+  _tileCityMapDirty = true;
   // Base passive income (skip barbarians)
   for (const n of nations) { if (n.isBarbarian) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; n.gunpowder = n.gunpowder || 0; }
   // Player city yields & production
@@ -3832,12 +3872,16 @@ function endTurn() {
     if (nations[i].food < 0) nations[i].food = 0;
   }
   // Unit maintenance: military units cost gold per turn
+  // Pre-count military units and cities per nation to avoid repeated .filter() calls
+  const milCounts = new Int32Array(nations.length);
+  const cityCounts = new Int32Array(nations.length);
+  for (const u of units) if (UNIT_DEFS[u.type]?.combat) milCounts[u.nationId]++;
+  for (const c of cities) cityCounts[c.nationId]++;
   for (let i = 0; i < nations.length; i++) {
     if (nations[i].isBarbarian || nations[i].eliminated) continue;
-    const milUnits = units.filter(u => u.nationId === i && UNIT_DEFS[u.type].combat);
-    const freeMil = cities.filter(c => c.nationId === i).length * 2; // 2 free military units per city
-    const paidUnits = Math.max(0, milUnits.length - freeMil);
-    const maintenance = paidUnits * 0.5; // 0.5 gold per excess military unit
+    const freeMil = cityCounts[i] * FREE_MIL_PER_CITY;
+    const paidUnits = Math.max(0, milCounts[i] - freeMil);
+    const maintenance = paidUnits * UNIT_MAINTENANCE;
     nations[i].gold -= maintenance;
     if (nations[i].gold < 0) nations[i].gold = 0;
   }
@@ -3863,19 +3907,27 @@ function finishEndTurn() {
   tickCityCapture();
   checkElimination();
   // Heal combat units in owned territory
+  // Build unit position index for O(1) adjacent enemy lookups
+  const unitsByPos = new Map();
+  for (const u of units) {
+    const key = u.y * MAP_COLS + u.x;
+    if (!unitsByPos.has(key)) unitsByPos.set(key, []);
+    unitsByPos.get(key).push(u);
+  }
   for (const u of units) {
     const def = UNIT_DEFS[u.type];
-    if (def.combat) {
+    if (def?.combat) {
       const ti = u.y * MAP_COLS + u.x;
       const t = tiles[ti];
       if (t.owner === u.nationId) {
         const hasAdjacentEnemy = hexNeighbors(u.x, u.y).some(nb => {
           if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
-          return units.some(e => e.x === nb.col && e.y === nb.row && e.nationId !== u.nationId && nations[u.nationId].relations[e.nationId] === 'war');
+          const nbUnits = unitsByPos.get(nb.row * MAP_COLS + nb.col);
+          return nbUnits && nbUnits.some(e => e.nationId !== u.nationId && nations[u.nationId].relations[e.nationId] === 'war');
         });
         if (!hasAdjacentEnemy) {
           const maxHp = def.hp || 10;
-          const heal = (t.type === 4) ? 3 : 2;
+          const heal = (t.type === 4) ? HEAL_IN_CITY : HEAL_IN_TERRITORY;
           u.hp = Math.min(maxHp, u.hp + heal);
         }
       }
@@ -3884,12 +3936,12 @@ function finishEndTurn() {
   // Track which units didn't move this turn (before resetting moves)
   // Units that were already fortified (manually or auto) and didn't move stay fortified
   // Units that moved this turn lose fortification
-  const didntMove = new Set(units.filter(u => UNIT_DEFS[u.type].combat && (u.movesLeft === u.maxMoves || u.fortified)));
+  const didntMove = new Set(units.filter(u => UNIT_DEFS[u.type]?.combat && (u.movesLeft === u.maxMoves || u.fortified)));
   for (const u of units) u.movesLeft = u.maxMoves;
   processGotoOrders();
   // After goto orders execute, update fortification status
   for (const u of units) {
-    if (!UNIT_DEFS[u.type].combat) continue;
+    if (!UNIT_DEFS[u.type]?.combat) continue;
     if (didntMove.has(u) && u.movesLeft === u.maxMoves) u.fortified = true; // didn't move and goto didn't move them
     else if (!didntMove.has(u)) u.fortified = false; // moved this turn
     // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
@@ -4221,11 +4273,12 @@ function hexScreenPos(col, row) {
 
 // Compute currently visible tiles for fog of war
 let currentVisionSet = null;
+let visionDirty = true; // Flag to recompute vision only when needed
 function computeCurrentVision() {
   const vis = new Set();
   for (const u of units) {
     if (u.nationId !== playerNation) continue;
-    const r = UNIT_DEFS[u.type].vision;
+    const r = UNIT_DEFS[u.type]?.vision || 5;
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       if (dx * dx + dy * dy > r * r + r) continue;
       const tx = u.x + dx, ty = u.y + dy;
@@ -4234,7 +4287,7 @@ function computeCurrentVision() {
   }
   for (const c of cities) {
     if (c.nationId !== playerNation) continue;
-    const cr = 5 + Math.min(3, Math.floor((c.population || 1) / 3)); // 5-8 based on pop
+    const cr = CITY_VISION_BASE + Math.min(CITY_VISION_MAX_BONUS, Math.floor((c.population || 1) / 3)); // 5-8 based on pop
     for (let dy = -cr; dy <= cr; dy++) for (let dx = -cr; dx <= cr; dx++) {
       if (dx * dx + dy * dy > cr * cr + cr) continue;
       const tx = c.x + dx, ty = c.y + dy;
@@ -4244,6 +4297,20 @@ function computeCurrentVision() {
   return vis;
 }
 
+// Build tile-to-city lookup for O(1) border rendering
+let _tileCityMap = null, _tileCityMapDirty = true;
+function invalidateTileCityMap() { _tileCityMapDirty = true; }
+function getTileCityMap() {
+  if (!_tileCityMapDirty && _tileCityMap) return _tileCityMap;
+  _tileCityMap = new Map();
+  for (const c of cities) {
+    if (c.ownedTiles) {
+      for (const ti of c.ownedTiles) _tileCityMap.set(ti, c);
+    }
+  }
+  _tileCityMapDirty = false;
+  return _tileCityMap;
+}
 function render() {
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(canvas.width / cs) + 3;
@@ -4253,7 +4320,7 @@ function render() {
   // Screen shake
   const shake = getShakeOffset();
   if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
-  currentVisionSet = computeCurrentVision();
+  if (visionDirty) { currentVisionSet = computeCurrentVision(); visionDirty = false; }
   const pId = playerNation;
 
   // Sprite draw dimensions: native is 32x48 (ratio 1:1.5)
@@ -4339,9 +4406,10 @@ function render() {
     }
 
     if (t.owner >= 0 && !isBarbarianNation(t.owner)) {
-      const ownerCity = cities.find(c => c.nationId === t.owner && c.contested && c.ownedTiles && c.ownedTiles.has(i));
-      const myCity = cities.find(c => c.nationId === t.owner && c.ownedTiles && c.ownedTiles.has(i));
-      ctx.strokeStyle = ownerCity ? '#000000' : nations[t.owner].color;
+      const tcMap = getTileCityMap();
+      const myCity = tcMap.get(i);
+      const isContested = myCity && myCity.contested;
+      ctx.strokeStyle = isContested ? '#000000' : nations[t.owner].color;
       ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
       ctx.lineCap = 'round';
       ctx.globalAlpha = 0.85;
@@ -4356,7 +4424,7 @@ function render() {
           drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
         } else if (myCity && neighborOwner === t.owner) {
           // Gray city border: same nation, different city
-          const nbCity = cities.find(c => c.nationId === t.owner && c.ownedTiles && c.ownedTiles.has(nIdx));
+          const nbCity = tcMap.get(nIdx);
           if (nbCity && nbCity !== myCity) {
             ctx.save();
             ctx.strokeStyle = 'rgba(180,170,150,0.3)';
@@ -4550,12 +4618,18 @@ function render() {
 
   // Stack count badges
   if (VIEW_TILE >= 14) {
+    // Pre-count units per tile for O(1) lookup
+    const stackCounts = new Map();
+    for (const u of units) {
+      const key = u.y * MAP_COLS + u.x;
+      stackCounts.set(key, (stackCounts.get(key) || 0) + 1);
+    }
     const counted = new Set();
     for (const u of sortedUnits) {
       const key = u.y * MAP_COLS + u.x;
       if (counted.has(key)) continue;
-      const stack = units.filter(o => o.x === u.x && o.y === u.y);
-      if (stack.length <= 1) continue;
+      const count = stackCounts.get(key) || 1;
+      if (count <= 1) continue;
       counted.add(key);
       if (!tiles[key].revealed.has(pId) && u.nationId !== pId) continue;
       const pos2 = hexScreenPos(u.x, u.y);
@@ -4565,7 +4639,7 @@ function render() {
       ctx.fillStyle = '#ffd';
       ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(stack.length, bx, by);
+      ctx.fillText(count, bx, by);
     }
   }
 
@@ -4624,10 +4698,11 @@ function render() {
   }
 }
 
+let _labelCache = []; // Reuse DOM elements for city labels
 function updateCityLabels() {
-  const c = document.getElementById('labels');
-  c.innerHTML = '';
+  const container = document.getElementById('labels');
   const w = hexWidth(), ch = hexCellH();
+  let idx = 0;
   for (const city of cities) {
     if (!tiles[city.y * MAP_COLS + city.x].revealed.has(playerNation)) continue;
     const pos = hexScreenPos(city.x, city.y);
@@ -4636,8 +4711,13 @@ function updateCityLabels() {
     const sx = pos.x + w / 2;
     const sy = pos.y + fp - Math.max(4, ch * 0.15);
     if (sx < -100 || sy < -20 || sx > canvas.width + 100 || sy > canvas.height + 20) continue;
-    const el = document.createElement('div');
-    el.className = 'city-label';
+    let el = _labelCache[idx];
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'city-label';
+      container.appendChild(el);
+      _labelCache[idx] = el;
+    }
     el.style.left = sx + 'px'; el.style.top = sy + 'px';
     el.style.color = city.contested ? '#000' : nations[city.nationId].color;
     el.style.fontSize = Math.max(9, w * 0.4) + 'px';
@@ -4647,13 +4727,21 @@ function updateCityLabels() {
       if (maxProg > 0) label += ` (${maxProg}/4)`;
     }
     el.textContent = label;
-    c.appendChild(el);
+    el.style.display = '';
+    idx++;
+  }
+  // Hide unused cached labels
+  for (let i = idx; i < _labelCache.length; i++) {
+    _labelCache[i].style.display = 'none';
   }
 }
 
 // ====================
 // MINIMAP
 // ====================
+let minimapDirty = true; // Redraw terrain/territory layer only when needed
+let minimapBaseCanvas = null; // Offscreen canvas for cached minimap base
+function invalidateMinimap() { minimapDirty = true; }
 function renderMinimap() {
   if (!MAP_COLS) return;
   const mw = 160, mh = Math.round(mw * MAP_ROWS / MAP_COLS * 0.85);
@@ -4661,37 +4749,48 @@ function renderMinimap() {
   minimapCanvas.style.width = mw + 'px'; minimapCanvas.style.height = mh + 'px';
 
   const scaleX = mw / MAP_COLS, scaleY = mh / MAP_ROWS;
-  mctx.fillStyle = '#1a1610'; mctx.fillRect(0, 0, mw, mh);
 
-  const step = Math.max(1, Math.floor(MAP_COLS / mw));
-  for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
-    const i = y * MAP_COLS + x; const t = tiles[i];
-    if (!t.revealed.has(playerNation)) { mctx.fillStyle = '#555'; }
-    else mctx.fillStyle = t.color;
-    const px = Math.floor(x * scaleX * 0.75);
-    const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
-    mctx.fillRect(px, py, Math.ceil(scaleX * step * 0.75), Math.ceil(scaleY * step));
+  // Only redraw the base layer (terrain + territory + cities) when dirty
+  if (minimapDirty || !minimapBaseCanvas) {
+    if (!minimapBaseCanvas) { minimapBaseCanvas = document.createElement('canvas'); }
+    minimapBaseCanvas.width = mw; minimapBaseCanvas.height = mh;
+    const bctx = minimapBaseCanvas.getContext('2d');
+    bctx.fillStyle = '#1a1610'; bctx.fillRect(0, 0, mw, mh);
+
+    const step = Math.max(1, Math.floor(MAP_COLS / mw));
+    for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
+      const i = y * MAP_COLS + x; const t = tiles[i];
+      if (!t.revealed.has(playerNation)) { bctx.fillStyle = '#555'; }
+      else bctx.fillStyle = t.color;
+      const px = Math.floor(x * scaleX * 0.75);
+      const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
+      bctx.fillRect(px, py, Math.ceil(scaleX * step * 0.75), Math.ceil(scaleY * step));
+    }
+    // Draw territory borders on minimap
+    for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
+      const i = y * MAP_COLS + x; const t = tiles[i];
+      if (t.owner < 0 || !t.revealed.has(playerNation)) continue;
+      if (!discoveredNations.has(t.owner) && t.owner !== playerNation) continue;
+      const px = Math.floor(x * scaleX * 0.75);
+      const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
+      const bw = Math.ceil(scaleX * step * 0.75), bh = Math.ceil(scaleY * step);
+      bctx.fillStyle = nations[t.owner].color;
+      bctx.globalAlpha = 0.35;
+      bctx.fillRect(px, py, bw, bh);
+      bctx.globalAlpha = 1.0;
+    }
+    // Draw cities (only discovered nations)
+    for (const c of cities) {
+      if (c.nationId !== playerNation && !discoveredNations.has(c.nationId)) continue;
+      if (!tiles[c.y * MAP_COLS + c.x].revealed.has(playerNation) && c.nationId !== playerNation) continue;
+      bctx.fillStyle = nations[c.nationId].color;
+      bctx.fillRect(Math.floor(c.x * scaleX * 0.75) - 1, Math.floor(c.y * scaleY + (c.x % 2) * scaleY * 0.5) - 1, 3, 3);
+    }
+    minimapDirty = false;
   }
-  // Draw territory borders on minimap
-  for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
-    const i = y * MAP_COLS + x; const t = tiles[i];
-    if (t.owner < 0 || !t.revealed.has(playerNation)) continue;
-    if (!discoveredNations.has(t.owner) && t.owner !== playerNation) continue;
-    const px = Math.floor(x * scaleX * 0.75);
-    const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
-    const bw = Math.ceil(scaleX * step * 0.75), bh = Math.ceil(scaleY * step);
-    mctx.fillStyle = nations[t.owner].color;
-    mctx.globalAlpha = 0.35;
-    mctx.fillRect(px, py, bw, bh);
-    mctx.globalAlpha = 1.0;
-  }
-  // Draw cities (only discovered nations)
-  for (const c of cities) {
-    if (c.nationId !== playerNation && !discoveredNations.has(c.nationId)) continue;
-    if (!tiles[c.y * MAP_COLS + c.x].revealed.has(playerNation) && c.nationId !== playerNation) continue;
-    mctx.fillStyle = nations[c.nationId].color;
-    mctx.fillRect(Math.floor(c.x * scaleX * 0.75) - 1, Math.floor(c.y * scaleY + (c.x % 2) * scaleY * 0.5) - 1, 3, 3);
-  }
+
+  // Blit cached base then draw viewport rectangle on top
+  mctx.drawImage(minimapBaseCanvas, 0, 0);
   mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
   mctx.strokeRect(camX * scaleX * 0.75, camY * scaleY, viewCols * scaleX * 0.75, viewRows * scaleY);
 }
@@ -4741,7 +4840,7 @@ function updateUI() {
   } else {
     document.getElementById('resScience').textContent = '-';
   }
-  const playerMilUnits = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type].combat).length;
+  const playerMilUnits = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
   const playerFreeMil = cities.filter(c => c.nationId === playerNation).length * 2;
   const playerMaintenance = Math.max(0, playerMilUnits - playerFreeMil) * 0.5;
   const netGold = y.gold - playerMaintenance;
@@ -4851,7 +4950,7 @@ function showUnitPanel(unit) {
     html += `<button class="p-btn" onclick="enterRangedMode()" ${!canRanged ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
     if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">Cannot attack after moving.</p>`;
   }
-  if (UNIT_DEFS[unit.type].combat) {
+  if (UNIT_DEFS[unit.type]?.combat) {
     html += `<p style="font-size:11px;color:#a66">Attacking uses the entire turn. Cannot move and attack.</p>`;
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
@@ -5032,7 +5131,7 @@ function renderKingdoms() {
     const relColor = rel === 'war' ? '#e44' : (rel === 'You' ? '#d4a856' : '#4a4');
     const cityCount = cities.filter(c => c.nationId === n.id).length;
     const unitCount = units.filter(u => u.nationId === n.id).length;
-    const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type].combat).reduce((sum, u) => sum + (UNIT_DEFS[u.type].atk || 0), 0);
+    const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + (UNIT_DEFS[u.type].atk || 0), 0);
     const score = getScore(n.id);
     html += `<div class="kingdom-row">
       <span class="kingdom-dot" style="background:${n.color}"></span>
@@ -5606,11 +5705,13 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   }
   tooltipEl.innerHTML = html;
   tooltipEl.style.display = 'block';
-  // Position: offset from cursor, keep on screen
+  // Position: offset from cursor, keep on screen (clamp to all edges)
   let tx = screenX + 16, ty = screenY + 16;
   const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
   if (tx + tw > window.innerWidth - 8) tx = screenX - tw - 8;
   if (ty + th > window.innerHeight - 8) ty = screenY - th - 8;
+  if (tx < 4) tx = 4;
+  if (ty < 4) ty = 4;
   tooltipEl.style.left = tx + 'px'; tooltipEl.style.top = ty + 'px';
 }
 
@@ -5795,7 +5896,7 @@ canvas.addEventListener('click', (e) => {
             const step = path[i];
             if (units.some(o => o.x === step.x && o.y === step.y && o !== gotoUnit)) break;
             gotoUnit.x = step.x; gotoUnit.y = step.y; gotoUnit.movesLeft--;
-            revealAround(gotoUnit.x, gotoUnit.y, UNIT_DEFS[gotoUnit.type].vision, gotoUnit.nationId);
+            revealAround(gotoUnit.x, gotoUnit.y, UNIT_DEFS[gotoUnit.type]?.vision || 5, gotoUnit.nationId);
             animSteps.push({ x: step.x, y: step.y });
           }
           if (gotoUnit.x === gotoUnit.gotoX && gotoUnit.y === gotoUnit.gotoY) {
@@ -5827,7 +5928,7 @@ canvas.addEventListener('click', (e) => {
       if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) {
         moveMode = false; reachableTiles.clear(); render(); return;
       }
-      if (UNIT_DEFS[selectedUnit.type].combat && canAttack(selectedUnit, mx, my)) {
+      if (UNIT_DEFS[selectedUnit.type]?.combat && canAttack(selectedUnit, mx, my)) {
         doAttack(selectedUnit, mx, my);
       } else if (units.some(u => u.x === mx && u.y === my && u !== selectedUnit)) {
         moveMode = false; reachableTiles.clear(); render(); return;
@@ -5839,7 +5940,7 @@ canvas.addEventListener('click', (e) => {
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
         selectedUnit.x = mx; selectedUnit.y = my;
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
-        revealAround(mx, my, UNIT_DEFS[selectedUnit.type].vision, selectedUnit.nationId);
+        revealAround(mx, my, UNIT_DEFS[selectedUnit.type]?.vision || 5, selectedUnit.nationId);
         // Loyalty penalty for entering other nations' territory
         const tileOwner = tiles[my * MAP_COLS + mx].owner;
         if (tileOwner >= 0 && tileOwner !== selectedUnit.nationId) {
@@ -5980,7 +6081,7 @@ function processGotoOrders() {
       const step = path[i];
       if (units.some(o => o.x === step.x && o.y === step.y && o !== u)) break;
       u.x = step.x; u.y = step.y; u.movesLeft--;
-      revealAround(u.x, u.y, UNIT_DEFS[u.type].vision, u.nationId);
+      revealAround(u.x, u.y, UNIT_DEFS[u.type]?.vision || 5, u.nationId);
       const tileOwner = tiles[u.y * MAP_COLS + u.x].owner;
       if (tileOwner >= 0 && tileOwner !== u.nationId) changeLoyalty(tileOwner, u.nationId, -5);
     }
@@ -6094,8 +6195,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
-  if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
-  if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
+  if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
+  if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   // Arrow keys: switch between units on same tile
@@ -6163,9 +6264,9 @@ window.doRangedAttack = function(tx, ty) {
   const rDefTi = ty * MAP_COLS + tx;
   const rDefTerrain = tiles[rDefTi].type;
   const rInCity = cities.some(c => c.x === tx && c.y === ty);
-  const rTerrainBonus = rInCity ? 0.6 : (rDefTerrain === 5) ? 0.75 : (rDefTerrain === 2) ? 0.65 : (rDefTerrain === 3) ? 0.85 : 1.0;
-  const rFortBonus = target.fortified ? 0.8 : 1.0;
-  const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? 1.5 : 1.0;
+  const rTerrainBonus = getTerrainDefense(rDefTerrain, rInCity);
+  const rFortBonus = target.fortified ? FORT_BONUS : 1.0;
+  const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? SIEGE_BONUS : 1.0;
   target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus);
   const rDmgDealt = rTargetHpBefore - target.hp;
   const rTargetDied = target.hp <= 0;
@@ -6234,7 +6335,7 @@ window.enterMoveMode = function() {
       queue.push({ key: nk, dist: nd });
     }
   }
-  if (UNIT_DEFS[u.type].combat) {
+  if (UNIT_DEFS[u.type]?.combat) {
     for (const enemy of units) {
       if (enemy.nationId === u.nationId) continue;
       if (nations[u.nationId].relations[enemy.nationId] !== 'war') continue;
@@ -6309,7 +6410,7 @@ window.deselectUnit = function() {
 };
 
 window.fortifyUnit = function() {
-  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
@@ -6318,7 +6419,7 @@ window.fortifyUnit = function() {
 };
 
 window.restUnit = function() {
-  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].combat) return;
+  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const def = UNIT_DEFS[selectedUnit.type];
   const maxHp = def.hp || 10;
