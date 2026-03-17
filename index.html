@@ -317,6 +317,9 @@
     body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; }
     body.mobile-mode .p-btn { padding: 10px 14px; font-size: 14px; margin-bottom: 6px; }
     body.mobile-mode #kingdoms { width: 85vw; max-width: 260px; left: 5px; }
+    @keyframes firstContact { 0% { opacity:0; } 10% { opacity:1; } 75% { opacity:1; } 100% { opacity:0; } }
+    @keyframes turnBanner { 0% { opacity:0; } 15% { opacity:1; } 70% { opacity:1; } 100% { opacity:0; } }
+    @keyframes techSlide { 0% { opacity:0; transform:translateY(-100%); } 10% { opacity:1; transform:translateY(0); } 80% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-100%); } }
     @keyframes resDelta { 0% { opacity:1; transform:translateX(-50%) translateY(0); } 100% { opacity:0; transform:translateX(-50%) translateY(-10px); } }
     @keyframes warFlash { 0% { background: rgba(200,30,10,0.9); } 100% { background: rgba(80,10,5,0.85); } }
     @keyframes pulseEndTurn { 0%, 100% { box-shadow: 0 0 4px rgba(255,180,60,0.3); } 50% { box-shadow: 0 0 14px rgba(255,180,60,0.7); } }
@@ -1332,6 +1335,7 @@ function playClick() { const s = clickSound.cloneNode(); s.volume = 0.35; s.play
 function playHover() { const s = clickSound.cloneNode(); s.volume = 0.12; s.playbackRate = 1.3; s.play().catch(() => {}); }
 function playAchievement() { const s = achievementSound.cloneNode(); s.volume = 0.45; s.play().catch(() => {}); }
 function playChop() { const s = chopSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {}); }
+function playWarHorn() { const s = battleSound.cloneNode(); s.volume = 0.6; s.playbackRate = 0.7; s.play().catch(() => {}); }
 const battleSound = new Audio('battle.mp3');
 battleSound.volume = 0.5;
 const marchSound = new Audio('marching_loop.mp3');
@@ -1617,7 +1621,16 @@ function researchTech(nationId, techKey) {
   nations[nationId].researched.add(techKey);
   nations[nationId].currentResearch = null;
   nations[nationId].researchProgress = 0;
-  if (nationId === playerNation) { showToast(`Researched ${tech.name}!`); playAchievement(); }
+  if (nationId === playerNation) {
+    showToast(`Researched ${tech.name}!`);
+    playAchievement();
+    // Show tech completion banner
+    const unlockNames = tech.unlocks.map(u => {
+      const def = UNIT_DEFS[u] || IMPROVEMENT_DEFS[u];
+      return def ? (def.icon || '') + ' ' + (def.name || u.replace(/_/g,' ')) : u.replace(/_/g,' ');
+    }).join(', ');
+    showTechBanner(tech.name, unlockNames);
+  }
   return true;
 }
 
@@ -1763,7 +1776,9 @@ function discoverNation(nationId) {
   if (nations[nationId] && nations[nationId].isBarbarian) return; // don't "discover" barbarians
   discoveredNations.add(nationId);
   const n = nations[nationId];
-  if (n && !n.eliminated) showToast(`Discovered ${n.name}!`);
+  if (n && !n.eliminated) {
+    showFirstContact(n);
+  }
 }
 
 // ====================
@@ -1779,8 +1794,60 @@ function showToast(msg, noLog) {
   if (!noLog && typeof logEvent === 'function') logEvent(msg);
 }
 
+function showFirstContact(nation) {
+  logEvent(`Discovered ${nation.name}!`);
+  playAchievement();
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:155;display:flex;align-items:center;justify-content:center;background:rgba(10,8,5,0.8);animation:firstContact 3s ease-in-out forwards;pointer-events:none;';
+  overlay.innerHTML = `<div style="text-align:center;">
+    <div style="width:70px;height:70px;border-radius:50%;background:${nation.color};border:3px solid rgba(255,255,255,0.3);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px ${nation.color}40;">
+      <span style="font-size:32px;">\uD83C\uDFF3\uFE0F</span>
+    </div>
+    <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:16px;text-shadow:0 0 10px rgba(180,140,60,0.4);">First Contact</div>
+    <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${nation.color}60;">The <span style="color:${nation.color}">${nation.name}</span></div>
+    <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
+  </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 3000);
+}
+
+let shakeIntensity = 0, shakeEndTime = 0;
+function screenShake(intensity, duration) {
+  shakeIntensity = intensity;
+  shakeEndTime = Date.now() + duration;
+}
+function getShakeOffset() {
+  if (Date.now() > shakeEndTime || shakeIntensity <= 0) return { x: 0, y: 0 };
+  const remaining = (shakeEndTime - Date.now()) / (shakeEndTime - Date.now() + 100);
+  return {
+    x: (Math.random() - 0.5) * shakeIntensity * 2 * remaining,
+    y: (Math.random() - 0.5) * shakeIntensity * 2 * remaining
+  };
+}
+
+function showTurnBanner(turn) {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;inset:0;z-index:115;display:flex;align-items:center;justify-content:center;pointer-events:none;animation:turnBanner 1.5s ease-in-out forwards;';
+  banner.innerHTML = `<div style="text-align:center;">
+    <div style="font-family:'Uncial Antiqua',cursive;color:rgba(224,200,128,0.8);font-size:48px;text-shadow:0 0 30px rgba(180,140,60,0.4);">Turn ${turn}</div>
+  </div>`;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 1500);
+}
+
+function showTechBanner(techName, unlocks) {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:120;background:linear-gradient(180deg,rgba(40,60,100,0.95),rgba(20,30,50,0.9));border-bottom:2px solid rgba(100,180,255,0.5);padding:16px 20px;text-align:center;animation:techSlide 3s ease-in-out forwards;pointer-events:none;';
+  banner.innerHTML = `<div style="font-family:'Uncial Antiqua',cursive;color:#8cf;font-size:22px;text-shadow:0 0 12px rgba(100,180,255,0.5);">Research Complete</div>
+    <div style="color:#fff;font-size:18px;margin:4px 0;">${techName}</div>
+    ${unlocks ? `<div style="color:#acd;font-size:12px;">Unlocks: ${unlocks}</div>` : ''}`;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 3000);
+}
+
 function showWarDeclaration(nation) {
   logEvent(`${nation.name} has declared war!`);
+  playWarHorn();
   const overlay = document.createElement('div');
   overlay.id = 'warDeclOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:160;background:rgba(80,10,5,0.85);display:flex;align-items:center;justify-content:center;animation:warFlash 0.3s ease-out;';
@@ -2123,7 +2190,13 @@ function tickProduction(city) {
         if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
       }
       spawnUnit(city.producing, city.nationId, sx, sy);
-      if (city.nationId === playerNation) { showToast(`${city.name} produced a ${city.producing}!`); playAchievement(); }
+      if (city.nationId === playerNation) {
+        const unitDef = UNIT_DEFS[city.producing];
+        const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
+        showToast(`${city.name} produced a ${unitName}!`);
+        addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#6f6', 2000, 14);
+        playAchievement();
+      }
     }
     city.producing = null; city.productionProgress = 0;
   }
@@ -2261,6 +2334,29 @@ function chopForest(worker) {
 // ====================
 // COMBAT
 // ====================
+function estimateCombat(attacker, tx, ty) {
+  const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
+  if (!target) return null;
+  const atkDef = UNIT_DEFS[attacker.type], tgtDef = UNIT_DEFS[target.type];
+  const atkPower = atkDef.atk || 4, atkMaxHp = atkDef.hp || 10;
+  const atkHpRatio = attacker.hp / atkMaxHp;
+  const defTi = ty * MAP_COLS + tx;
+  const defTerrain = tiles[defTi].type;
+  const inCity = cities.some(c => c.x === tx && c.y === ty);
+  const terrainBonus = inCity ? 0.6 : (defTerrain === 5) ? 0.75 : (defTerrain === 2) ? 0.65 : (defTerrain === 3) ? 0.85 : 1.0;
+  const fortBonus = target.fortified ? 0.8 : 1.0;
+  const siegeBonus = (atkDef.siege && inCity) ? 1.5 : 1.0;
+  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus);
+  let estRetaliation = 0;
+  if (tgtDef.combat && !atkDef.ranged) {
+    const tgtMaxHp = tgtDef.hp || 10;
+    const tgtHpAfter = Math.max(0, target.hp - estDmg);
+    const tgtHpRatio = tgtHpAfter / tgtMaxHp;
+    estRetaliation = Math.round(((tgtDef.atk || 3) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio));
+  }
+  return { estDmg, estRetaliation, targetHp: target.hp, attackerHp: attacker.hp, targetType: target.type, isRanged: !!atkDef.ranged };
+}
+
 function canAttack(attacker, tx, ty) {
   const def = UNIT_DEFS[attacker.type];
   if (!def.combat) return false;
@@ -2446,8 +2542,15 @@ function tickCityCapture() {
           if (!nations[oldOwner].isBarbarian) {
             nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 3);
           }
-          if (occupier.nationId === playerNation) showToast(`${city.name} has been captured!`);
-          else if (oldOwner === playerNation) showToast(`${city.name} has fallen to ${nations[occupier.nationId].name}!`);
+          if (occupier.nationId === playerNation) {
+            showToast(`${city.name} has been captured!`);
+            screenShake(6, 300);
+            addFloatingText(city.x, city.y, 'City Captured!', '#6f6', 2000, 16);
+          } else if (oldOwner === playerNation) {
+            showToast(`${city.name} has fallen to ${nations[occupier.nationId].name}!`);
+            screenShake(8, 400);
+            addFloatingText(city.x, city.y, 'City Lost!', '#f44', 2000, 16);
+          }
         } else {
           if (occupier.nationId === playerNation) showToast(`Occupying ${city.name}: ${city.captureProgress[occupier.nationId]}/4 turns`);
         }
@@ -3627,6 +3730,7 @@ function finishEndTurn() {
     // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
   }
   turnNumber++;
+  showTurnBanner(turnNumber);
   // City auto-expansion: every 5 turns, each city expands 2 tiles
   if (turnNumber % 5 === 0) {
     for (const c of cities) {
@@ -3942,12 +4046,40 @@ function hexScreenPos(col, row) {
   return { x: worldX - camX * cs, y: worldY - camY * ch };
 }
 
+// Compute currently visible tiles for fog of war
+let currentVisionSet = null;
+function computeCurrentVision() {
+  const vis = new Set();
+  for (const u of units) {
+    if (u.nationId !== playerNation) continue;
+    const r = UNIT_DEFS[u.type].vision;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy > r * r + r) continue;
+      const tx = u.x + dx, ty = u.y + dy;
+      if (tx >= 0 && tx < MAP_COLS && ty >= 0 && ty < MAP_ROWS) vis.add(ty * MAP_COLS + tx);
+    }
+  }
+  for (const c of cities) {
+    if (c.nationId !== playerNation) continue;
+    for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
+      if (dx * dx + dy * dy > 30) continue;
+      const tx = c.x + dx, ty = c.y + dy;
+      if (tx >= 0 && tx < MAP_COLS && ty >= 0 && ty < MAP_ROWS) vis.add(ty * MAP_COLS + tx);
+    }
+  }
+  return vis;
+}
+
 function render() {
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(canvas.width / cs) + 3;
   viewRows = Math.ceil(canvas.height / ch) + 3;
   ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Screen shake
+  const shake = getShakeOffset();
+  if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
+  currentVisionSet = computeCurrentVision();
   const pId = playerNation;
 
   // Sprite draw dimensions: native is 32x48 (ratio 1:1.5)
@@ -3985,6 +4117,25 @@ function render() {
           drawVillageOverlay(ctx, sx, sy, drawW, drawH);
         }
         if (t.owner >= 0 && t.owner !== pId) discoverNation(t.owner);
+      }
+    }
+  }
+
+  // --- Fog of war: dim revealed-but-not-visible tiles ---
+  if (currentVisionSet) {
+    for (let my = startRow; my < endRow; my++) {
+      for (let pass = 0; pass <= 1; pass++) {
+        for (let mx = startCol; mx < endCol; mx++) {
+          if (mx % 2 !== pass) continue;
+          const i = my * MAP_COLS + mx;
+          const t = tiles[i];
+          if (!t.revealed.has(pId)) continue;
+          if (currentVisionSet.has(i)) continue; // Currently visible — no fog
+          const pos = hexScreenPos(mx, my);
+          if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+          ctx.fillStyle = 'rgba(10, 8, 5, 0.45)';
+          ctx.fillRect(pos.x, pos.y, drawW, drawH);
+        }
       }
     }
   }
@@ -4119,6 +4270,37 @@ function render() {
     ctx.fill();
   }
 
+  // Path preview line when hovering in move mode
+  if (moveMode && selectedUnit && hoveredMX >= 0 && hoveredMY >= 0 && reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX)) {
+    const previewPath = bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId);
+    if (previewPath && previewPath.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 220, 80, 0.7)';
+      ctx.lineWidth = Math.max(2, w * 0.08);
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      const startPos = hexScreenPos(selectedUnit.x, selectedUnit.y);
+      ctx.moveTo(startPos.x + w / 2, startPos.y + facePad + ch / 2);
+      for (const step of previewPath) {
+        const sp = hexScreenPos(step.x, step.y);
+        ctx.lineTo(sp.x + w / 2, sp.y + facePad + ch / 2);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Show move cost at destination
+      const destPos = hexScreenPos(hoveredMX, hoveredMY);
+      const cost = previewPath.length;
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      const costX = destPos.x + w * 0.75, costY = destPos.y + facePad + ch * 0.2;
+      ctx.beginPath(); ctx.arc(costX, costY, w * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = cost <= selectedUnit.movesLeft ? '#ffd' : '#f88';
+      ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(cost, costX, costY);
+      ctx.restore();
+    }
+  }
+
   // Units — render selected unit last so it's always on top
   const sortedUnits = units.slice().sort((a, b) => (a === selectedUnit ? 1 : 0) - (b === selectedUnit ? 1 : 0));
   const flashPhase = (Date.now() % 800) / 800; // 0-1 pulsing cycle
@@ -4129,7 +4311,10 @@ function render() {
     if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
     if (u.nationId !== pId) discoverNation(u.nationId);
     const nCol = nations[u.nationId].color;
-    const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2;
+    // Subtle idle bobbing (each unit offset by position hash for variety)
+    const bobHash = (u.x * 31 + u.y * 17) % 100;
+    const bobY = u._animating ? 0 : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
+    const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2 + bobY;
     const rad = w * 0.32;
     ctx.fillStyle = nCol;
     ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
@@ -4247,8 +4432,12 @@ function render() {
   document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
   document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
 
-  // Keep rendering if we have active floating texts or particles
-  if ((floatingTexts.length > 0 || particles.length > 0) && !selectionFlashRAF && !animationBlocking) {
+  // Reset screen shake transform
+  if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  // Keep rendering if we have active effects
+  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime;
+  if (hasEffects && !selectionFlashRAF && !animationBlocking) {
     requestAnimationFrame(() => render());
   }
 }
@@ -5208,6 +5397,21 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
     html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${nations[u.nationId].name}</span>)</div>`;
+    html += `<div class="tt-detail">HP: ${u.hp}/${def.hp || 10}</div>`;
+    // Combat odds preview
+    if (selectedUnit && u.nationId !== playerNation && (moveMode || rangedMode) && nations[playerNation].relations[u.nationId] === 'war') {
+      const est = estimateCombat(selectedUnit, mx, my);
+      if (est) {
+        html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:</div>`;
+        html += `<div class="tt-detail" style="color:#f66;">Deal ~${est.estDmg} dmg (${est.targetHp}hp \u2192 ${Math.max(0, est.targetHp - est.estDmg)}hp)</div>`;
+        if (est.estRetaliation > 0) {
+          html += `<div class="tt-detail" style="color:#fa4;">Take ~${est.estRetaliation} dmg (${est.attackerHp}hp \u2192 ${Math.max(0, est.attackerHp - est.estRetaliation)}hp)</div>`;
+        } else if (est.isRanged) {
+          html += `<div class="tt-detail" style="color:#6f6;">No retaliation (ranged)</div>`;
+        }
+        if (est.targetHp - est.estDmg <= 0) html += `<div class="tt-detail" style="color:#f44;font-weight:bold;">Likely kill!</div>`;
+      }
+    }
   }
   tooltipEl.innerHTML = html;
   tooltipEl.style.display = 'block';
