@@ -503,6 +503,7 @@
     <div class="res"><span class="res-icon" style="background:#8d6e3f"></span><span>Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
     <div class="res"><span class="res-icon" style="background:#9e9e9e"></span><span>Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
     <div class="res"><span class="res-icon" style="background:#607d8b"></span><span>Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
+    <div class="res"><span class="res-icon" style="background:#3a3a3a"></span><span>Gunpowder:</span><span class="res-val" id="resGunpowder">0</span><span class="res-rate" id="rateGunpowder"></span></div>
     <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span>Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
     <div class="spacer"></div>
     <div class="res"><span style="color:#d4a856">⚜</span><span>Legitimacy:</span><span class="res-val" id="resLegitimacy">50</span></div>
@@ -875,13 +876,16 @@ let animatingUnits = [], animationBlocking = false;
 let reachableTiles = new Set();
 let turnNumber = 1;
 let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0, suppressedBy: -1 }
+// Diplomatic agreements: agreements[nationA][nationB] = Set of active agreements
+// Possible agreements: 'open_borders', 'war_help', 'barb_help'
+let agreements = {};
 let barbarianDensity = 0.8; // 0 to 1, default 80%
-let barbSpawnTurn = 3;      // turn barbarians start spawning
-let barbSpawnChance = 0.6;  // base chance per turn to spawn a new camp
-let barbMaxUnits = 6;       // max units per camp
-let barbRespawnTurns = 8;   // turns before destroyed camp respawns
-let barbRaidRange = 20;     // max distance barbarians will raid toward cities
-let barbRaiderInterval = 3; // spawn extra raider every N turns
+let barbSpawnTurn = 2;      // turn barbarians start spawning (earlier)
+let barbSpawnChance = 0.75; // base chance per turn to spawn a new camp (higher)
+let barbMaxUnits = 10;      // max units per camp (more)
+let barbRespawnTurns = 5;   // turns before destroyed camp respawns (faster)
+let barbRaidRange = 30;     // max distance barbarians will raid toward cities (farther)
+let barbRaiderInterval = 2; // spawn extra raider every N turns (faster)
 let barbCampSpacing = 6;    // minimum distance between camps
 let citySites = []; // { x, y, settled: false }
 let pillaged = []; // { tileIndex, originalImprovement, turnPillaged }
@@ -1113,20 +1117,23 @@ const UNIT_DEFS = {
   frigate:        { moves: 8, vision: 6, icon: '\u2693', desc: 'Armed sailing ship. Rules the seas.', combat: true, atk: 7, hp: 12, naval: true },
   galleon:        { moves: 6, vision: 5, icon: '\uD83D\uDEA2', desc: 'Heavy warship with cannons.', combat: true, atk: 10, hp: 16, naval: true },
   man_of_war:     { moves: 5, vision: 6, icon: '\u2693', desc: 'Ship of the line. Massive broadside firepower.', combat: true, atk: 14, hp: 20, naval: true },
-  barbarian_axeman: { moves: 4, vision: 3, icon: '\u2694', desc: 'Savage barbarian warrior. Pillages improvements.', combat: true, atk: 5, hp: 10 },
+  barbarian_axeman: { moves: 5, vision: 3, icon: '\u2694', desc: 'Savage barbarian warrior. Pillages improvements.', combat: true, atk: 6, hp: 12 },
+  barbarian_raider: { moves: 7, vision: 4, icon: '\uD83D\uDDE1', desc: 'Fast barbarian raider. Pillages and retreats.', combat: true, atk: 7, hp: 9 },
+  barbarian_brute:  { moves: 4, vision: 3, icon: '\uD83D\uDEE1', desc: 'Armored barbarian champion. Tough and deadly.', combat: true, atk: 8, hp: 16 },
 };
 
 const IMPROVEMENT_DEFS = {
-  farm:        { name: 'Farm', icon: '\uD83C\uDF3E', yields: { food: 3 }, cost: { wood: 5 }, validOn: [1, 3, 5] },
-  market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: { gold: 6 }, validOn: [1, 5], scalingCost: true },
-  mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2 }, cost: { wood: 5 }, validOn: [1, 2, 7] },
-  quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2] },
-  steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 20, steel: 25 }, validOn: [1, 5] },
-  urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1, 5] },
-  pasture:     { name: 'Pasture', icon: '\uD83D\uDC11', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [6], tech: 'animal_husbandry' },
-  barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1, 5], tech: 'agriculture' },
-  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 4 }, cost: { stone: 15, gold: 20 }, validOn: [1, 5] },
-  port:        { name: 'Port', icon: '\u2693', yields: { gold: 2, food: 1 }, cost: { wood: 20, stone: 15 }, validOn: [1], tech: 'navigation', coastal: true },
+  farm:        { name: 'Farm', icon: '\uD83C\uDF3E', yields: { food: 3 }, cost: { wood: 5 }, validOn: [1, 3, 5], buildTurns: 2 },
+  market:      { name: 'Market', icon: '\uD83C\uDFEA', yields: { gold: 3 }, cost: { gold: 6 }, validOn: [1, 5], scalingCost: true, buildTurns: 3 },
+  mine:        { name: 'Mine', icon: '\u26CF', yields: { steel: 2, gunpowder: 2 }, cost: { wood: 5 }, validOn: [1, 2, 7], buildTurns: 2 },
+  quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2], buildTurns: 2 },
+  steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 20, steel: 25 }, validOn: [1, 5], buildTurns: 5 },
+  urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1, 5], buildTurns: 3 },
+  pasture:     { name: 'Pasture', icon: '\uD83D\uDC11', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [6], tech: 'animal_husbandry', buildTurns: 2 },
+  barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1, 5], tech: 'agriculture', buildTurns: 4 },
+  lumbermill:  { name: 'Lumbermill', icon: '\uD83E\uDE93', yields: { wood: 3 }, cost: { stone: 10, gold: 10 }, validOn: [5], tech: 'lumbermill', buildTurns: 3 },
+  science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 4 }, cost: { stone: 15, gold: 20 }, validOn: [1, 5], buildTurns: 4 },
+  port:        { name: 'Port', icon: '\u2693', yields: { gold: 2, food: 1 }, cost: { wood: 20, stone: 15 }, validOn: [1], tech: 'navigation', coastal: true, buildTurns: 5 },
 };
 
 const PRODUCTION_COSTS = {
@@ -1136,14 +1143,14 @@ const PRODUCTION_COSTS = {
   swordsman:      { steel: 30, gold: 20 },
   crossbowman:    { steel: 25, gold: 15 },
   cavalry:        { food: 25, gold: 30, steel: 15 },
-  musketeer:      { steel: 30, gold: 20 },
-  rifleman:       { steel: 30, gold: 25 },
-  grenadier:      { steel: 30, gold: 20 },
+  musketeer:      { steel: 20, gold: 20, gunpowder: 15 },
+  rifleman:       { steel: 20, gold: 25, gunpowder: 20 },
+  grenadier:      { steel: 20, gold: 20, gunpowder: 20 },
   hussar:         { food: 20, gold: 30, steel: 15 },
   dragoon:        { food: 15, gold: 30, steel: 25 },
-  field_gun:      { steel: 35, gold: 25 },
-  cannon:         { steel: 35, gold: 25 },
-  mortar:         { steel: 40, gold: 30 },
+  field_gun:      { steel: 25, gold: 25, gunpowder: 15 },
+  cannon:         { steel: 25, gold: 25, gunpowder: 15 },
+  mortar:         { steel: 30, gold: 30, gunpowder: 20 },
   veteran_scout:  { food: 30, gold: 20 },
   veteran_worker: { food: 25, gold: 15 },
   frigate:        { wood: 40, gold: 30 },
@@ -1174,6 +1181,7 @@ const TECHS = {
   // PRODUCTION
   animal_husbandry:  { name: 'Animal Husbandry', section: 'production', cost: 30, prereqs: [], unlocks: ['pasture'], desc: 'Unlock pasture improvement for herd tiles.' },
   agriculture:       { name: 'Agriculture', section: 'production', cost: 40, prereqs: ['animal_husbandry'], unlocks: ['barn'], desc: 'Unlock barn improvement for extra food.' },
+  lumbermill:        { name: 'Lumbermill', section: 'production', cost: 35, prereqs: [], unlocks: ['lumbermill'], desc: 'Unlock lumbermills on forest tiles. 3 wood/turn without chopping.' },
   // GROWTH
   advanced_scouting: { name: 'Advanced Scouting', section: 'growth', cost: 35, prereqs: [], unlocks: ['veteran_scout'], desc: 'Unlock veteran scout with extended range.' },
   engineering:       { name: 'Engineering', section: 'growth', cost: 45, prereqs: [], unlocks: ['veteran_worker'], desc: 'Unlock veteran worker, faster and more efficient.' },
@@ -1189,21 +1197,60 @@ function nationCanResearch(nationId, techKey) {
   if (nationHasTech(nationId, techKey)) return false;
   for (const p of tech.prereqs) { if (!nationHasTech(nationId, p)) return false; }
   if (tech.needsResource) {
-    // Check if the nation owns tiles with the needed resource
     const resType = tech.needsResource === 'horses' ? 6 : 7; // herd=6, gunpowder=7
     const hasTile = tiles.some((t, i) => t.owner === nationId && t.type === resType);
     if (!hasTile) return false;
   }
-  return nations[nationId].science >= tech.cost;
+  return true; // no longer requires having all science upfront
 }
 
 function researchTech(nationId, techKey) {
+  // Now only called when research is complete (from tickResearch)
   const tech = TECHS[techKey];
-  if (!nationCanResearch(nationId, techKey)) return false;
-  nations[nationId].science -= tech.cost;
+  if (!tech) return false;
   nations[nationId].researched.add(techKey);
+  nations[nationId].currentResearch = null;
+  nations[nationId].researchProgress = 0;
   if (nationId === playerNation) { showToast(`Researched ${tech.name}!`); playAchievement(); }
   return true;
+}
+
+function setResearchTarget(nationId, techKey) {
+  if (!nationCanResearch(nationId, techKey)) return false;
+  nations[nationId].currentResearch = techKey;
+  nations[nationId].researchProgress = nations[nationId].researchProgress || 0;
+  // If switching research, keep accumulated progress only if same tech
+  if (nations[nationId]._lastResearch !== techKey) {
+    nations[nationId].researchProgress = 0;
+    nations[nationId]._lastResearch = techKey;
+  }
+  return true;
+}
+
+function tickResearch(nationId) {
+  const n = nations[nationId];
+  if (!n.currentResearch) return;
+  const tech = TECHS[n.currentResearch];
+  if (!tech) { n.currentResearch = null; return; }
+  // Check prereqs still valid
+  if (nationHasTech(nationId, n.currentResearch)) { n.currentResearch = null; return; }
+  // Add science per turn to research progress
+  const sciPerTurn = getTotalYields(nationId).science || 0;
+  n.researchProgress = (n.researchProgress || 0) + sciPerTurn;
+  if (n.researchProgress >= tech.cost) {
+    researchTech(nationId, n.currentResearch);
+  }
+}
+
+function getResearchTurnsLeft(nationId) {
+  const n = nations[nationId];
+  if (!n.currentResearch) return 0;
+  const tech = TECHS[n.currentResearch];
+  if (!tech) return 0;
+  const sciPerTurn = getTotalYields(nationId).science || 0;
+  if (sciPerTurn <= 0) return 999;
+  const remaining = tech.cost - (n.researchProgress || 0);
+  return Math.max(1, Math.ceil(remaining / sciPerTurn));
 }
 
 function unitRequiresTech(unitType) {
@@ -1229,9 +1276,39 @@ function isCoastal(x, y) {
 
 // Check if a unit can move onto a given tile
 // nx,ny = destination tile coords (optional, for port embark check)
+function hasAgreement(nationA, nationB, type) {
+  return agreements[nationA] && agreements[nationA][nationB] && agreements[nationA][nationB].has(type);
+}
+function addAgreement(nationA, nationB, type) {
+  if (!agreements[nationA]) agreements[nationA] = {};
+  if (!agreements[nationA][nationB]) agreements[nationA][nationB] = new Set();
+  agreements[nationA][nationB].add(type);
+  if (!agreements[nationB]) agreements[nationB] = {};
+  if (!agreements[nationB][nationA]) agreements[nationB][nationA] = new Set();
+  agreements[nationB][nationA].add(type);
+}
+function removeAgreement(nationA, nationB, type) {
+  if (agreements[nationA] && agreements[nationA][nationB]) agreements[nationA][nationB].delete(type);
+  if (agreements[nationB] && agreements[nationB][nationA]) agreements[nationB][nationA].delete(type);
+}
+function canEnterTerritory(nationId, tileOwner) {
+  if (tileOwner < 0 || tileOwner === nationId) return true;
+  if (nations[tileOwner] && nations[tileOwner].isBarbarian) return true;
+  if (nations[nationId] && nations[nationId].isBarbarian) return true;
+  // At war — can always enter
+  if (nations[nationId] && nations[nationId].relations[tileOwner] === 'war') return true;
+  // Open borders agreement
+  if (hasAgreement(nationId, tileOwner, 'open_borders')) return true;
+  return false;
+}
 function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   const def = UNIT_DEFS[unitType];
   if (def.naval) return tileType === 0; // ships only on ocean
+  // Border check: can this nation enter the destination tile's territory?
+  if (nx !== undefined && ny !== undefined && nationId !== undefined) {
+    const tileOwner = tiles[ny * MAP_COLS + nx].owner;
+    if (!canEnterTerritory(nationId, tileOwner)) return false;
+  }
   if (tileType !== 0) return true; // all land units can walk on land
   // Ocean tile — check if unit can cross water
   if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
@@ -1377,6 +1454,7 @@ function generateMap() {
   units = []; cities = []; nations = []; turnNumber = 1;
   barbarianCamps = []; citySites = []; pillaged = [];
   discoveredNations = new Set();
+  agreements = {};
 }
 
 // ====================
@@ -1386,7 +1464,7 @@ function createNation(name, color, isPlayer) {
   const id = nations.length;
   nations.push({
     id, name, color, isPlayer,
-    gold: 10, food: 10, wood: 10, stone: 5, steel: 5, science: 0,
+    gold: 10, food: 10, wood: 10, stone: 5, steel: 5, gunpowder: 0, science: 0,
     legitimacy: 50,
     relations: {},
     loyalty: {},
@@ -1562,21 +1640,21 @@ function foundCity(unit) {
 }
 
 function getCityYields(city) {
-  const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0.5 };
+  const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, gunpowder: 0, science: 0.5 };
   for (const ti of city.ownedTiles) {
     const t = tiles[ti];
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
       const yields = IMPROVEMENT_DEFS[t.improvement].yields;
       for (const k in yields) y[k] = (y[k] || 0) + yields[k];
     }
-    if (t.type === 5 && !t.improvement) y.wood += 1;
+    // Forests no longer give passive wood — chop them or build a lumbermill
     if (t.type === 6 && !t.improvement) y.food += 0.5; // unimproved herds give a little food
   }
   return y;
 }
 
 function getTotalYields(nationId) {
-  const y = { gold: 0.5, food: 0.5, wood: 0.5, stone: 0.5, steel: 0.5, science: 0 };
+  const y = { gold: 0.5, food: 0.5, wood: 0.5, stone: 0.5, steel: 0.5, gunpowder: 0, science: 0 };
   for (const c of cities) {
     if (c.nationId !== nationId) continue;
     const cy = getCityYields(c);
@@ -1629,21 +1707,20 @@ function tickProduction(city) {
 }
 
 function getRushCost(nationId) {
-  const sci = nations[nationId].science || 0;
-  return Math.max(50, 50 + Math.floor(sci * 0.5));
+  return 50; // flat gold cost to rush
 }
 
 window.rushProduce = function() {
   if (!selectedCity || !selectedCity.producing) return;
   const n = nations[selectedCity.nationId];
   const cost = getRushCost(selectedCity.nationId);
-  if (n.science < cost) { showToast('Not enough science!'); return; }
-  n.science -= cost;
+  if (n.gold < cost) { showToast('Not enough gold!'); return; }
+  n.gold -= cost;
   // Complete production immediately
   const costs = PRODUCTION_COSTS[selectedCity.producing];
   let canAfford = true;
   for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
-  if (!canAfford) { showToast('Not enough resources to finish production!'); n.science += cost; return; }
+  if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
   for (const k in costs) n[k] -= costs[k];
   const isNaval = UNIT_DEFS[selectedCity.producing] && UNIT_DEFS[selectedCity.producing].naval;
   let sx = selectedCity.x, sy = selectedCity.y;
@@ -1698,19 +1775,53 @@ function buildImprovement(worker, impKey) {
   const n = nations[worker.nationId]; const imp = IMPROVEMENT_DEFS[impKey];
   const cost = getImprovementCost(impKey, worker.nationId);
   for (const k in cost) n[k] -= cost[k];
+  const buildTurns = (worker.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
+  if (buildTurns <= 1) {
+    // Instant build for 1-turn improvements
+    finishBuild(worker, impKey);
+  } else {
+    // Start multi-turn construction
+    worker.building = impKey;
+    worker.buildProgress = 0;
+    worker.buildTotal = buildTurns;
+    worker.movesLeft = 0;
+  }
+}
+
+function finishBuild(worker, impKey) {
   const ti = worker.y * MAP_COLS + worker.x;
   const t = tiles[ti];
-  // Auto-chop forest when building an improvement on it
-  if (t.type === 5) {
+  const n = nations[worker.nationId];
+  // Auto-chop forest when building an improvement on it (except lumbermills)
+  if (t.type === 5 && impKey !== 'lumbermill') {
     n.wood += 10;
     const pv = TILE_SPRITES[1];
     t.type = 1; t.color = TILE_COLORS.land; t.baseColor = TILE_COLORS.land; t.spriteKey = pv[Math.floor(Math.random() * pv.length)];
   }
   t.improvement = impKey;
+  worker.building = null;
+  worker.buildProgress = 0;
+  worker.buildTotal = 0;
   worker.movesLeft = 0;
   if (impKey === 'urban') {
-    const city = cities.find(c => c.nationId === worker.nationId && c.ownedTiles.has(worker.y * MAP_COLS + worker.x));
+    const city = cities.find(c => c.nationId === worker.nationId && c.ownedTiles.has(ti));
     if (city) expandCityBorder(city);
+  }
+  if (worker.nationId === playerNation) {
+    showToast(`${IMPROVEMENT_DEFS[impKey].icon} ${IMPROVEMENT_DEFS[impKey].name} completed!`);
+  }
+}
+
+function tickWorkerBuilds() {
+  for (const u of units) {
+    if (!u.building) continue;
+    if (u.type !== 'worker' && u.type !== 'veteran_worker') { u.building = null; continue; }
+    u.buildProgress = (u.buildProgress || 0) + 1;
+    if (u.buildProgress >= u.buildTotal) {
+      finishBuild(u, u.building);
+    } else {
+      u.movesLeft = 0; // worker stays put while building
+    }
   }
 }
 
@@ -1821,7 +1932,7 @@ function doAttack(attacker, tx, ty) {
 // CITY CAPTURE
 // ====================
 function tickCityCapture() {
-  for (const city of cities) {
+  for (const city of [...cities]) {
     // Check if an enemy military unit is standing on the city tile
     const occupier = units.find(u => u.x === city.x && u.y === city.y && u.nationId !== city.nationId && UNIT_DEFS[u.type].combat);
     if (occupier) {
@@ -1832,8 +1943,44 @@ function tickCityCapture() {
         city.captureProgress[occupier.nationId]++;
         city.contested = true;
         if (city.captureProgress[occupier.nationId] >= 4) {
-          // City captured!
           const oldOwner = city.nationId;
+          // Barbarians ruin the city instead of capturing it
+          if (isBarbarianNation(occupier.nationId)) {
+            city.ruined = true;
+            city.captureProgress = {};
+            city.contested = false;
+            city.producing = null;
+            city.productionProgress = 0;
+            // Destroy all improvements in city territory
+            for (const ti of city.ownedTiles) {
+              if (tiles[ti].improvement) tiles[ti].improvement = null;
+              tiles[ti].owner = -1;
+            }
+            // Revert city tile to land
+            const cti = city.y * MAP_COLS + city.x;
+            const pv = TILE_SPRITES[1];
+            tiles[cti].type = 1; tiles[cti].color = TILE_COLORS.land; tiles[cti].baseColor = TILE_COLORS.land;
+            tiles[cti].spriteKey = pv[Math.floor(Math.random() * pv.length)];
+            tiles[cti].owner = -1;
+            // Kill all units of old owner in city territory
+            for (const u of [...units]) {
+              if (u.nationId === oldOwner) {
+                const ui = u.y * MAP_COLS + u.x;
+                if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
+                  units.splice(units.indexOf(u), 1);
+                }
+              }
+            }
+            // Remove city from cities array
+            cities.splice(cities.indexOf(city), 1);
+            if (!nations[oldOwner].isBarbarian) {
+              nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 5);
+            }
+            if (oldOwner === playerNation) showToast(`${city.name} has been razed by barbarians!`);
+            else showToast(`Barbarians have razed ${city.name}!`);
+            continue;
+          }
+          // City captured by non-barbarian!
           city.nationId = occupier.nationId;
           city.captureProgress = {};
           city.contested = false;
@@ -2013,7 +2160,7 @@ function tickBarbarianCamps() {
   // Spawn new camps after configured turn
   if (turnNumber >= barbSpawnTurn) {
     const activeCamps = barbarianCamps.filter(b => !b.destroyed).length;
-    const maxCamps = Math.max(1, Math.floor(MAP_COLS * MAP_ROWS / 1500 * barbarianDensity));
+    const maxCamps = Math.max(2, Math.floor(MAP_COLS * MAP_ROWS / 800 * barbarianDensity));
     if (activeCamps < maxCamps && Math.random() < barbSpawnChance * barbarianDensity) {
       spawnBarbarianCamp();
     }
@@ -2060,17 +2207,24 @@ function tickBarbarianCamps() {
       nations[camp.nationId].eliminated = true;
       if (unitOnCamp.nationId === playerNation) showToast('Barbarian camp destroyed!');
     } else {
-      // Camp keeps 1 axeman on it, may spawn more to raid
+      // Pick barbarian unit type based on game progression
+      const barbType = turnNumber >= 40 ? (Math.random() < 0.3 ? 'barbarian_brute' : Math.random() < 0.5 ? 'barbarian_raider' : 'barbarian_axeman')
+                     : turnNumber >= 20 ? (Math.random() < 0.4 ? 'barbarian_raider' : 'barbarian_axeman')
+                     : 'barbarian_axeman';
+      // Camp keeps 1 guard on it, may spawn more to raid
       const campGuard = units.find(u => u.x === camp.x && u.y === camp.y && u.nationId === camp.nationId);
       const campUnits = units.filter(u => u.nationId === camp.nationId);
       if (!campGuard && campUnits.length < barbMaxUnits) {
-        spawnUnit('barbarian_axeman', camp.nationId, camp.x, camp.y);
+        spawnUnit(barbType, camp.nationId, camp.x, camp.y);
       }
-      // Spawn an extra raider periodically
+      // Spawn raiders periodically — more as game goes on
       if (turnNumber % barbRaiderInterval === 0 && campUnits.length < barbMaxUnits) {
-        const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 3);
-        if (!units.some(u => u.x === lp.x && u.y === lp.y)) {
-          spawnUnit('barbarian_axeman', camp.nationId, lp.x, lp.y);
+        const spawnCount = turnNumber >= 30 ? 2 : 1; // spawn 2 at a time later
+        for (let si = 0; si < spawnCount && campUnits.length + si < barbMaxUnits; si++) {
+          const lp = findLandNear(camp.x + Math.floor(Math.random() * 3) - 1, camp.y + Math.floor(Math.random() * 3) - 1, 3);
+          if (!units.some(u => u.x === lp.x && u.y === lp.y)) {
+            spawnUnit(barbType, camp.nationId, lp.x, lp.y);
+          }
         }
       }
     }
@@ -2104,6 +2258,22 @@ function barbarianAI(nationId) {
     }
     if (attacked) continue;
 
+    // Hunt nearby enemy units (within 6 tiles) — prioritize weak targets
+    let huntTarget = null, huntDist = Infinity;
+    for (const enemy of units) {
+      if (enemy.nationId === nationId || isBarbarianNation(enemy.nationId)) continue;
+      const d = Math.abs(enemy.x - u.x) + Math.abs(enemy.y - u.y);
+      if (d <= 6 && d < huntDist) {
+        // Prefer non-combat units (workers, settlers, scouts)
+        const isPrey = !UNIT_DEFS[enemy.type].combat;
+        if (isPrey || d <= 3) { huntDist = d; huntTarget = enemy; }
+      }
+    }
+    if (huntTarget) {
+      moveBarbarianToward(u, huntTarget.x, huntTarget.y, u.movesLeft);
+      continue;
+    }
+
     // Try to pillage improvements on current tile
     const ti = u.y * MAP_COLS + u.x;
     const t = tiles[ti];
@@ -2113,7 +2283,7 @@ function barbarianAI(nationId) {
       continue;
     }
 
-    // Move toward nearest city to pillage
+    // Move toward nearest city to raid — always aggressive
     let target = null, bestDist = Infinity;
     for (const c of cities) {
       if (isBarbarianNation(c.nationId)) continue;
@@ -2121,10 +2291,21 @@ function barbarianAI(nationId) {
       if (d < bestDist) { bestDist = d; target = c; }
     }
     if (target && bestDist <= barbRaidRange) {
-      // Move toward city, prioritizing tiles with improvements to pillage along the way
       moveBarbarianToward(u, target.x, target.y, u.movesLeft);
     } else {
-      moveAIUnitMultiple(u, u.movesLeft);
+      // Wander aggressively — move toward any visible improvements to pillage
+      let pillTarget = null, pillDist = Infinity;
+      for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+        const px = u.x + dx, py = u.y + dy;
+        if (px < 0 || px >= MAP_COLS || py < 0 || py >= MAP_ROWS) continue;
+        const pt = tiles[py * MAP_COLS + px];
+        if (pt.improvement && pt.owner >= 0 && !isBarbarianNation(pt.owner)) {
+          const d = Math.abs(dx) + Math.abs(dy);
+          if (d < pillDist) { pillDist = d; pillTarget = { x: px, y: py }; }
+        }
+      }
+      if (pillTarget) moveBarbarianToward(u, pillTarget.x, pillTarget.y, u.movesLeft);
+      else moveAIUnitMultiple(u, u.movesLeft);
     }
   }
 }
@@ -2438,6 +2619,19 @@ function aiTurn(nationId) {
       changeLoyalty(nationId, otherId, 0.8);
     }
 
+    // --- AI diplomatic requests (to player) ---
+    if (otherId === playerNation && n.relations[otherId] === 'peace' && loy >= 45) {
+      if (!n._diploRequest) n._diploRequest = {};
+      if (!n._diploRequest[playerNation] && !hasAgreement(nationId, playerNation, 'open_borders') && Math.random() < 0.05) {
+        n._diploRequest[playerNation] = 'open_borders';
+        showToast(`${n.name} requests Open Borders.`);
+      }
+    }
+    // AI auto-agree to open borders between AI nations if loyal
+    if (otherId !== playerNation && n.relations[otherId] === 'peace' && loy >= 50) {
+      if (!hasAgreement(nationId, otherId, 'open_borders')) addAgreement(nationId, otherId, 'open_borders');
+    }
+
     // --- Coalition against dominant player: if someone controls 40%+ of all cities, everyone distrusts them ---
     const allCityCount = cities.length;
     const otherCityCount = otherCities.length;
@@ -2463,6 +2657,8 @@ function aiTurn(nationId) {
     if (updatedLoy <= -100 && n.relations[otherId] !== 'war') {
       n.relations[otherId] = 'war';
       nations[otherId].relations[nationId] = 'war';
+      // Clear all agreements on war
+      for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(nationId, otherId, aType);
       // The target immediately views the aggressor as hostile
       const otherLoy = getLoyalty(otherId, nationId);
       if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
@@ -2542,6 +2738,8 @@ function aiTurn(nationId) {
         else moveAIUnitMultiple(u, u.movesLeft);
       }
     } else if ((u.type === 'worker' || u.type === 'veteran_worker') && u.movesLeft > 0) {
+      // If currently building, stay put
+      if (u.building) { u.movesLeft = 0; continue; }
       // Try to repair pillaged tiles first
       if (canRepairTile(u, u.x, u.y)) { repairTile(u); }
       else {
@@ -2560,6 +2758,7 @@ function aiTurn(nationId) {
           if (t.owner === nationId && !t.improvement && t.type !== 4) {
             if (t.type === 5) chopForest(u);
             else if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
+            else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
             else if (canBuildImprovement(u, 'farm')) buildImprovement(u, 'farm');
             else if (canBuildImprovement(u, 'mine')) buildImprovement(u, 'mine');
             else if (canBuildImprovement(u, 'science_lab')) buildImprovement(u, 'science_lab');
@@ -2725,25 +2924,27 @@ function aiTurn(nationId) {
     tickProduction(c);
     const y = getCityYields(c); for (const k in y) n[k] = (n[k] || 0) + y[k];
   }
-  // Strategic AI tech selection
+  // Strategic AI tech selection (pick research target if none set)
   n.science = n.science || 0;
-  let bestTech = null, bestPriority = -1;
-  for (const tKey in TECHS) {
-    if (!nationCanResearch(nationId, tKey)) continue;
-    const tech = TECHS[tKey];
-    let priority = 0;
-    if (atWar || threatLevel > 0) {
-      if (tech.section === 'military') priority += 10;
-      if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u]?.combat)) priority += 5;
-    } else {
-      if (tech.section === 'production') priority += 8;
-      if (tech.section === 'growth') priority += 6;
+  if (!n.currentResearch || nationHasTech(nationId, n.currentResearch)) {
+    let bestTech = null, bestPriority = -1;
+    for (const tKey in TECHS) {
+      if (!nationCanResearch(nationId, tKey)) continue;
+      const tech = TECHS[tKey];
+      let priority = 0;
+      if (atWar || threatLevel > 0) {
+        if (tech.section === 'military') priority += 10;
+        if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u]?.combat)) priority += 5;
+      } else {
+        if (tech.section === 'production') priority += 8;
+        if (tech.section === 'growth') priority += 6;
+      }
+      priority += Math.max(0, 10 - tech.cost / 15);
+      if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u] && !units.some(eu => eu.type === u && eu.nationId === nationId))) priority += 3;
+      if (priority > bestPriority) { bestPriority = priority; bestTech = tKey; }
     }
-    priority += Math.max(0, 10 - tech.cost / 15);
-    if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u] && !units.some(eu => eu.type === u && eu.nationId === nationId))) priority += 3;
-    if (priority > bestPriority) { bestPriority = priority; bestTech = tKey; }
+    if (bestTech) setResearchTarget(nationId, bestTech);
   }
-  if (bestTech) researchTech(nationId, bestTech);
 }
 
 function moveAIUnitMultiple(u, steps) {
@@ -2816,7 +3017,7 @@ function getFoodConsumption(nationId) {
 
 function endTurn() {
   // Base passive income (skip barbarians)
-  for (const n of nations) { if (n.isBarbarian) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; }
+  for (const n of nations) { if (n.isBarbarian) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; n.gunpowder = n.gunpowder || 0; }
   // Player city yields & production
   const pn = nations[playerNation];
   for (const c of cities) {
@@ -2845,6 +3046,7 @@ function endTurn() {
     if (isBarbarianNation(i)) barbarianAI(i);
     else aiTurn(i);
   }
+  tickWorkerBuilds();
   tickBarbarianCamps();
   tickPillaged();
   tickCityCapture();
@@ -2882,11 +3084,24 @@ function endTurn() {
     // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
   }
   turnNumber++;
+  // City auto-expansion: every 5 turns, each city expands 2 tiles
+  if (turnNumber % 5 === 0) {
+    for (const c of cities) {
+      if (nations[c.nationId]?.isBarbarian) continue;
+      expandCityBorder(c);
+      expandCityBorder(c);
+    }
+  }
   // Legitimacy tick: +0.5 per city for non-barbarian nations, clamped 0-100
   for (let i = 0; i < nations.length; i++) {
     if (nations[i].isBarbarian || nations[i].eliminated) continue;
     const nationCityCount = cities.filter(c => c.nationId === i).length;
     nations[i].legitimacy = Math.min(100, Math.max(0, (nations[i].legitimacy || 50) + nationCityCount * 0.5));
+  }
+  // Tick research for all non-barbarian nations
+  for (let i = 0; i < nations.length; i++) {
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    tickResearch(i);
   }
   // Reset orders for player
   ordersRemaining = getMaxOrders(playerNation);
@@ -3246,6 +3461,7 @@ function render() {
 
     if (t.owner >= 0 && !isBarbarianNation(t.owner)) {
       const ownerCity = cities.find(c => c.nationId === t.owner && c.contested && c.ownedTiles && c.ownedTiles.has(i));
+      const myCity = cities.find(c => c.nationId === t.owner && c.ownedTiles && c.ownedTiles.has(i));
       ctx.strokeStyle = ownerCity ? '#000000' : nations[t.owner].color;
       ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
       ctx.lineCap = 'round';
@@ -3259,6 +3475,16 @@ function render() {
           ? tiles[nIdx].owner : -1;
         if (neighborOwner !== t.owner) {
           drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
+        } else if (myCity && neighborOwner === t.owner) {
+          // Gray city border: same nation, different city
+          const nbCity = cities.find(c => c.nationId === t.owner && c.ownedTiles && c.ownedTiles.has(nIdx));
+          if (nbCity && nbCity !== myCity) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(180,170,150,0.3)';
+            ctx.lineWidth = Math.max(1, VIEW_TILE / 14);
+            drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
+            ctx.restore();
+          }
         }
       }
       ctx.globalAlpha = 1.0;
@@ -3490,7 +3716,14 @@ function updateUI() {
   document.getElementById('resWood').textContent = Math.floor(n.wood);
   document.getElementById('resStone').textContent = Math.floor(n.stone);
   document.getElementById('resSteel').textContent = Math.floor(n.steel);
-  document.getElementById('resScience').textContent = Math.floor(n.science);
+  document.getElementById('resGunpowder').textContent = Math.floor(n.gunpowder || 0);
+  // Show current research progress in science display
+  if (n.currentResearch && TECHS[n.currentResearch]) {
+    const ct = TECHS[n.currentResearch];
+    document.getElementById('resScience').textContent = `${Math.floor(n.researchProgress || 0)}/${ct.cost}`;
+  } else {
+    document.getElementById('resScience').textContent = '-';
+  }
   const playerMilUnits = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type].combat).length;
   const playerFreeMil = cities.filter(c => c.nationId === playerNation).length * 2;
   const playerMaintenance = Math.max(0, playerMilUnits - playerFreeMil) * 0.5;
@@ -3502,6 +3735,7 @@ function updateUI() {
   document.getElementById('rateWood').textContent = `+${y.wood.toFixed(1)}`;
   document.getElementById('rateStone').textContent = `+${y.stone.toFixed(1)}`;
   document.getElementById('rateSteel').textContent = `+${y.steel.toFixed(1)}`;
+  document.getElementById('rateGunpowder').textContent = `+${(y.gunpowder||0).toFixed(1)}`;
   document.getElementById('rateScience').textContent = `+${(y.science||0).toFixed(1)}`;
   document.getElementById('resLegitimacy').textContent = Math.floor(n.legitimacy || 50);
   document.getElementById('resOrders').textContent = ordersRemaining + ' / ' + getMaxOrders(playerNation);
@@ -3512,7 +3746,7 @@ function updateUI() {
 function hidePanel() { document.getElementById('panel').style.display = 'none'; }
 
 function cycleToNextUnit() {
-  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX);
+  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
   selectedUnit = next; selectedCity = null;
@@ -3552,22 +3786,39 @@ function showUnitPanel(unit) {
   }
   if (unit.type === 'worker' || unit.type === 'veteran_worker') {
     const ti = unit.y * MAP_COLS + unit.x; const t = tiles[ti];
-    // Repair pillaged improvement
-    if (canRepairTile(unit, unit.x, unit.y)) {
-      const pil = pillaged.find(p => p.tileIndex === ti);
-      const impName = IMPROVEMENT_DEFS[pil.originalImprovement] ? IMPROVEMENT_DEFS[pil.originalImprovement].name : pil.originalImprovement;
-      const turnsLeft = Math.max(0, 2 - (turnNumber - pil.turnPillaged));
-      html += `<button class="p-btn" onclick="doRepair()" style="border-color:#f84;color:#fc8">Repair ${impName} <span class="cost">${turnsLeft} turns left</span></button>`;
-    }
-    if (t.type === 5) html += `<button class="p-btn" onclick="doChop()">Chop Forest <span class="cost">+15 wood</span></button>`;
-    if (t.owner === unit.nationId && !t.improvement && t.type !== 4) {
-      html += '<div class="section-title">Build Improvement</div>';
-      for (const key in IMPROVEMENT_DEFS) {
-        const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
-        const currentCost = getImprovementCost(key, unit.nationId);
-        const costStr = Object.entries(currentCost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
-        const yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
-        html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} \u2192 ${yieldStr}</span></button>`;
+    // Show build progress if currently building
+    if (unit.building) {
+      const imp = IMPROVEMENT_DEFS[unit.building];
+      const prog = unit.buildProgress || 0;
+      const total = unit.buildTotal || 1;
+      const pct = Math.floor(prog / total * 100);
+      html += `<div style="margin:6px 0;padding:6px;background:rgba(180,140,60,0.15);border:1px solid rgba(180,140,60,0.3);border-radius:4px;">
+        <span style="color:#d4a856;">Building: ${imp.icon} ${imp.name}</span>
+        <div style="background:rgba(0,0,0,0.3);border-radius:3px;height:8px;margin:4px 0;">
+          <div style="background:#d4a856;height:100%;width:${pct}%;border-radius:3px;"></div>
+        </div>
+        <span style="font-size:10px;color:#a89878;">${prog}/${total} turns (${total - prog} left)</span>
+      </div>`;
+      html += `<button class="p-btn" onclick="cancelBuild()" style="border-color:#a44;color:#e88">Cancel Build</button>`;
+    } else {
+      // Repair pillaged improvement
+      if (canRepairTile(unit, unit.x, unit.y)) {
+        const pil = pillaged.find(p => p.tileIndex === ti);
+        const impName = IMPROVEMENT_DEFS[pil.originalImprovement] ? IMPROVEMENT_DEFS[pil.originalImprovement].name : pil.originalImprovement;
+        const turnsLeft = Math.max(0, 2 - (turnNumber - pil.turnPillaged));
+        html += `<button class="p-btn" onclick="doRepair()" style="border-color:#f84;color:#fc8">Repair ${impName} <span class="cost">${turnsLeft} turns left</span></button>`;
+      }
+      if (t.type === 5) html += `<button class="p-btn" onclick="doChop()">Chop Forest <span class="cost">+15 wood</span></button>`;
+      if (t.owner === unit.nationId && !t.improvement && t.type !== 4) {
+        html += '<div class="section-title">Build Improvement</div>';
+        for (const key in IMPROVEMENT_DEFS) {
+          const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
+          const currentCost = getImprovementCost(key, unit.nationId);
+          const costStr = Object.entries(currentCost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
+          const yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+          const bTurns = (unit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
+          html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t -> ${yieldStr}</span></button>`;
+        }
       }
     }
   }
@@ -3603,8 +3854,8 @@ function showCityPanel(city) {
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}</p>`;
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
-    const canRush = nations[city.nationId].science >= rushCost;
-    html += `<button class="p-btn" onclick="rushProduce()" ${!canRush ? 'disabled' : ''}>Rush Produce <span class="cost">${rushCost} science</span></button>`;
+    const canRush = nations[city.nationId].gold >= rushCost;
+    html += `<button class="p-btn" onclick="rushProduce()" ${!canRush ? 'disabled' : ''}>Rush Produce <span class="cost">${rushCost} gold</span></button>`;
   }
   html += `<div class="tab-bar">
     <button class="tab-btn active" id="tabProd" onclick="showCityTab('prod')">Production</button>
@@ -3756,6 +4007,48 @@ function renderKingdoms() {
         html += ` <button class="diplo-btn" style="background:#252;border-color:#4a4;" onclick="acceptPeace(${n.id})">Accept</button>`;
         html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;" onclick="rejectPeace(${n.id})">Reject</button>`;
       }
+      // Diplomatic agreements section
+      if (rel !== 'war') {
+        const hasOB = hasAgreement(playerNation, n.id, 'open_borders');
+        const hasWH = hasAgreement(playerNation, n.id, 'war_help');
+        const hasBH = hasAgreement(playerNation, n.id, 'barb_help');
+        const pendingReq = n._diploRequest && n._diploRequest[playerNation];
+        html += `<div style="margin-top:4px;margin-left:20px;font-size:11px;">`;
+        // Open Borders
+        if (hasOB) {
+          html += `<span style="color:#6a6;">Open Borders</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'open_borders')">Cancel</button><br>`;
+        } else {
+          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'open_borders')">Request Open Borders</button> `;
+        }
+        // War Help
+        const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
+        if (hasWH) {
+          html += `<span style="color:#6a6;">War Alliance</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'war_help')">Cancel</button><br>`;
+        } else if (atWarWith.length > 0) {
+          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'war_help')">Request War Help</button> `;
+        }
+        // Barbarian Help
+        if (hasBH) {
+          html += `<span style="color:#6a6;">Barbarian Pact</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'barb_help')">Cancel</button><br>`;
+        } else {
+          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'barb_help')">Request Barbarian Help</button> `;
+        }
+        // Resource Trade
+        html += `<br><span style="color:#9a8a6a;">Trade:</span> `;
+        for (const res of ['gold','food','wood','stone','steel','gunpowder']) {
+          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestTrade(${n.id},'${res}')" title="Trade 20 ${res}">Buy 20 ${res}</button> `;
+        }
+        html += `</div>`;
+        // Incoming requests from AI
+        if (pendingReq) {
+          html += `<div style="margin-left:20px;margin-top:2px;font-size:11px;color:#fc4;">`;
+          const reqLabels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Barbarian Pact' };
+          html += `Requests ${reqLabels[pendingReq] || pendingReq}! `;
+          html += `<button class="diplo-btn" style="background:#252;border-color:#4a4;font-size:10px;" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button>`;
+          html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;font-size:10px;" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button>`;
+          html += `</div>`;
+        }
+      }
     }
     html += `</div>`;
   }
@@ -3776,6 +4069,68 @@ function rejectPeace(nationId) {
   showToast(`Rejected peace offer from ${n.name}.`);
   renderKingdoms();
 }
+function requestAgreement(nationId, type) {
+  const loy = getLoyalty(nationId, playerNation);
+  const labels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Barbarian Pact' };
+  const thresholds = { open_borders: 40, war_help: 60, barb_help: 30 };
+  if (loy < thresholds[type]) {
+    showToast(`${nations[nationId].name} refuses — relations too poor (need ${getLoyaltyLabel(thresholds[type])}+).`);
+    return;
+  }
+  // War help: they also declare war on your enemies
+  if (type === 'war_help') {
+    const enemies = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian);
+    for (const [eid] of enemies) {
+      nations[nationId].relations[eid] = 'war';
+      nations[eid].relations[nationId] = 'war';
+    }
+  }
+  addAgreement(playerNation, nationId, type);
+  changeLoyalty(nationId, playerNation, type === 'war_help' ? -5 : 3);
+  showToast(`${nations[nationId].name} agrees to ${labels[type]}!`);
+  renderKingdoms();
+}
+function cancelAgreement(nationId, type) {
+  removeAgreement(playerNation, nationId, type);
+  changeLoyalty(nationId, playerNation, -5);
+  showToast(`${type.replace(/_/g, ' ')} cancelled with ${nations[nationId].name}.`);
+  renderKingdoms();
+}
+function requestTrade(nationId, resource) {
+  const loy = getLoyalty(nationId, playerNation);
+  if (loy < 30) { showToast(`${nations[nationId].name} refuses to trade — relations too poor.`); return; }
+  const theirAmount = nations[nationId][resource] || 0;
+  if (theirAmount < 20) { showToast(`${nations[nationId].name} doesn't have enough ${resource}.`); return; }
+  const cost = 25; // gold cost for 20 resources
+  if (nations[playerNation].gold < cost) { showToast(`Not enough gold! (need ${cost})`); return; }
+  nations[playerNation].gold -= cost;
+  nations[nationId].gold = (nations[nationId].gold || 0) + cost;
+  nations[nationId][resource] -= 20;
+  nations[playerNation][resource] = (nations[playerNation][resource] || 0) + 20;
+  changeLoyalty(nationId, playerNation, 2);
+  showToast(`Traded 25 gold for 20 ${resource} from ${nations[nationId].name}.`);
+  updateUI(); renderKingdoms();
+}
+function acceptRequest(nationId, type) {
+  if (!nations[nationId]._diploRequest) return;
+  delete nations[nationId]._diploRequest[playerNation];
+  addAgreement(playerNation, nationId, type);
+  changeLoyalty(nationId, playerNation, 5);
+  showToast(`Accepted ${type.replace(/_/g, ' ')} with ${nations[nationId].name}.`);
+  renderKingdoms();
+}
+function rejectRequest(nationId, type) {
+  if (!nations[nationId]._diploRequest) return;
+  delete nations[nationId]._diploRequest[playerNation];
+  changeLoyalty(nationId, playerNation, -8);
+  showToast(`Rejected ${type.replace(/_/g, ' ')} request from ${nations[nationId].name}.`);
+  renderKingdoms();
+}
+window.requestAgreement = requestAgreement;
+window.cancelAgreement = cancelAgreement;
+window.requestTrade = requestTrade;
+window.acceptRequest = acceptRequest;
+window.rejectRequest = rejectRequest;
 window.acceptPeace = acceptPeace;
 window.rejectPeace = rejectPeace;
 window.sendGift = sendGift;
@@ -3789,7 +4144,24 @@ function showTechTree() {
   techTreeOpen = true;
   selectedUnit = null; selectedCity = null; moveMode = false; reachableTiles.clear();
   const n = nations[playerNation];
-  let html = `<h3>\uD83C\uDF33 Tech Tree</h3><p>Science: ${Math.floor(n.science)}</p>`;
+  const sciPerTurn = getTotalYields(playerNation).science || 0;
+  const currentRes = n.currentResearch;
+  let html = `<h3>Tech Tree</h3><p>Science/turn: +${sciPerTurn.toFixed(1)}</p>`;
+  if (currentRes && TECHS[currentRes]) {
+    const ct = TECHS[currentRes];
+    const prog = n.researchProgress || 0;
+    const pct = Math.min(100, Math.floor(prog / ct.cost * 100));
+    const turnsLeft = getResearchTurnsLeft(playerNation);
+    html += `<div style="margin-bottom:8px;padding:6px;background:rgba(180,140,60,0.15);border:1px solid rgba(180,140,60,0.3);border-radius:4px;">
+      <span style="color:#d4a856;">Researching: ${ct.name}</span><br>
+      <div style="background:rgba(0,0,0,0.3);border-radius:3px;height:8px;margin:4px 0;">
+        <div style="background:#d4a856;height:100%;width:${pct}%;border-radius:3px;"></div>
+      </div>
+      <span style="font-size:10px;color:#a89878;">${Math.floor(prog)}/${ct.cost} (${turnsLeft} turns left)</span>
+    </div>`;
+  } else {
+    html += `<p style="color:#a89878;font-size:11px;">No research selected. Choose a technology below.</p>`;
+  }
   const sections = { military: 'Military', production: 'Production', growth: 'Growth' };
   for (const [sKey, sName] of Object.entries(sections)) {
     html += `<div class="section-title">${sName}</div>`;
@@ -3800,23 +4172,26 @@ function showTechTree() {
       const prereqsMet = tech.prereqs.every(p => nationHasTech(playerNation, p));
       let status = '';
       let blocked = '';
-      if (researched) status = ' \u2705';
-      else if (!prereqsMet) { status = ' \uD83D\uDD12'; blocked = 'Requires: ' + tech.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', '); }
+      if (researched) status = ' [Done]';
+      else if (tKey === currentRes) {
+        const prog = n.researchProgress || 0;
+        status = ` (${Math.floor(prog)}/${tech.cost})`;
+      }
+      else if (!prereqsMet) { status = ' [Locked]'; blocked = 'Requires: ' + tech.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', '); }
       else if (tech.needsResource) {
         const resType = tech.needsResource === 'horses' ? 6 : 7;
         const has = tiles.some((t, i) => t.owner === playerNation && t.type === resType);
         if (!has) { status = ` (need ${tech.needsResource})`; blocked = `Need ${tech.needsResource} resource in your territory`; }
-      }
-      if (!researched && prereqsMet && !blocked && n.science < tech.cost) {
-        status = ` (${Math.floor(n.science)}/${tech.cost})`;
       }
       const unlockStr = tech.unlocks.map(u => {
         const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
         return ud ? ud.icon + ' ' + u : id ? id.icon + ' ' + u : u;
       }).join(', ');
       const isLocked = !prereqsMet && !researched;
-      html += `<button class="p-btn" onclick="doResearch('${tKey}')" ${!canDo || researched ? 'disabled' : ''} style="${isLocked ? 'opacity:0.35' : researched ? 'border-left:3px solid #6a6' : prereqsMet && canDo ? 'border-left:3px solid #d4a856' : ''}">
-        ${tech.name}${status} <span class="cost">${tech.cost} science \u2192 ${unlockStr}</span>
+      const isActive = tKey === currentRes;
+      const turnsEst = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '?';
+      html += `<button class="p-btn" onclick="doResearch('${tKey}')" ${!canDo || researched ? 'disabled' : ''} style="${isLocked ? 'opacity:0.35' : researched ? 'border-left:3px solid #6a6' : isActive ? 'border-left:3px solid #d4a856;background:rgba(180,140,60,0.15)' : prereqsMet && canDo ? 'border-left:3px solid #886' : ''}">
+        ${tech.name}${status} <span class="cost">${tech.cost} sci (${turnsEst}t) -> ${unlockStr}</span>
       </button>`;
     }
   }
@@ -3828,7 +4203,8 @@ function closeTechTree() { techTreeOpen = false; hidePanel(); render(); }
 window.showTechTree = showTechTree;
 window.closeTechTree = closeTechTree;
 window.doResearch = function(tKey) {
-  if (researchTech(playerNation, tKey)) {
+  if (setResearchTarget(playerNation, tKey)) {
+    showToast(`Now researching: ${TECHS[tKey].name}`);
     showTechTree(); updateUI();
   }
 };
@@ -3839,6 +4215,8 @@ function toggleDiplomacy(nationId) {
   const next = current === 'war' ? 'peace' : 'war';
   pn.relations[nationId] = next; nations[nationId].relations[playerNation] = next;
   if (next === 'war') {
+    // Clear all agreements on war
+    for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(playerNation, nationId, aType);
     // Target immediately views us as hostile
     const theirLoy = getLoyalty(nationId, playerNation);
     if (theirLoy > -60) nations[nationId].loyalty[playerNation] = -60;
@@ -4675,10 +5053,28 @@ window.doRepair = function() {
 
 window.doBuild = function(key) {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
+  if (selectedUnit.building) return; // already building
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   buildImprovement(selectedUnit, key);
-  showToast(`Built ${IMPROVEMENT_DEFS[key].name}`);
+  const imp = IMPROVEMENT_DEFS[key];
+  const bTurns = (selectedUnit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
+  if (bTurns <= 1) showToast(`Built ${imp.name}`);
+  else showToast(`Started building ${imp.name} (${bTurns} turns)`);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
+  showUnitPanel(selectedUnit); updateUI(); render();
+};
+
+window.cancelBuild = function() {
+  if (!selectedUnit || !selectedUnit.building) return;
+  // Refund resources
+  const impKey = selectedUnit.building;
+  const cost = getImprovementCost(impKey, selectedUnit.nationId);
+  const n = nations[selectedUnit.nationId];
+  for (const k in cost) n[k] = (n[k] || 0) + cost[k];
+  selectedUnit.building = null;
+  selectedUnit.buildProgress = 0;
+  selectedUnit.buildTotal = 0;
+  showToast(`Cancelled building ${IMPROVEMENT_DEFS[impKey].name}. Resources refunded.`);
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 
@@ -4742,18 +5138,26 @@ function serializeGame() {
     ownedTiles: [...c.ownedTiles],
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
   }));
-  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; return sn; });
+  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; return sn; });
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
     return su;
   });
+  // Serialize agreements (Sets -> arrays)
+  const sAgreements = {};
+  for (const a in agreements) {
+    sAgreements[a] = {};
+    for (const b in agreements[a]) {
+      sAgreements[a][b] = [...agreements[a][b]];
+    }
+  }
   return JSON.stringify({
-    v: 8, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
+    v: 9, MAP_COLS, MAP_ROWS, tiles: sTiles, nations: sNations, units: sUnits, cities: sCities,
     playerNation, turnNumber, camX, camY, VIEW_TILE, discoveredNations: [...discoveredNations],
     barbarianCamps, citySites, pillaged, barbarianDensity,
     barbSpawnTurn, barbSpawnChance, barbMaxUnits, barbRespawnTurns, barbRaidRange, barbRaiderInterval, barbCampSpacing,
-    gameDifficulty,
+    gameDifficulty, agreements: sAgreements,
   });
 }
 
@@ -4774,7 +5178,7 @@ function deserializeGame(json) {
     // Legacy verbose format (v2-v7)
     tiles = d.tiles.map(t => ({ ...t, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(t.type, Math.floor(Math.random() * 997)) }));
   }
-  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {} }));
+  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
   units = d.units;
   cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles) }));
   playerNation = d.playerNation;
@@ -4794,6 +5198,16 @@ function deserializeGame(json) {
   barbRaiderInterval = d.barbRaiderInterval || 3;
   barbCampSpacing = d.barbCampSpacing || 6;
   gameDifficulty = d.gameDifficulty || 'normal';
+  // Deserialize agreements (arrays -> Sets)
+  agreements = {};
+  if (d.agreements) {
+    for (const a in d.agreements) {
+      agreements[a] = {};
+      for (const b in d.agreements[a]) {
+        agreements[a][b] = new Set(d.agreements[a][b]);
+      }
+    }
+  }
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; reachableTiles.clear();
   ordersRemaining = getMaxOrders(playerNation);
@@ -4905,7 +5319,7 @@ function spawnAINations(count) {
     const settler = spawnUnit('settler', nId, sp.x, sp.y);
     const aiCity = foundCity(settler);
     aiCity.producing = 'settler';
-    for (const uType of ['worker', 'swordsman', 'scout']) {
+    for (const uType of ['worker', 'worker', 'swordsman', 'scout']) {
       const wp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
       spawnUnit(uType, nId, wp.x, wp.y);
     }
@@ -4989,7 +5403,7 @@ function generateAndPlay(pName, pColor, opponents) {
   const settlerUnit = spawnUnit('settler', playerNation, sp.x, sp.y);
   const startCity = foundCity(settlerUnit);
   startCity.producing = 'settler';
-  for (const uType of ['swordsman', 'scout', 'worker']) {
+  for (const uType of ['swordsman', 'scout', 'worker', 'worker']) {
     const lp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
     spawnUnit(uType, playerNation, lp.x, lp.y);
   }
