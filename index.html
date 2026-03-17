@@ -514,6 +514,43 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.9</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Battle Animations &amp; Combat Feedback</b><br>
+        - Camera pans to battles during AI turns with sequential replay<br>
+        - Floating damage numbers rise from attacked units (-HP in red)<br>
+        - Attacker nudge animation &mdash; unit bumps toward defender and back<br>
+        - Death particle explosions when units are killed<br>
+        - Combat odds preview on hover &mdash; see estimated damage before attacking<br>
+        - Movement path preview with dashed line and move cost badge<br>
+        <br>
+        <b style="color:#b8a070;">Fog of War</b><br>
+        - Explored tiles outside current vision are now dimmed<br>
+        - Hex-shaped fog with softer edges at the vision boundary<br>
+        <br>
+        <b style="color:#b8a070;">Dramatic Events</b><br>
+        - War declarations now show a full-screen dramatic modal with war horn sound<br>
+        - First-contact overlay when discovering a new civilization<br>
+        - Tech completion slide-down banner showing unlocked items<br>
+        - Screen shake effect on city capture or loss<br>
+        <br>
+        <b style="color:#b8a070;">Game Feel &amp; Polish</b><br>
+        - Turn transition banner ("Turn N") fades between turns<br>
+        - End Turn button pulses when all units have finished moving<br>
+        - Resource change deltas (+/-) float above topbar each turn<br>
+        - Units have subtle idle bobbing animation<br>
+        - City production completion shows floating text on the city<br>
+        - Click-to-cycle through stacked units on the same tile<br>
+        - Stack count badges (x2, x3) on tiles with multiple units<br>
+        - Go-to orders now animate movement with camera follow<br>
+        <br>
+        <b style="color:#b8a070;">Bug Fixes</b><br>
+        - Fixed device picker crash (script failed to load for returning players)<br>
+        - Fixed victory score breakdown showing wrong numbers<br>
+        - Fixed barbarian respawn tooltip using wrong timer value<br>
+        - Fixed trade tooltip syntax error breaking the entire game<br>
+        - Resume Last Game button hidden when no save exists<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.8</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Combat & Balance</b><br>
@@ -691,6 +728,30 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.9</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Combat & Visuals</b><br>
+          - Battle animations: melee nudge, ranged projectiles<br>
+          - Floating damage numbers and death particles<br>
+          - Combat odds preview on hover<br>
+          - Screen shake on unit death<br>
+          - AI battle replay with camera follow<br>
+          <br>
+          <b style="color:#b8a070;">Fog of War</b><br>
+          - Hex-shaped fog with two-level opacity<br>
+          - Enemy units hidden outside current vision<br>
+          <br>
+          <b style="color:#b8a070;">UI & Game Feel</b><br>
+          - Turn banners and first contact modals<br>
+          - Tech/production completion popups<br>
+          - Path preview for unit movement<br>
+          - Idle unit bobbing animation<br>
+          - End Turn button pulses when ready<br>
+          - Resource delta indicators<br>
+          <br>
+          <b style="color:#b8a070;">Sound Effects</b><br>
+          - Procedural SFX: combat hits, movement, selection<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.8</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
@@ -4310,7 +4371,11 @@ function render() {
   const flashPhase = (Date.now() % 800) / 800; // 0-1 pulsing cycle
   const flashAlpha = 0.4 + Math.sin(flashPhase * Math.PI * 2) * 0.35; // 0.05 to 0.75
   for (const u of sortedUnits) {
-    if (!tiles[u.y * MAP_COLS + u.x].revealed.has(pId) && u.nationId !== pId) continue;
+    if (u.nationId !== pId) {
+      const tIdx = u.y * MAP_COLS + u.x;
+      if (!tiles[tIdx].revealed.has(pId)) continue;
+      if (currentVisionSet && !currentVisionSet.has(tIdx)) continue;
+    }
     const pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
     if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
     if (u.nationId !== pId) discoverNation(u.nationId);
@@ -5152,7 +5217,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-1.8';
+const CURRENT_VERSION = 'beta-1.9';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
