@@ -1923,6 +1923,8 @@ function chopForest(worker) {
 function canAttack(attacker, tx, ty) {
   const def = UNIT_DEFS[attacker.type];
   if (!def.combat) return false;
+  // Attacks require full moves — unit cannot move and attack in the same turn
+  if (attacker.movesLeft < attacker.maxMoves) return false;
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
   return nations[attacker.nationId].relations[target.nationId] === 'war';
@@ -2407,10 +2409,7 @@ function moveBarbarianToward(u, tx, ty, steps) {
       const nx = nb.col, ny = nb.row;
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       if (!unitCanTraverse(u.type, tiles[ny * MAP_COLS + nx].type, u.nationId, nx, ny)) continue;
-      if (units.some(o => o.x === nx && o.y === ny && o.nationId === u.nationId)) continue;
-      // Attack enemies in the way
-      const enemy = units.find(e => e.x === nx && e.y === ny && e.nationId !== u.nationId);
-      if (enemy) { doAttack(u, nx, ny); return; }
+      if (units.some(o => o.x === nx && o.y === ny)) continue;
       const d = Math.abs(tx - nx) + Math.abs(ty - ny);
       if (d < bestDist) { bestDist = d; bestDir = nb; }
     }
@@ -2863,27 +2862,7 @@ function aiTurn(nationId) {
         }
       }
     } else if (UNIT_DEFS[u.type].combat && u.movesLeft > 0) {
-      // Retreat at low HP
-      if (u.hp <= 3) {
-        let nearestCity = null, nearDist = Infinity;
-        for (const c of aiCities) {
-          const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
-          if (d < nearDist) { nearDist = d; nearestCity = c; }
-        }
-        if (nearestCity && nearDist > 0) { moveAIToward(u, nearestCity.x, nearestCity.y, u.movesLeft); continue; }
-      }
-
-      // Garrison: if any owned city undefended and not at war, move to defend
-      if (!atWar) {
-        const undefCity = aiCities.find(c => {
-          return !combatUnits.some(gu => gu !== u && Math.abs(gu.x - c.x) + Math.abs(gu.y - c.y) <= 1);
-        });
-        if (undefCity) {
-          const dist = Math.abs(u.x - undefCity.x) + Math.abs(u.y - undefCity.y);
-          if (dist > 1) { moveAIToward(u, undefCity.x, undefCity.y, u.movesLeft); continue; }
-        }
-      }
-
+      // Attack first — units cannot move and attack in the same turn
       let attacked = false;
       // Ranged attack with target prioritization
       if (UNIT_DEFS[u.type].ranged) {
@@ -2941,9 +2920,28 @@ function aiTurn(nationId) {
         if (bestTarget) { doAttack(u, bestTarget.x, bestTarget.y); attacked = true; }
       }
       if (!attacked) {
+        // No attack available — move instead (cannot attack after moving)
+        // Retreat at low HP
+        if (u.hp <= 3) {
+          let nearestCity = null, nearDist = Infinity;
+          for (const c of aiCities) {
+            const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
+            if (d < nearDist) { nearDist = d; nearestCity = c; }
+          }
+          if (nearestCity && nearDist > 0) { moveAIToward(u, nearestCity.x, nearestCity.y, u.movesLeft); continue; }
+        }
+        // Garrison: if any owned city undefended and not at war, move to defend
+        if (!atWar) {
+          const undefCity = aiCities.find(c => {
+            return !combatUnits.some(gu => gu !== u && Math.abs(gu.x - c.x) + Math.abs(gu.y - c.y) <= 1);
+          });
+          if (undefCity) {
+            const dist = Math.abs(u.x - undefCity.x) + Math.abs(u.y - undefCity.y);
+            if (dist > 1) { moveAIToward(u, undefCity.x, undefCity.y, u.movesLeft); continue; }
+          }
+        }
         // Move toward nearest enemy city (or garrison if threatened)
         if (threatLevel > 0) {
-          // Defend nearest threatened city
           let nearestThreat = null, nearDist = Infinity;
           for (const c of aiCities) {
             const threat = units.some(eu => eu.nationId !== nationId && UNIT_DEFS[eu.type].combat && n.relations[eu.nationId] === 'war' && Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y) <= 5);
@@ -3930,11 +3928,13 @@ function showUnitPanel(unit) {
       }
     }
   }
-  if (UNIT_DEFS[unit.type].ranged && unit.movesLeft > 0 && unit.nationId === playerNation) {
-    html += `<button class="p-btn" onclick="enterRangedMode()">Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
+  if (UNIT_DEFS[unit.type].ranged && unit.nationId === playerNation) {
+    const canRanged = unit.movesLeft >= unit.maxMoves;
+    html += `<button class="p-btn" onclick="enterRangedMode()" ${!canRanged ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
+    if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">Cannot attack after moving.</p>`;
   }
   if (UNIT_DEFS[unit.type].combat) {
-    html += `<p style="font-size:11px;color:#a66">Can attack enemies at war during move.</p>`;
+    html += `<p style="font-size:11px;color:#a66">Attacking uses the entire turn. Cannot move and attack.</p>`;
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
     }
@@ -4724,6 +4724,9 @@ canvas.addEventListener('click', (e) => {
   }
 
   if (rangedMode && selectedUnit) {
+    if (selectedUnit.movesLeft < selectedUnit.maxMoves) {
+      showToast('Cannot attack after moving.'); rangedMode = false; render(); return;
+    }
     const target = units.find(u => u.x === mx && u.y === my && u.nationId !== selectedUnit.nationId);
     if (target && nations[selectedUnit.nationId].relations[target.nationId] === 'war') {
       const rangeTiles = getHexesInRange(selectedUnit.x, selectedUnit.y, 2);
@@ -5046,6 +5049,8 @@ window.enterRangedMode = function() {
 
 window.doRangedAttack = function(tx, ty) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged) return;
+  // Attacks require full moves — unit cannot move and attack in the same turn
+  if (selectedUnit.movesLeft < selectedUnit.maxMoves) { showToast('Cannot attack after moving.'); return; }
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== selectedUnit.nationId);
   if (!target) return;
   if (nations[selectedUnit.nationId].relations[target.nationId] !== 'war') return;
