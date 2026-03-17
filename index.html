@@ -303,11 +303,36 @@
       min-width: 40px;
       text-align: right;
     }
+
+    /* Mobile mode styles */
+    body.mobile-mode #topbar {
+      height: auto; min-height: 36px; flex-wrap: wrap; gap: 6px 10px; padding: 4px 8px;
+      font-size: 11px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    body.mobile-mode .res { gap: 2px; }
+    body.mobile-mode .res-val { min-width: 20px; font-size: 12px; }
+    body.mobile-mode .res-icon { width: 10px; height: 10px; }
+    body.mobile-mode .top-btn { padding: 6px 14px; font-size: 14px; }
+    body.mobile-mode .top-btn.end-turn { padding: 8px 18px; font-size: 15px; }
+    body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; }
+    body.mobile-mode .p-btn { padding: 10px 14px; font-size: 14px; margin-bottom: 6px; }
+    body.mobile-mode #kingdoms { width: 85vw; max-width: 260px; left: 5px; }
+    body.mobile-mode #minimap { display: none; }
+    body.mobile-mode #zoomInfo { display: none; }
+    body.mobile-mode #menu h1 { font-size: 48px; }
+    body.mobile-mode .menu-btn { min-width: 200px; padding: 14px 28px; font-size: 17px; }
   </style>
 </head>
 <body>
 
-<div id="menu">
+<div id="devicePicker" style="position:fixed;inset:0;z-index:500;background:rgba(10,8,5,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <h2 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:28px;text-shadow:2px 2px 6px rgba(0,0,0,0.7);margin-bottom:8px;">How are you playing?</h2>
+  <p style="color:#a89878;font-size:14px;margin-bottom:10px;">This helps us optimize the experience for your device.</p>
+  <button class="menu-btn" onclick="pickDevice('desktop')" style="min-width:220px;">Desktop / Laptop</button>
+  <button class="menu-btn" onclick="pickDevice('mobile')" style="min-width:220px;">Mobile / Tablet</button>
+</div>
+
+<div id="menu" style="display:none;">
   <div id="menuBgA" class="menu-bg" style="background-image:url('main_image1.jpg')"></div>
   <div id="menuBgB" class="menu-bg"></div>
   <h1>Standards In Smoke</h1>
@@ -908,8 +933,26 @@ const ctx = canvas.getContext('2d');
 const minimapCanvas = document.getElementById('minimap');
 const mctx = minimapCanvas.getContext('2d');
 
+// Device picker
+function pickDevice(mode) {
+  isMobileMode = (mode === 'mobile');
+  if (isMobileMode) document.body.classList.add('mobile-mode');
+  else document.body.classList.remove('mobile-mode');
+  localStorage.setItem('sis_device_mode', mode);
+  document.getElementById('devicePicker').style.display = 'none';
+  document.getElementById('menu').style.display = '';
+}
+// Check if device was previously picked
+(function() {
+  const saved = localStorage.getItem('sis_device_mode');
+  if (saved) {
+    pickDevice(saved);
+  }
+})();
+
 let MAP_COLS, MAP_ROWS;
 let VIEW_TILE = 24;
+let isMobileMode = false;
 const MIN_TILE = 8, MAX_TILE = 128;
 
 // ====================
@@ -3795,8 +3838,11 @@ function render() {
     ctx.fill();
   }
 
-  // Units
-  for (const u of units) {
+  // Units — render selected unit last so it's always on top
+  const sortedUnits = units.slice().sort((a, b) => (a === selectedUnit ? 1 : 0) - (b === selectedUnit ? 1 : 0));
+  const flashPhase = (Date.now() % 800) / 800; // 0-1 pulsing cycle
+  const flashAlpha = 0.4 + Math.sin(flashPhase * Math.PI * 2) * 0.35; // 0.05 to 0.75
+  for (const u of sortedUnits) {
     if (!tiles[u.y * MAP_COLS + u.x].revealed.has(pId) && u.nationId !== pId) continue;
     const pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
     if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
@@ -3823,8 +3869,9 @@ function render() {
       ctx.fillStyle = '#0f0'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW * (u.hp / maxHp), 3);
     }
     if (selectedUnit === u) {
-      ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy, rad + 2, 0, Math.PI * 2); ctx.stroke();
+      // Flashing selection ring
+      ctx.strokeStyle = `rgba(255, 221, 68, ${flashAlpha})`; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, cy, rad + 3, 0, Math.PI * 2); ctx.stroke();
       ctx.lineWidth = 1;
     } else if (hoveredUnit === u) {
       ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
@@ -3969,7 +4016,7 @@ function updateUI() {
   document.getElementById('playerScore').textContent = getScore(playerNation);
 }
 
-function hidePanel() { document.getElementById('panel').style.display = 'none'; }
+function hidePanel() { document.getElementById('panel').style.display = 'none'; stopSelectionFlash(); }
 
 function cycleToNextUnit() {
   const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building);
@@ -3988,6 +4035,8 @@ function cycleToNextUnit() {
 
 function showUnitPanel(unit) {
   selectedCity = null;
+  selectedUnit = unit;
+  startSelectionFlash();
   const panel = document.getElementById('panel');
   const def = UNIT_DEFS[unit.type];
   const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
@@ -4835,6 +4884,65 @@ canvas.addEventListener('wheel', (e) => {
   render(); updateUI();
 }, { passive: false });
 
+// Touch support for mobile
+let touchStartX = 0, touchStartY = 0, touchCamStartX = 0, touchCamStartY = 0, touchMoved = false;
+let lastPinchDist = 0, isTouchDrag = false;
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchCamStartX = camX; touchCamStartY = camY;
+    touchMoved = false; isTouchDrag = true;
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isTouchDrag) {
+    const t = e.touches[0];
+    const dx = touchStartX - t.clientX, dy = touchStartY - t.clientY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) touchMoved = true;
+    const colS = hexColStep(), cellH = hexCellH();
+    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, touchCamStartX + Math.round(dx / colS)));
+    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, touchCamStartY + Math.round(dy / cellH)));
+    render();
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (lastPinchDist > 0) {
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const oldCS = hexColStep(), oldCH = hexCellH();
+      const worldX = camX + midX / oldCS, worldY = camY + midY / oldCH;
+      if (dist > lastPinchDist * 1.05) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(1, Math.round(VIEW_TILE * 0.08)));
+      else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08)));
+      const newCS = hexColStep(), newCH = hexCellH();
+      camX = Math.max(0, Math.round(worldX - midX / newCS));
+      camY = Math.max(0, Math.round(worldY - midY / newCH));
+      viewCols = Math.ceil(canvas.width / newCS) + 3;
+      viewRows = Math.ceil(canvas.height / newCH) + 3;
+      camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
+      camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
+      render();
+    }
+    lastPinchDist = dist;
+    touchMoved = true;
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', (e) => {
+  if (!touchMoved && e.changedTouches.length === 1) {
+    // Simulate click at touch position
+    const t = e.changedTouches[0];
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, button: 0 }));
+  }
+  isTouchDrag = false; lastPinchDist = 0;
+}, { passive: false });
+
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
   if (animationBlocking || eventModalOpen) return;
@@ -4880,6 +4988,21 @@ canvas.addEventListener('click', (e) => {
     if (tileOk) {
       selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
       gotoMode = false;
+      // Immediately move toward destination with remaining moves
+      if (selectedUnit.movesLeft > 0) {
+        const path = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
+        if (path && path.length > 0) {
+          for (let i = 0; i < path.length && selectedUnit.movesLeft > 0; i++) {
+            const step = path[i];
+            if (units.some(o => o.x === step.x && o.y === step.y && o !== selectedUnit)) break;
+            selectedUnit.x = step.x; selectedUnit.y = step.y; selectedUnit.movesLeft--;
+            revealAround(selectedUnit.x, selectedUnit.y, UNIT_DEFS[selectedUnit.type].vision, selectedUnit.nationId);
+          }
+          if (selectedUnit.x === selectedUnit.gotoX && selectedUnit.y === selectedUnit.gotoY) {
+            delete selectedUnit.gotoX; delete selectedUnit.gotoY;
+          }
+        }
+      }
       showToast(`Go-to order set for ${UNIT_DEFS[selectedUnit.type].icon}`);
       showUnitPanel(selectedUnit); render();
     } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); }
@@ -5120,6 +5243,19 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   }
 }
 
+// Selection flash animation loop
+let selectionFlashRAF = 0;
+function selectionFlashLoop() {
+  if (selectedUnit) { render(); selectionFlashRAF = requestAnimationFrame(selectionFlashLoop); }
+  else selectionFlashRAF = 0;
+}
+function startSelectionFlash() {
+  if (!selectionFlashRAF) selectionFlashRAF = requestAnimationFrame(selectionFlashLoop);
+}
+function stopSelectionFlash() {
+  if (selectionFlashRAF) { cancelAnimationFrame(selectionFlashRAF); selectionFlashRAF = 0; }
+}
+
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -5142,6 +5278,19 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type].combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
+  // Arrow keys: switch between units on same tile
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && selectedUnit) {
+    const tileUnits = units.filter(u => u.x === selectedUnit.x && u.y === selectedUnit.y && u.nationId === playerNation);
+    if (tileUnits.length > 1) {
+      const idx = tileUnits.indexOf(selectedUnit);
+      const next = e.key === 'ArrowRight'
+        ? tileUnits[(idx + 1) % tileUnits.length]
+        : tileUnits[(idx - 1 + tileUnits.length) % tileUnits.length];
+      selectedUnit = next;
+      showUnitPanel(next); render();
+      e.preventDefault();
+    }
+  }
 });
 
 // WASD camera movement
