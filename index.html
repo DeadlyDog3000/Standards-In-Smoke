@@ -315,7 +315,13 @@
   <div id="menuMain">
     <button class="menu-btn" onclick="showNewGame()">New Game</button>
     <button class="menu-btn" onclick="resumeLastGame()">Resume Last Game</button>
+    <button class="menu-btn" onclick="showVictoryHistory()">Victory History</button>
     <button class="menu-btn" onclick="showMenuOptions()">Options</button>
+  </div>
+  <div id="menuVictoryHistory" style="display:none;text-align:center;max-width:480px;width:90vw;">
+    <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:18px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Victory History</h3>
+    <div id="victoryHistoryCards" style="max-height:60vh;overflow-y:auto;margin-bottom:14px;"></div>
+    <button class="menu-btn" onclick="hideVictoryHistory()">Back</button>
   </div>
   <div id="menuSetup" style="display:none;">
     <div class="setup-card">
@@ -387,8 +393,8 @@
         <div class="setup-row">
           <span class="setup-label">Barbarian Density</span>
           <div class="slider-row">
-            <input id="setupBarbarians" type="range" min="0" max="100" value="80" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
-            <span id="barbLabel" class="slider-val">80%</span>
+            <input id="setupBarbarians" type="range" min="0" max="100" value="60" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
+            <span id="barbLabel" class="slider-val">60%</span>
           </div>
         </div>
         <div style="margin-top:4px;">
@@ -475,6 +481,26 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.8</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Combat & Balance</b><br>
+        - Musketeers buffed: increased attack (8 &rarr; 10) and health (9 &rarr; 10)<br>
+        - Attacks now consume the entire turn &mdash; units cannot move and attack<br>
+        - Capital cities marked with a crown icon<br>
+        - Refugee event "welcome them" now spawns a worker at your capital<br>
+        <br>
+        <b style="color:#b8a070;">Smarter AI Diplomacy</b><br>
+        - AI nations declare war when relations reach Hostile (not just Furious)<br>
+        - AI builds up army before declaring war &mdash; won't attack unprepared<br>
+        - Earlier war warnings so you have time to prepare<br>
+        <br>
+        <b style="color:#b8a070;">Barbarians</b><br>
+        - Barbarian density reduced to 60% by default<br>
+        <br>
+        <b style="color:#b8a070;">Victory History</b><br>
+        - Victories are now saved as cards in your Victory History<br>
+        - Access your past triumphs from the main menu<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.7</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
       <div style="margin-bottom:12px;">
@@ -612,6 +638,25 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.8</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Combat & Balance</b><br>
+          - Musketeers buffed: increased attack and health<br>
+          - Attacks consume the entire turn<br>
+          - Capital cities marked with crown icon<br>
+          - Refugee event spawns worker at capital<br>
+          <br>
+          <b style="color:#b8a070;">Smarter AI Diplomacy</b><br>
+          - AI declares war when Hostile, builds up first<br>
+          - Earlier war warnings<br>
+          <br>
+          <b style="color:#b8a070;">Barbarians</b><br>
+          - Density reduced to 60% by default<br>
+          - Only 2 barbarians spawn on first turn<br>
+          <br>
+          <b style="color:#b8a070;">Victory History</b><br>
+          - Victories saved as cards in main menu<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 1.7</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
@@ -962,8 +1007,8 @@ let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0
 // Diplomatic agreements: agreements[nationA][nationB] = Set of active agreements
 // Possible agreements: 'open_borders', 'war_help', 'barb_help'
 let agreements = {};
-let barbarianDensity = 0.8; // 0 to 1, default 80%
-let barbSpawnTurn = 2;      // turn barbarians start spawning (earlier)
+let barbarianDensity = 0.6; // 0 to 1, default 60%
+let barbSpawnTurn = 5;      // turn barbarian camps start spawning from tick (initial camp at turn 1)
 let barbSpawnChance = 0.75; // base chance per turn to spawn a new camp (higher)
 let barbMaxUnits = 10;      // max units per camp (more)
 let barbRespawnTurns = 5;   // turns before destroyed camp respawns (faster)
@@ -1186,7 +1231,7 @@ const UNIT_DEFS = {
   swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5, hp: 12 },
   crossbowman:    { moves: 3, vision: 5, icon: '\uD83C\uDFF9', desc: 'Ranged infantry with crossbow. Attacks from distance.', combat: true, atk: 6, hp: 8, ranged: true },
   cavalry:        { moves: 7, vision: 5, icon: '\uD83D\uDC0E', desc: 'Fast mounted warriors. Require horses.', combat: true, atk: 7, hp: 10 },
-  musketeer:      { moves: 3, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 8, hp: 9, ranged: true },
+  musketeer:      { moves: 3, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 10, hp: 10, ranged: true },
   rifleman:       { moves: 3, vision: 6, icon: '\uD83C\uDFAF', desc: 'Elite sharpshooter with Baker rifle. Long range, high accuracy.', combat: true, atk: 9, hp: 8, ranged: true },
   grenadier:      { moves: 3, vision: 4, icon: '\uD83D\uDCA2', desc: 'Heavy shock infantry. Throws grenades and charges with bayonets.', combat: true, atk: 9, hp: 14 },
   hussar:         { moves: 9, vision: 6, icon: '\uD83C\uDFC7', desc: 'Light cavalry with pistols. Fast raider and flanker.', combat: true, atk: 6, hp: 8 },
@@ -2583,6 +2628,66 @@ function showVictory(type) {
     <button class="menu-btn" onclick="document.getElementById('victoryOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
   </div>`;
   document.body.appendChild(overlay);
+  saveVictoryToHistory(type, s);
+}
+
+// --- Victory History (localStorage) ---
+function getVictoryHistory() {
+  try { return JSON.parse(localStorage.getItem('sis_victory_history') || '[]'); } catch(e) { return []; }
+}
+function saveVictoryToHistory(type, scoreBreakdown) {
+  const history = getVictoryHistory();
+  history.unshift({
+    nation: nations[playerNation].name,
+    color: nations[playerNation].color,
+    type: type === 'score' ? 'Score Victory' : 'Domination Victory',
+    turn: turnNumber,
+    score: scoreBreakdown.total,
+    cities: scoreBreakdown.cityCount,
+    territory: scoreBreakdown.tileCount,
+    techs: scoreBreakdown.techCount,
+    military: scoreBreakdown.combatCount,
+    conquests: scoreBreakdown.eliminated,
+    date: new Date().toLocaleDateString()
+  });
+  // Keep max 20 entries
+  if (history.length > 20) history.length = 20;
+  localStorage.setItem('sis_victory_history', JSON.stringify(history));
+}
+function showVictoryHistory() {
+  document.getElementById('menuMain').style.display = 'none';
+  document.getElementById('menuVictoryHistory').style.display = '';
+  const container = document.getElementById('victoryHistoryCards');
+  const history = getVictoryHistory();
+  if (history.length === 0) {
+    container.innerHTML = '<p style="color:#888;font-size:14px;padding:20px;">No victories yet. Win a game to record your triumph!</p>';
+    return;
+  }
+  container.innerHTML = history.map((v, i) => `
+    <div style="background:rgba(40,35,20,0.7);border:1px solid rgba(212,168,86,0.3);border-radius:8px;padding:16px 18px;margin-bottom:10px;text-align:left;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-family:'Uncial Antiqua',cursive;color:${v.color};font-size:16px;text-shadow:1px 1px 2px rgba(0,0,0,0.5);">${v.nation}</span>
+        <span style="color:#d4a856;font-size:14px;font-weight:bold;">${v.type}</span>
+      </div>
+      <div style="font-size:12px;color:#c8b8a0;line-height:1.7;">
+        Score: <strong style="color:#d4a856;">${v.score}</strong> &nbsp;|&nbsp; Turn ${v.turn}<br>
+        Cities: ${v.cities} &nbsp; Territory: ${v.territory} &nbsp; Techs: ${v.techs}<br>
+        Military: ${v.military} &nbsp; Conquests: ${v.conquests}
+      </div>
+      <div style="font-size:10px;color:#666;margin-top:6px;">${v.date}</div>
+      <button onclick="deleteVictoryEntry(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#664;cursor:pointer;font-size:14px;" title="Delete">\u2716</button>
+    </div>
+  `).join('');
+}
+function hideVictoryHistory() {
+  document.getElementById('menuVictoryHistory').style.display = 'none';
+  document.getElementById('menuMain').style.display = '';
+}
+function deleteVictoryEntry(index) {
+  const history = getVictoryHistory();
+  history.splice(index, 1);
+  localStorage.setItem('sis_victory_history', JSON.stringify(history));
+  showVictoryHistory();
 }
 
 function showDefeat(type, winnerId) {
@@ -2726,26 +2831,32 @@ function aiTurn(nationId) {
     const updatedLoy = getLoyalty(nationId, otherId);
     if (otherId === playerNation && n.relations[otherId] !== 'war') {
       if (!n._warWarned) n._warWarned = {};
-      if (updatedLoy <= -70 && !n._warWarned.hostile) {
+      if (updatedLoy <= -40 && !n._warWarned.hostile) {
         showToast(`${n.name} grows hostile! (${getLoyaltyLabel(updatedLoy)})`);
         n._warWarned.hostile = true;
-      } else if (updatedLoy <= -90 && !n._warWarned.imminent) {
+      } else if (updatedLoy <= -55 && !n._warWarned.imminent) {
         showToast(`War with ${n.name} is imminent!`);
         n._warWarned.imminent = true;
       }
-      if (updatedLoy > -60) n._warWarned = {}; // reset if relations improve
+      if (updatedLoy > -20) n._warWarned = {}; // reset if relations improve
     }
 
-    // --- Declare war at -100 ---
-    if (updatedLoy <= -100 && n.relations[otherId] !== 'war') {
-      n.relations[otherId] = 'war';
-      nations[otherId].relations[nationId] = 'war';
-      // Clear all agreements on war
-      for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(nationId, otherId, aType);
-      // The target immediately views the aggressor as hostile
-      const otherLoy = getLoyalty(otherId, nationId);
-      if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
-      if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(updatedLoy)})`);
+    // --- Declare war when hostile — but only if army is ready ---
+    if (updatedLoy <= -60 && n.relations[otherId] !== 'war') {
+      const aiArmySize = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
+      const aiCityCount = cities.filter(c => c.nationId === nationId).length;
+      const minArmyForWar = Math.max(4, aiCityCount * 3);
+      // If army is strong enough, or loyalty is extremely low (can't hold back)
+      if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
+        n.relations[otherId] = 'war';
+        nations[otherId].relations[nationId] = 'war';
+        // Clear all agreements on war
+        for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(nationId, otherId, aType);
+        // The target immediately views the aggressor as hostile
+        const otherLoy = getLoyalty(otherId, nationId);
+        if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
+        if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(updatedLoy)})`);
+      }
     }
     // Peace seeking — only if loyalty recovers above 0
     if (n.relations[otherId] === 'war' && updatedLoy > 0) {
@@ -4388,7 +4499,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-1.7';
+const CURRENT_VERSION = 'beta-1.8';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -5556,6 +5667,11 @@ function generateAndPlay(pName, pColor, opponents) {
   // Spawn additional city sites across the map
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
   spawnCitySitesAcrossMap(extraSites);
+
+  // Spawn initial barbarian camp (2 barbarians) on turn 1
+  if (barbarianDensity > 0) {
+    spawnBarbarianCamp();
+  }
 
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false;
