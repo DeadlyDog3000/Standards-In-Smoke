@@ -523,6 +523,7 @@
         - High discontent triggers rebellion &mdash; barbarian rebels spawn around the city<br>
         - Rebellion severity scales with how bad conditions are<br>
         - City panel shows population, jobs, mood, and discontent bar<br>
+        - Pro-people event choices reduce discontent (capital most, others less)<br>
         <br>
         <b style="color:#b8a070;">Fog of War</b><br>
         - Enemy units hidden outside current vision range<br>
@@ -752,6 +753,7 @@
           - Discontent rises without enough jobs, triggers rebellion<br>
           - Rebellion spawns barbarian rebels around the city<br>
           - City panel shows population, jobs, mood & discontent<br>
+          - Pro-people event choices lower discontent<br>
           <br>
           <b style="color:#b8a070;">Fog of War</b><br>
           - Enemy units hidden outside current vision<br>
@@ -4076,6 +4078,14 @@ function applyEventChoice(eventId, choiceIndex) {
       }
     } else if (key === 'legitimacy') {
       n.legitimacy = Math.min(100, Math.max(0, (n.legitimacy || 50) + val));
+      // Pro-people choices (positive legitimacy) reduce city discontent
+      if (val > 0) {
+        const playerCities = cities.filter(c => c.nationId === playerNation);
+        for (const c of playerCities) {
+          const reduction = c.isCapital ? val * 2 : Math.ceil(val / 2);
+          c.discontent = Math.max(0, (c.discontent || 0) - reduction);
+        }
+      }
     } else if (key === 'spawnWorker') {
       const capital = cities.find(c => c.nationId === playerNation && c.isCapital);
       if (capital) {
