@@ -339,7 +339,7 @@
   <h2>A Napoleonic-Era Strategy Game</h2>
   <div id="menuMain">
     <button class="menu-btn" onclick="showNewGame()">New Game</button>
-    <button class="menu-btn" onclick="resumeLastGame()">Resume Last Game</button>
+    <button class="menu-btn" id="resumeBtn" onclick="resumeLastGame()" style="display:none;">Resume Last Game</button>
     <button class="menu-btn" onclick="showVictoryHistory()">Victory History</button>
     <button class="menu-btn" onclick="showMenuOptions()">Options</button>
   </div>
@@ -975,6 +975,7 @@ function pickDevice(mode) {
   localStorage.setItem('sis_device_mode', mode);
   document.getElementById('devicePicker').style.display = 'none';
   document.getElementById('menu').style.display = '';
+  document.getElementById('resumeBtn').style.display = localStorage.getItem('sis_save_auto') ? '' : 'none';
 }
 // Check if device was previously picked
 (function() {
@@ -4693,6 +4694,7 @@ function quitToMenu() {
   document.getElementById('menuSetup').style.display = 'none';
   document.getElementById('menuOptions').style.display = 'none';
   document.getElementById('menuUpdateLog').style.display = 'none';
+  document.getElementById('resumeBtn').style.display = localStorage.getItem('sis_save_auto') ? '' : 'none';
   startMenuSlideshow();
 }
 
