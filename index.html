@@ -317,6 +317,10 @@
     body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; }
     body.mobile-mode .p-btn { padding: 10px 14px; font-size: 14px; margin-bottom: 6px; }
     body.mobile-mode #kingdoms { width: 85vw; max-width: 260px; left: 5px; }
+    @keyframes resDelta { 0% { opacity:1; transform:translateX(-50%) translateY(0); } 100% { opacity:0; transform:translateX(-50%) translateY(-10px); } }
+    @keyframes warFlash { 0% { background: rgba(200,30,10,0.9); } 100% { background: rgba(80,10,5,0.85); } }
+    @keyframes pulseEndTurn { 0%, 100% { box-shadow: 0 0 4px rgba(255,180,60,0.3); } 50% { box-shadow: 0 0 14px rgba(255,180,60,0.7); } }
+    .end-turn-pulse { animation: pulseEndTurn 1.5s ease-in-out infinite; }
     body.mobile-mode #minimap { display: none; }
     body.mobile-mode #zoomInfo { display: none; }
     body.mobile-mode #menu h1 { font-size: 48px; }
@@ -1098,6 +1102,201 @@ let pillaged = []; // { tileIndex, originalImprovement, turnPillaged }
 let hoveredMX = -1, hoveredMY = -1, hoveredUnit = null;
 let lastMouseX = 0, lastMouseY = 0;
 let isDragging = false, dragStartX = 0, dragStartY = 0, dragCamStartX = 0, dragCamStartY = 0, dragMoved = false;
+
+// ====================
+// FLOATING TEXT SYSTEM
+// ====================
+let floatingTexts = []; // { x, y, text, color, startTime, duration, fontSize }
+function addFloatingText(col, row, text, color = '#fff', duration = 1200, fontSize = 14) {
+  floatingTexts.push({ col, row, text, color, startTime: Date.now(), duration, fontSize });
+}
+function renderFloatingTexts() {
+  const now = Date.now();
+  const w = hexWidth(), facePad = Math.round(w * 1.5 * 4 / 48), ch = hexCellH();
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    const elapsed = now - ft.startTime;
+    if (elapsed >= ft.duration) { floatingTexts.splice(i, 1); continue; }
+    const t = elapsed / ft.duration;
+    const alpha = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
+    const yOff = -t * 40;
+    const pos = hexScreenPos(ft.col, ft.row);
+    const sx = pos.x + w / 2, sy = pos.y + facePad + ch / 2 + yOff;
+    if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.font = `bold ${ft.fontSize}px 'EB Garamond', serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3;
+    ctx.strokeText(ft.text, sx, sy);
+    ctx.fillStyle = ft.color;
+    ctx.fillText(ft.text, sx, sy);
+    ctx.restore();
+  }
+}
+
+// ====================
+// PARTICLE SYSTEM (death effects)
+// ====================
+let particles = []; // { x, y, vx, vy, color, startTime, duration, size }
+function spawnDeathParticles(col, row, color) {
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+    const speed = 30 + Math.random() * 40;
+    particles.push({
+      col, row, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      color, startTime: Date.now(), duration: 600, size: 2 + Math.random() * 3
+    });
+  }
+}
+function renderParticles() {
+  const now = Date.now();
+  const w = hexWidth(), facePad = Math.round(w * 1.5 * 4 / 48), ch = hexCellH();
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    const elapsed = now - p.startTime;
+    if (elapsed >= p.duration) { particles.splice(i, 1); continue; }
+    const t = elapsed / p.duration;
+    const pos = hexScreenPos(p.col, p.row);
+    const sx = pos.x + w / 2 + p.vx * t, sy = pos.y + facePad + ch / 2 + p.vy * t;
+    ctx.save();
+    ctx.globalAlpha = 1 - t;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(sx, sy, p.size * (1 - t * 0.5), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ====================
+// SMOOTH CAMERA PAN
+// ====================
+let targetCamX = null, targetCamY = null, camPanCallback = null;
+function panCameraTo(col, row, callback) {
+  targetCamX = Math.max(0, Math.min(MAP_COLS - (viewCols || 10) + 1, Math.round(col - (viewCols || 10) / 2)));
+  targetCamY = Math.max(0, Math.min(MAP_ROWS - (viewRows || 10) + 1, Math.round(row - (viewRows || 10) / 2)));
+  camPanCallback = callback || null;
+  if (!camPanActive) { camPanActive = true; requestAnimationFrame(camPanTick); }
+}
+let camPanActive = false;
+function camPanTick() {
+  if (targetCamX === null) { camPanActive = false; return; }
+  const dx = targetCamX - camX, dy = targetCamY - camY;
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+    camX = targetCamX; camY = targetCamY;
+    targetCamX = null; targetCamY = null;
+    camPanActive = false;
+    render();
+    if (camPanCallback) { const cb = camPanCallback; camPanCallback = null; cb(); }
+    return;
+  }
+  camX += dx * 0.2; camY += dy * 0.2;
+  render();
+  requestAnimationFrame(camPanTick);
+}
+
+// ====================
+// BATTLE EVENT SYSTEM
+// ====================
+let battleEvents = []; // collected during AI turns, replayed visually after
+let battleReplayActive = false;
+function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged) {
+  // Only track events visible to the player
+  const aTile = tiles[attackerY * MAP_COLS + attackerX];
+  const dTile = tiles[defenderY * MAP_COLS + defenderX];
+  const playerInvolved = attackerNationId === playerNation || defenderNationId === playerNation;
+  const visible = aTile.revealed.has(playerNation) || dTile.revealed.has(playerNation);
+  if (!playerInvolved && !visible) return;
+
+  // If it's the player's turn (attacker is player), show effects immediately
+  if (attackerNationId === playerNation) {
+    if (dmgToDefender > 0) addFloatingText(defenderX, defenderY, `-${dmgToDefender}`, '#ff4444', 1400, 16);
+    if (dmgToAttacker > 0) addFloatingText(attackerX, attackerY, `-${dmgToAttacker}`, '#ff8844', 1400, 14);
+    if (defenderDied) {
+      spawnDeathParticles(defenderX, defenderY, nations[defenderNationId]?.color || '#f44');
+      addFloatingText(defenderX, defenderY, 'Killed!', '#ff2222', 1000, 13);
+    }
+    if (attackerDied) {
+      spawnDeathParticles(attackerX, attackerY, nations[attackerNationId]?.color || '#f84');
+    }
+    return; // Don't queue for replay — already shown
+  }
+
+  // AI battles: queue for replay after AI turn
+  battleEvents.push({ attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged });
+}
+
+// Nudge animation for battle (attacker bumps toward defender)
+let nudgeUnit = null, nudgeFromX = 0, nudgeFromY = 0, nudgeToX = 0, nudgeToY = 0, nudgeProgress = 0, nudgeCallback = null;
+function startNudgeAnimation(fromCol, fromRow, toCol, toRow, callback) {
+  nudgeFromX = fromCol; nudgeFromY = fromRow; nudgeToX = toCol; nudgeToY = toRow;
+  nudgeProgress = 0; nudgeCallback = callback;
+  requestAnimationFrame(nudgeTick);
+}
+function nudgeTick(ts) {
+  nudgeProgress += 0.07;
+  if (nudgeProgress >= 1) {
+    nudgeUnit = null; nudgeProgress = 0;
+    render();
+    if (nudgeCallback) { const cb = nudgeCallback; nudgeCallback = null; cb(); }
+    return;
+  }
+  render();
+  requestAnimationFrame(nudgeTick);
+}
+function getNudgeOffset() {
+  if (!nudgeUnit || nudgeProgress === 0) return null;
+  // Bump forward then back: 0->0.5 goes forward, 0.5->1 comes back
+  const t = nudgeProgress < 0.5 ? nudgeProgress * 2 : 2 - nudgeProgress * 2;
+  const fromPos = hexScreenPos(nudgeFromX, nudgeFromY);
+  const toPos = hexScreenPos(nudgeToX, nudgeToY);
+  return { x: (toPos.x - fromPos.x) * t * 0.4, y: (toPos.y - fromPos.y) * t * 0.4 };
+}
+
+async function replayBattleEvents() {
+  if (battleEvents.length === 0) return;
+  battleReplayActive = true;
+  animationBlocking = true;
+  const events = [...battleEvents];
+  battleEvents = [];
+  for (const evt of events) {
+    // Pan camera to battle
+    await new Promise(resolve => {
+      panCameraTo(evt.defenderX, evt.defenderY, resolve);
+    });
+    // Brief pause to orient
+    await new Promise(r => setTimeout(r, 200));
+    // Show floating damage texts
+    if (evt.dmgToDefender > 0) {
+      addFloatingText(evt.defenderX, evt.defenderY, `-${evt.dmgToDefender}`, '#ff4444', 1400, 16);
+    }
+    if (evt.dmgToAttacker > 0) {
+      addFloatingText(evt.attackerX, evt.attackerY, `-${evt.dmgToAttacker}`, '#ff8844', 1400, 14);
+    }
+    // Nudge animation for melee
+    if (!evt.isRanged) {
+      // Create a temporary ghost unit for the nudge visual
+      nudgeUnit = { col: evt.attackerX, row: evt.attackerY, type: evt.attackerType, nationId: evt.attackerNationId };
+      await new Promise(resolve => {
+        startNudgeAnimation(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, resolve);
+      });
+    }
+    // Death particles
+    if (evt.defenderDied) {
+      spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#f44');
+      addFloatingText(evt.defenderX, evt.defenderY, 'Killed!', '#ff2222', 1000, 13);
+    }
+    if (evt.attackerDied) {
+      spawnDeathParticles(evt.attackerX, evt.attackerY, nations[evt.attackerNationId]?.color || '#f84');
+      addFloatingText(evt.attackerX, evt.attackerY, 'Killed!', '#ff2222', 1000, 13);
+    }
+    render();
+    // Wait for texts/particles to show
+    await new Promise(r => setTimeout(r, evt.defenderDied || evt.attackerDied ? 800 : 500));
+  }
+  battleReplayActive = false;
+  animationBlocking = false;
+}
 let escMenuOpen = false;
 // pendingMapCols/pendingMapRows removed - map size now selected via dropdown in setup
 let musicEnabled = true;
@@ -1578,6 +1777,23 @@ function showToast(msg, noLog) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 2000);
   if (!noLog && typeof logEvent === 'function') logEvent(msg);
+}
+
+function showWarDeclaration(nation) {
+  logEvent(`${nation.name} has declared war!`);
+  const overlay = document.createElement('div');
+  overlay.id = 'warDeclOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:160;background:rgba(80,10,5,0.85);display:flex;align-items:center;justify-content:center;animation:warFlash 0.3s ease-out;';
+  overlay.innerHTML = `<div style="text-align:center;padding:40px;">
+    <div style="width:80px;height:80px;border-radius:50%;background:${nation.color};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+      <span style="font-size:40px;">\u2694\uFE0F</span>
+    </div>
+    <h1 style="color:#ff4444;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 0 20px rgba(255,50,30,0.6);margin-bottom:10px;">War Declared!</h1>
+    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${nation.name}</strong> has declared war on your kingdom!</p>
+    <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
+    <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
+  </div>`;
+  document.body.appendChild(overlay);
 }
 
 // ====================
@@ -2076,6 +2292,12 @@ function doAttack(attacker, tx, ty) {
     attacker.movesLeft = 0;
     return;
   }
+  // Save pre-combat state for battle events
+  const attackerOrigX = attacker.x, attackerOrigY = attacker.y;
+  const attackerNationId = attacker.nationId, defenderNationId = target.nationId;
+  const attackerType = attacker.type, defenderType = target.type;
+  const defenderHpBefore = target.hp, attackerHpBefore = attacker.hp;
+
   const atkPower = atkDef.atk || 4;
   const atkMaxHp = atkDef.hp || 10;
   const atkHpRatio = attacker.hp / atkMaxHp;
@@ -2107,6 +2329,12 @@ function doAttack(attacker, tx, ty) {
       changeLoyalty(n.id, attacker.nationId, -3);
     }
   }
+  // Compute damage dealt for battle event
+  const dmgToDefender = defenderHpBefore - target.hp;
+  const dmgToAttacker = attackerHpBefore - attacker.hp;
+  const defenderDied = target.hp <= 0;
+  const attackerDied = attacker.hp <= 0;
+
   if (target.hp <= 0) {
     // Legitimacy: +2 for killing an enemy unit
     if (!nations[attacker.nationId].isBarbarian) {
@@ -2135,6 +2363,9 @@ function doAttack(attacker, tx, ty) {
     units.splice(units.indexOf(attacker), 1);
   }
   if (units.includes(attacker)) attacker.movesLeft = 0;
+
+  // Record battle event for replay
+  addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
 }
 
 // ====================
@@ -2933,7 +3164,7 @@ function aiTurn(nationId) {
         // The target immediately views the aggressor as hostile
         const otherLoy = getLoyalty(otherId, nationId);
         if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
-        if (otherId === playerNation) showToast(`${n.name} has declared war! (Loyalty: ${getLoyaltyLabel(updatedLoy)})`);
+        if (otherId === playerNation) showWarDeclaration(n);
       }
     }
     // Peace seeking — only if loyalty recovers above 0
@@ -3075,6 +3306,7 @@ function aiTurn(nationId) {
           const atkPower = UNIT_DEFS[u.type].atk || 4;
           const rMaxHp = UNIT_DEFS[u.type].hp || 10;
           const rHpRatio = u.hp / rMaxHp;
+          const aiRTargetHpBefore = bestTarget.hp;
           // Apply terrain and fortification defense for ranged target
           const aiRTi = bestTarget.y * MAP_COLS + bestTarget.x;
           const aiRTerrain = tiles[aiRTi].type;
@@ -3084,11 +3316,14 @@ function aiTurn(nationId) {
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? 1.5 : 1.0;
           bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus);
           changeLoyalty(bestTarget.nationId, nationId, -10);
+          const aiRDmg = aiRTargetHpBefore - bestTarget.hp;
+          const aiRKilled = bestTarget.hp <= 0;
           if (bestTarget.hp <= 0) {
             if (!nations[nationId].isBarbarian) nations[nationId].legitimacy = Math.min(100, (nations[nationId].legitimacy || 50) + 2);
             if (!nations[bestTarget.nationId].isBarbarian) nations[bestTarget.nationId].legitimacy = Math.max(0, (nations[bestTarget.nationId].legitimacy || 50) - 1);
             units.splice(units.indexOf(bestTarget), 1);
           }
+          addBattleEvent(u.x, u.y, bestTarget.x, bestTarget.y, u.type, bestTarget.type, aiRDmg, 0, aiRKilled, false, nationId, bestTarget.nationId, true);
           playCombatSound(u.type, u.x, u.y);
           u.movesLeft = 0; attacked = true;
         }
@@ -3313,6 +3548,7 @@ function getFoodConsumption(nationId) {
 }
 
 function endTurn() {
+  if (battleReplayActive || animationBlocking) return; // Block during battle replay
   // Base passive income (skip barbarians)
   for (const n of nations) { if (n.isBarbarian) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; n.gunpowder = n.gunpowder || 0; }
   // Player city yields & production
@@ -3338,11 +3574,21 @@ function endTurn() {
     nations[i].gold -= maintenance;
     if (nations[i].gold < 0) nations[i].gold = 0;
   }
+  battleEvents = []; // Clear any stale events
   for (let i = 0; i < nations.length; i++) {
     if (i === playerNation) continue;
     if (isBarbarianNation(i)) barbarianAI(i);
     else aiTurn(i);
   }
+  // Replay visible battles from AI turn
+  if (battleEvents.length > 0) {
+    replayBattleEvents().then(() => { finishEndTurn(); });
+    return;
+  }
+  finishEndTurn();
+}
+
+function finishEndTurn() {
   tickWorkerBuilds();
   tickBarbarianCamps();
   tickPillaged();
@@ -3915,6 +4161,47 @@ function render() {
     }
   }
 
+  // Nudge ghost unit (battle animation)
+  if (nudgeUnit && nudgeProgress > 0) {
+    const nOff = getNudgeOffset();
+    if (nOff) {
+      const nPos = hexScreenPos(nudgeUnit.col, nudgeUnit.row);
+      const ncx = nPos.x + w / 2 + nOff.x, ncy = nPos.y + facePad + ch / 2 + nOff.y;
+      const nrad = w * 0.32;
+      ctx.fillStyle = nations[nudgeUnit.nationId]?.color || '#888';
+      ctx.beginPath(); ctx.arc(ncx, ncy, nrad, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(ncx, ncy, nrad, 0, Math.PI * 2); ctx.stroke();
+      if (VIEW_TILE >= 14) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `${Math.max(10, w * 0.45)}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(UNIT_DEFS[nudgeUnit.type]?.icon || '?', ncx, ncy);
+      }
+    }
+  }
+
+  // Stack count badges
+  if (VIEW_TILE >= 14) {
+    const counted = new Set();
+    for (const u of sortedUnits) {
+      const key = u.y * MAP_COLS + u.x;
+      if (counted.has(key)) continue;
+      const stack = units.filter(o => o.x === u.x && o.y === u.y);
+      if (stack.length <= 1) continue;
+      counted.add(key);
+      if (!tiles[key].revealed.has(pId) && u.nationId !== pId) continue;
+      const pos2 = hexScreenPos(u.x, u.y);
+      const bx = pos2.x + w * 0.8, by = pos2.y + facePad + ch * 0.15;
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.beginPath(); ctx.arc(bx, by, w * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd';
+      ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(stack.length, bx, by);
+    }
+  }
+
   // Go-to destination markers
   for (const u of units) {
     if (u.nationId !== pId || u.gotoX === undefined) continue;
@@ -3949,12 +4236,21 @@ function render() {
     }
   }
 
+  // Floating texts & particles overlay
+  renderFloatingTexts();
+  renderParticles();
+
   updateCityLabels();
   renderMinimap();
   updateAmbientBirds();
   updateAmbientTown();
   document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
   document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+
+  // Keep rendering if we have active floating texts or particles
+  if ((floatingTexts.length > 0 || particles.length > 0) && !selectionFlashRAF && !animationBlocking) {
+    requestAnimationFrame(() => render());
+  }
 }
 
 function updateCityLabels() {
@@ -4032,9 +4328,35 @@ function renderMinimap() {
 // ====================
 // UI
 // ====================
+let prevResources = null; // Track previous resource values for delta display
+function showResourceDelta(elId, oldVal, newVal) {
+  const delta = Math.floor(newVal) - Math.floor(oldVal);
+  if (delta === 0) return;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const existing = el.parentElement.querySelector('.res-delta');
+  if (existing) existing.remove();
+  const span = document.createElement('span');
+  span.className = 'res-delta';
+  span.textContent = delta > 0 ? `+${delta}` : `${delta}`;
+  span.style.cssText = `position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:bold;color:${delta > 0 ? '#6f6' : '#f66'};pointer-events:none;animation:resDelta 1.5s ease-out forwards;white-space:nowrap;`;
+  el.parentElement.style.position = 'relative';
+  el.parentElement.appendChild(span);
+  setTimeout(() => span.remove(), 1500);
+}
 function updateUI() {
   const n = nations[playerNation];
   const y = getTotalYields(playerNation);
+  const newRes = { gold: n.gold, food: n.food, wood: n.wood, stone: n.stone, steel: n.steel, gunpowder: n.gunpowder || 0 };
+  if (prevResources) {
+    showResourceDelta('resGold', prevResources.gold, newRes.gold);
+    showResourceDelta('resFood', prevResources.food, newRes.food);
+    showResourceDelta('resWood', prevResources.wood, newRes.wood);
+    showResourceDelta('resStone', prevResources.stone, newRes.stone);
+    showResourceDelta('resSteel', prevResources.steel, newRes.steel);
+    showResourceDelta('resGunpowder', prevResources.gunpowder, newRes.gunpowder);
+  }
+  prevResources = { ...newRes };
   document.getElementById('resGold').textContent = Math.floor(n.gold);
   document.getElementById('resFood').textContent = Math.floor(n.food);
   document.getElementById('resWood').textContent = Math.floor(n.wood);
@@ -4065,6 +4387,11 @@ function updateUI() {
   document.getElementById('resOrders').textContent = ordersRemaining + ' / ' + getMaxOrders(playerNation);
   document.getElementById('turnCounter').textContent = turnNumber;
   document.getElementById('playerScore').textContent = getScore(playerNation);
+  // Pulse end-turn button when no units have moves left
+  const btn = document.getElementById('endTurnBtn');
+  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && !u.gotoX && !u.building);
+  if (!anyMoves) btn.classList.add('end-turn-pulse');
+  else btn.classList.remove('end-turn-pulse');
 }
 
 function hidePanel() { document.getElementById('panel').style.display = 'none'; stopSelectionFlash(); }
@@ -5061,18 +5388,35 @@ canvas.addEventListener('click', (e) => {
     if (tileOk) {
       selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
       gotoMode = false;
-      // Immediately move toward destination with remaining moves
+      // Immediately move toward destination with animation
       if (selectedUnit.movesLeft > 0) {
         const path = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
         if (path && path.length > 0) {
-          for (let i = 0; i < path.length && selectedUnit.movesLeft > 0; i++) {
+          // Determine how far we can move this turn
+          const animSteps = [];
+          const gotoUnit = selectedUnit;
+          const gotoOrigX = gotoUnit.x, gotoOrigY = gotoUnit.y;
+          for (let i = 0; i < path.length && gotoUnit.movesLeft > 0; i++) {
             const step = path[i];
-            if (units.some(o => o.x === step.x && o.y === step.y && o !== selectedUnit)) break;
-            selectedUnit.x = step.x; selectedUnit.y = step.y; selectedUnit.movesLeft--;
-            revealAround(selectedUnit.x, selectedUnit.y, UNIT_DEFS[selectedUnit.type].vision, selectedUnit.nationId);
+            if (units.some(o => o.x === step.x && o.y === step.y && o !== gotoUnit)) break;
+            gotoUnit.x = step.x; gotoUnit.y = step.y; gotoUnit.movesLeft--;
+            revealAround(gotoUnit.x, gotoUnit.y, UNIT_DEFS[gotoUnit.type].vision, gotoUnit.nationId);
+            animSteps.push({ x: step.x, y: step.y });
           }
-          if (selectedUnit.x === selectedUnit.gotoX && selectedUnit.y === selectedUnit.gotoY) {
-            delete selectedUnit.gotoX; delete selectedUnit.gotoY;
+          if (gotoUnit.x === gotoUnit.gotoX && gotoUnit.y === gotoUnit.gotoY) {
+            delete gotoUnit.gotoX; delete gotoUnit.gotoY;
+          }
+          if (animSteps.length > 0) {
+            startUnitAnimation(gotoUnit, animSteps, () => {
+              showToast(gotoUnit.gotoX !== undefined ? `Go-to order set for ${UNIT_DEFS[gotoUnit.type].icon}` : `${UNIT_DEFS[gotoUnit.type].icon} arrived at destination`);
+              if (gotoUnit.movesLeft <= 0) { cycleToNextUnit(); }
+              else { showUnitPanel(gotoUnit); }
+              updateUI(); render();
+            }, gotoOrigX, gotoOrigY);
+            // Pan camera to follow
+            panCameraTo(gotoUnit.x, gotoUnit.y);
+            render();
+            return;
           }
         }
       }
@@ -5131,7 +5475,15 @@ canvas.addEventListener('click', (e) => {
     return;
   }
 
-  const clickedUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
+  // Click-to-cycle: if clicking the same tile as the selected unit, cycle to next unit on stack
+  let clickedUnit;
+  const tilePlayerUnits = units.filter(u => u.x === mx && u.y === my && u.nationId === playerNation);
+  if (tilePlayerUnits.length > 1 && selectedUnit && tilePlayerUnits.includes(selectedUnit)) {
+    const idx = tilePlayerUnits.indexOf(selectedUnit);
+    clickedUnit = tilePlayerUnits[(idx + 1) % tilePlayerUnits.length];
+  } else {
+    clickedUnit = tilePlayerUnits[0];
+  }
   if (clickedUnit) {
     playClick();
     selectedUnit = clickedUnit; selectedCity = null;
@@ -5411,6 +5763,7 @@ window.doRangedAttack = function(tx, ty) {
   const atkPower = UNIT_DEFS[selectedUnit.type].atk || 4;
   const rMaxHp = UNIT_DEFS[selectedUnit.type].hp || 10;
   const rHpRatio = selectedUnit.hp / rMaxHp;
+  const rTargetHpBefore = target.hp;
   // Terrain and fortification defense for ranged target
   const rDefTi = ty * MAP_COLS + tx;
   const rDefTerrain = tiles[rDefTi].type;
@@ -5419,6 +5772,8 @@ window.doRangedAttack = function(tx, ty) {
   const rFortBonus = target.fortified ? 0.8 : 1.0;
   const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? 1.5 : 1.0;
   target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus);
+  const rDmgDealt = rTargetHpBefore - target.hp;
+  const rTargetDied = target.hp <= 0;
   // Ranged: target doesn't fight back
   changeLoyalty(target.nationId, selectedUnit.nationId, -10);
   for (const n of nations) {
@@ -5433,6 +5788,12 @@ window.doRangedAttack = function(tx, ty) {
       nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
     }
     units.splice(units.indexOf(target), 1);
+  }
+  // Show battle effects immediately for player ranged attacks
+  addFloatingText(tx, ty, `-${rDmgDealt}`, '#ff4444', 1400, 16);
+  if (rTargetDied) {
+    spawnDeathParticles(tx, ty, nations[target.nationId]?.color || '#f44');
+    addFloatingText(tx, ty, 'Killed!', '#ff2222', 1000, 13);
   }
   selectedUnit.movesLeft = 0;
   rangedMode = false;
