@@ -1153,7 +1153,7 @@ function playCombatSound(unitType, x, y) {
   const fieldGunTypes = ['field_gun'];
   const navalGunTypes = ['galleon', 'man_of_war'];
   if (gunpowderRanged.includes(unitType)) {
-    const s = musketSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {});
+    fireVolley(musketSound, 4, 1000, 0.5);
   } else if (cannonTypes.includes(unitType)) {
     fireVolley(cannonShotSound, 3, 400, 0.5);
   } else if (fieldGunTypes.includes(unitType)) {
@@ -3970,7 +3970,23 @@ function renderMinimap() {
     const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
     mctx.fillRect(px, py, Math.ceil(scaleX * step * 0.75), Math.ceil(scaleY * step));
   }
+  // Draw territory borders on minimap
+  for (let y = 0; y < MAP_ROWS; y += step) for (let x = 0; x < MAP_COLS; x += step) {
+    const i = y * MAP_COLS + x; const t = tiles[i];
+    if (t.owner < 0 || !t.revealed.has(playerNation)) continue;
+    if (!discoveredNations.has(t.owner) && t.owner !== playerNation) continue;
+    const px = Math.floor(x * scaleX * 0.75);
+    const py = Math.floor(y * scaleY + (x % 2) * scaleY * 0.5);
+    const bw = Math.ceil(scaleX * step * 0.75), bh = Math.ceil(scaleY * step);
+    mctx.fillStyle = nations[t.owner].color;
+    mctx.globalAlpha = 0.35;
+    mctx.fillRect(px, py, bw, bh);
+    mctx.globalAlpha = 1.0;
+  }
+  // Draw cities (only discovered nations)
   for (const c of cities) {
+    if (c.nationId !== playerNation && !discoveredNations.has(c.nationId)) continue;
+    if (!tiles[c.y * MAP_COLS + c.x].revealed.has(playerNation) && c.nationId !== playerNation) continue;
     mctx.fillStyle = nations[c.nationId].color;
     mctx.fillRect(Math.floor(c.x * scaleX * 0.75) - 1, Math.floor(c.y * scaleY + (c.x % 2) * scaleY * 0.5) - 1, 3, 3);
   }
@@ -4322,11 +4338,20 @@ function renderKingdoms() {
         } else {
           html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'barb_help')">Request Barbarian Help</button> `;
         }
-        // Resource Trade
-        html += `<br><span style="color:#9a8a6a;">Trade:</span> `;
-        for (const res of ['gold','food','wood','stone','steel','gunpowder']) {
-          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestTrade(${n.id},'${res}')" title="Trade 20 ${res}">Buy 20 ${res}</button> `;
+        // Resource Trade — expandable panel
+        html += `<br><button class="diplo-btn" style="font-size:10px;margin-top:4px;" onclick="toggleTradePanel(${n.id})">Trade Resources</button>`;
+        html += `<div id="tradePanel_${n.id}" style="display:none;margin-top:6px;background:rgba(20,16,10,0.6);border:1px solid rgba(160,140,100,0.25);border-radius:4px;padding:8px;">`;
+        const tradeLoy = getLoyalty(n.id, playerNation);
+        const tradeMarkup = tradeLoy >= 80 ? 1.0 : tradeLoy >= 50 ? 1.25 : tradeLoy >= 20 ? 1.5 : 2.0;
+        const tradeLabel = tradeLoy >= 80 ? 'Friendly prices' : tradeLoy >= 50 ? 'Fair prices' : tradeLoy >= 20 ? 'Marked up' : 'Steep prices';
+        html += `<div style="font-size:10px;color:#8a7a5a;margin-bottom:4px;">${tradeLabel} (${Math.round(tradeMarkup * 100)}%)</div>`;
+        for (const res of ['food','wood','stone','steel','gunpowder']) {
+          const cost = Math.round(20 * tradeMarkup);
+          const theyHave = Math.floor(nations[n.id][res] || 0);
+          const canAfford = nations[playerNation].gold >= cost && theyHave >= 20;
+          html += `<button class="diplo-btn" style="font-size:10px;margin:1px;" ${canAfford ? '' : 'disabled'} onclick="requestTrade(${n.id},'${res}')" title="${theyHave < 20 ? 'They don\\'t have enough' : cost + ' gold for 20 ' + res}">20 ${res} <span style="color:#d4a856;font-size:9px;">(${cost}g)</span></button> `;
         }
+        html += `</div>`;
         html += `</div>`;
         // Incoming requests from AI
         if (pendingReq) {
@@ -4387,18 +4412,29 @@ function cancelAgreement(nationId, type) {
 }
 function requestTrade(nationId, resource) {
   const loy = getLoyalty(nationId, playerNation);
-  if (loy < 30) { showToast(`${nations[nationId].name} refuses to trade — relations too poor.`); return; }
+  if (loy < -20) { showToast(`${nations[nationId].name} refuses to trade — relations too poor.`); return; }
   const theirAmount = nations[nationId][resource] || 0;
   if (theirAmount < 20) { showToast(`${nations[nationId].name} doesn't have enough ${resource}.`); return; }
-  const cost = 25; // gold cost for 20 resources
+  // Dynamic pricing based on loyalty
+  const markup = loy >= 80 ? 1.0 : loy >= 50 ? 1.25 : loy >= 20 ? 1.5 : 2.0;
+  const cost = Math.round(20 * markup);
   if (nations[playerNation].gold < cost) { showToast(`Not enough gold! (need ${cost})`); return; }
+  // AI willingness: suspicious nations may refuse if they're low on the resource
+  if (loy < 20 && theirAmount < 40 && Math.random() < 0.4) {
+    showToast(`${nations[nationId].name} refuses — they need their ${resource} reserves.`);
+    return;
+  }
   nations[playerNation].gold -= cost;
   nations[nationId].gold = (nations[nationId].gold || 0) + cost;
   nations[nationId][resource] -= 20;
   nations[playerNation][resource] = (nations[playerNation][resource] || 0) + 20;
   changeLoyalty(nationId, playerNation, 2);
-  showToast(`Traded 25 gold for 20 ${resource} from ${nations[nationId].name}.`);
+  showToast(`Traded ${cost} gold for 20 ${resource} from ${nations[nationId].name}.`);
   updateUI(); renderKingdoms();
+}
+function toggleTradePanel(nationId) {
+  const panel = document.getElementById('tradePanel_' + nationId);
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 function acceptRequest(nationId, type) {
   if (!nations[nationId]._diploRequest) return;
@@ -4418,6 +4454,7 @@ function rejectRequest(nationId, type) {
 window.requestAgreement = requestAgreement;
 window.cancelAgreement = cancelAgreement;
 window.requestTrade = requestTrade;
+window.toggleTradePanel = toggleTradePanel;
 window.acceptRequest = acceptRequest;
 window.rejectRequest = rejectRequest;
 window.acceptPeace = acceptPeace;
