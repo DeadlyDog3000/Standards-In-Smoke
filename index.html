@@ -1880,12 +1880,17 @@ const PRODUCTION_COSTS = {
 };
 
 const CITY_BUILDING_DEFS = {
-  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20% (stacks with terrain). Units heal +2 HP/turn in this city.', category: 'military' },
+  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20%. Units heal +2 HP/turn. -3 discontent/turn (garrison keeps order).', category: 'military' },
   granary:        { name: 'Granary', icon: '\uD83C\uDF3E', desc: '+8% population growth. Reduces discontent from growth.', category: 'growth' },
   // Wonders (global unique — only one per game)
   great_library:    { name: 'Great Library', icon: '\uD83D\uDCDA', desc: '+50% science output for this nation. All cities gain +1 science yield.', category: 'wonder', wonder: true },
   grand_cathedral:  { name: 'Grand Cathedral', icon: '\u26EA', desc: 'All cities gain -5 discontent. +20 legitimacy. Population growth +10% everywhere.', category: 'wonder', wonder: true },
   royal_arsenal:    { name: 'Royal Arsenal', icon: '\u2694\uFE0F', desc: 'All new military units start with 5 XP (Trained rank). +2 ATK for city garrison.', category: 'wonder', wonder: true },
+};
+
+// Unit upgrade paths: from -> { to, tech, cost }
+const UNIT_UPGRADES = {
+  crossbowman: { to: 'musketeer', tech: 'gunpowder_tech', cost: { steel: 10, gold: 15, gunpowder: 10 } },
 };
 
 // ====================
@@ -4214,18 +4219,20 @@ function tickCityLoyalty() {
     const needed = city.population * 2;
     // Grand Cathedral: -5 discontent per turn for all cities
     if (hasCathedral) city.discontent = Math.max(0, (city.discontent || 0) - 5);
+    // Fortifications: garrison keeps order, -3 discontent per turn
+    if ((city.buildings || []).includes('fortifications')) city.discontent = Math.max(0, (city.discontent || 0) - 3);
     if (jobs >= needed) {
       // Content cities recover discontent faster
-      city.discontent = Math.max(0, (city.discontent || 0) - 3);
+      city.discontent = Math.max(0, (city.discontent || 0) - 4);
     } else {
       const deficit = needed - jobs;
       // Diminishing returns: discontent grows slower when already high
-      let growth = Math.max(1, Math.ceil(deficit / (1 + (city.discontent || 0) * 0.1)));
+      let growth = Math.max(1, Math.ceil(deficit / (2 + (city.discontent || 0) * 0.15)));
       if ((city.buildings || []).includes('granary')) growth = Math.max(1, growth - 1);
       city.discontent = (city.discontent || 0) + growth;
     }
-    // Rebellion threshold: 25 discontent triggers revolt (chance-based)
-    if (city.discontent >= 25 && Math.random() < 0.4 + (city.discontent - 25) * 0.05) {
+    // Rebellion threshold: 35 discontent triggers revolt (chance-based)
+    if (city.discontent >= 35 && Math.random() < 0.3 + (city.discontent - 35) * 0.04) {
       triggerRebellion(city);
       city.discontent = 0;
     }
@@ -5466,6 +5473,22 @@ function showUnitPanel(unit) {
     if (!def.combat || unit.type === 'scout' || unit.type === 'veteran_scout') {
       const exploring = unit.autoExplore ? ' style="border-color:#6c6;color:#6c6"' : '';
       html += `<button class="p-btn" onclick="toggleAutoExplore()"${exploring}>Auto-Explore (X)${unit.autoExplore ? ' — Active' : ''}</button>`;
+    }
+  }
+  // Upgrade button
+  if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
+    const upg = UNIT_UPGRADES[unit.type];
+    const hastech = nationHasTech(playerNation, upg.tech);
+    const n = nations[playerNation];
+    const canAfford = hastech && Object.entries(upg.cost).every(([r, amt]) => (n[r] || 0) >= amt);
+    const inCity = cities.some(c => c.x === unit.x && c.y === unit.y && c.nationId === playerNation);
+    const toDef = UNIT_DEFS[upg.to];
+    const costStr = Object.entries(upg.cost).map(([r, amt]) => `${amt} ${r}`).join(', ');
+    if (hastech && inCity) {
+      html += `<button class="p-btn" onclick="upgradeUnit()" ${!canAfford ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${toDef.desc.split('.')[0]} <span class="cost">${costStr}</span></button>`;
+      if (!canAfford) html += `<p style="font-size:10px;color:#a66">Not enough resources to upgrade.</p>`;
+    } else if (hastech && !inCity) {
+      html += `<p style="font-size:10px;color:#a86">Move to a city to upgrade to ${toDef.icon} ${UNIT_DEFS[upg.to].desc.split('.')[0]}.</p>`;
     }
   }
   // Show unit stack info and cycle button if multiple units on tile
@@ -7165,6 +7188,34 @@ window.wakeUnit = function() {
     cancelBuild();
     return;
   }
+  showUnitPanel(selectedUnit); updateUI(); render();
+};
+
+window.upgradeUnit = function() {
+  if (!selectedUnit || selectedUnit.nationId !== playerNation) return;
+  const upg = UNIT_UPGRADES[selectedUnit.type];
+  if (!upg) return;
+  if (!nationHasTech(playerNation, upg.tech)) { showToast('Missing required technology.'); return; }
+  if (!cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === playerNation)) {
+    showToast('Must be in a city to upgrade.'); return;
+  }
+  const n = nations[playerNation];
+  for (const [r, amt] of Object.entries(upg.cost)) {
+    if ((n[r] || 0) < amt) { showToast('Not enough resources!'); return; }
+  }
+  if (!tryActivateUnit(selectedUnit)) return;
+  // Deduct resources
+  for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt;
+  // Upgrade the unit in place — keep XP, HP ratio, position
+  const oldDef = UNIT_DEFS[selectedUnit.type];
+  const newDef = UNIT_DEFS[upg.to];
+  const hpRatio = selectedUnit.hp / (oldDef.hp || 10);
+  selectedUnit.type = upg.to;
+  selectedUnit.hp = Math.max(1, Math.round(hpRatio * (newDef.hp || 10)));
+  selectedUnit.maxMoves = newDef.moves;
+  selectedUnit.movesLeft = 0; // upgrade uses the turn
+  selectedUnit.vision = newDef.vision;
+  showToast(`Upgraded to ${newDef.icon} ${upg.to.replace(/_/g, ' ')}!`);
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 
