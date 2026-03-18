@@ -747,6 +747,30 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.1</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Unit Experience System</b><br>
+          - Combat units earn XP from battles (killing and hitting)<br>
+          - 5 ranks: Green, Trained, Veteran, Elite, Legendary<br>
+          - Higher ranks gain ATK and HP bonuses<br>
+          - Rank pips displayed below units, rank shown in panels<br>
+          - Level-up heals bonus HP and shows promotion toast<br>
+          <br>
+          <b style="color:#b8a070;">Flanking Bonus</b><br>
+          - +10% damage per adjacent friendly combat unit<br>
+          - Encourages tactical positioning and combined arms<br>
+          <br>
+          <b style="color:#b8a070;">More Events</b><br>
+          - 8 new narrative events (26 total): Veteran General, Hidden Powder Cache, Religious Schism, Foreign Scholars, Mutiny, Pirate Menace, Cultural Renaissance, Military Defector<br>
+          <br>
+          <b style="color:#b8a070;">Smarter AI</b><br>
+          - AI settlers evaluate terrain quality when choosing where to settle<br>
+          - AI avoids founding cities too close together<br>
+          <br>
+          <b style="color:#b8a070;">Difficulty Scaling</b><br>
+          - Easy: reduced AI resources/combat, fewer barbarians, bonus starting resources<br>
+          - Hard: boosted AI resources/combat, extra AI orders, more barbarians<br>
+        </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.0</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">City Loyalty & Rebellion</b><br>
@@ -1098,10 +1122,79 @@ const FORT_BONUS = 0.8;       // Fortified units take 20% less damage
 const SIEGE_BONUS = 1.5;      // Siege units deal 50% more to cities
 const HEAL_IN_CITY = 3;       // HP healed per turn in a city
 const HEAL_IN_TERRITORY = 2;  // HP healed per turn in owned territory
+
+// ====================
+// UNIT EXPERIENCE SYSTEM
+// ====================
+const XP_PER_KILL = 3;
+const XP_PER_HIT = 1;        // XP for dealing damage without killing
+const XP_LEVELS = [
+  { xp: 0,  rank: 'Green',    atkBonus: 0,   hpBonus: 0,  color: '#aaa' },
+  { xp: 4,  rank: 'Trained',  atkBonus: 1,   hpBonus: 1,  color: '#6c6' },
+  { xp: 10, rank: 'Veteran',  atkBonus: 2,   hpBonus: 2,  color: '#4af' },
+  { xp: 20, rank: 'Elite',    atkBonus: 3,   hpBonus: 4,  color: '#da4' },
+  { xp: 35, rank: 'Legendary', atkBonus: 5,  hpBonus: 6,  color: '#f4a' },
+];
+function getUnitLevel(unit) {
+  const xp = unit.xp || 0;
+  let level = 0;
+  for (let i = XP_LEVELS.length - 1; i >= 0; i--) {
+    if (xp >= XP_LEVELS[i].xp) { level = i; break; }
+  }
+  return XP_LEVELS[level];
+}
+function getEffectiveAtk(unit) {
+  const base = UNIT_DEFS[unit.type].atk || 4;
+  return base + getUnitLevel(unit).atkBonus;
+}
+function getEffectiveMaxHp(unit) {
+  const base = UNIT_DEFS[unit.type].hp || (UNIT_DEFS[unit.type].combat ? 10 : 5);
+  return base + getUnitLevel(unit).hpBonus;
+}
+function awardXP(unit, amount) {
+  if (!UNIT_DEFS[unit.type]?.combat) return;
+  const oldLevel = getUnitLevel(unit);
+  unit.xp = (unit.xp || 0) + amount;
+  const newLevel = getUnitLevel(unit);
+  if (newLevel !== oldLevel) {
+    // Level up! Heal bonus HP and show notification
+    const hpGain = newLevel.hpBonus - oldLevel.hpBonus;
+    unit.hp += hpGain;
+    if (unit.nationId === playerNation) {
+      addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
+      showToast(`${UNIT_DEFS[unit.type].icon} promoted to ${newLevel.rank}!`);
+    }
+  }
+}
+
+// ====================
+// FLANKING BONUS
+// ====================
+function getFlankingBonus(attacker, defenderX, defenderY) {
+  let friendlyAdj = 0;
+  for (const nb of hexNeighbors(defenderX, defenderY)) {
+    if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+    const ally = units.find(u => u.x === nb.col && u.y === nb.row && u.nationId === attacker.nationId && UNIT_DEFS[u.type]?.combat && u !== attacker);
+    if (ally) friendlyAdj++;
+  }
+  return 1.0 + friendlyAdj * 0.1; // +10% per adjacent friendly combat unit
+}
 const CITY_VISION_BASE = 5;   // Base city vision radius
 const CITY_VISION_MAX_BONUS = 3; // Max extra vision from population
 const FREE_MIL_PER_CITY = 2;  // Free military units before maintenance costs
 const UNIT_MAINTENANCE = 0.5; // Gold per excess military unit per turn
+
+// ====================
+// DIFFICULTY SCALING
+// ====================
+function getDifficultyModifiers() {
+  switch (gameDifficulty) {
+    case 'easy':   return { aiResourceMult: 0.7, aiCombatMult: 0.85, aiBonusOrders: 0, playerBonusResources: 5, barbMult: 0.7 };
+    case 'normal': return { aiResourceMult: 1.0, aiCombatMult: 1.0,  aiBonusOrders: 0, playerBonusResources: 0, barbMult: 1.0 };
+    case 'hard':   return { aiResourceMult: 1.3, aiCombatMult: 1.15, aiBonusOrders: 2, playerBonusResources: 0, barbMult: 1.3 };
+    default:       return { aiResourceMult: 1.0, aiCombatMult: 1.0,  aiBonusOrders: 0, playerBonusResources: 0, barbMult: 1.0 };
+  }
+}
 
 // ====================
 // HEX TILE IMAGES
@@ -2146,7 +2239,7 @@ function buyTile(city, tx, ty) {
 function spawnUnit(type, nationId, x, y) {
   const def = UNIT_DEFS[type];
   const hp = def.hp || (def.combat ? 10 : 5);
-  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, vision: def.vision, hp };
+  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, vision: def.vision, hp, xp: 0 };
   units.push(u);
   revealAround(x, y, def.vision, nationId);
   return u;
@@ -2459,7 +2552,7 @@ function estimateCombat(attacker, tx, ty) {
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return null;
   const atkDef = UNIT_DEFS[attacker.type], tgtDef = UNIT_DEFS[target.type];
-  const atkPower = atkDef.atk || 4, atkMaxHp = atkDef.hp || 10;
+  const atkPower = getEffectiveAtk(attacker), atkMaxHp = getEffectiveMaxHp(attacker);
   const atkHpRatio = attacker.hp / atkMaxHp;
   const defTi = ty * MAP_COLS + tx;
   const defTerrain = tiles[defTi].type;
@@ -2467,13 +2560,14 @@ function estimateCombat(attacker, tx, ty) {
   const terrainBonus = getTerrainDefense(defTerrain, inCity);
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
-  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus);
+  const flankBonus = getFlankingBonus(attacker, tx, ty);
+  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus);
   let estRetaliation = 0;
   if (tgtDef.combat && !atkDef.ranged) {
-    const tgtMaxHp = tgtDef.hp || 10;
+    const tgtMaxHp = getEffectiveMaxHp(target);
     const tgtHpAfter = Math.max(0, target.hp - estDmg);
     const tgtHpRatio = tgtHpAfter / tgtMaxHp;
-    estRetaliation = Math.round(((tgtDef.atk || 3) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio));
+    estRetaliation = Math.round(((getEffectiveAtk(target)) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio));
   }
   return { estDmg, estRetaliation, targetHp: target.hp, attackerHp: attacker.hp, targetType: target.type, isRanged: !!atkDef.ranged };
 }
@@ -2515,8 +2609,8 @@ function doAttack(attacker, tx, ty) {
   const attackerType = attacker.type, defenderType = target.type;
   const defenderHpBefore = target.hp, attackerHpBefore = attacker.hp;
 
-  const atkPower = atkDef.atk || 4;
-  const atkMaxHp = atkDef.hp || 10;
+  const atkPower = getEffectiveAtk(attacker);
+  const atkMaxHp = getEffectiveMaxHp(attacker);
   const atkHpRatio = attacker.hp / atkMaxHp;
   // Terrain defense bonus for defender
   const defTi = ty * MAP_COLS + tx;
@@ -2527,12 +2621,18 @@ function doAttack(attacker, tx, ty) {
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   // Siege bonus: siege units deal 50% extra damage to units in cities
   const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
-  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 3)) * (0.5 + 0.5 * atkHpRatio) * defTerrainBonus * fortBonus * siegeBonus);
+  // Flanking bonus: adjacent friendly combat units boost damage
+  const flankBonus = getFlankingBonus(attacker, tx, ty);
+  // Difficulty scaling for AI combat
+  const diffMods = getDifficultyModifiers();
+  const atkDiffMult = attacker.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
+  const defDiffMult = target.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
+  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 3)) * (0.5 + 0.5 * atkHpRatio) * defTerrainBonus * fortBonus * siegeBonus * flankBonus * atkDiffMult);
   // Non-combat units can't fight back
   if (tgtDef.combat) {
-    const tgtMaxHp = tgtDef.hp || 10;
+    const tgtMaxHp = getEffectiveMaxHp(target);
     const tgtHpRatio = target.hp > 0 ? target.hp / tgtMaxHp : 0;
-    attacker.hp -= Math.round(((tgtDef.atk || 3) * 0.5 + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * tgtHpRatio));
+    attacker.hp -= Math.round(((getEffectiveAtk(target)) * 0.5 + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * tgtHpRatio) * defDiffMult);
   }
   // Killing units hurts loyalty with that nation (and others notice)
   changeLoyalty(target.nationId, attacker.nationId, -15);
@@ -2557,12 +2657,18 @@ function doAttack(attacker, tx, ty) {
     if (!nations[target.nationId].isBarbarian) {
       nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
     }
+    // XP: attacker gets kill XP
+    awardXP(attacker, XP_PER_KILL);
     units.splice(units.indexOf(target), 1);
     // Only move attacker to target's tile if adjacent and traversable
     const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
     if (isAdj && unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty)) {
       attacker.x = tx; attacker.y = ty;
     }
+  } else {
+    // XP: both get hit XP for surviving combat
+    awardXP(attacker, XP_PER_HIT);
+    awardXP(target, XP_PER_HIT);
   }
   if (attacker.hp <= 0) {
     // Legitimacy: +2 for the defender's nation killing the attacker
@@ -2573,6 +2679,8 @@ function doAttack(attacker, tx, ty) {
     if (!nations[attacker.nationId].isBarbarian) {
       nations[attacker.nationId].legitimacy = Math.max(0, (nations[attacker.nationId].legitimacy || 50) - 1);
     }
+    // XP: defender gets kill XP if they killed the attacker
+    if (units.includes(target)) awardXP(target, XP_PER_KILL);
     units.splice(units.indexOf(attacker), 1);
   }
   if (units.includes(attacker)) attacker.movesLeft = 0;
@@ -2822,7 +2930,7 @@ function tickBarbarianCamps() {
   if (turnNumber >= barbSpawnTurn) {
     const activeCamps = barbarianCamps.filter(b => !b.destroyed).length;
     const maxCamps = Math.max(2, Math.floor(MAP_COLS * MAP_ROWS / 800 * barbarianDensity));
-    if (activeCamps < maxCamps && Math.random() < barbSpawnChance * barbarianDensity) {
+    if (activeCamps < maxCamps && Math.random() < barbSpawnChance * barbarianDensity * getDifficultyModifiers().barbMult) {
       spawnBarbarianCamp();
     }
   }
@@ -3447,11 +3555,11 @@ function aiTurn(nationId) {
       if (eu.nationId === nationId || !UNIT_DEFS[eu.type]?.combat) continue;
       if (n.relations[eu.nationId] !== 'war') continue;
       const d = Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y);
-      if (d <= 8) threatLevel += (UNIT_DEFS[eu.type].atk || 0);
+      if (d <= 8) threatLevel += getEffectiveAtk(eu);
     }
   }
 
-  let aiOrdersLeft = getMaxOrders(nationId);
+  let aiOrdersLeft = getMaxOrders(nationId) + getDifficultyModifiers().aiBonusOrders;
   const aiUnits = units.filter(u => u.nationId === nationId);
   for (const u of [...aiUnits]) {
     if (!units.includes(u)) continue;
@@ -3461,16 +3569,44 @@ function aiTurn(nationId) {
     if (u.type === 'settler' && u.movesLeft > 0) {
       if (canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u);
       else {
-        // Move toward nearest city site or barbarian camp
-        let bestTarget = null, bestDist = Infinity;
+        // Move toward best city site (evaluated by quality, not just distance)
+        let bestTarget = null, bestScore = -Infinity;
         for (const s of citySites) {
           if (s.settled) continue;
           const d = Math.abs(s.x - u.x) + Math.abs(s.y - u.y);
-          if (d < bestDist) { bestDist = d; bestTarget = s; }
+          if (d > 40) continue; // too far to consider
+          // Score: evaluate surrounding terrain quality
+          let quality = 0;
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+            const tx = s.x + dx, ty = s.y + dy;
+            if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+            const tt = tiles[ty * MAP_COLS + tx].type;
+            if (tt === 1) quality += 2;       // plains - farmable
+            if (tt === 5) quality += 2;       // forest - wood
+            if (tt === 6) quality += 3;       // herd - food
+            if (tt === 2) quality += 1;       // mountain - mining
+            if (tt === 0) quality -= 1;       // ocean - unusable (but coastal is ok)
+          }
+          // Bonus for distance from own cities (spread out)
+          let minCityDist = Infinity;
+          for (const c of aiCities) {
+            const cd = Math.abs(c.x - s.x) + Math.abs(c.y - s.y);
+            if (cd < minCityDist) minCityDist = cd;
+          }
+          if (minCityDist < 6) quality -= 15;     // too close to existing city
+          else if (minCityDist < 10) quality += 5; // good spread
+          else quality += 2;                        // decent spread
+          // Penalty for distance to travel
+          quality -= d * 0.5;
+          if (quality > bestScore) { bestScore = quality; bestTarget = s; }
         }
-        for (const b of barbarianCamps) {
-          const d = Math.abs(b.x - u.x) + Math.abs(b.y - u.y);
-          if (d < bestDist) { bestDist = d; bestTarget = b; }
+        // Also consider barbarian camps as fallback
+        if (!bestTarget) {
+          let bestDist = Infinity;
+          for (const b of barbarianCamps) {
+            const d = Math.abs(b.x - u.x) + Math.abs(b.y - u.y);
+            if (d < bestDist) { bestDist = d; bestTarget = b; }
+          }
         }
         if (bestTarget) moveAIToward(u, bestTarget.x, bestTarget.y, u.movesLeft);
         else moveAIUnitMultiple(u, u.movesLeft);
@@ -3530,7 +3666,7 @@ function aiTurn(nationId) {
           if (enemy) {
             let score = 0;
             if (!UNIT_DEFS[enemy.type]?.combat) score += 20;
-            const atkPower = UNIT_DEFS[u.type].atk || 4;
+            const atkPower = getEffectiveAtk(u);
             if (enemy.hp <= atkPower) score += 15;
             score += (UNIT_DEFS[enemy.type].atk || 0);
             score -= enemy.hp;
@@ -3538,8 +3674,8 @@ function aiTurn(nationId) {
           }
         }
         if (bestTarget) {
-          const atkPower = UNIT_DEFS[u.type].atk || 4;
-          const rMaxHp = UNIT_DEFS[u.type].hp || 10;
+          const atkPower = getEffectiveAtk(u);
+          const rMaxHp = getEffectiveMaxHp(u);
           const rHpRatio = u.hp / rMaxHp;
           const aiRTargetHpBefore = bestTarget.hp;
           // Apply terrain and fortification defense for ranged target
@@ -3549,14 +3685,19 @@ function aiTurn(nationId) {
           const aiRTerrainBonus = getTerrainDefense(aiRTerrain, aiRInCity);
           const aiRFortBonus = bestTarget.fortified ? FORT_BONUS : 1.0;
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? SIEGE_BONUS : 1.0;
-          bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus);
+          const aiRFlankBonus = getFlankingBonus(u, bestTarget.x, bestTarget.y);
+          const aiRDiffMult = getDifficultyModifiers().aiCombatMult;
+          bestTarget.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * aiRTerrainBonus * aiRFortBonus * aiRSiegeBonus * aiRFlankBonus * aiRDiffMult);
           changeLoyalty(bestTarget.nationId, nationId, -10);
           const aiRDmg = aiRTargetHpBefore - bestTarget.hp;
           const aiRKilled = bestTarget.hp <= 0;
           if (bestTarget.hp <= 0) {
             if (!nations[nationId].isBarbarian) nations[nationId].legitimacy = Math.min(100, (nations[nationId].legitimacy || 50) + 2);
             if (!nations[bestTarget.nationId].isBarbarian) nations[bestTarget.nationId].legitimacy = Math.max(0, (nations[bestTarget.nationId].legitimacy || 50) - 1);
+            awardXP(u, XP_PER_KILL);
             units.splice(units.indexOf(bestTarget), 1);
+          } else {
+            awardXP(u, XP_PER_HIT);
           }
           addBattleEvent(u.x, u.y, bestTarget.x, bestTarget.y, u.type, bestTarget.type, aiRDmg, 0, aiRKilled, false, nationId, bestTarget.nationId, true);
           playCombatSound(u.type, u.x, u.y);
@@ -3572,7 +3713,7 @@ function aiTurn(nationId) {
           if (!isAdj) continue;
           let score = 0;
           if (!UNIT_DEFS[enemy.type]?.combat) score += 20;
-          const atkPower = UNIT_DEFS[u.type].atk || 4;
+          const atkPower = getEffectiveAtk(u);
           if (enemy.hp <= atkPower) score += 15;
           score += (UNIT_DEFS[enemy.type].atk || 0);
           score -= enemy.hp;
@@ -3686,7 +3827,9 @@ function aiTurn(nationId) {
       }
     }
     tickProduction(c);
-    const y = getCityYields(c); for (const k in y) n[k] = (n[k] || 0) + y[k];
+    const y = getCityYields(c);
+    const diffMod = getDifficultyModifiers();
+    for (const k in y) n[k] = (n[k] || 0) + y[k] * diffMod.aiResourceMult;
   }
   // Strategic AI tech selection (pick research target if none set)
   n.science = n.science || 0;
@@ -3926,7 +4069,7 @@ function finishEndTurn() {
           return nbUnits && nbUnits.some(e => e.nationId !== u.nationId && nations[u.nationId].relations[e.nationId] === 'war');
         });
         if (!hasAdjacentEnemy) {
-          const maxHp = def.hp || 10;
+          const maxHp = getEffectiveMaxHp(u);
           const heal = (t.type === 4) ? HEAL_IN_CITY : HEAL_IN_TERRITORY;
           u.hp = Math.min(maxHp, u.hp + heal);
         }
@@ -4074,6 +4217,46 @@ const EVENTS = [
     { label: 'Ignore it — rise above', effects: { legitimacy: -2, loyalty: -3 } },
     { label: 'Respond with a witty retort', effects: { legitimacy: 2, loyalty: -5 } },
     { label: 'Demand a public apology', effects: { legitimacy: 3, loyalty: -10 } }
+  ]},
+  { id: 'veteran_general', title: 'Veteran General', text: 'A decorated general from a disbanded army seeks employment in your service. His reputation precedes him.', choices: [
+    { label: 'Hire him immediately', effects: { gold: -25, legitimacy: 3 } },
+    { label: 'Test his loyalty first', effects: { gold: -10, legitimacy: 1 } },
+    { label: 'We have enough officers', effects: {} }
+  ]},
+  { id: 'gunpowder_cache', title: 'Hidden Powder Cache', text: 'Workers expanding a cellar have discovered a hidden cache of gunpowder barrels, likely from a forgotten magazine.', choices: [
+    { label: 'Distribute to the army', effects: { gunpowder: 20 } },
+    { label: 'Sell it to merchants', effects: { gold: 25, gunpowder: 5 } },
+    { label: 'Store it carefully', effects: { gunpowder: 12, steel: 5 } }
+  ]},
+  { id: 'religious_schism', title: 'Religious Schism', text: 'A popular preacher is dividing the people with controversial sermons. The church demands you silence him.', choices: [
+    { label: 'Side with the church', effects: { legitimacy: 3, gold: -10 } },
+    { label: 'Protect the preacher', effects: { legitimacy: -2, food: 10 } },
+    { label: 'Stay out of it', effects: { legitimacy: -1 } }
+  ]},
+  { id: 'foreign_scholars', title: 'Foreign Scholars', diplomatic: true, text: 'A delegation of scholars from {NATION} wishes to establish an academy in your capital, sharing knowledge between your peoples.', choices: [
+    { label: 'Welcome the academy', effects: { gold: -15, science: 20, loyalty: 10 } },
+    { label: 'Allow limited access', effects: { science: 10, loyalty: 4 } },
+    { label: 'Deny entry — our secrets must be kept', effects: { loyalty: -6, legitimacy: 1 } }
+  ]},
+  { id: 'mutiny', title: 'Mutiny at the Front', text: 'A regiment stationed at the frontier is threatening mutiny over unpaid wages and harsh conditions.', choices: [
+    { label: 'Pay the arrears in full', effects: { gold: -30, legitimacy: 4 } },
+    { label: 'Promise better conditions', effects: { food: -10, legitimacy: 1 } },
+    { label: 'Make an example of the ringleaders', effects: { legitimacy: -4 } }
+  ]},
+  { id: 'pirate_fleet', title: 'Pirate Menace', text: 'Pirates have been raiding coastal settlements and disrupting trade routes. Your admirals await orders.', choices: [
+    { label: 'Launch a naval expedition', effects: { gold: -20, wood: -10, legitimacy: 4 } },
+    { label: 'Pay them off', effects: { gold: -15, legitimacy: -2 } },
+    { label: 'Hire them as privateers', effects: { gold: -10, steel: 10, legitimacy: -1 } }
+  ]},
+  { id: 'golden_age', title: 'Cultural Renaissance', text: 'Artists, poets, and thinkers are flocking to your court. A golden age of culture may be upon us.', choices: [
+    { label: 'Fund the arts generously', effects: { gold: -25, legitimacy: 8, science: 10 } },
+    { label: 'Moderate patronage', effects: { gold: -10, legitimacy: 4, science: 5 } },
+    { label: 'Focus on practical matters', effects: { steel: 10, stone: 10 } }
+  ]},
+  { id: 'defector', title: 'Military Defector', diplomatic: true, text: 'A high-ranking officer from {NATION} seeks asylum, offering military intelligence in exchange for protection.', choices: [
+    { label: 'Grant asylum and debrief him', effects: { science: 12, loyalty: -12 } },
+    { label: 'Return him for diplomatic favor', effects: { loyalty: 10, legitimacy: 2 } },
+    { label: 'Imprison him — trust no one', effects: { legitimacy: -1 } }
   ]}
 ];
 
@@ -4578,11 +4761,24 @@ function render() {
     }
     // HP bar
     const uDef = UNIT_DEFS[u.type];
-    const maxHp = uDef.hp || (uDef.combat ? 10 : 5);
+    const maxHp = getEffectiveMaxHp(u);
     if (u.hp < maxHp && VIEW_TILE >= 12) {
       const barW = rad * 2 - 2;
       ctx.fillStyle = '#400'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW, 3);
       ctx.fillStyle = '#0f0'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW * (u.hp / maxHp), 3);
+    }
+    // Rank pips for experienced units
+    const uLevel = getUnitLevel(u);
+    if (uLevel.xp > 0 && VIEW_TILE >= 16) {
+      const levelIdx = XP_LEVELS.indexOf(uLevel);
+      const pipCount = levelIdx;
+      const pipSize = Math.max(1.5, w * 0.06);
+      const pipY = cy + rad + (u.hp < maxHp ? 6 : 2);
+      for (let pi = 0; pi < pipCount; pi++) {
+        const pipX = cx + (pi - (pipCount - 1) / 2) * (pipSize * 2.5);
+        ctx.fillStyle = uLevel.color;
+        ctx.beginPath(); ctx.arc(pipX, pipY, pipSize, 0, Math.PI * 2); ctx.fill();
+      }
     }
     if (selectedUnit === u) {
       // Flashing selection ring
@@ -4888,9 +5084,13 @@ function showUnitPanel(unit) {
   const panel = document.getElementById('panel');
   const def = UNIT_DEFS[unit.type];
   const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
-  let statsLine = `Moves: ${unit.movesLeft}/${unit.maxMoves} | Vision: ${unit.vision} | HP: ${unit.hp}/${def.hp || (def.combat ? 10 : 5)}`;
+  const effectiveMaxHp = getEffectiveMaxHp(unit);
+  const unitLevel = getUnitLevel(unit);
+  let statsLine = `Moves: ${unit.movesLeft}/${unit.maxMoves} | Vision: ${unit.vision} | HP: ${unit.hp}/${effectiveMaxHp}`;
   if (def.combat) {
-    statsLine += ` | ATK: ${def.atk}`;
+    const effAtk = getEffectiveAtk(unit);
+    statsLine += ` | ATK: ${effAtk}`;
+    if (effAtk > (def.atk || 4)) statsLine += ` <span style="color:${unitLevel.color}">(+${unitLevel.atkBonus})</span>`;
     if (def.ranged) statsLine += ' (ranged)';
     if (def.siege) statsLine += ' (siege)';
     if (unit.fortified) statsLine += ' | Fortified';
@@ -4901,7 +5101,13 @@ function showUnitPanel(unit) {
                      (cities.some(c => c.x === unit.x && c.y === unit.y)) ? 'City +40%' : null;
     if (defLabel) statsLine += ` | DEF: ${defLabel}`;
   }
-  let html = `<h3>${def.icon} ${typeName}</h3><p>${def.desc}<br>${statsLine}</p>`;
+  let rankHtml = '';
+  if (def.combat && unitLevel.xp > 0) {
+    const nextLevel = XP_LEVELS.find(l => l.xp > (unit.xp || 0));
+    const xpText = nextLevel ? `${unit.xp || 0}/${nextLevel.xp} XP` : `${unit.xp || 0} XP (MAX)`;
+    rankHtml = `<span style="color:${unitLevel.color};font-weight:bold;">${unitLevel.rank}</span> — ${xpText}`;
+  }
+  let html = `<h3>${def.icon} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}<br>${statsLine}</p>`;
   if (unit.type === 'settler') {
     const check = canFoundCity(unit.x, unit.y, unit.nationId);
     html += `<button class="p-btn" onclick="confirmSettle()" ${!check.ok ? 'disabled' : ''}>Found City (F)</button>`;
@@ -4956,7 +5162,7 @@ function showUnitPanel(unit) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
     }
   }
-  if (unit.nationId === playerNation && def.combat && unit.movesLeft > 0 && unit.hp < (def.hp || 10)) {
+  if (unit.nationId === playerNation && def.combat && unit.movesLeft > 0 && unit.hp < effectiveMaxHp) {
     const healAmt = cities.some(c => c.x === unit.x && c.y === unit.y) ? 5 : 3;
     html += `<button class="p-btn" onclick="restUnit()">Rest &amp; Heal (H) <span class="cost">+${healAmt} HP, ends turn</span></button>`;
   }
@@ -5131,7 +5337,7 @@ function renderKingdoms() {
     const relColor = rel === 'war' ? '#e44' : (rel === 'You' ? '#d4a856' : '#4a4');
     const cityCount = cities.filter(c => c.nationId === n.id).length;
     const unitCount = units.filter(u => u.nationId === n.id).length;
-    const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + (UNIT_DEFS[u.type].atk || 0), 0);
+    const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
     const score = getScore(n.id);
     html += `<div class="kingdom-row">
       <span class="kingdom-dot" style="background:${n.color}"></span>
@@ -5687,12 +5893,16 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
     html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${nations[u.nationId].name}</span>)</div>`;
-    html += `<div class="tt-detail">HP: ${u.hp}/${def.hp || 10}</div>`;
+    const ttMaxHp = getEffectiveMaxHp(u);
+    const ttLevel = getUnitLevel(u);
+    html += `<div class="tt-detail">HP: ${u.hp}/${ttMaxHp}${ttLevel.xp > 0 ? ` | <span style="color:${ttLevel.color}">${ttLevel.rank}</span>` : ''}</div>`;
     // Combat odds preview
     if (selectedUnit && u.nationId !== playerNation && (moveMode || rangedMode) && nations[playerNation].relations[u.nationId] === 'war') {
       const est = estimateCombat(selectedUnit, mx, my);
       if (est) {
-        html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:</div>`;
+        const flank = getFlankingBonus(selectedUnit, mx, my);
+        const flankStr = flank > 1.0 ? ` | Flanking +${Math.round((flank - 1) * 100)}%` : '';
+        html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:${flankStr}</div>`;
         html += `<div class="tt-detail" style="color:#f66;">Deal ~${est.estDmg} dmg (${est.targetHp}hp \u2192 ${Math.max(0, est.targetHp - est.estDmg)}hp)</div>`;
         if (est.estRetaliation > 0) {
           html += `<div class="tt-detail" style="color:#fa4;">Take ~${est.estRetaliation} dmg (${est.attackerHp}hp \u2192 ${Math.max(0, est.attackerHp - est.estRetaliation)}hp)</div>`;
@@ -6256,8 +6466,8 @@ window.doRangedAttack = function(tx, ty) {
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== selectedUnit.nationId);
   if (!target) return;
   if (nations[selectedUnit.nationId].relations[target.nationId] !== 'war') return;
-  const atkPower = UNIT_DEFS[selectedUnit.type].atk || 4;
-  const rMaxHp = UNIT_DEFS[selectedUnit.type].hp || 10;
+  const atkPower = getEffectiveAtk(selectedUnit);
+  const rMaxHp = getEffectiveMaxHp(selectedUnit);
   const rHpRatio = selectedUnit.hp / rMaxHp;
   const rTargetHpBefore = target.hp;
   // Terrain and fortification defense for ranged target
@@ -6267,7 +6477,8 @@ window.doRangedAttack = function(tx, ty) {
   const rTerrainBonus = getTerrainDefense(rDefTerrain, rInCity);
   const rFortBonus = target.fortified ? FORT_BONUS : 1.0;
   const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? SIEGE_BONUS : 1.0;
-  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus);
+  const rFlankBonus = getFlankingBonus(selectedUnit, tx, ty);
+  target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus * rFlankBonus);
   const rDmgDealt = rTargetHpBefore - target.hp;
   const rTargetDied = target.hp <= 0;
   // Ranged: target doesn't fight back
@@ -6283,7 +6494,10 @@ window.doRangedAttack = function(tx, ty) {
     if (!nations[target.nationId].isBarbarian) {
       nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
     }
+    awardXP(selectedUnit, XP_PER_KILL);
     units.splice(units.indexOf(target), 1);
+  } else {
+    awardXP(selectedUnit, XP_PER_HIT);
   }
   // Show battle effects immediately for player ranged attacks
   addFloatingText(tx, ty, `-${rDmgDealt}`, '#ff4444', 1400, 16);
@@ -6421,8 +6635,7 @@ window.fortifyUnit = function() {
 window.restUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
-  const def = UNIT_DEFS[selectedUnit.type];
-  const maxHp = def.hp || 10;
+  const maxHp = getEffectiveMaxHp(selectedUnit);
   if (selectedUnit.hp >= maxHp) return;
   const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y);
   const healAmt = inCity ? 5 : 3;
@@ -6772,6 +6985,12 @@ function generateAndPlay(pName, pColor, opponents) {
   hidePanel();
   document.getElementById('kingdoms').style.display = 'none';
   updateUI(); render();
+  // Difficulty bonuses
+  const startDiff = getDifficultyModifiers();
+  if (startDiff.playerBonusResources > 0) {
+    const pn = nations[playerNation];
+    for (const r of ['gold', 'food', 'wood', 'stone', 'steel']) pn[r] += startDiff.playerBonusResources;
+  }
   showToast(`You are ${pName}. Found your empire!`);
   showUpdateLogPopup();
   startTutorial();
