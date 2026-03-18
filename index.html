@@ -5405,6 +5405,22 @@ function showUnitPanel(unit) {
   }
   const abilityHtml = def.ability ? `<p style="font-size:11px;color:#d4a856;margin:2px 0;">⚡ ${def.ability}</p>` : '';
   let html = `<h3>${def.icon} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}<br>${statsLine}</p>${abilityHtml}`;
+  // Upgrade button — show near top of panel
+  if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
+    const upg = UNIT_UPGRADES[unit.type];
+    const hastech = nationHasTech(playerNation, upg.tech);
+    const n = nations[playerNation];
+    const canAfford = hastech && Object.entries(upg.cost).every(([r, amt]) => (n[r] || 0) >= amt);
+    const inCity = cities.some(c => c.x === unit.x && c.y === unit.y && c.nationId === playerNation);
+    const toDef = UNIT_DEFS[upg.to];
+    const techName = TECHS[upg.tech] ? TECHS[upg.tech].name : upg.tech;
+    const costStr = Object.entries(upg.cost).map(([r, amt]) => `${amt} ${r}`).join(', ');
+    const canUpgrade = hastech && inCity && canAfford;
+    html += `<button class="p-btn" onclick="upgradeUnit()" ${!canUpgrade ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${toDef.desc.split('.')[0]} <span class="cost">${costStr}</span></button>`;
+    if (!hastech) html += `<p style="font-size:10px;color:#a66">Requires ${techName} research.</p>`;
+    else if (!inCity) html += `<p style="font-size:10px;color:#a86">Move to a city to upgrade.</p>`;
+    else if (!canAfford) html += `<p style="font-size:10px;color:#a66">Not enough resources.</p>`;
+  }
   if (unit.type === 'settler') {
     const check = canFoundCity(unit.x, unit.y, unit.nationId);
     html += `<button class="p-btn" onclick="confirmSettle()" ${!check.ok ? 'disabled' : ''}>Found City (F)</button>`;
@@ -5473,22 +5489,6 @@ function showUnitPanel(unit) {
     if (!def.combat || unit.type === 'scout' || unit.type === 'veteran_scout') {
       const exploring = unit.autoExplore ? ' style="border-color:#6c6;color:#6c6"' : '';
       html += `<button class="p-btn" onclick="toggleAutoExplore()"${exploring}>Auto-Explore (X)${unit.autoExplore ? ' — Active' : ''}</button>`;
-    }
-  }
-  // Upgrade button
-  if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
-    const upg = UNIT_UPGRADES[unit.type];
-    const hastech = nationHasTech(playerNation, upg.tech);
-    const n = nations[playerNation];
-    const canAfford = hastech && Object.entries(upg.cost).every(([r, amt]) => (n[r] || 0) >= amt);
-    const inCity = cities.some(c => c.x === unit.x && c.y === unit.y && c.nationId === playerNation);
-    const toDef = UNIT_DEFS[upg.to];
-    const costStr = Object.entries(upg.cost).map(([r, amt]) => `${amt} ${r}`).join(', ');
-    if (hastech && inCity) {
-      html += `<button class="p-btn" onclick="upgradeUnit()" ${!canAfford ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${toDef.desc.split('.')[0]} <span class="cost">${costStr}</span></button>`;
-      if (!canAfford) html += `<p style="font-size:10px;color:#a66">Not enough resources to upgrade.</p>`;
-    } else if (hastech && !inCity) {
-      html += `<p style="font-size:10px;color:#a86">Move to a city to upgrade to ${toDef.icon} ${UNIT_DEFS[upg.to].desc.split('.')[0]}.</p>`;
     }
   }
   // Show unit stack info and cycle button if multiple units on tile
