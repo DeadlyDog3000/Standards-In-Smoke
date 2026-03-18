@@ -749,27 +749,43 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.1</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">Unit Experience System</b><br>
-          - Combat units earn XP from battles (killing and hitting)<br>
-          - 5 ranks: Green, Trained, Veteran, Elite, Legendary<br>
-          - Higher ranks gain ATK and HP bonuses<br>
-          - Rank pips displayed below units, rank shown in panels<br>
-          - Level-up heals bonus HP and shows promotion toast<br>
+          <b style="color:#b8a070;">Unit Experience &amp; Veterancy</b><br>
+          - Combat units now earn XP from battles: +3 for a kill, +1 for dealing damage<br>
+          - 5 promotion ranks: <span style="color:#aaa;">Green</span> &rarr; <span style="color:#6c6;">Trained</span> &rarr; <span style="color:#4af;">Veteran</span> &rarr; <span style="color:#da4;">Elite</span> &rarr; <span style="color:#f4a;">Legendary</span><br>
+          - Each rank grants permanent ATK bonus (+1 to +5) and HP bonus (+1 to +6)<br>
+          - Colored rank pips displayed below units on the map<br>
+          - Unit panel and tooltips show current rank, XP progress, and effective stats<br>
+          - Promotion heals bonus HP and shows a floating notification<br>
+          - AI units also gain experience &mdash; veteran AI armies become tougher over time<br>
+          - Military strength in Kingdoms panel now reflects veteran bonuses<br>
           <br>
-          <b style="color:#b8a070;">Flanking Bonus</b><br>
-          - +10% damage per adjacent friendly combat unit<br>
-          - Encourages tactical positioning and combined arms<br>
+          <b style="color:#b8a070;">Flanking &amp; Tactics</b><br>
+          - New flanking bonus: +10% damage per friendly combat unit adjacent to the defender<br>
+          - Flanking percentage shown in the combat preview tooltip<br>
+          - Surround enemies for devastating coordinated attacks<br>
+          - Applies to melee, ranged, and AI attacks alike<br>
           <br>
-          <b style="color:#b8a070;">More Events</b><br>
-          - 8 new narrative events (26 total): Veteran General, Hidden Powder Cache, Religious Schism, Foreign Scholars, Mutiny, Pirate Menace, Cultural Renaissance, Military Defector<br>
+          <b style="color:#b8a070;">8 New Narrative Events (26 total)</b><br>
+          - <i>Veteran General</i> &mdash; a decorated officer seeks employment at your court<br>
+          - <i>Hidden Powder Cache</i> &mdash; gunpowder barrels found in a forgotten cellar<br>
+          - <i>Religious Schism</i> &mdash; a popular preacher divides your people<br>
+          - <i>Foreign Scholars</i> &mdash; a diplomatic academy exchange proposal<br>
+          - <i>Mutiny at the Front</i> &mdash; an unpaid regiment threatens revolt<br>
+          - <i>Pirate Menace</i> &mdash; coastal raiders disrupt your trade routes<br>
+          - <i>Cultural Renaissance</i> &mdash; artists and thinkers flock to your court<br>
+          - <i>Military Defector</i> &mdash; an enemy officer offers intelligence for asylum<br>
           <br>
           <b style="color:#b8a070;">Smarter AI</b><br>
-          - AI settlers evaluate terrain quality when choosing where to settle<br>
-          - AI avoids founding cities too close together<br>
+          - AI settlers now evaluate terrain quality: plains, forests, herds, and mountains near city sites<br>
+          - AI avoids founding cities too close to their existing settlements<br>
+          - AI prefers sites with good resource diversity over pure proximity<br>
+          - AI threat assessment now accounts for enemy unit veterancy<br>
+          - AI target selection uses effective ATK when choosing who to attack<br>
           <br>
-          <b style="color:#b8a070;">Difficulty Scaling</b><br>
-          - Easy: reduced AI resources/combat, fewer barbarians, bonus starting resources<br>
-          - Hard: boosted AI resources/combat, extra AI orders, more barbarians<br>
+          <b style="color:#b8a070;">Difficulty Now Matters</b><br>
+          - <b>Easy:</b> AI earns 70% resources, deals 85% combat damage, 30% fewer barbarian spawns, +5 bonus starting resources for the player<br>
+          - <b>Normal:</b> unchanged &mdash; balanced baseline<br>
+          - <b>Hard:</b> AI earns 130% resources, deals 115% combat damage, +2 extra AI orders per turn, 30% more barbarian spawns<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.0</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
