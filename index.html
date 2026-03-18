@@ -516,6 +516,15 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.2</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+      <div style="margin-bottom:12px;">
+        - City buildings: Fortifications (+20% defense, +2 heal) and Granary (+growth, -discontent)<br>
+        - Keyboard shortcuts: N(next unit), C(center), [/](cycle cities), arrows(cycle stack)<br>
+        - Unit stack cycling UI in unit panel<br>
+        - Shield/hammer visual indicators on fortified/building units<br>
+        - Cavalry cheaper, ranged units faster, discontent system softer<br>
+        - AI economy improvements: smarter production, worker priorities<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.0</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">City Loyalty &amp; Rebellion</b><br>
@@ -729,6 +738,9 @@
         <b>R</b> &mdash; Ranged Attack<br>
         <b>V</b> &mdash; Fortify Unit<br>
         <b>H</b> &mdash; Rest &amp; Heal<br>
+        <b>N</b> &mdash; Next Unit<br>
+        <b>C</b> &mdash; Center on Selection<br>
+        <b>[ / ]</b> &mdash; Cycle Cities<br>
         <b>WASD / Arrows</b> &mdash; Pan camera<br>
         <b>+/-</b> &mdash; Zoom in/out<br>
         <b>Escape</b> &mdash; Menu
@@ -746,6 +758,37 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.2</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">City Buildings</b><br>
+          - Cities can now produce buildings in addition to units<br>
+          - <b>Fortifications:</b> +20% city defense (stacks with base +40%), +2 HP/turn healing for garrisoned units<br>
+          - <b>Granary:</b> +8% population growth chance, reduces discontent growth rate<br>
+          - AI builds fortifications in threatened cities and granaries in peacetime<br>
+          - Building icons displayed on city labels and in city panel<br>
+          <br>
+          <b style="color:#b8a070;">Keyboard Shortcuts &amp; QoL</b><br>
+          - <b>N</b> &mdash; cycle to next idle unit with moves remaining<br>
+          - <b>C</b> &mdash; center camera on selected unit<br>
+          - <b>[ / ]</b> &mdash; cycle between your cities<br>
+          - Arrow keys cycle units stacked on the same tile<br>
+          - New unit stack cycling buttons in the unit panel<br>
+          <br>
+          <b style="color:#b8a070;">Visual Improvements</b><br>
+          - Shield icon on fortified units, hammer icon on building workers<br>
+          - Barbarian camp respawn notifications now show coordinates<br>
+          <br>
+          <b style="color:#b8a070;">Balance Changes</b><br>
+          - Cavalry cost reduced: food 25&rarr;20, gold 30&rarr;20, steel 15&rarr;10<br>
+          - Crossbowman, Musketeer, Rifleman movement increased: 3&rarr;4<br>
+          - Discontent system softened: higher rebellion threshold (25), diminishing growth, probability-based rebellion<br>
+          - Faster discontent recovery when population is content (-3/turn)<br>
+          <br>
+          <b style="color:#b8a070;">Smarter AI Economy</b><br>
+          - AI checks resource affordability before queuing production<br>
+          - AI builds workers when economy is struggling and tiles need improvement<br>
+          - AI counts unimproved tiles to determine if workers have useful work<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.1</b> <span style="color:#888;font-size:11px;">(Save v9)</span></div>
         <div style="margin-bottom:12px;">
@@ -1725,10 +1768,10 @@ const UNIT_DEFS = {
   scout:          { moves: 11, vision: 7, icon: '\uD83D\uDD2D', desc: 'Fast cavalry scout on horseback. Excellent vision range.' },
   worker:         { moves: 6, vision: 4, icon: '\uD83D\uDD28', desc: 'Builds improvements on tiles within city borders.' },
   swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5, hp: 12 },
-  crossbowman:    { moves: 3, vision: 5, icon: '\uD83C\uDFF9', desc: 'Ranged infantry with crossbow. Attacks from distance.', combat: true, atk: 6, hp: 8, ranged: true },
+  crossbowman:    { moves: 4, vision: 5, icon: '\uD83C\uDFF9', desc: 'Ranged infantry with crossbow. Attacks from distance.', combat: true, atk: 6, hp: 8, ranged: true },
   cavalry:        { moves: 7, vision: 5, icon: '\uD83D\uDC0E', desc: 'Fast mounted warriors. Require horses.', combat: true, atk: 7, hp: 10 },
-  musketeer:      { moves: 3, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 10, hp: 10, ranged: true },
-  rifleman:       { moves: 3, vision: 6, icon: '\uD83C\uDFAF', desc: 'Elite sharpshooter with Baker rifle. Long range, high accuracy.', combat: true, atk: 9, hp: 8, ranged: true },
+  musketeer:      { moves: 4, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 10, hp: 10, ranged: true },
+  rifleman:       { moves: 4, vision: 6, icon: '\uD83C\uDFAF', desc: 'Elite sharpshooter with Baker rifle. Long range, high accuracy.', combat: true, atk: 9, hp: 8, ranged: true },
   grenadier:      { moves: 3, vision: 4, icon: '\uD83D\uDCA2', desc: 'Heavy shock infantry. Throws grenades and charges with bayonets.', combat: true, atk: 9, hp: 14 },
   hussar:         { moves: 9, vision: 6, icon: '\uD83C\uDFC7', desc: 'Light cavalry with pistols. Fast raider and flanker.', combat: true, atk: 6, hp: 8 },
   dragoon:        { moves: 6, vision: 5, icon: '\uD83D\uDC34', desc: 'Mounted infantry with carbines. Versatile and mobile.', combat: true, atk: 8, hp: 10, ranged: true },
@@ -1765,7 +1808,7 @@ const PRODUCTION_COSTS = {
   scout:          { food: 20, gold: 10 },
   swordsman:      { steel: 30, gold: 20 },
   crossbowman:    { steel: 25, gold: 15 },
-  cavalry:        { food: 25, gold: 30, steel: 15 },
+  cavalry:        { food: 20, gold: 20, steel: 10 },
   musketeer:      { steel: 20, gold: 20, gunpowder: 15 },
   rifleman:       { steel: 20, gold: 25, gunpowder: 20 },
   grenadier:      { steel: 20, gold: 20, gunpowder: 20 },
@@ -1779,6 +1822,14 @@ const PRODUCTION_COSTS = {
   frigate:        { wood: 40, gold: 30 },
   galleon:        { wood: 60, steel: 30, gold: 40 },
   man_of_war:     { wood: 80, steel: 50, gold: 60 },
+  // City buildings
+  fortifications: { stone: 30, steel: 20 },
+  granary:        { wood: 20, gold: 15 },
+};
+
+const CITY_BUILDING_DEFS = {
+  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20% (stacks with terrain). Units heal +2 HP/turn in this city.', category: 'military' },
+  granary:        { name: 'Granary', icon: '\uD83C\uDF3E', desc: '+1 population growth per turn. Reduces discontent from growth.', category: 'growth' },
 };
 
 // ====================
@@ -2335,6 +2386,7 @@ function foundCity(unit) {
     ownedTiles: new Set(),
     isCapital,
     population: 1, discontent: 0,
+    buildings: [],
   };
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
     const tx = unit.x + dx, ty = unit.y + dy;
@@ -2403,22 +2455,34 @@ function tickProduction(city) {
     for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
     if (canAfford) {
       for (const k in costs) n[k] -= costs[k];
-      const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
-      let sx = city.x, sy = city.y;
-      for (const nb of hexNeighbors(city.x, city.y)) {
-        const nx = nb.col, ny = nb.row;
-        if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
-        const tt = tiles[ny * MAP_COLS + nx].type;
-        if (isNaval ? tt !== 0 : tt === 0) continue;
-        if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
-      }
-      spawnUnit(city.producing, city.nationId, sx, sy);
-      if (city.nationId === playerNation) {
-        const unitDef = UNIT_DEFS[city.producing];
-        const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
-        showToast(`${city.name} produced a ${unitName}!`);
-        addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#6f6', 2000, 14);
-        playAchievement();
+      // Check if this is a city building
+      if (CITY_BUILDING_DEFS[city.producing]) {
+        if (!city.buildings) city.buildings = [];
+        city.buildings.push(city.producing);
+        if (city.nationId === playerNation) {
+          const bld = CITY_BUILDING_DEFS[city.producing];
+          showToast(`${city.name} built ${bld.name}!`);
+          addFloatingText(city.x, city.y, `${bld.icon} ${bld.name}!`, '#6f6', 2000, 14);
+          playAchievement();
+        }
+      } else {
+        const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
+        let sx = city.x, sy = city.y;
+        for (const nb of hexNeighbors(city.x, city.y)) {
+          const nx = nb.col, ny = nb.row;
+          if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+          const tt = tiles[ny * MAP_COLS + nx].type;
+          if (isNaval ? tt !== 0 : tt === 0) continue;
+          if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
+        }
+        spawnUnit(city.producing, city.nationId, sx, sy);
+        if (city.nationId === playerNation) {
+          const unitDef = UNIT_DEFS[city.producing];
+          const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
+          showToast(`${city.name} produced a ${unitName}!`);
+          addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#6f6', 2000, 14);
+          playAchievement();
+        }
       }
     }
     city.producing = null; city.productionProgress = 0;
@@ -2441,17 +2505,24 @@ window.rushProduce = function() {
   for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
   if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
   for (const k in costs) n[k] -= costs[k];
-  const isNaval = UNIT_DEFS[selectedCity.producing] && UNIT_DEFS[selectedCity.producing].naval;
-  let sx = selectedCity.x, sy = selectedCity.y;
-  for (const nb of hexNeighbors(selectedCity.x, selectedCity.y)) {
-    const nx = nb.col, ny = nb.row;
-    if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
-    const tt = tiles[ny * MAP_COLS + nx].type;
-    if (isNaval ? tt !== 0 : tt === 0) continue;
-    if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
+  if (CITY_BUILDING_DEFS[selectedCity.producing]) {
+    if (!selectedCity.buildings) selectedCity.buildings = [];
+    selectedCity.buildings.push(selectedCity.producing);
+    const bld = CITY_BUILDING_DEFS[selectedCity.producing];
+    showToast(`Rushed ${bld.name}!`);
+  } else {
+    const isNaval = UNIT_DEFS[selectedCity.producing] && UNIT_DEFS[selectedCity.producing].naval;
+    let sx = selectedCity.x, sy = selectedCity.y;
+    for (const nb of hexNeighbors(selectedCity.x, selectedCity.y)) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      const tt = tiles[ny * MAP_COLS + nx].type;
+      if (isNaval ? tt !== 0 : tt === 0) continue;
+      if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
+    }
+    spawnUnit(selectedCity.producing, selectedCity.nationId, sx, sy);
+    showToast(`Rushed ${selectedCity.producing}!`);
   }
-  spawnUnit(selectedCity.producing, selectedCity.nationId, sx, sy);
-  showToast(`Rushed ${selectedCity.producing}!`);
   playAchievement();
   selectedCity.producing = null; selectedCity.productionProgress = 0;
   showCityPanel(selectedCity); updateUI(); render();
@@ -2557,8 +2628,12 @@ function chopForest(worker) {
 // ====================
 // COMBAT
 // ====================
-function getTerrainDefense(tileType, inCity) {
-  if (inCity) return TERRAIN_DEFENSE.city;
+function getTerrainDefense(tileType, inCity, cityObj) {
+  if (inCity) {
+    let def = TERRAIN_DEFENSE.city;
+    if (cityObj && (cityObj.buildings || []).includes('fortifications')) def *= 0.8; // extra 20% reduction
+    return def;
+  }
   if (tileType === 5) return TERRAIN_DEFENSE.forest;
   if (tileType === 2) return TERRAIN_DEFENSE.mountain;
   if (tileType === 3) return TERRAIN_DEFENSE.swamp;
@@ -2572,8 +2647,9 @@ function estimateCombat(attacker, tx, ty) {
   const atkHpRatio = attacker.hp / atkMaxHp;
   const defTi = ty * MAP_COLS + tx;
   const defTerrain = tiles[defTi].type;
-  const inCity = cities.some(c => c.x === tx && c.y === ty);
-  const terrainBonus = getTerrainDefense(defTerrain, inCity);
+  const defCity = cities.find(c => c.x === tx && c.y === ty);
+  const inCity = !!defCity;
+  const terrainBonus = getTerrainDefense(defTerrain, inCity, defCity);
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
   const flankBonus = getFlankingBonus(attacker, tx, ty);
@@ -2631,8 +2707,9 @@ function doAttack(attacker, tx, ty) {
   // Terrain defense bonus for defender
   const defTi = ty * MAP_COLS + tx;
   const defTerrain = tiles[defTi].type;
-  const inCity = cities.some(c => c.x === tx && c.y === ty);
-  const defTerrainBonus = getTerrainDefense(defTerrain, inCity);
+  const defCity = cities.find(c => c.x === tx && c.y === ty);
+  const inCity = !!defCity;
+  const defTerrainBonus = getTerrainDefense(defTerrain, inCity, defCity);
   // Fortification bonus for defender (didn't move last turn)
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   // Siege bonus: siege units deal 50% extra damage to units in cities
@@ -2974,7 +3051,7 @@ function tickBarbarianCamps() {
           spawnUnit('barbarian_axeman', barbNationId, camp.x, camp.y);
           const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 3);
           spawnUnit('barbarian_axeman', barbNationId, lp.x, lp.y);
-          if (tiles[ti].revealed.has(playerNation)) showToast('A barbarian camp has reformed!');
+          if (tiles[ti].revealed.has(playerNation)) showToast(`⚠️ A barbarian camp has respawned at (${camp.x}, ${camp.y})!`);
         }
       }
       continue;
@@ -3697,8 +3774,9 @@ function aiTurn(nationId) {
           // Apply terrain and fortification defense for ranged target
           const aiRTi = bestTarget.y * MAP_COLS + bestTarget.x;
           const aiRTerrain = tiles[aiRTi].type;
-          const aiRInCity = cities.some(c => c.x === bestTarget.x && c.y === bestTarget.y);
-          const aiRTerrainBonus = getTerrainDefense(aiRTerrain, aiRInCity);
+          const aiRCity = cities.find(c => c.x === bestTarget.x && c.y === bestTarget.y);
+          const aiRInCity = !!aiRCity;
+          const aiRTerrainBonus = getTerrainDefense(aiRTerrain, aiRInCity, aiRCity);
           const aiRFortBonus = bestTarget.fortified ? FORT_BONUS : 1.0;
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? SIEGE_BONUS : 1.0;
           const aiRFlankBonus = getFlankingBonus(u, bestTarget.x, bestTarget.y);
@@ -3812,34 +3890,60 @@ function aiTurn(nationId) {
     if (!c.producing) {
       const workers = units.filter(u => u.nationId === nationId && (u.type === 'worker' || u.type === 'veteran_worker')).length;
       const combatCount = combatUnits.length;
-      // Prefer advanced units but mix in variety (pick from top 3)
-      const bestCombat = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
+      // Pick a combat unit the AI can actually afford (prefer advanced, check resources)
+      let bestCombat = null;
+      for (let ci = availCombat.length - 1; ci >= 0; ci--) {
+        const costs = PRODUCTION_COSTS[availCombat[ci]];
+        let canAfford = true;
+        for (const k in costs) if ((n[k] || 0) < costs[k] * 0.5) { canAfford = false; break; }
+        if (canAfford) { bestCombat = availCombat[ci]; break; }
+      }
+      if (!bestCombat) bestCombat = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
       const scouts = units.filter(u => u.nationId === nationId && (u.type === 'scout' || u.type === 'veteran_scout')).length;
       // Minimum army target: at least 2 per city, always at least 3
       const minArmy = Math.max(3, aiCities.length * 2);
-      // Threat-aware: if enemies near cities, always build military
-      if (threatLevel > 0) {
+      // Economic health check: AI should build workers when economy is struggling
+      const yields = getTotalYields(nationId);
+      const lowGold = n.gold < 20 && yields.gold < combatCount * UNIT_MAINTENANCE;
+      const lowFood = n.food < 15;
+      const needsWorkers = workers < Math.min(aiCities.length + 1, 4);
+      // Count unimproved owned tiles to see if workers have work to do
+      const unimprovedTiles = tiles.filter(t => t.owner === nationId && !t.improvement && t.type !== 4 && t.type !== 0).length;
+      const workersHaveWork = unimprovedTiles > workers * 2;
+      // Threat-aware: if enemies near cities, consider fortifications or military
+      const hasFort = (c.buildings || []).includes('fortifications');
+      if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
+        c.producing = 'fortifications';
+      } else if (threatLevel > 0) {
         c.producing = bestCombat;
       } else if (combatCount < minArmy) {
-        // Army building is top priority — must meet minimum before anything else
-        // Allow 1 scout early on
-        if (scouts < 1 && combatCount >= 2) {
+        // Army building is top priority — but build a worker first if economy is dire
+        if (needsWorkers && workersHaveWork && (lowGold || lowFood) && combatCount >= 2) {
+          c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
+        } else if (scouts < 1 && combatCount >= 2) {
           c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
         } else {
           c.producing = bestCombat;
         }
-      } else if (workers < Math.min(aiCities.length, 3)) {
+      } else if (needsWorkers && workersHaveWork) {
         c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
       } else if (atWar) {
         c.producing = bestCombat;
       } else {
         // Peacetime: mix of military growth and expansion
-        const availSites = citySites.filter(s => !s.settled).length + barbarianCamps.filter(b => !b.destroyed).length;
-        const maxCities = Math.max(3, Math.min(availSites, 2 + combatCount));
-        const roll = Math.random();
-        if (aiCities.length < maxCities && n.food >= 50 && roll < 0.2) c.producing = 'settler';
-        else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
-        else c.producing = bestCombat; // default: keep building army
+        const hasGranary = (c.buildings || []).includes('granary');
+        if (!hasGranary && n.wood >= 20 && n.gold >= 15 && Math.random() < 0.25) {
+          c.producing = 'granary';
+        } else {
+          const availSites = citySites.filter(s => !s.settled).length + barbarianCamps.filter(b => !b.destroyed).length;
+          const maxCities = Math.max(3, Math.min(availSites, 2 + combatCount));
+          const roll = Math.random();
+          // Build more workers if economy needs it
+          if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
+          else if (aiCities.length < maxCities && n.food >= 50 && roll < 0.2) c.producing = 'settler';
+          else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
+          else c.producing = bestCombat; // default: keep building army
+        }
       }
     }
     tickProduction(c);
@@ -3965,19 +4069,24 @@ function tickCityLoyalty() {
     // Population growth: +1 pop every 8 turns per city, faster with more food
     const cy = getCityYields(city);
     const foodBonus = Math.max(0, cy.food - city.population); // surplus food
-    const growthChance = 0.12 + foodBonus * 0.02; // base ~12% + 2% per surplus food
+    const hasGranary = (city.buildings || []).includes('granary');
+    const growthChance = 0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0); // base ~12% + 2% per surplus food + 8% granary
     if (Math.random() < growthChance) city.population = (city.population || 1) + 1;
     // Loyalty: check jobs vs population need
     const jobs = getCityJobs(city);
     const needed = city.population * 2;
     if (jobs >= needed) {
-      city.discontent = Math.max(0, (city.discontent || 0) - 2);
+      // Content cities recover discontent faster
+      city.discontent = Math.max(0, (city.discontent || 0) - 3);
     } else {
       const deficit = needed - jobs;
-      city.discontent = (city.discontent || 0) + deficit;
+      // Diminishing returns: discontent grows slower when already high
+      let growth = Math.max(1, Math.ceil(deficit / (1 + (city.discontent || 0) * 0.1)));
+      if ((city.buildings || []).includes('granary')) growth = Math.max(1, growth - 1);
+      city.discontent = (city.discontent || 0) + growth;
     }
-    // Rebellion threshold: 15 discontent triggers revolt
-    if (city.discontent >= 15) {
+    // Rebellion threshold: 25 discontent triggers revolt (chance-based)
+    if (city.discontent >= 25 && Math.random() < 0.4 + (city.discontent - 25) * 0.05) {
       triggerRebellion(city);
       city.discontent = 0;
     }
@@ -4086,7 +4195,10 @@ function finishEndTurn() {
         });
         if (!hasAdjacentEnemy) {
           const maxHp = getEffectiveMaxHp(u);
-          const heal = (t.type === 4) ? HEAL_IN_CITY : HEAL_IN_TERRITORY;
+          let heal = (t.type === 4) ? HEAL_IN_CITY : HEAL_IN_TERRITORY;
+          // Fortifications building bonus: +2 HP/turn in cities with fortifications
+          const healCity = cities.find(c => c.x === u.x && c.y === u.y && c.nationId === u.nationId);
+          if (healCity && (healCity.buildings || []).includes('fortifications')) heal += 2;
           u.hp = Math.min(maxHp, u.hp + heal);
         }
       }
@@ -4783,6 +4895,24 @@ function render() {
       ctx.fillStyle = '#400'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW, 3);
       ctx.fillStyle = '#0f0'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW * (u.hp / maxHp), 3);
     }
+    // Fortified indicator
+    if (u.fortified && VIEW_TILE >= 16) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#8cf';
+      ctx.font = `${Math.max(6, w * 0.22)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('\uD83D\uDEE1', cx + rad * 0.8, cy - rad * 0.8);
+    }
+    // Building indicator for workers
+    if (u.building && VIEW_TILE >= 16) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#da4';
+      ctx.font = `${Math.max(6, w * 0.22)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('\u2692', cx + rad * 0.8, cy - rad * 0.8);
+    }
     // Rank pips for experienced units
     const uLevel = getUnitLevel(u);
     if (uLevel.xp > 0 && VIEW_TILE >= 16) {
@@ -4938,6 +5068,8 @@ function updateCityLabels() {
       const maxProg = Math.max(0, ...Object.values(city.captureProgress));
       if (maxProg > 0) label += ` (${maxProg}/4)`;
     }
+    const bldIcons = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]?.icon).filter(Boolean).join('');
+    if (bldIcons) label += ' ' + bldIcons;
     el.textContent = label;
     el.style.display = '';
     idx++;
@@ -5113,8 +5245,10 @@ function showUnitPanel(unit) {
     // Show terrain defense
     const uti = unit.y * MAP_COLS + unit.x;
     const uTerrain = tiles[uti].type;
+    const unitCity = cities.find(c => c.x === unit.x && c.y === unit.y);
+    const hasCityFort = unitCity && (unitCity.buildings || []).includes('fortifications');
     const defLabel = (uTerrain === 5) ? 'Forest +25%' : (uTerrain === 2) ? 'Mountain +35%' : (uTerrain === 3) ? 'Swamp +15%' :
-                     (cities.some(c => c.x === unit.x && c.y === unit.y)) ? 'City +40%' : null;
+                     unitCity ? (hasCityFort ? 'City +52%' : 'City +40%') : null;
     if (defLabel) statsLine += ` | DEF: ${defLabel}`;
   }
   let rankHtml = '';
@@ -5186,6 +5320,17 @@ function showUnitPanel(unit) {
     html += `<button class="p-btn" onclick="enterGotoMode()">Go To (G)</button>`;
     if (unit.gotoX !== undefined) html += `<button class="p-btn" onclick="cancelGoto()">Cancel Go To (${unit.gotoX},${unit.gotoY})</button>`;
   }
+  // Show unit stack info and cycle button if multiple units on tile
+  const stackUnits = units.filter(u => u.x === unit.x && u.y === unit.y && u.nationId === unit.nationId);
+  if (stackUnits.length > 1) {
+    const idx = stackUnits.indexOf(unit) + 1;
+    html += `<div style="margin:6px 0;padding:4px 8px;background:rgba(100,140,180,0.12);border:1px solid rgba(100,140,180,0.25);border-radius:4px;display:flex;align-items:center;justify-content:space-between;">`;
+    html += `<span style="font-size:11px;color:#8ab;">Unit ${idx}/${stackUnits.length} on tile</span>`;
+    html += `<span>`;
+    html += `<button class="p-btn" onclick="cycleUnitOnTile(-1)" style="display:inline;width:auto;padding:2px 8px;margin:0 2px;font-size:11px;">\u25C0</button>`;
+    html += `<button class="p-btn" onclick="cycleUnitOnTile(1)" style="display:inline;width:auto;padding:2px 8px;margin:0 2px;font-size:11px;">\u25B6</button>`;
+    html += `</span></div>`;
+  }
   html += `<button class="p-btn" onclick="deselectUnit()">Deselect</button>`;
   panel.innerHTML = html; panel.style.display = 'block';
 }
@@ -5207,7 +5352,12 @@ function showCityPanel(city) {
   const panel = document.getElementById('panel');
   const y = getCityYields(city);
   const yStr = Object.entries(y).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
-  let prodStr = city.producing ? `${city.producing} (${getProductionTurns(city)} turns)` : 'None';
+  let prodStr = 'None';
+  if (city.producing) {
+    const bld = CITY_BUILDING_DEFS[city.producing];
+    const prodName = bld ? bld.name : city.producing.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    prodStr = `${prodName} (${getProductionTurns(city)} turns)`;
+  }
   const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
   let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
   const pop = city.population || 1;
@@ -5219,6 +5369,8 @@ function showCityPanel(city) {
   html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
   html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
   if (city.discontent > 0) html += `<div style="margin-top:3px;height:4px;background:rgba(0,0,0,0.3);border-radius:2px;"><div style="width:${discontentPct}%;height:100%;background:${discontentPct > 60 ? '#c33' : '#c80'};border-radius:2px;"></div></div>`;
+  const bldgs = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
+  if (bldgs.length > 0) html += `<div style="margin-top:3px;font-size:11px;color:#8ab;">${bldgs.map(b => `${b.icon} ${b.name}`).join(' &bull; ')}</div>`;
   html += `</div>`;
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
@@ -5277,6 +5429,28 @@ function showCityTab(tab) {
         const techReq = unitRequiresTech(type);
         if (techReq && !nationHasTech(nId, techReq)) continue;
         html += prodBtn(type);
+      }
+    }
+    // City buildings
+    const cityBuildings = selectedCity.buildings || [];
+    const availableBuildings = Object.entries(CITY_BUILDING_DEFS).filter(([key]) => !cityBuildings.includes(key));
+    if (availableBuildings.length > 0) {
+      html += '<div class="section-title">Buildings</div>';
+      for (const [key, bld] of availableBuildings) {
+        const costs = PRODUCTION_COSTS[key];
+        const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
+        const canAfford = Object.entries(costs).every(([k,v]) => (n[k] || 0) >= v);
+        const active = selectedCity.producing === key;
+        const style = active ? 'border-color:#d4a856' : (!canAfford ? 'opacity:0.45' : '');
+        html += `<button class="p-btn" onclick="setProd('${key}')" ${style ? `style="${style}"` : ''}>${bld.icon} ${bld.name} <span class="cost">${costStr}</span></button>`;
+        html += `<p style="font-size:10px;color:#998;margin:-4px 0 4px 8px;">${bld.desc}</p>`;
+      }
+    }
+    if (cityBuildings.length > 0) {
+      html += '<div class="section-title">Built</div>';
+      for (const key of cityBuildings) {
+        const bld = CITY_BUILDING_DEFS[key];
+        if (bld) html += `<p style="font-size:11px;color:#6a6;margin:2px 0;">${bld.icon} ${bld.name} — ${bld.desc}</p>`;
       }
     }
     html += `<p style="font-size:11px;color:#888;margin-top:6px">Research the Tech Tree (T) to unlock more!</p>`;
@@ -5660,7 +5834,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-2.0';
+const CURRENT_VERSION = 'beta-2.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -5878,6 +6052,8 @@ function updateTileTooltip(mx, my, screenX, screenY) {
       const cy = getCityYields(ownerCity);
       const yStr = Object.entries(cy).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
       html += `<div class="tt-detail" style="color:#b8a070">City yields: ${yStr}</div>`;
+      const bldgs = (ownerCity.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
+      if (bldgs.length > 0) html += `<div class="tt-detail" style="color:#8ab">Buildings: ${bldgs.map(b => `${b.icon} ${b.name}`).join(', ')}</div>`;
     }
   }
   // Show city site
@@ -6425,6 +6601,29 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
+  // N: cycle to next unit with moves remaining
+  if (e.key === 'n') { cycleToNextUnit(); e.preventDefault(); }
+  // C: center camera on selected unit or city
+  if (e.key === 'c') {
+    const target = selectedUnit || selectedCity;
+    if (target) { panCameraTo(target.x, target.y); }
+    e.preventDefault();
+  }
+  // [ and ]: cycle through player cities
+  if (e.key === '[' || e.key === ']') {
+    const playerCities = cities.filter(c => c.nationId === playerNation);
+    if (playerCities.length > 0) {
+      let idx = selectedCity ? playerCities.indexOf(selectedCity) : -1;
+      if (e.key === ']') idx = (idx + 1) % playerCities.length;
+      else idx = (idx - 1 + playerCities.length) % playerCities.length;
+      const city = playerCities[idx];
+      selectedCity = city; selectedUnit = null;
+      moveMode = false; reachableTiles.clear(); buyTileMode = false;
+      panCameraTo(city.x, city.y);
+      showCityPanel(city); render();
+    }
+    e.preventDefault();
+  }
   // Arrow keys: switch between units on same tile
   if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && selectedUnit) {
     const tileUnits = units.filter(u => u.x === selectedUnit.x && u.y === selectedUnit.y && u.nationId === playerNation);
@@ -6489,8 +6688,9 @@ window.doRangedAttack = function(tx, ty) {
   // Terrain and fortification defense for ranged target
   const rDefTi = ty * MAP_COLS + tx;
   const rDefTerrain = tiles[rDefTi].type;
-  const rInCity = cities.some(c => c.x === tx && c.y === ty);
-  const rTerrainBonus = getTerrainDefense(rDefTerrain, rInCity);
+  const rDefCity = cities.find(c => c.x === tx && c.y === ty);
+  const rInCity = !!rDefCity;
+  const rTerrainBonus = getTerrainDefense(rDefTerrain, rInCity, rDefCity);
   const rFortBonus = target.fortified ? FORT_BONUS : 1.0;
   const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? SIEGE_BONUS : 1.0;
   const rFlankBonus = getFlankingBonus(selectedUnit, tx, ty);
@@ -6634,6 +6834,18 @@ window.cancelBuild = function() {
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 
+window.cycleUnitOnTile = function(dir) {
+  if (!selectedUnit) return;
+  const stackUnits = units.filter(u => u.x === selectedUnit.x && u.y === selectedUnit.y && u.nationId === selectedUnit.nationId);
+  if (stackUnits.length <= 1) return;
+  const idx = stackUnits.indexOf(selectedUnit);
+  const next = stackUnits[(idx + dir + stackUnits.length) % stackUnits.length];
+  selectedUnit = next;
+  moveMode = false; reachableTiles.clear();
+  if (next.movesLeft > 0) enterMoveMode();
+  showUnitPanel(next); render();
+};
+
 window.deselectUnit = function() {
   selectedUnit = null; moveMode = false; reachableTiles.clear();
   hidePanel(); render();
@@ -6694,6 +6906,7 @@ function serializeGame() {
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
     isCapital: c.isCapital || false,
     population: c.population || 1, discontent: c.discontent || 0,
+    buildings: c.buildings || [],
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; return sn; });
   const sUnits = units.map(u => {
@@ -6737,7 +6950,7 @@ function deserializeGame(json) {
   }
   nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
   units = d.units;
-  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0 }));
+  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0, buildings: c.buildings || [] }));
   // Infer capitals for old saves: first city per nation is capital
   const capitalSet = new Set();
   for (const c of cities) {
