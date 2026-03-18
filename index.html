@@ -5342,7 +5342,7 @@ function updateUI() {
   document.getElementById('playerScore').textContent = getScore(playerNation);
   // Pulse end-turn button when no units have moves left
   const btn = document.getElementById('endTurnBtn');
-  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && !u.gotoX && !u.building);
+  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && !u.gotoX && !u.building && !u.fortified);
   if (!anyMoves) btn.classList.add('end-turn-pulse');
   else btn.classList.remove('end-turn-pulse');
 }
@@ -5350,7 +5350,7 @@ function updateUI() {
 function hidePanel() { document.getElementById('panel').style.display = 'none'; stopSelectionFlash(); }
 
 function cycleToNextUnit() {
-  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building);
+  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building && !u.fortified);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
   selectedUnit = next; selectedCity = null;
@@ -5451,6 +5451,9 @@ function showUnitPanel(unit) {
     html += `<p style="font-size:11px;color:#a66">${moveAndAttack ? 'Dragoons can move and attack in the same turn.' : 'Attacking uses the entire turn. Cannot move and attack.'}</p>`;
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
+      if (unit.fortified) {
+        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#6c6;color:#6c6">Wake (W) <span class="cost">Unfortify unit</span></button>`;
+      }
     }
   }
   if (unit.nationId === playerNation && def.combat && unit.movesLeft > 0 && unit.hp < effectiveMaxHp) {
@@ -6818,6 +6821,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
   if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
+  if (e.key === 'w' && selectedUnit && selectedUnit.nationId === playerNation && (selectedUnit.fortified || selectedUnit.building)) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'x' && selectedUnit && selectedUnit.nationId === playerNation) { toggleAutoExplore(); e.preventDefault(); }
   if (e.key === 'e') { endTurn(); e.preventDefault(); }
@@ -6951,6 +6955,8 @@ window.doRangedAttack = function(tx, ty) {
 
 window.enterGotoMode = function() {
   if (!selectedUnit) return;
+  if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
+  if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
   gotoMode = true; moveMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
   showToast('Click destination tile for go-to order.');
   render();
@@ -6964,6 +6970,7 @@ window.cancelGoto = function() {
 
 window.toggleAutoExplore = function() {
   if (!selectedUnit || selectedUnit.nationId !== playerNation) return;
+  if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
   selectedUnit.autoExplore = !selectedUnit.autoExplore;
   if (selectedUnit.autoExplore) {
     delete selectedUnit.gotoX; delete selectedUnit.gotoY;
@@ -7028,6 +7035,8 @@ function doAutoExploreStep(unit) {
 
 window.enterMoveMode = function() {
   if (!selectedUnit || selectedUnit.movesLeft <= 0) return;
+  if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
+  if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
   moveMode = true; buyTileMode = false; reachableTiles.clear();
   const u = selectedUnit;
   const start = u.y * MAP_COLS + u.x;
@@ -7143,6 +7152,20 @@ window.fortifyUnit = function() {
   selectedUnit.movesLeft = 0;
   showToast('Unit fortified (+20% defense)');
   cycleToNextUnit(); updateUI(); render();
+};
+
+window.wakeUnit = function() {
+  if (!selectedUnit) return;
+  if (selectedUnit.fortified) {
+    selectedUnit.fortified = false;
+    showToast('Unit awakened.');
+  }
+  if (selectedUnit.building) {
+    // Cancel build and refund
+    cancelBuild();
+    return;
+  }
+  showUnitPanel(selectedUnit); updateUI(); render();
 };
 
 window.restUnit = function() {
