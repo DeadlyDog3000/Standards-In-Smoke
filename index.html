@@ -4353,18 +4353,16 @@ function finishEndTurn() {
       }
     }
   }
-  // Track which units didn't move this turn (before resetting moves)
-  // Units that were already fortified (manually or auto) and didn't move stay fortified
-  // Units that moved this turn lose fortification
-  const didntMove = new Set(units.filter(u => UNIT_DEFS[u.type]?.combat && (u.movesLeft === u.maxMoves || u.fortified)));
+  // Track which units were already fortified (before resetting moves)
+  // Only units that were explicitly fortified stay fortified — idle units do NOT auto-fortify
+  const wasFortified = new Set(units.filter(u => u.fortified));
   for (const u of units) u.movesLeft = u.maxMoves;
   processGotoOrders();
-  // After goto orders execute, update fortification status
+  // Units that were fortified and didn't get moved by goto stay fortified
   for (const u of units) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
-    if (didntMove.has(u) && u.movesLeft === u.maxMoves) u.fortified = true; // didn't move and goto didn't move them
-    else if (!didntMove.has(u)) u.fortified = false; // moved this turn
-    // If goto moved a unit that was in didntMove, movesLeft < maxMoves, so fortified stays unchanged
+    if (wasFortified.has(u) && u.movesLeft === u.maxMoves) u.fortified = true;
+    else u.fortified = false;
   }
   turnNumber++;
   showTurnBanner(turnNumber);
