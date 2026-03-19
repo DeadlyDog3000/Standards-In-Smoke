@@ -6489,8 +6489,7 @@ canvas.addEventListener('click', (e) => {
       buyTile(selectedCity, mx, my);
       buyTileMode = false; reachableTiles.clear();
       showCityPanel(selectedCity); updateUI(); render();
-    } else { buyTileMode = false; reachableTiles.clear(); render(); }
-    return;
+    } else { buyTileMode = false; reachableTiles.clear(); }
   }
 
   if (rangedMode && selectedUnit) {
@@ -6509,8 +6508,8 @@ canvas.addEventListener('click', (e) => {
         return;
       }
     }
-    rangedMode = false; render();
-    return;
+    rangedMode = false;
+    // Fall through to normal selection
   }
 
   if (gotoMode && selectedUnit) {
@@ -6553,8 +6552,7 @@ canvas.addEventListener('click', (e) => {
       }
       showToast(`Go-to order set for ${UNIT_DEFS[selectedUnit.type].icon}`);
       showUnitPanel(selectedUnit); render();
-    } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); }
-    return;
+    } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); gotoMode = false; }
   }
 
   if (moveMode && selectedUnit) {
@@ -6602,8 +6600,10 @@ canvas.addEventListener('click', (e) => {
         showUnitPanel(selectedUnit);
       } else { cycleToNextUnit(); }
       updateUI(); render();
-    } else { moveMode = false; reachableTiles.clear(); render(); }
-    return;
+    } else {
+      // Clicked outside reachable tiles — cancel move mode and fall through to normal selection
+      moveMode = false; reachableTiles.clear();
+    }
   }
 
   // Click-to-cycle: if clicking the same tile as the selected unit, cycle to next unit on stack
