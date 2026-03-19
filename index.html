@@ -6489,6 +6489,7 @@ canvas.addEventListener('click', (e) => {
       buyTile(selectedCity, mx, my);
       buyTileMode = false; reachableTiles.clear();
       showCityPanel(selectedCity); updateUI(); render();
+      return;
     } else { buyTileMode = false; reachableTiles.clear(); }
   }
 
@@ -6563,7 +6564,16 @@ canvas.addEventListener('click', (e) => {
       }
       if (UNIT_DEFS[selectedUnit.type]?.combat && canAttack(selectedUnit, mx, my)) {
         doAttack(selectedUnit, mx, my);
+      } else if (units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u !== selectedUnit)) {
+        // Friendly unit on this tile — select it instead
+        const otherUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u !== selectedUnit);
+        moveMode = false; reachableTiles.clear();
+        selectedUnit = otherUnit; selectedCity = null;
+        showUnitPanel(otherUnit);
+        if (otherUnit.movesLeft > 0) enterMoveMode();
+        updateUI(); render(); return;
       } else if (units.some(u => u.x === mx && u.y === my && u !== selectedUnit)) {
+        // Enemy unit on tile but can't attack — cancel move
         moveMode = false; reachableTiles.clear(); render(); return;
       } else {
         const animPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
