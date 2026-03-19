@@ -6366,7 +6366,7 @@ canvas.addEventListener('mousemove', (e) => {
   const colS = hexColStep(), cellH = hexCellH();
   if (isDragging) {
     const dx = dragStartX - e.clientX, dy = dragStartY - e.clientY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) dragMoved = true;
     camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, dragCamStartX + Math.round(dx / colS)));
     camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, dragCamStartY + Math.round(dy / cellH)));
   }
@@ -6466,7 +6466,8 @@ canvas.addEventListener('touchmove', (e) => {
 }, { passive: false });
 canvas.addEventListener('touchend', (e) => {
   if (!touchMoved && e.changedTouches.length === 1) {
-    // Simulate click at touch position
+    // Simulate click at touch position — reset dragMoved so touch clicks aren't eaten
+    dragMoved = false;
     const t = e.changedTouches[0];
     canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, button: 0 }));
   }
@@ -6475,6 +6476,8 @@ canvas.addEventListener('touchend', (e) => {
 
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
+  // Safety: force-clear animation block if no animations are running
+  if (animationBlocking && animatingUnits.length === 0) animationBlocking = false;
   if (animationBlocking || eventModalOpen) return;
   const colS = hexColStep(), cellH = hexCellH();
   const worldPx = e.clientX + camX * colS;
@@ -6787,7 +6790,7 @@ function animationTick(timestamp) {
         a.unit._animating = false;
         const cb = a.onComplete;
         animatingUnits.splice(i, 1);
-        if (cb) cb();
+        if (cb) try { cb(); } catch(e) { console.error('Animation callback error:', e); }
         continue;
       }
     }
