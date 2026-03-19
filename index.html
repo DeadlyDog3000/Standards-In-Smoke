@@ -1387,6 +1387,7 @@ let camX = 0, camY = 0, viewCols, viewRows;
 let nations = [];
 let playerNation = 0;
 let units = [];
+function removeUnit(u) { const idx = units.indexOf(u); if (idx >= 0) units.splice(idx, 1); }
 let cities = [];
 let discoveredNations = new Set(); // nation IDs the player has encountered
 let selectedUnit = null, selectedCity = null;
@@ -1568,40 +1569,44 @@ async function replayBattleEvents() {
   animationBlocking = true;
   const events = [...battleEvents];
   battleEvents = [];
-  for (const evt of events) {
-    // Pan camera to battle
-    await new Promise(resolve => {
-      panCameraTo(evt.defenderX, evt.defenderY, resolve);
-    });
-    // Brief pause to orient
-    await new Promise(r => setTimeout(r, 200));
-    // Show floating damage texts
-    if (evt.dmgToDefender > 0) {
-      addFloatingText(evt.defenderX, evt.defenderY, `-${evt.dmgToDefender}`, '#ff4444', 1400, 16);
-    }
-    if (evt.dmgToAttacker > 0) {
-      addFloatingText(evt.attackerX, evt.attackerY, `-${evt.dmgToAttacker}`, '#ff8844', 1400, 14);
-    }
-    // Nudge animation for melee
-    if (!evt.isRanged) {
-      // Create a temporary ghost unit for the nudge visual
-      nudgeUnit = { col: evt.attackerX, row: evt.attackerY, type: evt.attackerType, nationId: evt.attackerNationId };
+  try {
+    for (const evt of events) {
+      // Pan camera to battle
       await new Promise(resolve => {
-        startNudgeAnimation(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, resolve);
+        panCameraTo(evt.defenderX, evt.defenderY, resolve);
       });
+      // Brief pause to orient
+      await new Promise(r => setTimeout(r, 200));
+      // Show floating damage texts
+      if (evt.dmgToDefender > 0) {
+        addFloatingText(evt.defenderX, evt.defenderY, `-${evt.dmgToDefender}`, '#ff4444', 1400, 16);
+      }
+      if (evt.dmgToAttacker > 0) {
+        addFloatingText(evt.attackerX, evt.attackerY, `-${evt.dmgToAttacker}`, '#ff8844', 1400, 14);
+      }
+      // Nudge animation for melee
+      if (!evt.isRanged) {
+        // Create a temporary ghost unit for the nudge visual
+        nudgeUnit = { col: evt.attackerX, row: evt.attackerY, type: evt.attackerType, nationId: evt.attackerNationId };
+        await new Promise(resolve => {
+          startNudgeAnimation(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, resolve);
+        });
+      }
+      // Death particles
+      if (evt.defenderDied) {
+        spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#f44');
+        addFloatingText(evt.defenderX, evt.defenderY, 'Killed!', '#ff2222', 1000, 13);
+      }
+      if (evt.attackerDied) {
+        spawnDeathParticles(evt.attackerX, evt.attackerY, nations[evt.attackerNationId]?.color || '#f84');
+        addFloatingText(evt.attackerX, evt.attackerY, 'Killed!', '#ff2222', 1000, 13);
+      }
+      render();
+      // Wait for texts/particles to show
+      await new Promise(r => setTimeout(r, evt.defenderDied || evt.attackerDied ? 800 : 500));
     }
-    // Death particles
-    if (evt.defenderDied) {
-      spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#f44');
-      addFloatingText(evt.defenderX, evt.defenderY, 'Killed!', '#ff2222', 1000, 13);
-    }
-    if (evt.attackerDied) {
-      spawnDeathParticles(evt.attackerX, evt.attackerY, nations[evt.attackerNationId]?.color || '#f84');
-      addFloatingText(evt.attackerX, evt.attackerY, 'Killed!', '#ff2222', 1000, 13);
-    }
-    render();
-    // Wait for texts/particles to show
-    await new Promise(r => setTimeout(r, evt.defenderDied || evt.attackerDied ? 800 : 500));
+  } catch(e) {
+    console.error('Battle replay error:', e);
   }
   battleReplayActive = false;
   animationBlocking = false;
@@ -2435,8 +2440,7 @@ function foundCity(unit) {
   if (camp) {
     camp.destroyed = true;
     camp.destroyedTurn = -999; // won't respawn (city on top)
-    const campUnits = units.filter(u => u.nationId === camp.nationId);
-    for (const cu of campUnits) units.splice(units.indexOf(cu), 1);
+    units = units.filter(u => u.nationId !== camp.nationId);
     nations[camp.nationId].eliminated = true;
   }
   // Also handle destroyed camps
@@ -2462,7 +2466,7 @@ function foundCity(unit) {
   _tileCityMapDirty = true;
   minimapDirty = true;
   revealAround(city.x, city.y, CITY_VISION_BASE, unit.nationId);
-  units.splice(units.indexOf(unit), 1);
+  removeUnit(unit);
   if (selectedUnit === unit) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
   return city;
 }
@@ -2851,7 +2855,7 @@ function doAttack(attacker, tx, ty) {
         if (splashTarget.hp <= 0) {
           if (!nations[attacker.nationId].isBarbarian) nations[attacker.nationId].legitimacy = Math.min(100, (nations[attacker.nationId].legitimacy || 50) + 2);
           if (!nations[splashTarget.nationId].isBarbarian) nations[splashTarget.nationId].legitimacy = Math.max(0, (nations[splashTarget.nationId].legitimacy || 50) - 1);
-          units.splice(units.indexOf(splashTarget), 1);
+          removeUnit(splashTarget);
           awardXP(attacker, XP_PER_KILL);
         }
       }
@@ -2869,7 +2873,7 @@ function doAttack(attacker, tx, ty) {
     }
     // XP: attacker gets kill XP
     awardXP(attacker, XP_PER_KILL);
-    units.splice(units.indexOf(target), 1);
+    removeUnit(target);
     // Only move attacker to target's tile if adjacent and traversable
     const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
     if (isAdj && unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty)) {
@@ -2891,7 +2895,7 @@ function doAttack(attacker, tx, ty) {
     }
     // XP: defender gets kill XP if they killed the attacker
     if (units.includes(target)) awardXP(target, XP_PER_KILL);
-    units.splice(units.indexOf(attacker), 1);
+    removeUnit(attacker);
   }
   if (units.includes(attacker)) attacker.movesLeft = 0;
   if (defenderDied || attackerDied) visionDirty = true;
@@ -2939,7 +2943,7 @@ function tickCityCapture() {
               if (u.nationId === oldOwner) {
                 const ui = u.y * MAP_COLS + u.x;
                 if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
-                  units.splice(units.indexOf(u), 1);
+                  removeUnit(u);
                 }
               }
             }
@@ -3181,8 +3185,7 @@ function tickBarbarianCamps() {
       camp.destroyed = true;
       camp.destroyedTurn = turnNumber;
       // Kill remaining barbarian units belonging to this camp's nation
-      const campUnits = units.filter(u => u.nationId === camp.nationId);
-      for (const u of campUnits) units.splice(units.indexOf(u), 1);
+      units = units.filter(u => u.nationId !== camp.nationId);
       nations[camp.nationId].eliminated = true;
       if (unitOnCamp.nationId === playerNation) showToast('Barbarian camp destroyed!');
     } else {
@@ -3334,13 +3337,11 @@ function pillageTile(tileIndex, unit) {
 function tickPillaged() {
   const expired = [];
   for (let i = pillaged.length - 1; i >= 0; i--) {
-    const p = pillaged[i];
-    if (turnNumber - p.turnPillaged > 2) {
+    if (turnNumber - pillaged[i].turnPillaged > 2) {
       // Too late to repair - improvement is gone permanently
-      expired.push(i);
+      pillaged.splice(i, 1);
     }
   }
-  for (const i of expired) pillaged.splice(i, 1);
 }
 
 function canRepairTile(unit, x, y) {
@@ -3906,7 +3907,7 @@ function aiTurn(nationId) {
             if (!nations[nationId].isBarbarian) nations[nationId].legitimacy = Math.min(100, (nations[nationId].legitimacy || 50) + 2);
             if (!nations[bestTarget.nationId].isBarbarian) nations[bestTarget.nationId].legitimacy = Math.max(0, (nations[bestTarget.nationId].legitimacy || 50) - 1);
             awardXP(u, XP_PER_KILL);
-            units.splice(units.indexOf(bestTarget), 1);
+            removeUnit(bestTarget);
           } else {
             awardXP(u, XP_PER_HIT);
           }
@@ -4266,6 +4267,8 @@ function triggerRebellion(city) {
 }
 
 function endTurn() {
+  // Safety: force-clear stale blocking flags
+  if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive) animationBlocking = false;
   if (battleReplayActive || animationBlocking) return; // Block during battle replay
   visionDirty = true;
   minimapDirty = true;
@@ -6972,7 +6975,7 @@ window.doRangedAttack = function(tx, ty) {
       nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy || 50) - 1);
     }
     awardXP(selectedUnit, XP_PER_KILL);
-    units.splice(units.indexOf(target), 1);
+    removeUnit(target);
   } else {
     awardXP(selectedUnit, XP_PER_HIT);
   }
