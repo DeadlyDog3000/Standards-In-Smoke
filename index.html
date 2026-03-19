@@ -4267,9 +4267,15 @@ function triggerRebellion(city) {
 }
 
 function endTurn() {
-  // Safety: force-clear stale blocking flags
-  if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive) animationBlocking = false;
-  if (battleReplayActive || animationBlocking) return; // Block during battle replay
+  // Block during active battle replay only
+  if (battleReplayActive) return;
+  // Force-clear all blocking state — don't let stale flags prevent end turn
+  animationBlocking = false; animatingUnits.length = 0; lastAnimTime = 0;
+  escMenuOpen = false; eventModalOpen = false;
+  document.getElementById('escMenu').classList.remove('show');
+  document.getElementById('eventModal').classList.remove('active');
+  moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
+  for (const u of units) { delete u._animating; delete u._animX; delete u._animY; }
   visionDirty = true;
   minimapDirty = true;
   _tileCityMapDirty = true;
@@ -4305,8 +4311,10 @@ function endTurn() {
   battleEvents = []; // Clear any stale events
   for (let i = 0; i < nations.length; i++) {
     if (i === playerNation) continue;
-    if (isBarbarianNation(i)) barbarianAI(i);
-    else aiTurn(i);
+    try {
+      if (isBarbarianNation(i)) barbarianAI(i);
+      else aiTurn(i);
+    } catch(e) { console.error(`AI turn error for nation ${i}:`, e); }
   }
   // Replay visible battles from AI turn
   if (battleEvents.length > 0) {
@@ -4317,12 +4325,12 @@ function endTurn() {
 }
 
 function finishEndTurn() {
-  tickWorkerBuilds();
-  tickBarbarianCamps();
-  tickPillaged();
-  tickCityLoyalty();
-  tickCityCapture();
-  checkElimination();
+  try { tickWorkerBuilds(); } catch(e) { console.error('tickWorkerBuilds error:', e); }
+  try { tickBarbarianCamps(); } catch(e) { console.error('tickBarbarianCamps error:', e); }
+  try { tickPillaged(); } catch(e) { console.error('tickPillaged error:', e); }
+  try { tickCityLoyalty(); } catch(e) { console.error('tickCityLoyalty error:', e); }
+  try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
+  try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   // Heal combat units in owned territory
   // Build unit position index for O(1) adjacent enemy lookups
   const unitsByPos = new Map();
@@ -4340,7 +4348,7 @@ function finishEndTurn() {
         const hasAdjacentEnemy = hexNeighbors(u.x, u.y).some(nb => {
           if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
           const nbUnits = unitsByPos.get(nb.row * MAP_COLS + nb.col);
-          return nbUnits && nbUnits.some(e => e.nationId !== u.nationId && nations[u.nationId].relations[e.nationId] === 'war');
+          return nbUnits && nbUnits.some(e => e.nationId !== u.nationId && nations[u.nationId]?.relations?.[e.nationId] === 'war');
         });
         if (!hasAdjacentEnemy) {
           const maxHp = getEffectiveMaxHp(u);
@@ -6849,6 +6857,8 @@ document.addEventListener('keydown', (e) => {
     else openEscMenu();
     return;
   }
+  // End turn always works — it clears stuck flags itself
+  if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
   if (escMenuOpen || eventModalOpen) return;
   // Don't capture keys when typing in an input
   const tag = document.activeElement?.tagName;
@@ -6861,7 +6871,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'w' && selectedUnit && selectedUnit.nationId === playerNation && (selectedUnit.fortified || selectedUnit.building)) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'x' && selectedUnit && selectedUnit.nationId === playerNation) { toggleAutoExplore(); e.preventDefault(); }
-  if (e.key === 'e') { endTurn(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   // N: cycle to next unit with moves remaining
   if (e.key === 'n') { cycleToNextUnit(); e.preventDefault(); }
