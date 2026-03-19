@@ -175,7 +175,7 @@
       position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 110;
       background: rgba(30, 25, 18, 0.95); border: 1px solid rgba(210, 180, 100, 0.6); border-radius: 4px;
       padding: 8px 18px; font-size: 13px; color: #e0c880; display: none; white-space: nowrap;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s; pointer-events: none;
     }
 
     /* Tile tooltip */
@@ -1392,7 +1392,7 @@ let cities = [];
 let discoveredNations = new Set(); // nation IDs the player has encountered
 let selectedUnit = null, selectedCity = null;
 let moveMode = false, buyTileMode = false, gotoMode = false, rangedMode = false;
-let animatingUnits = [], animationBlocking = false;
+let animatingUnits = [], animationBlocking = false, animBlockStart = 0;
 let reachableTiles = new Set();
 let turnNumber = 1;
 let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0, suppressedBy: -1 }
@@ -1566,7 +1566,7 @@ function getNudgeOffset() {
 async function replayBattleEvents() {
   if (battleEvents.length === 0) return;
   battleReplayActive = true;
-  animationBlocking = true;
+  animationBlocking = true; animBlockStart = Date.now();
   const events = [...battleEvents];
   battleEvents = [];
   try {
@@ -6485,8 +6485,11 @@ canvas.addEventListener('touchend', (e) => {
 
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
-  // Safety: force-clear animation block if no animations are running
-  if (animationBlocking && animatingUnits.length === 0) animationBlocking = false;
+  // Safety: force-clear stuck flags by checking actual DOM/state
+  if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive) animationBlocking = false;
+  if (animationBlocking && Date.now() - animBlockStart > 8000) { animationBlocking = false; battleReplayActive = false; animatingUnits.length = 0; }
+  if (eventModalOpen && !document.getElementById('eventModal').classList.contains('active')) eventModalOpen = false;
+  if (escMenuOpen && !document.getElementById('escMenu').classList.contains('show')) escMenuOpen = false;
   if (animationBlocking || eventModalOpen) return;
   const colS = hexColStep(), cellH = hexCellH();
   const worldPx = e.clientX + camX * colS;
@@ -6564,7 +6567,7 @@ canvas.addEventListener('click', (e) => {
         }
       }
       showToast(`Go-to order set for ${UNIT_DEFS[selectedUnit.type].icon}`);
-      showUnitPanel(selectedUnit); render();
+      showUnitPanel(selectedUnit); render(); return;
     } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); gotoMode = false; }
   }
 
@@ -6640,7 +6643,7 @@ canvas.addEventListener('click', (e) => {
   if (clickedUnit) {
     playClick();
     selectedUnit = clickedUnit; selectedCity = null;
-    buyTileMode = false;
+    buyTileMode = false; gotoMode = false; rangedMode = false;
     // Auto-enter move mode when clicking a unit with moves left
     if (clickedUnit.movesLeft > 0) {
       moveMode = false; reachableTiles.clear();
@@ -6829,7 +6832,7 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
   unit._animating = true;
   if (!animationBlocking) {
-    animationBlocking = true; lastAnimTime = 0;
+    animationBlocking = true; animBlockStart = Date.now(); lastAnimTime = 0;
     requestAnimationFrame(animationTick);
   }
 }
@@ -7083,7 +7086,7 @@ window.enterMoveMode = function() {
   if (!selectedUnit || selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
   if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
-  moveMode = true; buyTileMode = false; reachableTiles.clear();
+  moveMode = true; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
   const u = selectedUnit;
   const start = u.y * MAP_COLS + u.x;
   const visited = new Map(); visited.set(start, 0);
