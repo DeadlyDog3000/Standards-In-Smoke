@@ -2458,7 +2458,7 @@ const UNIT_DEFS = {
   settler:        { moves: 6, vision: 4, icon: '\u2691', desc: 'Colonists ready to found a new city.' },
   scout:          { moves: 11, vision: 7, icon: '\uD83D\uDD2D', desc: 'Fast cavalry scout on horseback. Excellent vision range.' },
   worker:         { moves: 6, vision: 4, icon: '\uD83D\uDD28', desc: 'Builds improvements on tiles within city borders.' },
-  swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5, hp: 12 },
+  swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5, hp: 12, ability: 'Charge: can move and attack (unless in Square)' },
   crossbowman:    { moves: 4, vision: 5, icon: '\uD83C\uDFF9', desc: 'Ranged infantry with crossbow. Attacks from distance.', combat: true, atk: 6, hp: 8, ranged: true },
   cavalry:        { moves: 7, vision: 5, icon: '\uD83D\uDC0E', desc: 'Fast mounted warriors. Require horses.', combat: true, atk: 7, hp: 10, ability: 'Charge: +3 ATK at full moves' },
   musketeer:      { moves: 4, vision: 4, icon: '\uD83D\uDD2B', desc: 'Gunpowder infantry. Powerful ranged attack.', combat: true, atk: 10, hp: 10, ranged: true },
@@ -3558,7 +3558,9 @@ function canAttack(attacker, tx, ty) {
   // Attacks require full moves — unit cannot move and attack in the same turn
   // Dragoons can attack after moving (Skirmish ability)
   const canSkirmish = attacker.type === 'dragoon' && attacker.movesLeft > 0;
-  if (attacker.movesLeft < attacker.maxMoves && !canSkirmish) return false;
+  // Swordsmen can move and attack unless in square (defensive) formation
+  const swordCharge = attacker.type === 'swordsman' && attacker.movesLeft > 0 && attacker.formation !== 'square';
+  if (attacker.movesLeft < attacker.maxMoves && !canSkirmish && !swordCharge) return false;
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
   return nations[attacker.nationId].relations[target.nationId] === 'war';
