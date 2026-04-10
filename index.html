@@ -427,8 +427,8 @@
         <div class="setup-row">
           <span class="setup-label">Barbarian Density</span>
           <div class="slider-row">
-            <input id="setupBarbarians" type="range" min="0" max="100" value="60" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
-            <span id="barbLabel" class="slider-val">60%</span>
+            <input id="setupBarbarians" type="range" min="0" max="100" value="40" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
+            <span id="barbLabel" class="slider-val">40%</span>
           </div>
         </div>
         <div style="margin-top:4px;">
@@ -515,6 +515,19 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.6</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Bug Fixes</b><br>
+        - Fixed units having 0 moves at start of turn after supply/winter attrition triggered morale flee<br>
+        - Fixed E key triggering End Turn while typing in text inputs (empire name etc.)<br>
+        - Fixed barbarian guard instantly respawning the turn after being killed &mdash; now waits before returning<br>
+        - Fixed fleeing units retaining stuck animation state, causing visual between-tile glitch<br>
+        <br>
+        <b style="color:#b8a070;">Balance</b><br>
+        - Default barbarian density reduced to 40% (was 60%)<br>
+        - Seasons now cycle every turn (1 turn per season, 4 turns = 1 year)<br>
+        - Swordsman Charge ability added: can move and attack in the same turn unless in Square formation<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.5</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
       <div style="margin-bottom:12px;">
@@ -811,6 +824,19 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.6</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Bug Fixes</b><br>
+          - Fixed units having 0 moves at start of turn after supply/winter attrition triggered morale flee<br>
+          - Fixed E key triggering End Turn while typing in text inputs (empire name etc.)<br>
+          - Fixed barbarian guard instantly respawning the turn after being killed &mdash; now waits before returning<br>
+          - Fixed fleeing units retaining stuck animation state, causing visual between-tile glitch<br>
+          <br>
+          <b style="color:#b8a070;">Balance</b><br>
+          - Default barbarian density reduced to 40% (was 60%)<br>
+          - Seasons now cycle every turn (1 turn per season, 4 turns = 1 year)<br>
+          - Swordsman Charge ability added: can move and attack in the same turn unless in Square formation<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.5</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
         <div style="margin-bottom:12px;">
@@ -1416,6 +1442,8 @@ function fleeFromEnemies(unit) {
     unit.y = bestHex.row;
   }
   unit.movesLeft = 0;
+  unit.fortified = false;
+  delete unit._animX; delete unit._animY; delete unit._animating;
 }
 
 function tickMoraleRecovery() {
@@ -1688,7 +1716,7 @@ let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0
 // Diplomatic agreements: agreements[nationA][nationB] = Set of active agreements
 // Possible agreements: 'open_borders', 'war_help', 'barb_help'
 let agreements = {};
-let barbarianDensity = 0.6; // 0 to 1, default 60%
+let barbarianDensity = 0.4; // 0 to 1, default 40%
 let barbSpawnTurn = 5;      // turn barbarian camps start spawning from tick (initial camp at turn 1)
 let barbSpawnChance = 0.75; // base chance per turn to spawn a new camp (higher)
 let barbMaxUnits = 10;      // max units per camp (more)
@@ -1706,7 +1734,7 @@ let isDragging = false, dragStartX = 0, dragStartY = 0, dragCamStartX = 0, dragC
 // SEASONS SYSTEM
 // ====================
 let currentSeason = 'spring';
-const SEASON_LENGTH = 8; // turns per season
+const SEASON_LENGTH = 1; // turns per season
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const START_YEAR = 1680;
 const TURNS_PER_YEAR = 32;
@@ -4072,8 +4100,15 @@ function tickBarbarianCamps() {
       // Camp keeps 1 guard on it, may spawn more to raid
       const campGuard = units.find(u => u.x === camp.x && u.y === camp.y && u.nationId === camp.nationId);
       const campUnits = units.filter(u => u.nationId === camp.nationId);
-      if (!campGuard && campUnits.length < barbMaxUnits) {
-        spawnUnit(barbType, camp.nationId, camp.x, camp.y);
+      if (!campGuard) {
+        if (camp.noGuardSince === undefined) camp.noGuardSince = turnNumber;
+        // Delay respawn so killing the guard isn't immediately undone
+        if (campUnits.length < barbMaxUnits && turnNumber - camp.noGuardSince >= barbRaiderInterval) {
+          spawnUnit(barbType, camp.nationId, camp.x, camp.y);
+          delete camp.noGuardSince;
+        }
+      } else {
+        delete camp.noGuardSince;
       }
       // Spawn raiders periodically — more as game goes on
       if (turnNumber % barbRaiderInterval === 0 && campUnits.length < barbMaxUnits) {
@@ -5468,7 +5503,12 @@ function finishEndTurn() {
       }
     }
   }
-  // Track which units were already fortified (before resetting moves)
+  turnNumber++;
+  tickSeason();
+  try { tickWinterAttrition(); } catch(e) { console.error('tickWinterAttrition error:', e); }
+  try { tickSupply(); } catch(e) { console.error('tickSupply error:', e); }
+  try { tickCharacterAging(); } catch(e) { console.error('tickCharacterAging error:', e); }
+  // Reset moves AFTER all damage/morale ticks so flee effects don't leave units stuck at 0
   // Only units that were explicitly fortified stay fortified — idle units do NOT auto-fortify
   const wasFortified = new Set(units.filter(u => u.fortified));
   for (const u of units) {
@@ -5489,11 +5529,6 @@ function finishEndTurn() {
     if (wasFortified.has(u) && u.movesLeft === u.maxMoves) u.fortified = true;
     else u.fortified = false;
   }
-  turnNumber++;
-  tickSeason();
-  try { tickWinterAttrition(); } catch(e) { console.error('tickWinterAttrition error:', e); }
-  try { tickSupply(); } catch(e) { console.error('tickSupply error:', e); }
-  try { tickCharacterAging(); } catch(e) { console.error('tickCharacterAging error:', e); }
   showTurnBanner(turnNumber);
   // City auto-expansion: every 5 turns, each city expands 2 tiles
   if (turnNumber % 5 === 0) {
@@ -7332,7 +7367,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-2.5';
+const CURRENT_VERSION = 'beta-2.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -7490,7 +7525,7 @@ function confirmSetupAndStart() {
   const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
   const [cols, rows] = sizes[mapSize] || sizes.medium;
   gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
-  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 80) / 100;
+  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 40) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
   barbSpawnChance = (parseInt(document.getElementById('setupBarbSpawnChance').value) || 60) / 100;
   barbMaxUnits = parseInt(document.getElementById('setupBarbMaxUnits').value) || 6;
@@ -8121,12 +8156,12 @@ document.addEventListener('keydown', (e) => {
     else openEscMenu();
     return;
   }
-  // End turn always works — it clears stuck flags itself
-  if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
-  if (escMenuOpen || eventModalOpen) return;
   // Don't capture keys when typing in an input
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  // End turn always works — it clears stuck flags itself
+  if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
+  if (escMenuOpen || eventModalOpen) return;
   // Hotkeys (WASD handled by interval)
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
@@ -8738,7 +8773,7 @@ function deserializeGame(json) {
   barbarianCamps = d.barbarianCamps || [];
   citySites = d.citySites || [];
   pillaged = d.pillaged || [];
-  barbarianDensity = d.barbarianDensity !== undefined ? d.barbarianDensity : 0.8;
+  barbarianDensity = d.barbarianDensity !== undefined ? d.barbarianDensity : 0.4;
   barbSpawnTurn = d.barbSpawnTurn || 3;
   barbSpawnChance = d.barbSpawnChance || 0.6;
   barbMaxUnits = d.barbMaxUnits || 6;
