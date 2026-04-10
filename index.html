@@ -528,6 +528,11 @@
         - Default barbarian density reduced to 40% (was 60%)<br>
         - Seasons now cycle every turn (1 turn per season, 4 turns = 1 year)<br>
         - Swordsman Charge ability added: can move and attack in the same turn unless in Square formation<br>
+        <br>
+        <b style="color:#b8a070;">Map Generation</b><br>
+        - Mountains now appear consistently (Snow tile sprites)<br>
+        - Inland lakes generated in low wet areas (2&ndash;5 tile clusters)<br>
+        - Rivers more frequent and meander naturally from mountains to ocean<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.5</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
       <div style="margin-bottom:12px;">
@@ -837,6 +842,11 @@
           - Default barbarian density reduced to 40% (was 60%)<br>
           - Seasons now cycle every turn (1 turn per season, 4 turns = 1 year)<br>
           - Swordsman Charge ability added: can move and attack in the same turn unless in Square formation<br>
+          <br>
+          <b style="color:#b8a070;">Map Generation</b><br>
+          - Mountains now appear consistently (Snow tile sprites)<br>
+          - Inland lakes generated in low wet areas (2&ndash;5 tile clusters)<br>
+          - Rivers more frequent and meander naturally from mountains to ocean<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 2.5</b> <span style="color:#888;font-size:11px;">(Save v10)</span></div>
         <div style="margin-bottom:12px;">
@@ -1628,7 +1638,7 @@ const HEX_TILE_FILES = [
   'Water','Water_Duck','Water_Lilypads',
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
   'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
-  'FrozenWater','FrosenWater_Lilypads',
+  'FrosenWater','FrosenWater_Lilypads',
 ];
 let hexImagesLoaded = 0;
 for (const name of HEX_TILE_FILES) {
@@ -2946,49 +2956,111 @@ function generateMap() {
     const e = elev[i], m = moist[i], f = forest[i], h = herdNoise[i];
     let type, color;
     if (e < 0.38) { type = 0; color = TILE_COLORS.ocean; }
-    else if (e < 0.68) {
+    else if (e < 0.64) {
       if (m > 0.6 && e < 0.5) { type = 3; color = TILE_COLORS.swamp; }
       else if (f > 0.32 && e > 0.40) { type = 5; color = TILE_COLORS.forest; }
       else if (h > 0.75 && e > 0.42 && e < 0.58 && m < 0.55) { type = 6; color = TILE_COLORS.herd; }
-      else if (e > 0.60) { type = 7; color = TILE_COLORS.hill; } // hills at high elevation
+      else if (e > 0.57) { type = 7; color = TILE_COLORS.hill; } // hills at high elevation
       else { type = 1; color = TILE_COLORS.land; }
     } else {
-      { type = 2; color = TILE_COLORS.mountain; }
+      type = 2; color = TILE_COLORS.mountain; // mountains at high elevation (Snow sprites)
     }
     const sv = Math.floor(spriteRand() * 997);
     const spriteKey = pickSprite(type, sv);
     tiles[i] = { type, color, baseColor: color, owner: -1, improvement: null, revealed: new Set(), spriteKey, hasRiver: false };
   }
   // Post-process: generate rivers from mountains toward ocean
-  const riverCount = Math.max(2, Math.floor(MAP_COLS * MAP_ROWS / 2000));
+  const riverCount = Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 500));
+  const mountainStarts = [];
+  for (let i = 0; i < tiles.length; i++) { if (tiles[i].type === 2) mountainStarts.push(i); }
   for (let r = 0; r < riverCount; r++) {
-    // Find a random mountain tile to start from
-    let starts = [];
-    for (let i = 0; i < tiles.length; i++) { if (tiles[i].type === 2) starts.push(i); }
-    if (starts.length === 0) break;
-    let ci = starts[Math.floor(spriteRand() * starts.length)];
+    if (mountainStarts.length === 0) break;
+    let ci = mountainStarts[Math.floor(spriteRand() * mountainStarts.length)];
     const visited = new Set();
-    for (let step = 0; step < 40; step++) {
+    for (let step = 0; step < 60; step++) {
       const cx = ci % MAP_COLS, cy = Math.floor(ci / MAP_COLS);
       visited.add(ci);
       if (tiles[ci].type === 0) break; // reached ocean
-      // Mark land tiles as having a river
-      if (tiles[ci].type !== 2 && tiles[ci].type !== 0) {
-        tiles[ci].hasRiver = true;
-      }
-      // Flow downhill toward ocean (lowest elevation neighbor)
+      if (tiles[ci].type !== 2) tiles[ci].hasRiver = true;
+      // Flow downhill (lowest elevation neighbor, with small random bias to meander)
       let bestNb = null, bestElev = Infinity;
       for (const nb of hexNeighbors(cx, cy)) {
         if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
         const ni = nb.row * MAP_COLS + nb.col;
         if (visited.has(ni)) continue;
-        const ne = elev[ni];
+        const ne = elev[ni] + spriteRand() * 0.04; // small meander jitter
         if (ne < bestElev) { bestElev = ne; bestNb = ni; }
       }
       if (bestNb === null) break;
       ci = bestNb;
     }
   }
+
+  // Post-process: generate inland lakes in low wet areas
+  const lakeRand = mulberry32(seed + 44444);
+  const lakeCandidates = [];
+  for (let i = 0; i < tiles.length; i++) {
+    if (tiles[i].type !== 1) continue; // only on plains
+    const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS);
+    if (x < 3 || x >= MAP_COLS - 3 || y < 3 || y >= MAP_ROWS - 3) continue;
+    if (elev[i] < 0.41 || elev[i] > 0.50) continue; // low elevation but above ocean threshold
+    if (moist[i] < 0.68) continue; // wet areas only
+    lakeCandidates.push(i);
+  }
+  const numLakes = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 250));
+  const usedForLake = new Set();
+  let lakesCreated = 0;
+  // Shuffle candidates
+  for (let i = lakeCandidates.length - 1; i > 0; i--) {
+    const j = Math.floor(lakeRand() * (i + 1));
+    [lakeCandidates[i], lakeCandidates[j]] = [lakeCandidates[j], lakeCandidates[i]];
+  }
+  for (const si of lakeCandidates) {
+    if (lakesCreated >= numLakes) break;
+    if (usedForLake.has(si)) continue;
+    const sx = si % MAP_COLS, sy = Math.floor(si / MAP_COLS);
+    // Skip if adjacent to ocean
+    const adjOcean = hexNeighbors(sx, sy).some(nb => {
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
+      return tiles[nb.row * MAP_COLS + nb.col].type === 0;
+    });
+    if (adjOcean) continue;
+    // BFS flood-fill lake (2-5 tiles)
+    const lakeSize = 2 + Math.floor(lakeRand() * 4);
+    const queue = [si], inQueue = new Set([si]), lakePatch = [];
+    while (queue.length && lakePatch.length < lakeSize) {
+      const ci = queue.shift();
+      if (usedForLake.has(ci) || tiles[ci].type !== 1) continue;
+      const cx = ci % MAP_COLS, cy = Math.floor(ci / MAP_COLS);
+      if (cx < 2 || cx >= MAP_COLS - 2 || cy < 2 || cy >= MAP_ROWS - 2) continue;
+      // Don't expand if would touch ocean
+      const touchesOcean = hexNeighbors(cx, cy).some(nb => {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
+        const ni = nb.row * MAP_COLS + nb.col;
+        return tiles[ni].type === 0 && !usedForLake.has(ni);
+      });
+      if (touchesOcean) continue;
+      usedForLake.add(ci); lakePatch.push(ci);
+      for (const nb of hexNeighbors(cx, cy)) {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+        const ni = nb.row * MAP_COLS + nb.col;
+        if (!inQueue.has(ni) && !usedForLake.has(ni) && tiles[ni].type === 1 && elev[ni] < 0.53) {
+          inQueue.add(ni); queue.push(ni);
+        }
+      }
+    }
+    if (lakePatch.length >= 2) {
+      for (const ti of lakePatch) {
+        tiles[ti].type = 0;
+        tiles[ti].color = TILE_COLORS.ocean;
+        tiles[ti].baseColor = TILE_COLORS.ocean;
+        const v = lakeRand();
+        tiles[ti].spriteKey = v < 0.4 ? 'Water_Lilypads' : v < 0.6 ? 'Water_Duck' : 'Water';
+      }
+      lakesCreated++;
+    }
+  }
+
   units = []; cities = []; nations = []; turnNumber = 1;
   barbarianCamps = []; citySites = []; pillaged = [];
   discoveredNations = new Set();
