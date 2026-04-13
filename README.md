@@ -32,7 +32,7 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 ## Changelog
 
 ### Beta 3.1 — 2026-04-13
-- **Fix**: Great Britain now spawns as a proper island — post-process terrain overrides carve the English Channel, North Sea, and Irish Sea after noise generation; Japan (Honshu, Kyushu, Hokkaido) also guaranteed as islands with the Sea of Japan and Pacific carved correctly; only applies on World (600×360) map size
+- **Fix**: Great Britain now spawns as a proper island, completely separate from France and Belgium — terrain override stamps Britain (lon −6.5 to 1.5) then carves the English Channel, western North Sea, and Irish Sea; continental Europe (lon 4–18, lat 47–54) is also stamped as land so French/Belgian city placement always anchors to the continent rather than the British island; Japan islands fixed similarly
 
 ### Beta 3.0 — 2026-04-13
 - **Feature**: World map — all 21 nations now placed at historically accurate world-scale coordinates (formula: xFrac = (lon+180)/360, yFrac = (80-lat)/140); new World (600×360) map size added and set as default

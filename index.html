@@ -3392,12 +3392,18 @@ function applyWorldTerrainOverrides() {
     }
   }
 
-  // ── British Isles ── (land first, then carve surrounding seas)
-  forceLand(-6.5, 2,    50.5, 61);      // Great Britain
-  forceLand(-10.5, -5.5, 51,  55.5);    // Ireland
-  forceOcean(-6,   3,   49.5, 51.2);    // English Channel
-  forceOcean( 1.5, 10,  51,   59);      // North Sea (east of Britain)
+  // ── British Isles ──
+  // 1. Stamp the islands as land
+  forceLand(-6.5, 1.5, 51.5, 62);       // Great Britain (stops at lon 1.5 — well west of continent)
+  forceLand(-10.5, -5.5, 51, 55.5);     // Ireland
+  // 2. Carve surrounding seas (run after land so they cut through)
+  forceOcean(-6, 3.5, 50, 51.5);        // English Channel  (lat 50–51.5, safely above Paris lat 48.9)
+  forceOcean(1.5, 5, 51.5, 62);         // Western North Sea (5-tile gap between GB east coast and continent)
   forceOcean(-5.5, -3.5, 51.5, 55);     // Irish Sea
+  // 3. Guarantee continental land east of the channel so Belgian/Dutch/French cities
+  //    always find the continent before they can "jump" to Britain.
+  //    Applied last so it overrides the North Sea ocean at the continental edge.
+  forceLand(4, 18, 47, 54);             // Continental coast (Belgium / Netherlands / Germany / NE France)
 
   // ── Japan ── (land first, then carve surrounding seas)
   forceLand(130, 142, 33,   42);         // Honshu
