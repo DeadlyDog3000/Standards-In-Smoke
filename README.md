@@ -31,6 +31,11 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.3 — 2026-04-13
+- **Scrapped**: Premade map ideas scrapped for now — nation selection screen, preset geographic city positions, world map terrain overrides, tribal nations system, and World (600×360) map size all removed
+- Nations and their historical city name pools are retained; nations now spawn at random positions on procedurally generated maps (same as before Beta 2.8)
+- Default map size changed back to Large (200×130)
+
 ### Beta 3.2 — 2026-04-13
 - **Fix**: `tribeAI` combat was broken — `doAttack` was called with a unit object instead of coordinates; also used Manhattan distance instead of proper hex adjacency (`hexNeighbors`) matching all other combat code
 - **Fix**: `checkElimination` now skips tribe nations (same as barbarians) — tribes with no cities were incorrectly triggering conqueror logic and resource transfers

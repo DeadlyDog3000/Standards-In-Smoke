@@ -299,28 +299,8 @@
       cursor: pointer;
       max-width: 160px;
     }
-    .nation-picker-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 4px;
-    }
-    .nation-card {
-      background: rgba(20,16,10,0.7);
-      border: 2px solid rgba(160,140,100,0.3);
-      border-radius: 6px;
-      padding: 8px 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .nation-card:hover { background: rgba(40,32,20,0.8); border-color: rgba(200,170,90,0.5); }
-    .nation-card.selected { border-color: #e0c880; box-shadow: 0 0 8px rgba(224,200,128,0.3); background: rgba(50,40,20,0.85); }
-    .nation-flag { width: 14px; border-radius: 3px; flex-shrink: 0; align-self: stretch; min-height: 36px; }
-    .nation-card-name { font-size: 13px; color: #e8dcc8; font-weight: bold; margin-bottom: 2px; }
-    .nation-card-cities { font-size: 10px; color: #a89878; line-height: 1.3; }
+    .color-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
+    .color-swatch:hover, .color-swatch.selected { border-color: #e0c880; }
     .slider-val {
       font-size: 13px;
       color: #e8dcc8;
@@ -383,10 +363,32 @@
     <div class="setup-card">
       <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:26px;margin-bottom:22px;text-align:center;text-shadow:2px 2px 6px rgba(0,0,0,0.7);letter-spacing:1px;">Forge Your Empire</h3>
 
-      <!-- Section 1: Choose Your Nation -->
+      <!-- Section 1: Your Nation -->
       <div class="setup-section">
-        <div class="setup-section-title">Choose Your Nation</div>
-        <div id="nationPickerGrid" class="nation-picker-grid"></div>
+        <div class="setup-section-title">Your Nation</div>
+        <div class="setup-row">
+          <span class="setup-label">Nation Name</span>
+          <input id="setupName" type="text" value="France" maxlength="24" class="setup-input" style="width:180px;" />
+        </div>
+        <div class="setup-row">
+          <span class="setup-label">Banner Color</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;max-width:220px;">
+            <input id="setupColor" type="color" value="#1a50c0" style="width:36px;height:28px;cursor:pointer;border:none;background:none;" />
+            <span style="font-size:11px;color:#a89868;align-self:center;">or pick a preset:</span>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <div class="color-swatch" data-color="#cc1111" style="background:#cc1111" onclick="selectColorSwatch('#cc1111')"></div>
+              <div class="color-swatch" data-color="#1a50c0" style="background:#1a50c0" onclick="selectColorSwatch('#1a50c0')"></div>
+              <div class="color-swatch" data-color="#1a6b1a" style="background:#1a6b1a" onclick="selectColorSwatch('#1a6b1a')"></div>
+              <div class="color-swatch" data-color="#c8a800" style="background:#c8a800" onclick="selectColorSwatch('#c8a800')"></div>
+              <div class="color-swatch" data-color="#8b0000" style="background:#8b0000" onclick="selectColorSwatch('#8b0000')"></div>
+              <div class="color-swatch" data-color="#3a4a8a" style="background:#3a4a8a" onclick="selectColorSwatch('#3a4a8a')"></div>
+              <div class="color-swatch" data-color="#b05000" style="background:#b05000" onclick="selectColorSwatch('#b05000')"></div>
+              <div class="color-swatch" data-color="#7a30aa" style="background:#7a30aa" onclick="selectColorSwatch('#7a30aa')"></div>
+              <div class="color-swatch" data-color="#c87820" style="background:#c87820" onclick="selectColorSwatch('#c87820')"></div>
+              <div class="color-swatch" data-color="#30b050" style="background:#30b050" onclick="selectColorSwatch('#30b050')"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Section 2: World -->
@@ -397,9 +399,8 @@
           <select id="setupMapSize" class="setup-input" style="width:180px;">
             <option value="small">Small (60x40)</option>
             <option value="medium">Medium (120x80)</option>
-            <option value="large">Large (200x130)</option>
+            <option value="large" selected>Large (200x130)</option>
             <option value="huge">Huge (300x200)</option>
-            <option value="world" selected>World (600x360)</option>
           </select>
         </div>
         <div class="setup-row">
@@ -1806,7 +1807,7 @@ function tickWinterAttrition() {
 function tickSupply() {
   // Supply: each city supports 5 military units. Excess units lose morale
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
     const nationCities = cities.filter(c => c.nationId === i).length;
     const armySize = units.filter(u => u.nationId === i && UNIT_DEFS[u.type]?.combat).length;
     const supplyCapacity = nationCities * 5;
@@ -2534,7 +2535,6 @@ const UNIT_DEFS = {
   barbarian_axeman: { moves: 5, vision: 3, icon: '\u2694', desc: 'Savage barbarian warrior. Pillages improvements.', combat: true, atk: 6, hp: 12 },
   barbarian_raider: { moves: 7, vision: 4, icon: '\uD83D\uDDE1', desc: 'Fast barbarian raider. Pillages and retreats.', combat: true, atk: 7, hp: 9 },
   barbarian_brute:  { moves: 4, vision: 3, icon: '\uD83D\uDEE1', desc: 'Armored barbarian champion. Tough and deadly.', combat: true, atk: 8, hp: 16 },
-  tribal_warrior:   { moves: 4, vision: 3, icon: '\uD83C\uDFF9', desc: 'Tribal warrior defending their homeland. Neutral unless provoked.', combat: true, atk: 5, hp: 10 },
   general:          { moves: 5, vision: 6, icon: '\u2655', desc: 'Commands nearby troops within 3 hexes. Provides bonuses based on traits.', combat: true, atk: 3, hp: 8 },
 };
 
@@ -2806,290 +2806,130 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
 const PRESET_NATIONS = [
   {
     name: 'Great Britain', color: '#cc1111',
-    cities: [
-      { name: 'London',     xFrac: 0.500, yFrac: 0.204 },
-      { name: 'Edinburgh',  xFrac: 0.491, yFrac: 0.172 },
-      { name: 'Dublin',     xFrac: 0.482, yFrac: 0.191 },
-      { name: 'Bristol',    xFrac: 0.493, yFrac: 0.204 },
-    ],
-    extraCities: ['Liverpool','Manchester','Birmingham','Leeds','Sheffield','York','Norwich',
-      'Plymouth','Portsmouth','Exeter','Canterbury','Oxford','Cambridge','Chester','Coventry',
-      'Newcastle','Bath','Leicester','Nottingham','Gloucester','Hereford','Worcester','Carlisle',
-      'Shrewsbury','Derby','Lincoln','Ely','Rochester','Colchester','Ipswich'],
+    cityNames: ['London','Edinburgh','Dublin','Bristol','Liverpool','Manchester','Birmingham','Leeds',
+      'Sheffield','York','Norwich','Plymouth','Portsmouth','Exeter','Canterbury','Oxford','Cambridge',
+      'Chester','Coventry','Newcastle','Bath','Leicester','Nottingham','Gloucester','Hereford',
+      'Worcester','Carlisle','Shrewsbury','Derby','Lincoln','Ely','Rochester','Colchester','Ipswich'],
   },
   {
     name: 'Austria', color: '#c8a800',
-    cities: [
-      { name: 'Vienna',    xFrac: 0.545, yFrac: 0.227 },
-      { name: 'Prague',    xFrac: 0.540, yFrac: 0.214 },
-      { name: 'Budapest',  xFrac: 0.553, yFrac: 0.232 },
-    ],
-    extraCities: ['Graz','Salzburg','Linz','Innsbruck','Trieste','Brno','Bratislava','Lemberg',
-      'Zagreb','Ljubljana','Klagenfurt','Villach','Steyr','Wels','Pécs','Debrecen','Kolozsvár',
-      'Temesvár','Fiume','Zara','Olomouc','Brünn','Pilsen','Budweis'],
+    cityNames: ['Vienna','Prague','Budapest','Graz','Salzburg','Linz','Innsbruck','Trieste','Brno',
+      'Bratislava','Lemberg','Zagreb','Ljubljana','Klagenfurt','Villach','Steyr','Wels','Pécs',
+      'Debrecen','Kolozsvár','Temesvár','Fiume','Zara','Olomouc','Brünn','Pilsen','Budweis'],
   },
   {
     name: 'France', color: '#1a50c0',
-    cities: [
-      { name: 'Paris',       xFrac: 0.506, yFrac: 0.222 },
-      { name: 'Lyon',        xFrac: 0.513, yFrac: 0.245 },
-      { name: 'Bordeaux',    xFrac: 0.498, yFrac: 0.252 },
-      { name: 'Strasbourg',  xFrac: 0.522, yFrac: 0.224 },
-    ],
-    extraCities: ['Marseille','Toulouse','Nantes','Lille','Rouen','Reims','Dijon','Grenoble',
-      'Rennes','Caen','Tours','Orléans','Metz','Nancy','Brest','Toulon','Montpellier',
-      'Clermont','Amiens','Valenciennes','Besançon','Poitiers','Limoges','Perpignan',
-      'Avignon','Cherbourg','Le Havre','Arras','Calais','Dunkirk'],
+    cityNames: ['Paris','Lyon','Bordeaux','Strasbourg','Marseille','Toulouse','Nantes','Lille',
+      'Rouen','Reims','Dijon','Grenoble','Rennes','Caen','Tours','Orléans','Metz','Nancy','Brest',
+      'Toulon','Montpellier','Clermont','Amiens','Valenciennes','Besançon','Poitiers','Limoges',
+      'Perpignan','Avignon','Cherbourg','Le Havre','Arras','Calais','Dunkirk'],
   },
   {
     name: 'Russia', color: '#1a6b1a',
-    cities: [
-      { name: 'Moscow',          xFrac: 0.604, yFrac: 0.173 },
-      { name: 'St. Petersburg',  xFrac: 0.584, yFrac: 0.143 },
-      { name: 'Kiev',            xFrac: 0.585, yFrac: 0.211 },
-    ],
-    extraCities: ['Novgorod','Smolensk','Riga','Vilnius','Minsk','Odessa','Kharkov','Tula',
-      'Kazan','Yaroslavl','Nizhny Novgorod','Pskov','Tver','Voronezh','Kursk','Penza',
-      'Saratov','Astrakhan','Archangel','Vologda','Kostroma','Tambov','Ryazan','Vladimir'],
+    cityNames: ['Moscow','St. Petersburg','Kiev','Novgorod','Smolensk','Riga','Vilnius','Minsk',
+      'Odessa','Kharkov','Tula','Kazan','Yaroslavl','Nizhny Novgorod','Pskov','Tver','Voronezh',
+      'Kursk','Penza','Saratov','Astrakhan','Archangel','Vologda','Kostroma','Tambov','Ryazan','Vladimir'],
   },
   {
     name: 'Belgium', color: '#c87820',
-    cities: [
-      { name: 'Brussels',  xFrac: 0.512, yFrac: 0.208 },
-      { name: 'Ghent',     xFrac: 0.510, yFrac: 0.206 },
-      { name: 'Liège',     xFrac: 0.515, yFrac: 0.209 },
-    ],
-    extraCities: ['Antwerp','Bruges','Namur','Mons','Leuven','Mechelen','Tournai','Dinant',
-      'Charleroi','Hasselt','Sint-Niklaas','Aalst','Kortrijk','Verviers','Spa'],
+    cityNames: ['Brussels','Ghent','Liège','Antwerp','Bruges','Namur','Mons','Leuven','Mechelen',
+      'Tournai','Dinant','Charleroi','Hasselt','Sint-Niklaas','Aalst','Kortrijk','Verviers','Spa'],
   },
   {
     name: 'Kingdom of Holland', color: '#ff8000',
-    cities: [
-      { name: 'Amsterdam',  xFrac: 0.513, yFrac: 0.197 },
-      { name: 'Rotterdam',  xFrac: 0.513, yFrac: 0.200 },
-      { name: 'Utrecht',    xFrac: 0.514, yFrac: 0.199 },
-    ],
-    extraCities: ['The Hague','Leiden','Haarlem','Delft','Groningen','Maastricht','Nijmegen',
-      'Arnhem','Dordrecht','Alkmaar','Zwolle','Deventer','Breda','Middelburg','Enkhuizen'],
+    cityNames: ['Amsterdam','Rotterdam','Utrecht','The Hague','Leiden','Haarlem','Delft','Groningen',
+      'Maastricht','Nijmegen','Arnhem','Dordrecht','Alkmaar','Zwolle','Deventer','Breda','Middelburg','Enkhuizen'],
   },
   {
     name: 'Spain', color: '#8b0000',
-    cities: [
-      { name: 'Madrid',     xFrac: 0.490, yFrac: 0.283 },
-      { name: 'Barcelona',  xFrac: 0.506, yFrac: 0.276 },
-      { name: 'Seville',    xFrac: 0.484, yFrac: 0.303 },
-    ],
-    extraCities: ['Valencia','Zaragoza','Bilbao','Valladolid','Toledo','Córdoba','Cádiz',
-      'Burgos','Salamanca','Granada','Málaga','Murcia','Pamplona','León','Santander',
-      'San Sebastián','Tarragona','Cartagena','Almería','Badajoz','Cáceres','Albacete',
-      'Palencia','Logroño','Oviedo','Vitoria'],
+    cityNames: ['Madrid','Barcelona','Seville','Valencia','Zaragoza','Bilbao','Valladolid','Toledo',
+      'Córdoba','Cádiz','Burgos','Salamanca','Granada','Málaga','Murcia','Pamplona','León','Santander',
+      'San Sebastián','Tarragona','Cartagena','Almería','Badajoz','Cáceres','Albacete','Palencia',
+      'Logroño','Oviedo','Vitoria'],
   },
   {
     name: 'Sweden', color: '#005b9e',
-    cities: [
-      { name: 'Stockholm',   xFrac: 0.550, yFrac: 0.148 },
-      { name: 'Gothenburg',  xFrac: 0.533, yFrac: 0.159 },
-      { name: 'Malmö',       xFrac: 0.536, yFrac: 0.174 },
-    ],
-    extraCities: ['Uppsala','Norrköping','Linköping','Örebro','Västerås','Helsingborg',
-      'Jönköping','Umeå','Lund','Gävle','Sundsvall','Kalmar','Visby','Härnösand',
+    cityNames: ['Stockholm','Gothenburg','Malmö','Uppsala','Norrköping','Linköping','Örebro','Västerås',
+      'Helsingborg','Jönköping','Umeå','Lund','Gävle','Sundsvall','Kalmar','Visby','Härnösand',
       'Falun','Karlstad','Växjö'],
   },
   {
     name: 'Portugal', color: '#006b3c',
-    cities: [
-      { name: 'Lisbon',   xFrac: 0.475, yFrac: 0.295 },
-      { name: 'Porto',    xFrac: 0.476, yFrac: 0.278 },
-      { name: 'Coimbra',  xFrac: 0.477, yFrac: 0.285 },
-    ],
-    extraCities: ['Braga','Évora','Faro','Setúbal','Funchal','Viseu','Guimarães',
-      'Castelo Branco','Santarém','Leiria','Aveiro','Bragança','Vila Real','Elvas',
+    cityNames: ['Lisbon','Porto','Coimbra','Braga','Évora','Faro','Setúbal','Funchal','Viseu',
+      'Guimarães','Castelo Branco','Santarém','Leiria','Aveiro','Bragança','Vila Real','Elvas',
       'Portalegre','Estremoz'],
   },
   {
     name: 'Kingdom of Italy', color: '#30b050',
-    cities: [
-      { name: 'Rome',      xFrac: 0.535, yFrac: 0.272 },
-      { name: 'Milan',     xFrac: 0.526, yFrac: 0.246 },
-      { name: 'Venice',    xFrac: 0.534, yFrac: 0.247 },
-      { name: 'Florence',  xFrac: 0.531, yFrac: 0.259 },
-    ],
-    extraCities: ['Turin','Genoa','Bologna','Verona','Padua','Modena','Parma','Pisa',
-      'Siena','Ancona','Ferrara','Mantua','Brescia','Cremona','Bergamo','Trento',
+    cityNames: ['Rome','Milan','Venice','Florence','Turin','Genoa','Bologna','Verona','Padua','Modena',
+      'Parma','Pisa','Siena','Ancona','Ferrara','Mantua','Brescia','Cremona','Bergamo','Trento',
       'Alessandria','Novara','Como','Pavia','Reggio','Lucca','Perugia','Viterbo'],
   },
   {
     name: 'Duchy of Warsaw', color: '#c7192a',
-    cities: [
-      { name: 'Warsaw',  xFrac: 0.558, yFrac: 0.199 },
-      { name: 'Kraków',  xFrac: 0.555, yFrac: 0.214 },
-      { name: 'Poznań',  xFrac: 0.547, yFrac: 0.197 },
-    ],
-    extraCities: ['Łódź','Lublin','Białystok','Danzig','Toruń','Bydgoszcz','Rzeszów',
-      'Płock','Radom','Kielce','Sandomierz','Zamość','Piotrków','Siedlce','Kalisz',
+    cityNames: ['Warsaw','Kraków','Poznań','Łódź','Lublin','Białystok','Danzig','Toruń','Bydgoszcz',
+      'Rzeszów','Płock','Radom','Kielce','Sandomierz','Zamość','Piotrków','Siedlce','Kalisz',
       'Gniezno','Inowrocław'],
   },
   {
     name: 'Kingdom of Naples', color: '#7a30aa',
-    cities: [
-      { name: 'Naples',   xFrac: 0.540, yFrac: 0.280 },
-      { name: 'Palermo',  xFrac: 0.537, yFrac: 0.299 },
-    ],
-    extraCities: ['Bari','Catania','Messina','Salerno','Reggio Calabria','Taranto','Foggia',
-      'Lecce','Brindisi','Trapani','Syracuse','Cosenza','Potenza','Campobasso','Chieti',
+    cityNames: ['Naples','Palermo','Bari','Catania','Messina','Salerno','Reggio Calabria','Taranto',
+      'Foggia','Lecce','Brindisi','Trapani','Syracuse','Cosenza','Potenza','Campobasso','Chieti',
       'Aquila','Pescara','Agrigento','Caltanissetta','Ragusa'],
   },
   {
     name: 'Kingdom of Saxony', color: '#7a9c3a',
-    cities: [
-      { name: 'Dresden',  xFrac: 0.538, yFrac: 0.207 },
-      { name: 'Leipzig',  xFrac: 0.534, yFrac: 0.205 },
-      { name: 'Erfurt',   xFrac: 0.531, yFrac: 0.207 },
-    ],
-    extraCities: ['Chemnitz','Zwickau','Halle','Magdeburg','Görlitz','Plauen','Freiberg',
-      'Bautzen','Meissen','Pirna','Altenburg','Gera','Jena','Weimar','Eisenach','Nordhausen'],
+    cityNames: ['Dresden','Leipzig','Erfurt','Chemnitz','Zwickau','Halle','Magdeburg','Görlitz',
+      'Plauen','Freiberg','Bautzen','Meissen','Pirna','Altenburg','Gera','Jena','Weimar','Eisenach','Nordhausen'],
   },
   {
     name: 'Prussia', color: '#3a4a8a',
-    cities: [
-      { name: 'Berlin',       xFrac: 0.537, yFrac: 0.196 },
-      { name: 'Königsberg',   xFrac: 0.557, yFrac: 0.181 },
-      { name: 'Breslau',      xFrac: 0.547, yFrac: 0.207 },
-    ],
-    extraCities: ['Stettin','Kolberg','Memel','Frankfurt an der Oder','Potsdam','Kiel',
-      'Rostock','Stralsund','Greifswald','Tilsit','Insterburg','Gumbinnen','Elbing',
+    cityNames: ['Berlin','Königsberg','Breslau','Stettin','Kolberg','Memel','Frankfurt an der Oder',
+      'Potsdam','Kiel','Rostock','Stralsund','Greifswald','Tilsit','Insterburg','Gumbinnen','Elbing',
       'Marienburg','Thorn','Posen','Gnesen','Bromberg'],
   },
   {
     name: 'Ottoman Empire', color: '#b05000',
-    cities: [
-      { name: 'Constantinople', xFrac: 0.580, yFrac: 0.279 },
-      { name: 'Edirne',         xFrac: 0.574, yFrac: 0.274 },
-      { name: 'Salonika',       xFrac: 0.564, yFrac: 0.281 },
-    ],
-    extraCities: ['Ankara','Smyrna','Bursa','Belgrade','Sofia','Bucharest','Athens',
-      'Tripoli','Damascus','Aleppo','Cairo','Alexandria','Tunis','Sarajevo','Skopje',
-      'Monastir','Janina','Trabzon','Erzurum','Sivas','Konya','Adana','Mosul','Baghdad'],
+    cityNames: ['Constantinople','Edirne','Salonika','Ankara','Smyrna','Bursa','Belgrade','Sofia',
+      'Bucharest','Athens','Tripoli','Damascus','Aleppo','Cairo','Alexandria','Tunis','Sarajevo',
+      'Skopje','Monastir','Janina','Trabzon','Erzurum','Sivas','Konya','Adana','Mosul','Baghdad'],
   },
   {
     name: 'United States', color: '#2244aa',
-    cities: [
-      { name: 'Washington',   xFrac: 0.286, yFrac: 0.294 },
-      { name: 'Philadelphia', xFrac: 0.291, yFrac: 0.286 },
-      { name: 'New York',     xFrac: 0.294, yFrac: 0.281 },
-      { name: 'Boston',       xFrac: 0.302, yFrac: 0.271 },
-    ],
-    extraCities: ['Baltimore','Richmond','Charleston','Savannah','Norfolk','Albany',
-      'Hartford','Providence','Portsmouth','Lexington','Concord','Trenton','Williamsburg',
-      'Annapolis','Georgetown','Alexandria','Pittsburgh','Cincinnati','Natchez','New Orleans'],
+    cityNames: ['Washington','Philadelphia','New York','Boston','Baltimore','Richmond','Charleston',
+      'Savannah','Norfolk','Albany','Hartford','Providence','Portsmouth','Lexington','Concord',
+      'Trenton','Williamsburg','Annapolis','Georgetown','Alexandria','Pittsburgh','Cincinnati',
+      'Natchez','New Orleans'],
   },
   {
     name: 'Bavaria', color: '#3090c0',
-    cities: [
-      { name: 'Munich',     xFrac: 0.532, yFrac: 0.228 },
-      { name: 'Nuremberg',  xFrac: 0.531, yFrac: 0.218 },
-      { name: 'Augsburg',   xFrac: 0.530, yFrac: 0.225 },
-    ],
-    extraCities: ['Regensburg','Würzburg','Bamberg','Passau','Ingolstadt','Landshut',
-      'Bayreuth','Ansbach','Straubing','Amberg','Kempten','Memmingen','Landsberg',
+    cityNames: ['Munich','Nuremberg','Augsburg','Regensburg','Würzburg','Bamberg','Passau','Ingolstadt',
+      'Landshut','Bayreuth','Ansbach','Straubing','Amberg','Kempten','Memmingen','Landsberg',
       'Rosenheim','Burghausen','Neuburg'],
   },
   {
     name: 'Duchy of Nassau', color: '#e8a000',
-    cities: [
-      { name: 'Wiesbaden',  xFrac: 0.523, yFrac: 0.214 },
-      { name: 'Dillenburg', xFrac: 0.523, yFrac: 0.209 },
-    ],
-    extraCities: ['Nassau','Idstein','Hadamar','Siegen','Bad Ems','Limburg','Diez',
-      'Runkel','Herborn','Weilburg','Usingen','Montabaur'],
+    cityNames: ['Wiesbaden','Dillenburg','Nassau','Idstein','Hadamar','Siegen','Bad Ems','Limburg',
+      'Diez','Runkel','Herborn','Weilburg','Usingen','Montabaur'],
   },
   {
     name: 'Swiss Confederation', color: '#a8a8a8',
-    cities: [
-      { name: 'Bern',    xFrac: 0.521, yFrac: 0.237 },
-      { name: 'Zurich',  xFrac: 0.524, yFrac: 0.233 },
-      { name: 'Geneva',  xFrac: 0.517, yFrac: 0.243 },
-    ],
-    extraCities: ['Basel','Lucerne','St. Gallen','Lausanne','Fribourg','Solothurn',
-      'Schaffhausen','Winterthur','Thun','Biel','Chur','Sion','Aarau','Frauenfeld',
+    cityNames: ['Bern','Zurich','Geneva','Basel','Lucerne','St. Gallen','Lausanne','Fribourg',
+      'Solothurn','Schaffhausen','Winterthur','Thun','Biel','Chur','Sion','Aarau','Frauenfeld',
       'Altdorf','Glarus','Schwyz','Bellinzona'],
   },
   {
     name: 'Denmark-Norway', color: '#b51030',
-    cities: [
-      { name: 'Copenhagen',  xFrac: 0.535, yFrac: 0.173 },
-      { name: 'Christiania', xFrac: 0.530, yFrac: 0.143 },
-      { name: 'Aalborg',     xFrac: 0.527, yFrac: 0.163 },
-    ],
-    extraCities: ['Odense','Aarhus','Roskilde','Elsinore','Trondheim','Bergen','Stavanger',
-      'Viborg','Horsens','Fredrikstad','Drammen','Fredrikshald','Kristiansand','Tønsberg',
-      'Skien','Holmestrand','Larvik','Moss','Sarpsborg'],
+    cityNames: ['Copenhagen','Christiania','Aalborg','Odense','Aarhus','Roskilde','Elsinore',
+      'Trondheim','Bergen','Stavanger','Viborg','Horsens','Fredrikstad','Drammen','Fredrikshald',
+      'Kristiansand','Tønsberg','Skien','Holmestrand','Larvik','Moss','Sarpsborg'],
   },
   {
     name: 'Westphalia', color: '#7a4400',
-    cities: [
-      { name: 'Kassel',    xFrac: 0.526, yFrac: 0.205 },
-      { name: 'Dortmund',  xFrac: 0.521, yFrac: 0.204 },
-      { name: 'Münster',   xFrac: 0.521, yFrac: 0.201 },
-    ],
-    extraCities: ['Osnabrück','Minden','Paderborn','Detmold','Soest','Arnsberg','Bielefeld',
-      'Hannover','Göttingen','Hamm','Hagen','Iserlohn','Lippstadt','Warburg','Höxter',
-      'Herford','Bückeburg','Rinteln'],
+    cityNames: ['Kassel','Dortmund','Münster','Osnabrück','Minden','Paderborn','Detmold','Soest',
+      'Arnsberg','Bielefeld','Hannover','Göttingen','Hamm','Hagen','Iserlohn','Lippstadt','Warburg',
+      'Höxter','Herford','Bückeburg','Rinteln'],
   },
-];
-
-// Tribal/non-state peoples — neutral at start, engage via diplomacy. isTribe: true.
-// Positions: xFrac = (lon+180)/360, yFrac = (80-lat)/140
-const TRIBAL_NATIONS = [
-  // ── North America ──
-  { name: 'Iroquois Confederacy', color: '#8B4513', region: 'North America',
-    capital: 'Onondaga',     xFrac: 0.289, yFrac: 0.264 },
-  { name: 'Cherokee Nation',      color: '#7b6030', region: 'North America',
-    capital: 'New Echota',   xFrac: 0.264, yFrac: 0.325 },
-  { name: 'Sioux Nation',         color: '#8B6914', region: 'North America',
-    capital: 'Black Hills',  xFrac: 0.214, yFrac: 0.257 },
-  { name: 'Comanche',             color: '#a05010', region: 'North America',
-    capital: 'Comanchería',  xFrac: 0.222, yFrac: 0.350 },
-  { name: 'Maya',                 color: '#2d7a2d', region: 'Central America',
-    capital: 'Mérida',       xFrac: 0.253, yFrac: 0.421 },
-  // ── South America ──
-  { name: 'Andean Tribes',        color: '#5a2a8a', region: 'South America',
-    capital: 'Cuzco',        xFrac: 0.300, yFrac: 0.664 },
-  { name: 'Mapuche',              color: '#306010', region: 'South America',
-    capital: 'Temuco',       xFrac: 0.297, yFrac: 0.843 },
-  { name: 'Guaraní',              color: '#558040', region: 'South America',
-    capital: 'Asunción',     xFrac: 0.342, yFrac: 0.736 },
-  // ── Africa ──
-  { name: 'Ashanti Empire',       color: '#d4a020', region: 'West Africa',
-    capital: 'Kumasi',       xFrac: 0.496, yFrac: 0.521 },
-  { name: 'Oyo Empire',           color: '#7a4000', region: 'West Africa',
-    capital: 'Oyo',          xFrac: 0.511, yFrac: 0.514 },
-  { name: 'Zulu Kingdom',         color: '#303030', region: 'Southern Africa',
-    capital: 'KwaBulawayo',  xFrac: 0.585, yFrac: 0.779 },
-  { name: 'Kingdom of Kongo',     color: '#702030', region: 'Central Africa',
-    capital: 'São Salvador', xFrac: 0.540, yFrac: 0.614 },
-  { name: 'Ethiopian Empire',     color: '#c8a020', region: 'East Africa',
-    capital: 'Gondar',       xFrac: 0.604, yFrac: 0.483 },
-  { name: 'Tuareg Confederacy',   color: '#4a8080', region: 'North Africa',
-    capital: 'Agadez',       xFrac: 0.522, yFrac: 0.429 },
-  // ── Asia ──
-  { name: 'Qing China',           color: '#c8b400', region: 'East Asia',
-    capital: 'Beijing',      xFrac: 0.823, yFrac: 0.286 },
-  { name: 'Japanese Shogunate',   color: '#c00030', region: 'East Asia',
-    capital: 'Edo',          xFrac: 0.888, yFrac: 0.317 },
-  { name: 'Maratha Confederacy',  color: '#e07800', region: 'South Asia',
-    capital: 'Pune',         xFrac: 0.705, yFrac: 0.439 },
-  { name: 'Qajar Persia',         color: '#5060a8', region: 'Middle East',
-    capital: 'Tehran',       xFrac: 0.643, yFrac: 0.317 },
-  { name: 'Kazakh Khanate',       color: '#808040', region: 'Central Asia',
-    capital: 'Turkestan',    xFrac: 0.678, yFrac: 0.207 },
-  // ── Oceania / Pacific ──
-  { name: 'Hawaiian Kingdom',     color: '#00a8c0', region: 'Pacific',
-    capital: 'Honolulu',     xFrac: 0.061, yFrac: 0.421 },
-  { name: 'Maori Confederation',  color: '#408060', region: 'Oceania',
-    capital: 'Rotorua',      xFrac: 0.988, yFrac: 0.841 },
-  { name: 'Aboriginal Australia', color: '#c05020', region: 'Oceania',
-    capital: 'Uluru',        xFrac: 0.872, yFrac: 0.750 },
 ];
 
 const CITY_PREFIXES = ['Austen','Brest','Caen','Dijon','Elba','Flers','Halle','Jena',
@@ -3110,7 +2950,7 @@ function getNextHistoricalCityName(nationId) {
   if (nation) {
     const preset = PRESET_NATIONS.find(p => p.name === nation.name);
     if (preset) {
-      const allNames = [...preset.cities.map(c => c.name), ...(preset.extraCities || [])];
+      const allNames = preset.cityNames || [];
       for (const name of allNames) {
         if (!usedNames.has(name)) return name;
       }
@@ -3361,69 +3201,6 @@ function pickSprite(type, i) {
 // Force geographic features that procedural noise can't reproduce at world scale.
 // Land is applied first (ocean→plains only); then ocean is carved unconditionally
 // so key sea channels always exist.
-function applyWorldTerrainOverrides() {
-  if (MAP_COLS < 400) return; // world map only
-
-  const rng = mulberry32(54321);
-  const wx = lon => Math.round((lon + 180) / 360 * MAP_COLS);
-  const wy = lat => Math.round((80 - lat) / 140 * MAP_ROWS);
-
-  function forceOcean(lonMin, lonMax, latMin, latMax) {
-    const x1 = Math.max(0, wx(lonMin)), x2 = Math.min(MAP_COLS - 1, wx(lonMax));
-    const y1 = Math.max(0, wy(latMax)), y2 = Math.min(MAP_ROWS - 1, wy(latMin));
-    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) {
-      const i = y * MAP_COLS + x;
-      tiles[i].type = 0; tiles[i].color = TILE_COLORS.ocean;
-      tiles[i].baseColor = TILE_COLORS.ocean; tiles[i].hasRiver = false;
-      tiles[i].spriteKey = 'Water';
-    }
-  }
-
-  function forceLand(lonMin, lonMax, latMin, latMax) {
-    const x1 = Math.max(0, wx(lonMin)), x2 = Math.min(MAP_COLS - 1, wx(lonMax));
-    const y1 = Math.max(0, wy(latMax)), y2 = Math.min(MAP_ROWS - 1, wy(latMin));
-    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) {
-      const i = y * MAP_COLS + x;
-      if (tiles[i].type === 0) { // only fill ocean gaps; leave existing terrain
-        tiles[i].type = 1; tiles[i].color = TILE_COLORS.land;
-        tiles[i].baseColor = TILE_COLORS.land;
-        tiles[i].spriteKey = pickSprite(1, Math.floor(rng() * 997));
-      }
-    }
-  }
-
-  // ── British Isles ──
-  // Strategy: stamp a big ocean box first, then punch the islands back in as land,
-  // then stamp the continent starting safely east of the box.
-  // This guarantees a clear ocean gap — findLandNear can't bridge the islands to France.
-
-  // 1. Big ocean zone — covers everything between Scotland and France including
-  //    the English Channel, North Sea, and Irish Sea approaches.
-  forceOcean(-12, 2, 46, 65);
-
-  // 2. Punch Great Britain back in as an island (lon -6.8 to -0.5).
-  //    Ends at lon -0.5 (x≈299) leaving a 4-tile ocean gap before the continent.
-  //    London (lon -0.1, x≈300) is 1 tile east of the island — findLandNear grabs it ✓
-  forceLand(-6.8, -0.5, 49.5, 62);
-
-  // 3. Punch Ireland in as a separate island.
-  forceLand(-10.5, -5.8, 51, 55.5);
-
-  // 4. Carve the Irish Sea back out between the two islands.
-  forceOcean(-7, -4.5, 51.5, 55.5);
-
-  // 5. Continental Europe starts at lon 2.5 (x≈304) — safely east of the ocean box.
-  //    Paris (lon 2.35, x≈304) lands right at the coast; Belgium/Netherlands are further east.
-  //    forceLand only fills ocean tiles so it won't flatten noise-generated terrain.
-  forceLand(2.5, 50, 35, 72);
-
-  // ── Japan ── (land first, then carve surrounding seas)
-  forceLand(130, 142, 33,   42);         // Honshu
-  forceLand(129, 132, 31,   33.5);       // Kyushu
-  forceLand(140, 145, 42,   45.5);       // Hokkaido
-  forceOcean(123, 130, 31,  45);         // Sea of Japan / Korea Strait
-  forceOcean(142, 153, 30,  46);         // Pacific east of Japan
-}
 
 function generateMap() {
   const seed = (Math.random() * 0xFFFFFFFF) >>> 0;
@@ -3545,8 +3322,6 @@ function generateMap() {
     }
   }
 
-  applyWorldTerrainOverrides();
-
   units = []; cities = []; nations = []; turnNumber = 1;
   barbarianCamps = []; citySites = []; pillaged = [];
   discoveredNations = new Set();
@@ -3568,8 +3343,6 @@ function createNation(name, color, isPlayer) {
     eliminated: false,
     rulerId: null,
   });
-  // Create ruler and spouse characters for non-barbarian, non-tribe nations
-  // (isTribe is set after createNation returns, so we check name prefix)
   if (name !== 'Barbarians') {
     initNationCharacters(id);
   }
@@ -3697,7 +3470,7 @@ function getOrders(nationId) {
 
 function getMaxOrders(nationId) {
   const n = nations[nationId];
-  if (!n || n.eliminated || n.isBarbarian || n.isTribe) return 99;
+  if (!n || n.eliminated || n.isBarbarian) return 99;
   const cityCount = cities.filter(c => c.nationId === nationId).length;
   const leg = n.legitimacy || 50;
   let orders = 3 + cityCount + Math.floor(leg / 25);
@@ -4541,72 +4314,6 @@ function isBarbarianNation(nationId) {
   return nations[nationId] && nations[nationId].isBarbarian;
 }
 
-function isTribeNation(nationId) {
-  return nations[nationId] && nations[nationId].isTribe;
-}
-
-// Minimal AI for tribal nations: defend their settlement, don't expand or do diplomacy
-function tribeAI(nationId) {
-  const n = nations[nationId];
-  if (n.eliminated) return;
-  const myCity = cities.find(c => c.nationId === nationId);
-  for (const u of units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat && u.movesLeft > 0)) {
-    // Attack hex-adjacent enemies if at war
-    const adjCells = hexNeighbors(u.x, u.y);
-    const enemies = units.filter(e =>
-      e.nationId !== nationId &&
-      n.relations[e.nationId] === 'war' &&
-      UNIT_DEFS[e.type]?.combat &&
-      adjCells.some(nb => nb.col === e.x && nb.row === e.y)
-    );
-    if (enemies.length > 0) {
-      doAttack(u, enemies[0].x, enemies[0].y);
-      continue;
-    }
-    // Stay near settlement
-    if (myCity && (Math.abs(u.x - myCity.x) + Math.abs(u.y - myCity.y)) > 4) {
-      const path = findPath(u.x, u.y, myCity.x, myCity.y, u);
-      if (path && path.length > 1) moveUnit(u, path[1].x, path[1].y);
-    }
-  }
-}
-
-function spawnTribalNations() {
-  for (const td of TRIBAL_NATIONS) {
-    const nId = createNation(td.name, td.color, false);
-    nations[nId].isTribe = true;
-    // All relations start undefined (neutral — not war, not formal peace)
-    // Tribes start with minimal resources
-    nations[nId].gold = 5; nations[nId].food = 5; nations[nId].wood = 5;
-    nations[nId].stone = 0; nations[nId].steel = 0;
-    // Find a land tile near the historical position
-    const tx = Math.round(td.xFrac * MAP_COLS);
-    const ty = Math.round(td.yFrac * MAP_ROWS);
-    let sp = findLandNear(tx, ty, 20);
-    // Nudge if too close to existing city
-    let attempts = 0;
-    while (attempts < 12 && cities.some(c => Math.abs(c.x - sp.x) + Math.abs(c.y - sp.y) < 6)) {
-      const angle = (attempts / 12) * Math.PI * 2;
-      const nudge = 5 + Math.floor(attempts / 4) * 4;
-      sp = findLandNear(
-        tx + Math.round(Math.cos(angle) * nudge),
-        ty + Math.round(Math.sin(angle) * nudge), 8
-      );
-      attempts++;
-    }
-    // Found settlement (use foundCity directly — tribes don't need a settler unit)
-    const usedCityNames = new Set(cities.map(c => c.name));
-    const capitalName = usedCityNames.has(td.capital) ? randomCityName() : td.capital;
-    const settler = spawnUnit('settler', nId, sp.x, sp.y);
-    const settlement = foundCity(settler, capitalName);
-    settlement.producing = null;
-    // Spawn 2-3 tribal warriors
-    for (let w = 0; w < 3; w++) {
-      const wp = findLandNear(sp.x + Math.floor(Math.random()*4)-2, sp.y + Math.floor(Math.random()*4)-2, 3);
-      spawnUnit('tribal_warrior', nId, wp.x, wp.y);
-    }
-  }
-}
 
 function spawnCitySites(centerX, centerY, count) {
   for (let i = 0; i < count; i++) {
@@ -4955,7 +4662,7 @@ function getScore(nationId) {
 
 function checkElimination() {
   for (const n of nations) {
-    if (n.eliminated || n.isPlayer || n.isBarbarian || n.isTribe) continue;
+    if (n.eliminated || n.isPlayer || n.isBarbarian) continue;
     const hasCities = cities.some(c => c.nationId === n.id);
     if (!hasCities) {
       n.eliminated = true;
@@ -5169,7 +4876,7 @@ function aiTurn(nationId) {
   // AI diplomacy — think like a ruler
   const aiCitiesAll = citiesByNation.get(nationId) || [];
   for (let otherId = 0; otherId < nations.length; otherId++) {
-    if (otherId === nationId || nations[otherId].eliminated || nations[otherId].isBarbarian || nations[otherId].isTribe) continue;
+    if (otherId === nationId || nations[otherId].eliminated || nations[otherId].isBarbarian) continue;
     const loy = getLoyalty(nationId, otherId);
 
     // --- Per-turn loyalty drift (trends toward neutral, not constant decay) ---
@@ -6067,7 +5774,7 @@ function endTurn() {
   minimapDirty = true;
   _tileCityMapDirty = true;
   // Base passive income (skip barbarians)
-  for (const n of nations) { if (n.isBarbarian || n.isTribe || n.eliminated) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; n.gunpowder = n.gunpowder || 0; }
+  for (const n of nations) { if (n.isBarbarian || n.eliminated) continue; n.gold += 0.5; n.food += 0.5; n.wood += 0.5; n.stone += 0.5; n.steel += 0.5; n.science = n.science || 0; n.gunpowder = n.gunpowder || 0; }
   // Player city yields & production
   const pn = nations[playerNation];
   for (const c of cities) {
@@ -6088,7 +5795,7 @@ function endTurn() {
   for (const u of units) if (UNIT_DEFS[u.type]?.combat) milCounts[u.nationId]++;
   for (const c of cities) cityCounts[c.nationId]++;
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
     const freeMil = cityCounts[i] * FREE_MIL_PER_CITY;
     const paidUnits = Math.max(0, milCounts[i] - freeMil);
     const rate = nationHasWonder(i, 'merchants_guild') ? UNIT_MAINTENANCE * 0.5 : UNIT_MAINTENANCE;
@@ -6101,7 +5808,6 @@ function endTurn() {
     if (i === playerNation) continue;
     try {
       if (isBarbarianNation(i)) barbarianAI(i);
-      else if (isTribeNation(i)) tribeAI(i);
       else aiTurn(i);
     } catch(e) { console.error(`AI turn error for nation ${i}:`, e); }
   }
@@ -6198,7 +5904,7 @@ function finishEndTurn() {
   }
   // Legitimacy tick: +0.5 per city for non-barbarian/non-tribe nations, clamped 0-100
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
     const nationCityCount = cities.filter(c => c.nationId === i).length;
     let legChange = nationCityCount * 0.5;
     // Ruler trait legitimacy modifier
@@ -6208,14 +5914,14 @@ function finishEndTurn() {
     // Diplomatic ruler: other nations like you more
     if (rb.loyaltyBonus) {
       for (let j = 0; j < nations.length; j++) {
-        if (j === i || nations[j].eliminated || nations[j].isBarbarian || nations[j].isTribe) continue;
+        if (j === i || nations[j].eliminated || nations[j].isBarbarian) continue;
         changeLoyalty(j, i, rb.loyaltyBonus * 0.2);
       }
     }
   }
   // Tick research for all non-barbarian/non-tribe nations
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].eliminated) continue;
     tickResearch(i);
   }
   // Reset orders for player
@@ -7755,7 +7461,7 @@ function renderKingdoms() {
   let html = '<h3>Kingdoms</h3>';
   for (const n of nations) {
     // Don't show barbarian or tribe nations in the main section, or undiscovered nations
-    if (n.isBarbarian || n.isTribe) continue;
+    if (n.isBarbarian) continue;
     if (n.id !== playerNation && !discoveredNations.has(n.id)) continue;
     if (n.eliminated && n.id !== playerNation) {
       html += `<div class="kingdom-row" style="opacity:0.4">
@@ -7804,7 +7510,7 @@ function renderKingdoms() {
           html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'open_borders')">Request Open Borders</button> `;
         }
         // War Help
-        const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.isTribe && !nations[id]?.eliminated);
+        const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
         if (hasWH) {
           html += `<span style="color:#6a6;">War Alliance</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'war_help')">Cancel</button><br>`;
         } else if (atWarWith.length > 0) {
@@ -7844,48 +7550,8 @@ function renderKingdoms() {
     }
     html += `</div>`;
   }
-  // ── Tribal Nations section ──
-  const knownTribes = nations.filter(n => n.isTribe && !n.eliminated && discoveredNations.has(n.id));
-  if (knownTribes.length > 0) {
-    html += `<div style="margin-top:10px;margin-bottom:3px;font-size:11px;color:#8a7a5a;text-transform:uppercase;letter-spacing:1px;">Tribal Nations</div>`;
-    for (const n of knownTribes) {
-      const rel = nations[playerNation].relations[n.id];
-      const atWar = rel === 'war';
-      const atPeace = rel === 'peace';
-      const relLabel = atWar ? 'War' : atPeace ? 'Peace' : 'Neutral';
-      const relColor = atWar ? '#e44' : atPeace ? '#4a4' : '#a89868';
-      const settlement = cities.find(c => c.nationId === n.id);
-      const unitCount = units.filter(u => u.nationId === n.id).length;
-      html += `<div class="kingdom-row">
-        <span class="kingdom-dot" style="background:${n.color}"></span>
-        <span class="kingdom-name">${n.name}<br>
-          <span style="font-size:10px;color:#666">${settlement ? settlement.name : '?'} &bull; ${unitCount} warriors</span>
-        </span>
-        <span class="kingdom-status" style="color:${relColor}">${relLabel}</span>`;
-      if (atWar) {
-        html += ` <button class="diplo-btn" onclick="toggleDiplomacy(${n.id})">Seek Peace</button>`;
-      } else if (atPeace) {
-        html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;" onclick="toggleDiplomacy(${n.id})">Declare War</button>`;
-      } else {
-        html += ` <button class="diplo-btn" onclick="sendEnvoy(${n.id})" title="Spend 20 gold to establish peaceful contact">Envoy (20g)</button>`;
-        html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;" onclick="toggleDiplomacy(${n.id})">Declare War</button>`;
-      }
-      html += `</div>`;
-    }
-  }
   el.innerHTML = html;
 }
-function sendEnvoy(nationId) {
-  const pn = nations[playerNation];
-  if ((pn.gold || 0) < 20) { showToast('Not enough gold to send an envoy (need 20g)'); return; }
-  pn.gold -= 20;
-  pn.relations[nationId] = 'peace';
-  nations[nationId].relations[playerNation] = 'peace';
-  changeLoyalty(nationId, playerNation, 20);
-  showToast(`Envoy welcomed by the ${nations[nationId].name}! Peace established.`);
-  renderKingdoms();
-}
-window.sendEnvoy = sendEnvoy;
 function acceptPeace(nationId) {
   const n = nations[nationId];
   const pn = nations[playerNation];
@@ -8503,31 +8169,9 @@ function stopMenuSlideshow() {
 }
 startMenuSlideshow();
 
-// Nation setup screen
-let _selectedNationIdx = 0;
-function renderNationPicker() {
-  const grid = document.getElementById('nationPickerGrid');
-  if (!grid) return;
-  grid.innerHTML = PRESET_NATIONS.map((n, i) => `
-    <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
-      <div class="nation-flag" style="background:${n.color};"></div>
-      <div>
-        <div class="nation-card-name">${n.name}</div>
-        <div class="nation-card-cities">${n.cities.slice(0, 3).map(c => c.name).join(', ')}</div>
-      </div>
-    </div>
-  `).join('');
-}
-function pickNation(idx) {
-  _selectedNationIdx = idx;
-  renderNationPicker();
-}
-window.pickNation = pickNation;
 function showNewGame() {
   document.getElementById('menuMain').style.display = 'none';
   document.getElementById('menuSetup').style.display = 'block';
-  _selectedNationIdx = 0;
-  renderNationPicker();
 }
 function resumeLastGame() {
   const data = localStorage.getItem('sis_save_auto');
@@ -8583,12 +8227,11 @@ function cancelSetup() {
   document.getElementById('menuMain').style.display = 'block';
 }
 function confirmSetupAndStart() {
-  const preset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
-  const name = preset.name;
-  const color = preset.color;
+  const name = (document.getElementById('setupName').value || 'France').trim();
+  const color = document.getElementById('setupColor').value || '#1a50c0';
   const opponents = parseInt(document.getElementById('setupOpponents').value) || 4;
   const mapSize = document.getElementById('setupMapSize').value;
-  const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200], world: [600, 360] };
+  const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
   const [cols, rows] = sizes[mapSize] || sizes.medium;
   gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
   barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 40) / 100;
@@ -9883,7 +9526,7 @@ function deserializeGame(json) {
   // v9->v10 migration: generate default rulers for nations that lack characters
   if (d.v < 10 && typeof initNationCharacters === 'function') {
     for (let i = 0; i < nations.length; i++) {
-      if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+      if (nations[i].isBarbarian || nations[i].eliminated) continue;
       if (!characters.some(c => c.nationId === i && c.role === 'ruler')) {
         initNationCharacters(i);
       }
@@ -9973,32 +9616,27 @@ function findLandNear(cx, cy, radius) {
   return { x: cx, y: cy };
 }
 
-// Spawn a city for a nation at a preset geographic position, with minimum-distance check
-function foundPresetCity(nationId, cityData, isCapital) {
-  const tx = Math.round(cityData.xFrac * MAP_COLS);
-  const ty = Math.round(cityData.yFrac * MAP_ROWS);
-  let sp = findLandNear(tx, ty, 18);
-  // If too close to existing city, nudge outward
-  let attempts = 0;
-  while (attempts < 12 && cities.some(c => Math.abs(c.x - sp.x) + Math.abs(c.y - sp.y) < 5)) {
-    const angle = (attempts / 12) * Math.PI * 2;
-    const nudge = 4 + Math.floor(attempts / 4) * 3;
-    sp = findLandNear(tx + Math.round(Math.cos(angle) * nudge), ty + Math.round(Math.sin(angle) * nudge), 6);
-    attempts++;
+// Find a random land position well separated from all existing cities
+function findRandomCapitalSite() {
+  const minDist = Math.max(12, Math.floor(Math.min(MAP_COLS, MAP_ROWS) / 6));
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const tx = Math.floor(Math.random() * MAP_COLS);
+    const ty = Math.floor(Math.random() * MAP_ROWS);
+    const t = tiles[ty * MAP_COLS + tx];
+    if (!t || (t.type !== 1 && t.type !== 3 && t.type !== 5 && t.type !== 6)) continue;
+    if (cities.some(c => Math.abs(c.x - tx) + Math.abs(c.y - ty) < minDist)) continue;
+    return { x: tx, y: ty };
   }
-  citySites.push({ x: sp.x, y: sp.y, settled: false });
-  const settler = spawnUnit('settler', nationId, sp.x, sp.y);
-  return { city: foundCity(settler, cityData.name), pos: sp };
+  // Fallback: any land tile
+  return findLandNear(Math.floor(MAP_COLS / 2), Math.floor(MAP_ROWS / 2), MAP_COLS);
 }
 
-function spawnAINations(count, playerNationIdx) {
-  // Build ordered list of AI preset nations (skip the player's chosen nation)
-  const aiPresets = PRESET_NATIONS.filter((_, i) => i !== playerNationIdx);
-  const toSpawn = Math.min(count, aiPresets.length);
+function spawnAINations(count) {
+  const shuffled = [...PRESET_NATIONS].sort(() => Math.random() - 0.5);
+  const toSpawn = Math.min(count, shuffled.length);
   for (let i = 0; i < toSpawn; i++) {
-    const preset = aiPresets[i];
+    const preset = shuffled[i];
     const nId = createNation(preset.name, preset.color, false);
-    // Set up relations with all existing nations
     nations[playerNation].relations[nId] = 'peace'; nations[nId].relations[playerNation] = 'peace';
     nations[playerNation].loyalty[nId] = 50; nations[nId].loyalty[playerNation] = 50;
     for (let j = 0; j < nId; j++) {
@@ -10010,16 +9648,14 @@ function spawnAINations(count, playerNationIdx) {
         nations[j].loyalty[nId] = 50; nations[nId].loyalty[j] = 50;
       }
     }
-    // Found capital
-    const { city: capitalCity, pos: sp } = foundPresetCity(nId, preset.cities[0], true);
+    const sp = findRandomCapitalSite();
+    citySites.push({ x: sp.x, y: sp.y, settled: false });
+    const settler = spawnUnit('settler', nId, sp.x, sp.y);
+    const capitalCity = foundCity(settler, getNextHistoricalCityName(nId));
     capitalCity.producing = 'settler';
     for (const uType of ['worker', 'worker', 'swordsman', 'scout']) {
       const wp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
       spawnUnit(uType, nId, wp.x, wp.y);
-    }
-    // Found secondary cities (up to 2 more)
-    for (let ci = 1; ci < Math.min(preset.cities.length, 3); ci++) {
-      foundPresetCity(nId, preset.cities[ci], false);
     }
     spawnCitySites(sp.x, sp.y, 2);
   }
@@ -10086,24 +9722,18 @@ function startGame(cols, rows, pName, pColor, opponents) {
 
 function generateAndPlay(pName, pColor, opponents) {
   generateMap();
-  // Use the selected preset nation for the player
-  const playerPreset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
-  pName = playerPreset.name;
-  pColor = playerPreset.color;
   playerNation = createNation(pName, pColor, true);
 
-  // Spawn player capital at historical position
-  const { city: startCity, pos: sp } = foundPresetCity(playerNation, playerPreset.cities[0], true);
+  // Spawn player capital at a random land site
+  const sp = findRandomCapitalSite();
+  citySites.push({ x: sp.x, y: sp.y, settled: false });
+  const playerSettler = spawnUnit('settler', playerNation, sp.x, sp.y);
+  const startCity = foundCity(playerSettler, getNextHistoricalCityName(playerNation));
   startCity.producing = 'settler';
   for (const uType of ['swordsman', 'scout', 'worker', 'worker']) {
     const lp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
     spawnUnit(uType, playerNation, lp.x, lp.y);
   }
-  // Found secondary player cities (up to 2 more historical cities)
-  for (let ci = 1; ci < Math.min(playerPreset.cities.length, 3); ci++) {
-    foundPresetCity(playerNation, playerPreset.cities[ci], false);
-  }
-  // Spawn city sites near player spawn
   spawnCitySites(sp.x, sp.y, 3);
 
   // Zoom in and center camera on capital
@@ -10116,10 +9746,7 @@ function generateAndPlay(pName, pColor, opponents) {
   revealAllUnits(playerNation);
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
-  spawnAINations(aiCount, _selectedNationIdx);
-
-  // Spawn tribal nations across the world
-  spawnTribalNations();
+  spawnAINations(aiCount);
 
   // Spawn additional city sites across the map
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
