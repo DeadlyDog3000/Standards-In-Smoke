@@ -31,7 +31,10 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
-### Beta 2.6 (patch) — 2026-04-13
+### Beta 2.6 (patch 2) — 2026-04-13
+- **Feature**: Tech unlock now plays a 14-second bang sound effect with a 16-beam golden god-ray animation bursting from the banner for the first 4 seconds
+
+### Beta 2.6 (patch 1) — 2026-04-13
 - **Fix**: Black screen flash when issuing a go-to order — unit now animates from its original tile instead of snapping to destination on the first frame
 - **Fix**: Unit invisible/unselectable after go-to — camera now follows the unit each turn it advances along its route
 - **Fix**: Go-to movement cost ignored terrain penalties (forest, mountain, river etc.) — now uses the same cost function as manual moves
