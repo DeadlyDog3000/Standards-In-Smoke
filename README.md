@@ -31,6 +31,13 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 2.7 — 2026-04-13
+- **Feature**: Tech tree is now a full-screen visual graph — nodes arranged by prereq depth with bezier arrows, section colour-coding, click to research, hover tooltips, ESC to close
+- **Feature**: Lancer unit (8 ATK, 10 HP, 7 moves) — ZOC Pierce hits the primary target for 100% damage and the unit directly behind it for 25%
+- **Feature**: Heavy Cavalry unit (13 ATK, 14 HP, 5 moves) — highest ATK of any cavalry
+- **Feature**: Upgrade path: cavalry → hussar → lancer → heavy cavalry; new techs Lancer Tactics and Heavy Cavalry
+- **Fix**: City ambient SFX volume reduced to near-inaudible background level
+
 ### Beta 2.6 (patch 2) — 2026-04-13
 - **Feature**: Tech unlock now plays a 14-second bang sound effect with a 16-beam golden god-ray animation bursting from the banner for the first 4 seconds
 
