@@ -2333,6 +2333,7 @@ fieldGunSound.volume = 0.5;
 const townSound = new Audio('town.mp3');
 townSound.loop = true; townSound.volume = 0;
 let townPlaying = false;
+const techBangSound = new Audio('tiles/achievement_bang.mp3');
 // Orders system (Old World style)
 let ordersRemaining = 0;
 let activatedUnits = new Set();
@@ -2649,7 +2650,7 @@ function researchTech(nationId, techKey) {
   nations[nationId].researchProgress = 0;
   if (nationId === playerNation) {
     showToast(`Researched ${tech.name}!`);
-    playAchievement();
+    playTechUnlockFX();
     // Show tech completion banner
     const unlockNames = tech.unlocks.map(u => {
       const def = UNIT_DEFS[u] || IMPROVEMENT_DEFS[u];
@@ -2859,6 +2860,96 @@ function showTurnBanner(turn) {
   </div>`;
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 1500);
+}
+
+function playTechUnlockFX() {
+  // --- Sound: play for 14 seconds then fade out ---
+  const sound = techBangSound.cloneNode();
+  sound.volume = 0.75;
+  sound.play().catch(() => {});
+  setTimeout(() => {
+    const fadeStep = setInterval(() => {
+      sound.volume = Math.max(0, sound.volume - 0.06);
+      if (sound.volume <= 0) { clearInterval(fadeStep); sound.pause(); }
+    }, 80);
+  }, 13000); // start fade at 13s, fully gone by ~14s
+
+  // --- Visual: golden shaky god-rays for 4 seconds ---
+  const cvs = document.createElement('canvas');
+  cvs.style.cssText = 'position:fixed;inset:0;z-index:125;pointer-events:none;';
+  cvs.width = window.innerWidth;
+  cvs.height = window.innerHeight;
+  document.body.appendChild(cvs);
+  const c = cvs.getContext('2d');
+
+  const t0 = performance.now();
+  const BEAM_DURATION = 4000;
+  const NUM_BEAMS = 16;
+  const beams = Array.from({ length: NUM_BEAMS }, (_, i) => ({
+    base: (i / NUM_BEAMS) * Math.PI * 2 + (Math.random() - 0.5) * 0.25,
+    shake: 0,
+    lenPhase: Math.random() * Math.PI * 2,
+    widPhase: Math.random() * Math.PI * 2,
+  }));
+
+  function tick(now) {
+    const elapsed = now - t0;
+    if (elapsed >= BEAM_DURATION) { cvs.remove(); return; }
+    const tNorm = elapsed / BEAM_DURATION;
+    // Fade in fast, hold, fade out at the end
+    const alpha = tNorm < 0.07 ? tNorm / 0.07 : tNorm > 0.72 ? 1 - (tNorm - 0.72) / 0.28 : 1;
+
+    c.clearRect(0, 0, cvs.width, cvs.height);
+
+    // Origin: center of tech banner at the top
+    const ox = cvs.width / 2;
+    const oy = 52;
+
+    // Soft radial glow at origin
+    const glow = c.createRadialGradient(ox, oy, 0, ox, oy, 140);
+    glow.addColorStop(0,   `rgba(255, 240, 120, ${alpha * 0.55})`);
+    glow.addColorStop(0.45, `rgba(255, 210, 60,  ${alpha * 0.18})`);
+    glow.addColorStop(1,   'rgba(255, 180, 0, 0)');
+    c.fillStyle = glow;
+    c.beginPath(); c.arc(ox, oy, 140, 0, Math.PI * 2); c.fill();
+
+    for (const b of beams) {
+      // Organic shake: random impulse dampened each frame
+      b.shake += (Math.random() - 0.5) * 0.13;
+      b.shake *= 0.80;
+      const angle = b.base + b.shake;
+
+      const len  = 260 + 130 * Math.sin(elapsed / 190 + b.lenPhase);
+      const halfW = 5  +  5 * Math.sin(elapsed / 240 + b.widPhase);
+
+      const ex = ox + Math.cos(angle) * len;
+      const ey = oy + Math.sin(angle) * len;
+      const px = -Math.sin(angle); // perpendicular unit vector
+      const py =  Math.cos(angle);
+
+      // Additive blending so overlapping beams bloom brighter
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+
+      const grad = c.createLinearGradient(ox, oy, ex, ey);
+      grad.addColorStop(0,    `rgba(255, 248, 180, ${alpha * 0.9})`);
+      grad.addColorStop(0.2,  `rgba(255, 220,  80, ${alpha * 0.65})`);
+      grad.addColorStop(1,    'rgba(255, 180,  10, 0)');
+      c.fillStyle = grad;
+
+      c.beginPath();
+      c.moveTo(ox + px * halfW, oy + py * halfW);
+      c.lineTo(ex, ey);
+      c.lineTo(ox - px * halfW, oy - py * halfW);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
 }
 
 function showTechBanner(techName, unlocks) {
