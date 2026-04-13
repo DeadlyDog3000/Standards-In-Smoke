@@ -6675,10 +6675,7 @@ function cycleToNextUnit() {
   const next = available[0];
   selectedUnit = next; selectedCity = null;
   moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
-  // Pan camera to unit
-  const cx = Math.floor(viewCols / 2), cy = Math.floor(viewRows / 2);
-  camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, next.x - cx));
-  camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, next.y - cy));
+  panCameraTo(next.x, next.y);
   enterMoveMode();
   showUnitPanel(next); render();
   return true;
@@ -7910,8 +7907,10 @@ canvas.addEventListener('click', (e) => {
           for (let i = 0; i < path.length && gotoUnit.movesLeft > 0; i++) {
             const step = path[i];
             if (units.some(o => o.x === step.x && o.y === step.y && o !== gotoUnit)) break;
-            gotoUnit.x = step.x; gotoUnit.y = step.y; gotoUnit.movesLeft--;
-            revealAround(gotoUnit.x, gotoUnit.y, UNIT_DEFS[gotoUnit.type]?.vision || 5, gotoUnit.nationId);
+            const mc = getMoveCost(gotoUnit.x, gotoUnit.y, step.x, step.y, gotoUnit.type);
+            if (mc > gotoUnit.movesLeft) break;
+            gotoUnit.x = step.x; gotoUnit.y = step.y; gotoUnit.movesLeft -= mc;
+            revealAround(gotoUnit.x, gotoUnit.y, getUnitVision(gotoUnit), gotoUnit.nationId);
             animSteps.push({ x: step.x, y: step.y });
           }
           if (gotoUnit.x === gotoUnit.gotoX && gotoUnit.y === gotoUnit.gotoY) {
@@ -8098,6 +8097,7 @@ function bfsPath(sx, sy, ex, ey, unitType, nationId) {
 }
 
 function processGotoOrders() {
+  let lastMovedUnit = null;
   for (const u of units) {
     // Auto-explore: pick new target if needed
     if (u.autoExplore && u.gotoX === undefined) doAutoExploreStep(u);
@@ -8113,6 +8113,7 @@ function processGotoOrders() {
       if (u.autoExplore) doAutoExploreStep(u);
       continue;
     }
+    const prevX = u.x, prevY = u.y;
     for (let i = 0; i < path.length && u.movesLeft > 0; i++) {
       const step = path[i];
       if (units.some(o => o.x === step.x && o.y === step.y && o !== u)) break;
@@ -8123,11 +8124,14 @@ function processGotoOrders() {
       const tileOwner = tiles[u.y * MAP_COLS + u.x].owner;
       if (tileOwner >= 0 && tileOwner !== u.nationId) changeLoyalty(tileOwner, u.nationId, -5);
     }
+    if (u.x !== prevX || u.y !== prevY) lastMovedUnit = u;
     if (u.x === u.gotoX && u.y === u.gotoY) {
       delete u.gotoX; delete u.gotoY;
       if (u.autoExplore) doAutoExploreStep(u);
     }
   }
+  // Pan camera to follow the last moved unit so the player can see where it went
+  if (lastMovedUnit) panCameraTo(lastMovedUnit.x, lastMovedUnit.y);
 }
 
 // Get all hex tiles within a given range (BFS ignoring traversability)
@@ -8197,8 +8201,13 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   };
   const sx = originX !== undefined ? originX : unit.x;
   const sy = originY !== undefined ? originY : unit.y;
-  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
+  // Set initial screen position immediately so the first render() call before animationTick fires
+  // shows the unit at the animation origin, not at the already-updated logical unit.x/unit.y
+  const startScreenPos = hexScreenPos(sx, sy);
+  unit._animX = startScreenPos.x;
+  unit._animY = startScreenPos.y;
   unit._animating = true;
+  animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
   if (!animationBlocking) {
     animationBlocking = true; animBlockStart = Date.now(); lastAnimTime = 0;
     requestAnimationFrame(animationTick);

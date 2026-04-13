@@ -28,3 +28,19 @@ Open `index.html` in a browser. No build step or server required.
 ## Tech Stack
 
 Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites from a flat-top isometric tile pack.
+
+## Changelog
+
+### Beta 2.6 (patch) — 2026-04-13
+- **Fix**: Black screen flash when issuing a go-to order — unit now animates from its original tile instead of snapping to destination on the first frame
+- **Fix**: Unit invisible/unselectable after go-to — camera now follows the unit each turn it advances along its route
+- **Fix**: Go-to movement cost ignored terrain penalties (forest, mountain, river etc.) — now uses the same cost function as manual moves
+- **Fix**: Camera jolted when cycling to next unit — now pans smoothly instead of snapping
+
+### Beta 2.6 — prior
+- Lakes and mountains added to map generation; improved rivers
+- Bug fixes, balance tweaks, faster season progression
+
+### Beta 2.5
+- Napoleonic warfare overhaul: morale, formations, generals, seasons, dynasty system
+- Swordsman Charge ability: move and attack in the same turn (disabled in Square formation)
