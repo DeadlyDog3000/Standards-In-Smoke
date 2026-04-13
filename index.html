@@ -416,7 +416,14 @@
             <option value="10">10 Opponents</option>
             <option value="11">11 Opponents</option>
             <option value="12">12 Opponents</option>
-            <option value="13">All 13 Opponents</option>
+            <option value="13">13 Opponents</option>
+            <option value="14">14 Opponents</option>
+            <option value="15">15 Opponents</option>
+            <option value="16">16 Opponents</option>
+            <option value="17">17 Opponents</option>
+            <option value="18">18 Opponents</option>
+            <option value="19">19 Opponents</option>
+            <option value="20">All 20 Opponents</option>
           </select>
         </div>
         <div class="setup-row">
@@ -2795,13 +2802,17 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
 // ====================
 const PRESET_NATIONS = [
   {
-    name: 'Britain', color: '#cc1111',
+    name: 'Great Britain', color: '#cc1111',
     cities: [
       { name: 'London',     xFrac: 0.19, yFrac: 0.36 },
       { name: 'Edinburgh',  xFrac: 0.12, yFrac: 0.17 },
       { name: 'Dublin',     xFrac: 0.07, yFrac: 0.28 },
       { name: 'Bristol',    xFrac: 0.14, yFrac: 0.37 },
-    ]
+    ],
+    extraCities: ['Liverpool','Manchester','Birmingham','Leeds','Sheffield','York','Norwich',
+      'Plymouth','Portsmouth','Exeter','Canterbury','Oxford','Cambridge','Chester','Coventry',
+      'Newcastle','Bath','Leicester','Nottingham','Gloucester','Hereford','Worcester','Carlisle',
+      'Shrewsbury','Derby','Lincoln','Ely','Rochester','Colchester','Ipswich'],
   },
   {
     name: 'Austria', color: '#c8a800',
@@ -2809,7 +2820,10 @@ const PRESET_NATIONS = [
       { name: 'Vienna',    xFrac: 0.55, yFrac: 0.50 },
       { name: 'Prague',    xFrac: 0.50, yFrac: 0.42 },
       { name: 'Budapest',  xFrac: 0.60, yFrac: 0.53 },
-    ]
+    ],
+    extraCities: ['Graz','Salzburg','Linz','Innsbruck','Trieste','Brno','Bratislava','Lemberg',
+      'Zagreb','Ljubljana','Klagenfurt','Villach','Steyr','Wels','Pécs','Debrecen','Kolozsvár',
+      'Temesvár','Fiume','Zara','Olomouc','Brünn','Pilsen','Budweis'],
   },
   {
     name: 'France', color: '#1a50c0',
@@ -2818,7 +2832,11 @@ const PRESET_NATIONS = [
       { name: 'Lyon',        xFrac: 0.30, yFrac: 0.61 },
       { name: 'Bordeaux',    xFrac: 0.18, yFrac: 0.64 },
       { name: 'Strasbourg',  xFrac: 0.36, yFrac: 0.49 },
-    ]
+    ],
+    extraCities: ['Marseille','Toulouse','Nantes','Lille','Rouen','Reims','Dijon','Grenoble',
+      'Rennes','Caen','Tours','Orléans','Metz','Nancy','Brest','Toulon','Montpellier',
+      'Clermont','Amiens','Valenciennes','Besançon','Poitiers','Limoges','Perpignan',
+      'Avignon','Cherbourg','Le Havre','Arras','Calais','Dunkirk'],
   },
   {
     name: 'Russia', color: '#1a6b1a',
@@ -2826,7 +2844,10 @@ const PRESET_NATIONS = [
       { name: 'Moscow',          xFrac: 0.95, yFrac: 0.18 },
       { name: 'St. Petersburg',  xFrac: 0.84, yFrac: 0.05 },
       { name: 'Kiev',            xFrac: 0.85, yFrac: 0.41 },
-    ]
+    ],
+    extraCities: ['Novgorod','Smolensk','Riga','Vilnius','Minsk','Odessa','Kharkov','Tula',
+      'Kazan','Yaroslavl','Nizhny Novgorod','Pskov','Tver','Voronezh','Kursk','Penza',
+      'Saratov','Astrakhan','Archangel','Vologda','Kostroma','Tambov','Ryazan','Vladimir'],
   },
   {
     name: 'Belgium', color: '#c87820',
@@ -2834,15 +2855,19 @@ const PRESET_NATIONS = [
       { name: 'Brussels',  xFrac: 0.29, yFrac: 0.39 },
       { name: 'Ghent',     xFrac: 0.26, yFrac: 0.37 },
       { name: 'Liège',     xFrac: 0.32, yFrac: 0.38 },
-    ]
+    ],
+    extraCities: ['Antwerp','Bruges','Namur','Mons','Leuven','Mechelen','Tournai','Dinant',
+      'Charleroi','Hasselt','Sint-Niklaas','Aalst','Kortrijk','Verviers','Spa'],
   },
   {
-    name: 'Holland', color: '#ff8000',
+    name: 'Kingdom of Holland', color: '#ff8000',
     cities: [
       { name: 'Amsterdam',  xFrac: 0.30, yFrac: 0.32 },
       { name: 'Rotterdam',  xFrac: 0.29, yFrac: 0.34 },
       { name: 'Utrecht',    xFrac: 0.31, yFrac: 0.33 },
-    ]
+    ],
+    extraCities: ['The Hague','Leiden','Haarlem','Delft','Groningen','Maastricht','Nijmegen',
+      'Arnhem','Dordrecht','Alkmaar','Zwolle','Deventer','Breda','Middelburg','Enkhuizen'],
   },
   {
     name: 'Spain', color: '#8b0000',
@@ -2850,7 +2875,11 @@ const PRESET_NATIONS = [
       { name: 'Madrid',     xFrac: 0.11, yFrac: 0.83 },
       { name: 'Barcelona',  xFrac: 0.24, yFrac: 0.79 },
       { name: 'Seville',    xFrac: 0.08, yFrac: 0.92 },
-    ]
+    ],
+    extraCities: ['Valencia','Zaragoza','Bilbao','Valladolid','Toledo','Córdoba','Cádiz',
+      'Burgos','Salamanca','Granada','Málaga','Murcia','Pamplona','León','Santander',
+      'San Sebastián','Tarragona','Cartagena','Almería','Badajoz','Cáceres','Albacete',
+      'Palencia','Logroño','Oviedo','Vitoria'],
   },
   {
     name: 'Sweden', color: '#005b9e',
@@ -2858,7 +2887,10 @@ const PRESET_NATIONS = [
       { name: 'Stockholm',   xFrac: 0.58, yFrac: 0.05 },
       { name: 'Gothenburg',  xFrac: 0.45, yFrac: 0.10 },
       { name: 'Malmö',       xFrac: 0.47, yFrac: 0.19 },
-    ]
+    ],
+    extraCities: ['Uppsala','Norrköping','Linköping','Örebro','Västerås','Helsingborg',
+      'Jönköping','Umeå','Lund','Gävle','Sundsvall','Kalmar','Visby','Härnösand',
+      'Falun','Karlstad','Växjö'],
   },
   {
     name: 'Portugal', color: '#006b3c',
@@ -2866,16 +2898,22 @@ const PRESET_NATIONS = [
       { name: 'Lisbon',   xFrac: 0.05, yFrac: 0.90 },
       { name: 'Porto',    xFrac: 0.05, yFrac: 0.80 },
       { name: 'Coimbra',  xFrac: 0.06, yFrac: 0.83 },
-    ]
+    ],
+    extraCities: ['Braga','Évora','Faro','Setúbal','Funchal','Viseu','Guimarães',
+      'Castelo Branco','Santarém','Leiria','Aveiro','Bragança','Vila Real','Elvas',
+      'Portalegre','Estremoz'],
   },
   {
-    name: 'Italy', color: '#30b050',
+    name: 'Kingdom of Italy', color: '#30b050',
     cities: [
       { name: 'Rome',      xFrac: 0.46, yFrac: 0.77 },
       { name: 'Milan',     xFrac: 0.39, yFrac: 0.62 },
       { name: 'Venice',    xFrac: 0.46, yFrac: 0.62 },
       { name: 'Florence',  xFrac: 0.43, yFrac: 0.70 },
-    ]
+    ],
+    extraCities: ['Turin','Genoa','Bologna','Verona','Padua','Modena','Parma','Pisa',
+      'Siena','Ancona','Ferrara','Mantua','Brescia','Cremona','Bergamo','Trento',
+      'Alessandria','Novara','Como','Pavia','Reggio','Lucca','Perugia','Viterbo'],
   },
   {
     name: 'Duchy of Warsaw', color: '#c7192a',
@@ -2883,14 +2921,20 @@ const PRESET_NATIONS = [
       { name: 'Warsaw',  xFrac: 0.64, yFrac: 0.33 },
       { name: 'Kraków',  xFrac: 0.62, yFrac: 0.42 },
       { name: 'Poznań',  xFrac: 0.57, yFrac: 0.30 },
-    ]
+    ],
+    extraCities: ['Łódź','Lublin','Białystok','Danzig','Toruń','Bydgoszcz','Rzeszów',
+      'Płock','Radom','Kielce','Sandomierz','Zamość','Piotrków','Siedlce','Kalisz',
+      'Gniezno','Inowrocław'],
   },
   {
     name: 'Kingdom of Naples', color: '#7a30aa',
     cities: [
       { name: 'Naples',   xFrac: 0.52, yFrac: 0.83 },
       { name: 'Palermo',  xFrac: 0.48, yFrac: 0.92 },
-    ]
+    ],
+    extraCities: ['Bari','Catania','Messina','Salerno','Reggio Calabria','Taranto','Foggia',
+      'Lecce','Brindisi','Trapani','Syracuse','Cosenza','Potenza','Campobasso','Chieti',
+      'Aquila','Pescara','Agrigento','Caltanissetta','Ragusa'],
   },
   {
     name: 'Kingdom of Saxony', color: '#7a9c3a',
@@ -2898,7 +2942,9 @@ const PRESET_NATIONS = [
       { name: 'Dresden',  xFrac: 0.50, yFrac: 0.40 },
       { name: 'Leipzig',  xFrac: 0.46, yFrac: 0.39 },
       { name: 'Erfurt',   xFrac: 0.44, yFrac: 0.38 },
-    ]
+    ],
+    extraCities: ['Chemnitz','Zwickau','Halle','Magdeburg','Görlitz','Plauen','Freiberg',
+      'Bautzen','Meissen','Pirna','Altenburg','Gera','Jena','Weimar','Eisenach','Nordhausen'],
   },
   {
     name: 'Prussia', color: '#3a4a8a',
@@ -2906,7 +2952,86 @@ const PRESET_NATIONS = [
       { name: 'Berlin',       xFrac: 0.47, yFrac: 0.30 },
       { name: 'Königsberg',   xFrac: 0.63, yFrac: 0.22 },
       { name: 'Breslau',      xFrac: 0.56, yFrac: 0.37 },
-    ]
+    ],
+    extraCities: ['Stettin','Kolberg','Memel','Frankfurt an der Oder','Potsdam','Kiel',
+      'Rostock','Stralsund','Greifswald','Tilsit','Insterburg','Gumbinnen','Elbing',
+      'Marienburg','Thorn','Posen','Gnesen','Bromberg'],
+  },
+  {
+    name: 'Ottoman Empire', color: '#b05000',
+    cities: [
+      { name: 'Constantinople', xFrac: 0.81, yFrac: 0.81 },
+      { name: 'Edirne',         xFrac: 0.76, yFrac: 0.78 },
+      { name: 'Salonika',       xFrac: 0.68, yFrac: 0.83 },
+    ],
+    extraCities: ['Ankara','Smyrna','Bursa','Belgrade','Sofia','Bucharest','Athens',
+      'Tripoli','Damascus','Aleppo','Cairo','Alexandria','Tunis','Sarajevo','Skopje',
+      'Monastir','Janina','Trabzon','Erzurum','Sivas','Konya','Adana','Mosul','Baghdad'],
+  },
+  {
+    name: 'United States', color: '#2244aa',
+    cities: [
+      { name: 'Washington',   xFrac: 0.01, yFrac: 0.75 },
+      { name: 'Philadelphia', xFrac: 0.02, yFrac: 0.72 },
+      { name: 'New York',     xFrac: 0.03, yFrac: 0.69 },
+      { name: 'Boston',       xFrac: 0.04, yFrac: 0.66 },
+    ],
+    extraCities: ['Baltimore','Richmond','Charleston','Savannah','Norfolk','Albany',
+      'Hartford','Providence','Portsmouth','Lexington','Concord','Trenton','Williamsburg',
+      'Annapolis','Georgetown','Alexandria','Pittsburgh','Cincinnati','Natchez','New Orleans'],
+  },
+  {
+    name: 'Bavaria', color: '#3090c0',
+    cities: [
+      { name: 'Munich',     xFrac: 0.44, yFrac: 0.51 },
+      { name: 'Nuremberg',  xFrac: 0.43, yFrac: 0.45 },
+      { name: 'Augsburg',   xFrac: 0.43, yFrac: 0.49 },
+    ],
+    extraCities: ['Regensburg','Würzburg','Bamberg','Passau','Ingolstadt','Landshut',
+      'Bayreuth','Ansbach','Straubing','Amberg','Kempten','Memmingen','Landsberg',
+      'Rosenheim','Burghausen','Neuburg'],
+  },
+  {
+    name: 'Duchy of Nassau', color: '#e8a000',
+    cities: [
+      { name: 'Wiesbaden',  xFrac: 0.37, yFrac: 0.42 },
+      { name: 'Dillenburg', xFrac: 0.37, yFrac: 0.40 },
+    ],
+    extraCities: ['Nassau','Idstein','Hadamar','Siegen','Bad Ems','Limburg','Diez',
+      'Runkel','Herborn','Weilburg','Usingen','Montabaur'],
+  },
+  {
+    name: 'Swiss Confederation', color: '#a8a8a8',
+    cities: [
+      { name: 'Bern',    xFrac: 0.35, yFrac: 0.56 },
+      { name: 'Zurich',  xFrac: 0.38, yFrac: 0.54 },
+      { name: 'Geneva',  xFrac: 0.32, yFrac: 0.59 },
+    ],
+    extraCities: ['Basel','Lucerne','St. Gallen','Lausanne','Fribourg','Solothurn',
+      'Schaffhausen','Winterthur','Thun','Biel','Chur','Sion','Aarau','Frauenfeld',
+      'Altdorf','Glarus','Schwyz','Bellinzona'],
+  },
+  {
+    name: 'Denmark-Norway', color: '#b51030',
+    cities: [
+      { name: 'Copenhagen',  xFrac: 0.46, yFrac: 0.18 },
+      { name: 'Christiania', xFrac: 0.42, yFrac: 0.02 },
+      { name: 'Aalborg',     xFrac: 0.41, yFrac: 0.12 },
+    ],
+    extraCities: ['Odense','Aarhus','Roskilde','Elsinore','Trondheim','Bergen','Stavanger',
+      'Viborg','Horsens','Fredrikstad','Drammen','Fredrikshald','Kristiansand','Tønsberg',
+      'Skien','Holmestrand','Larvik','Moss','Sarpsborg'],
+  },
+  {
+    name: 'Westphalia', color: '#7a4400',
+    cities: [
+      { name: 'Kassel',    xFrac: 0.40, yFrac: 0.37 },
+      { name: 'Dortmund',  xFrac: 0.35, yFrac: 0.36 },
+      { name: 'Münster',   xFrac: 0.36, yFrac: 0.35 },
+    ],
+    extraCities: ['Osnabrück','Minden','Paderborn','Detmold','Soest','Arnsberg','Bielefeld',
+      'Hannover','Göttingen','Hamm','Hagen','Iserlohn','Lippstadt','Warburg','Höxter',
+      'Herford','Bückeburg','Rinteln'],
   },
 ];
 
@@ -2920,6 +3045,22 @@ function randomCityName() {
   if (Math.random() < 0.45) return CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)];
   const b = CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)].slice(0, 3 + Math.floor(Math.random() * 2));
   return b + CITY_SUFFIXES[Math.floor(Math.random() * CITY_SUFFIXES.length)];
+}
+
+function getNextHistoricalCityName(nationId) {
+  const usedNames = new Set(cities.map(c => c.name));
+  const nation = nations[nationId];
+  if (nation) {
+    const preset = PRESET_NATIONS.find(p => p.name === nation.name);
+    if (preset) {
+      const allNames = [...preset.cities.map(c => c.name), ...(preset.extraCities || [])];
+      for (const name of allNames) {
+        if (!usedNames.has(name)) return name;
+      }
+    }
+  }
+  // Fallback: random name if all historical names exhausted
+  return randomCityName();
 }
 
 // ====================
@@ -5032,7 +5173,7 @@ function aiTurn(nationId) {
       }
     }
     if (u.type === 'settler' && u.movesLeft > 0) {
-      if (canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u);
+      if (canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u, getNextHistoricalCityName(u.nationId));
       else {
         // Move toward best city site (evaluated by quality, not just distance)
         let bestTarget = null, bestScore = -Infinity;
@@ -7395,7 +7536,7 @@ function confirmSettle() {
   if (!selectedUnit || selectedUnit.type !== 'settler') return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const panel = document.getElementById('panel');
-  const name = randomCityName();
+  const name = getNextHistoricalCityName(selectedUnit.nationId);
   // Store pending name
   selectedUnit._pendingCityName = name;
   let html = `<h3>\u2691 Found City</h3>`;

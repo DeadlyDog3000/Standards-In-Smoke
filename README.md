@@ -31,8 +31,13 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 2.9 — 2026-04-13
+- **Feature**: 7 additional playable nations — Ottoman Empire, United States, Bavaria, Duchy of Nassau, Swiss Confederation, Denmark-Norway, Westphalia; total roster now 21 nations, up to 20 AI opponents
+- **Feature**: All newly founded cities use historically accurate names drawn from each nation's real territory — each nation has a deep pool of 12–24 period-appropriate city names; AI settlers also use historical names; falls back to procedural generation only when all names are exhausted
+- **Fix**: Renamed Britain → Great Britain, Holland → Kingdom of Holland, Italy → Kingdom of Italy
+
 ### Beta 2.8 — 2026-04-13
-- **Feature**: 14 preset historical Napoleonic nations replace random kingdoms — Britain, Austria, France, Russia, Belgium, Holland, Spain, Sweden, Portugal, Italy, Duchy of Warsaw, Kingdom of Naples, Kingdom of Saxony, Prussia; each with assigned banner colour
+- **Feature**: 14 preset historical Napoleonic nations replace random kingdoms — Great Britain, Austria, France, Russia, Belgium, Kingdom of Holland, Spain, Sweden, Portugal, Kingdom of Italy, Duchy of Warsaw, Kingdom of Naples, Kingdom of Saxony, Prussia; each with assigned banner colour
 - **Feature**: Nation selection screen — pick which nation to play from an illustrated card grid before starting a campaign; up to 13 AI opponents from the same roster
 - **Feature**: Each nation starts with historically accurate capital and 1–2 secondary cities pre-founded at geographically proportional positions on the map
 - **Feature**: Civilization borders are now rounded — territory edges use quadratic bezier curves at corners where adjacent border edges meet, plus a soft semi-transparent territory colour fill on all owned tiles
