@@ -3697,7 +3697,7 @@ function getOrders(nationId) {
 
 function getMaxOrders(nationId) {
   const n = nations[nationId];
-  if (!n || n.eliminated || n.isBarbarian) return 99;
+  if (!n || n.eliminated || n.isBarbarian || n.isTribe) return 99;
   const cityCount = cities.filter(c => c.nationId === nationId).length;
   const leg = n.legitimacy || 50;
   let orders = 3 + cityCount + Math.floor(leg / 25);
@@ -4551,15 +4551,16 @@ function tribeAI(nationId) {
   if (n.eliminated) return;
   const myCity = cities.find(c => c.nationId === nationId);
   for (const u of units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat && u.movesLeft > 0)) {
-    // Attack adjacent enemies if at war
+    // Attack hex-adjacent enemies if at war
+    const adjCells = hexNeighbors(u.x, u.y);
     const enemies = units.filter(e =>
       e.nationId !== nationId &&
       n.relations[e.nationId] === 'war' &&
       UNIT_DEFS[e.type]?.combat &&
-      Math.abs(e.x - u.x) + Math.abs(e.y - u.y) <= 1
+      adjCells.some(nb => nb.col === e.x && nb.row === e.y)
     );
     if (enemies.length > 0) {
-      doAttack(u, enemies[0]);
+      doAttack(u, enemies[0].x, enemies[0].y);
       continue;
     }
     // Stay near settlement
@@ -4594,8 +4595,10 @@ function spawnTribalNations() {
       attempts++;
     }
     // Found settlement (use foundCity directly — tribes don't need a settler unit)
+    const usedCityNames = new Set(cities.map(c => c.name));
+    const capitalName = usedCityNames.has(td.capital) ? randomCityName() : td.capital;
     const settler = spawnUnit('settler', nId, sp.x, sp.y);
-    const settlement = foundCity(settler, td.capital);
+    const settlement = foundCity(settler, capitalName);
     settlement.producing = null;
     // Spawn 2-3 tribal warriors
     for (let w = 0; w < 3; w++) {
@@ -4952,7 +4955,7 @@ function getScore(nationId) {
 
 function checkElimination() {
   for (const n of nations) {
-    if (n.eliminated || n.isPlayer || n.isBarbarian) continue;
+    if (n.eliminated || n.isPlayer || n.isBarbarian || n.isTribe) continue;
     const hasCities = cities.some(c => c.nationId === n.id);
     if (!hasCities) {
       n.eliminated = true;

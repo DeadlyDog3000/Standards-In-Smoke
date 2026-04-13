@@ -31,6 +31,12 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.2 — 2026-04-13
+- **Fix**: `tribeAI` combat was broken — `doAttack` was called with a unit object instead of coordinates; also used Manhattan distance instead of proper hex adjacency (`hexNeighbors`) matching all other combat code
+- **Fix**: `checkElimination` now skips tribe nations (same as barbarians) — tribes with no cities were incorrectly triggering conqueror logic and resource transfers
+- **Fix**: `getMaxOrders` now returns unlimited orders for tribes (same as barbarians) — tribes never use the order system
+- **Fix**: Tribal capital names now deduplicate against existing city names before use — prevents duplicate city names if a preset nation already founded a same-named city
+
 ### Beta 3.1 — 2026-04-13
 - **Fix**: Great Britain and Ireland now reliably spawn as islands fully separate from continental Europe — terrain override carves a wide ocean box (lon −12 to 2) then punches the islands back in; continental Europe is stamped starting at lon 2.5 guaranteeing a 4-tile ocean gap; Irish Sea carved between Ireland and Britain; `findLandNear` for French/Belgian cities always resolves to the continent before it can reach the British island
 
