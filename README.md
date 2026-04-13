@@ -31,6 +31,13 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.0 — 2026-04-13
+- **Feature**: World map — all 21 nations now placed at historically accurate world-scale coordinates (formula: xFrac = (lon+180)/360, yFrac = (80-lat)/140); new World (600×360) map size added and set as default
+- **Feature**: 22 tribal/non-state peoples — Iroquois Confederacy, Cherokee Nation, Sioux Nation, Comanche, Maya, Andean Tribes, Mapuche, Guaraní, Ashanti Empire, Oyo Empire, Zulu Kingdom, Kingdom of Kongo, Ethiopian Empire, Tuareg Confederacy, Qing China, Japanese Shogunate, Maratha Confederacy, Qajar Persia, Kazakh Khanate, Hawaiian Kingdom, Maori Confederation, Aboriginal Australia — each spawned at a historically proportional world position with a settlement and 3 tribal warriors
+- **Feature**: Tribal nation diplomacy — tribes start **neutral** (not at war); discover them by sight; open Kingdoms panel to **Send Envoy** (costs 20g, establishes peace) or **Declare War**; tribes defend their settlement but never expand; shown in a dedicated "Tribal Nations" section in the Kingdoms panel
+- **Feature**: New `tribal_warrior` unit (5 ATK, 10 HP, 4 moves, 🏹) used by all tribal peoples
+- **Feature**: Barbarians still spawn independently from tribes as before
+
 ### Beta 2.9 — 2026-04-13
 - **Feature**: 7 additional playable nations — Ottoman Empire, United States, Bavaria, Duchy of Nassau, Swiss Confederation, Denmark-Norway, Westphalia; total roster now 21 nations, up to 20 AI opponents
 - **Feature**: All newly founded cities use historically accurate names drawn from each nation's real territory — each nation has a deep pool of 12–24 period-appropriate city names; AI settlers also use historical names; falls back to procedural generation only when all names are exhausted
