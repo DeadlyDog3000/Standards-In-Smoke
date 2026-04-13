@@ -3393,17 +3393,29 @@ function applyWorldTerrainOverrides() {
   }
 
   // ── British Isles ──
-  // 1. Stamp the islands as land
-  forceLand(-6.5, 1.5, 51.5, 62);       // Great Britain (stops at lon 1.5 — well west of continent)
-  forceLand(-10.5, -5.5, 51, 55.5);     // Ireland
-  // 2. Carve surrounding seas (run after land so they cut through)
-  forceOcean(-6, 3.5, 50, 51.5);        // English Channel  (lat 50–51.5, safely above Paris lat 48.9)
-  forceOcean(1.5, 5, 51.5, 62);         // Western North Sea (5-tile gap between GB east coast and continent)
-  forceOcean(-5.5, -3.5, 51.5, 55);     // Irish Sea
-  // 3. Guarantee continental land east of the channel so Belgian/Dutch/French cities
-  //    always find the continent before they can "jump" to Britain.
-  //    Applied last so it overrides the North Sea ocean at the continental edge.
-  forceLand(4, 18, 47, 54);             // Continental coast (Belgium / Netherlands / Germany / NE France)
+  // Strategy: stamp a big ocean box first, then punch the islands back in as land,
+  // then stamp the continent starting safely east of the box.
+  // This guarantees a clear ocean gap — findLandNear can't bridge the islands to France.
+
+  // 1. Big ocean zone — covers everything between Scotland and France including
+  //    the English Channel, North Sea, and Irish Sea approaches.
+  forceOcean(-12, 2, 46, 65);
+
+  // 2. Punch Great Britain back in as an island (lon -6.8 to -0.5).
+  //    Ends at lon -0.5 (x≈299) leaving a 4-tile ocean gap before the continent.
+  //    London (lon -0.1, x≈300) is 1 tile east of the island — findLandNear grabs it ✓
+  forceLand(-6.8, -0.5, 49.5, 62);
+
+  // 3. Punch Ireland in as a separate island.
+  forceLand(-10.5, -5.8, 51, 55.5);
+
+  // 4. Carve the Irish Sea back out between the two islands.
+  forceOcean(-7, -4.5, 51.5, 55.5);
+
+  // 5. Continental Europe starts at lon 2.5 (x≈304) — safely east of the ocean box.
+  //    Paris (lon 2.35, x≈304) lands right at the coast; Belgium/Netherlands are further east.
+  //    forceLand only fills ocean tiles so it won't flatten noise-generated terrain.
+  forceLand(2.5, 50, 35, 72);
 
   // ── Japan ── (land first, then carve surrounding seas)
   forceLand(130, 142, 33,   42);         // Honshu
