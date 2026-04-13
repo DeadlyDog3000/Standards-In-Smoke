@@ -31,6 +31,9 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.1 — 2026-04-13
+- **Fix**: Great Britain now spawns as a proper island — post-process terrain overrides carve the English Channel, North Sea, and Irish Sea after noise generation; Japan (Honshu, Kyushu, Hokkaido) also guaranteed as islands with the Sea of Japan and Pacific carved correctly; only applies on World (600×360) map size
+
 ### Beta 3.0 — 2026-04-13
 - **Feature**: World map — all 21 nations now placed at historically accurate world-scale coordinates (formula: xFrac = (lon+180)/360, yFrac = (80-lat)/140); new World (600×360) map size added and set as default
 - **Feature**: 22 tribal/non-state peoples — Iroquois Confederacy, Cherokee Nation, Sioux Nation, Comanche, Maya, Andean Tribes, Mapuche, Guaraní, Ashanti Empire, Oyo Empire, Zulu Kingdom, Kingdom of Kongo, Ethiopian Empire, Tuareg Confederacy, Qing China, Japanese Shogunate, Maratha Confederacy, Qajar Persia, Kazakh Khanate, Hawaiian Kingdom, Maori Confederation, Aboriginal Australia — each spawned at a historically proportional world position with a settlement and 3 tribal warriors

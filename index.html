@@ -3358,6 +3358,55 @@ function pickSprite(type, i) {
   return variants[i % variants.length];
 }
 
+// Force geographic features that procedural noise can't reproduce at world scale.
+// Land is applied first (ocean→plains only); then ocean is carved unconditionally
+// so key sea channels always exist.
+function applyWorldTerrainOverrides() {
+  if (MAP_COLS < 400) return; // world map only
+
+  const rng = mulberry32(54321);
+  const wx = lon => Math.round((lon + 180) / 360 * MAP_COLS);
+  const wy = lat => Math.round((80 - lat) / 140 * MAP_ROWS);
+
+  function forceOcean(lonMin, lonMax, latMin, latMax) {
+    const x1 = Math.max(0, wx(lonMin)), x2 = Math.min(MAP_COLS - 1, wx(lonMax));
+    const y1 = Math.max(0, wy(latMax)), y2 = Math.min(MAP_ROWS - 1, wy(latMin));
+    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) {
+      const i = y * MAP_COLS + x;
+      tiles[i].type = 0; tiles[i].color = TILE_COLORS.ocean;
+      tiles[i].baseColor = TILE_COLORS.ocean; tiles[i].hasRiver = false;
+      tiles[i].spriteKey = 'Water';
+    }
+  }
+
+  function forceLand(lonMin, lonMax, latMin, latMax) {
+    const x1 = Math.max(0, wx(lonMin)), x2 = Math.min(MAP_COLS - 1, wx(lonMax));
+    const y1 = Math.max(0, wy(latMax)), y2 = Math.min(MAP_ROWS - 1, wy(latMin));
+    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) {
+      const i = y * MAP_COLS + x;
+      if (tiles[i].type === 0) { // only fill ocean gaps; leave existing terrain
+        tiles[i].type = 1; tiles[i].color = TILE_COLORS.land;
+        tiles[i].baseColor = TILE_COLORS.land;
+        tiles[i].spriteKey = pickSprite(1, Math.floor(rng() * 997));
+      }
+    }
+  }
+
+  // ── British Isles ── (land first, then carve surrounding seas)
+  forceLand(-6.5, 2,    50.5, 61);      // Great Britain
+  forceLand(-10.5, -5.5, 51,  55.5);    // Ireland
+  forceOcean(-6,   3,   49.5, 51.2);    // English Channel
+  forceOcean( 1.5, 10,  51,   59);      // North Sea (east of Britain)
+  forceOcean(-5.5, -3.5, 51.5, 55);     // Irish Sea
+
+  // ── Japan ── (land first, then carve surrounding seas)
+  forceLand(130, 142, 33,   42);         // Honshu
+  forceLand(129, 132, 31,   33.5);       // Kyushu
+  forceLand(140, 145, 42,   45.5);       // Hokkaido
+  forceOcean(123, 130, 31,  45);         // Sea of Japan / Korea Strait
+  forceOcean(142, 153, 30,  46);         // Pacific east of Japan
+}
+
 function generateMap() {
   const seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   const elev = makeNoise(MAP_COLS, MAP_ROWS, seed, [[4,3],[8,6],[16,12]]);
@@ -3477,6 +3526,8 @@ function generateMap() {
       lakesCreated++;
     }
   }
+
+  applyWorldTerrainOverrides();
 
   units = []; cities = []; nations = []; turnNumber = 1;
   barbarianCamps = []; citySites = []; pillaged = [];
