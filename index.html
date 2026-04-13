@@ -299,6 +299,28 @@
       cursor: pointer;
       max-width: 160px;
     }
+    .nation-picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .nation-card {
+      background: rgba(20,16,10,0.7);
+      border: 2px solid rgba(160,140,100,0.3);
+      border-radius: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nation-card:hover { background: rgba(40,32,20,0.8); border-color: rgba(200,170,90,0.5); }
+    .nation-card.selected { border-color: #e0c880; box-shadow: 0 0 8px rgba(224,200,128,0.3); background: rgba(50,40,20,0.85); }
+    .nation-flag { width: 14px; border-radius: 3px; flex-shrink: 0; align-self: stretch; min-height: 36px; }
+    .nation-card-name { font-size: 13px; color: #e8dcc8; font-weight: bold; margin-bottom: 2px; }
+    .nation-card-cities { font-size: 10px; color: #a89878; line-height: 1.3; }
     .slider-val {
       font-size: 13px;
       color: #e8dcc8;
@@ -361,31 +383,10 @@
     <div class="setup-card">
       <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:26px;margin-bottom:22px;text-align:center;text-shadow:2px 2px 6px rgba(0,0,0,0.7);letter-spacing:1px;">Forge Your Empire</h3>
 
-      <!-- Section 1: Your Kingdom -->
+      <!-- Section 1: Choose Your Nation -->
       <div class="setup-section">
-        <div class="setup-section-title">Your Kingdom</div>
-        <div class="setup-row">
-          <span class="setup-label">Kingdom Name</span>
-          <input id="setupName" type="text" maxlength="24" class="setup-input" style="width:220px;text-align:center;" />
-        </div>
-        <div style="margin-bottom:4px;">
-          <span class="setup-label">Banner Colour</span>
-          <div class="color-grid" style="margin-top:8px;">
-            <div class="color-swatch selected" data-color="#4488cc" style="background:#4488cc;" onclick="selectColorSwatch('#4488cc')"></div>
-            <div class="color-swatch" data-color="#cc4444" style="background:#cc4444;" onclick="selectColorSwatch('#cc4444')"></div>
-            <div class="color-swatch" data-color="#44aa44" style="background:#44aa44;" onclick="selectColorSwatch('#44aa44')"></div>
-            <div class="color-swatch" data-color="#cc8844" style="background:#cc8844;" onclick="selectColorSwatch('#cc8844')"></div>
-            <div class="color-swatch" data-color="#8844cc" style="background:#8844cc;" onclick="selectColorSwatch('#8844cc')"></div>
-            <div class="color-swatch" data-color="#44cccc" style="background:#44cccc;" onclick="selectColorSwatch('#44cccc')"></div>
-            <div class="color-swatch" data-color="#cc44aa" style="background:#cc44aa;" onclick="selectColorSwatch('#cc44aa')"></div>
-            <div class="color-swatch" data-color="#888888" style="background:#888888;" onclick="selectColorSwatch('#888888')"></div>
-            <div class="color-swatch" data-color="#cccc44" style="background:#cccc44;" onclick="selectColorSwatch('#cccc44')"></div>
-            <div class="color-swatch" data-color="#224466" style="background:#224466;" onclick="selectColorSwatch('#224466')"></div>
-            <div class="color-swatch" data-color="#664422" style="background:#664422;" onclick="selectColorSwatch('#664422')"></div>
-            <div class="color-swatch" data-color="#446622" style="background:#446622;" onclick="selectColorSwatch('#446622')"></div>
-            <input id="setupColor" type="color" value="#4488cc" style="width:32px;height:32px;background:none;border:1px solid rgba(180,160,120,0.35);border-radius:4px;cursor:pointer;padding:0;" title="Custom colour" oninput="document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'))" />
-          </div>
-        </div>
+        <div class="setup-section-title">Choose Your Nation</div>
+        <div id="nationPickerGrid" class="nation-picker-grid"></div>
       </div>
 
       <!-- Section 2: World -->
@@ -405,10 +406,17 @@
           <select id="setupOpponents" class="setup-input" style="width:180px;">
             <option value="1">1 Opponent</option>
             <option value="2">2 Opponents</option>
-            <option value="3" selected>3 Opponents</option>
-            <option value="4">4 Opponents</option>
+            <option value="3">3 Opponents</option>
+            <option value="4" selected>4 Opponents</option>
             <option value="5">5 Opponents</option>
             <option value="6">6 Opponents</option>
+            <option value="7">7 Opponents</option>
+            <option value="8">8 Opponents</option>
+            <option value="9">9 Opponents</option>
+            <option value="10">10 Opponents</option>
+            <option value="11">11 Opponents</option>
+            <option value="12">12 Opponents</option>
+            <option value="13">All 13 Opponents</option>
           </select>
         </div>
         <div class="setup-row">
@@ -2780,14 +2788,131 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   return false;
 }
 
-const NATION_NAMES = [
-  'France','Britain','Prussia','Austria','Russia','Spain','Sweden','Ottoman Empire',
-  'Portugal','Netherlands','Denmark','Bavaria','Saxony','Sardinia','Naples','Poland',
+// ====================
+// PRESET NATIONS (Napoleonic era)
+// City positions as fractions [0-1] of map width/height, based on European geography
+// x=0 is westernmost (Portugal), x=1 is easternmost (Russia); y=0 is north (Sweden), y=1 is south (Spain/Naples)
+// ====================
+const PRESET_NATIONS = [
+  {
+    name: 'Britain', color: '#cc1111',
+    cities: [
+      { name: 'London',     xFrac: 0.19, yFrac: 0.36 },
+      { name: 'Edinburgh',  xFrac: 0.12, yFrac: 0.17 },
+      { name: 'Dublin',     xFrac: 0.07, yFrac: 0.28 },
+      { name: 'Bristol',    xFrac: 0.14, yFrac: 0.37 },
+    ]
+  },
+  {
+    name: 'Austria', color: '#c8a800',
+    cities: [
+      { name: 'Vienna',    xFrac: 0.55, yFrac: 0.50 },
+      { name: 'Prague',    xFrac: 0.50, yFrac: 0.42 },
+      { name: 'Budapest',  xFrac: 0.60, yFrac: 0.53 },
+    ]
+  },
+  {
+    name: 'France', color: '#1a50c0',
+    cities: [
+      { name: 'Paris',       xFrac: 0.24, yFrac: 0.47 },
+      { name: 'Lyon',        xFrac: 0.30, yFrac: 0.61 },
+      { name: 'Bordeaux',    xFrac: 0.18, yFrac: 0.64 },
+      { name: 'Strasbourg',  xFrac: 0.36, yFrac: 0.49 },
+    ]
+  },
+  {
+    name: 'Russia', color: '#1a6b1a',
+    cities: [
+      { name: 'Moscow',          xFrac: 0.95, yFrac: 0.18 },
+      { name: 'St. Petersburg',  xFrac: 0.84, yFrac: 0.05 },
+      { name: 'Kiev',            xFrac: 0.85, yFrac: 0.41 },
+    ]
+  },
+  {
+    name: 'Belgium', color: '#c87820',
+    cities: [
+      { name: 'Brussels',  xFrac: 0.29, yFrac: 0.39 },
+      { name: 'Ghent',     xFrac: 0.26, yFrac: 0.37 },
+      { name: 'Liège',     xFrac: 0.32, yFrac: 0.38 },
+    ]
+  },
+  {
+    name: 'Holland', color: '#ff8000',
+    cities: [
+      { name: 'Amsterdam',  xFrac: 0.30, yFrac: 0.32 },
+      { name: 'Rotterdam',  xFrac: 0.29, yFrac: 0.34 },
+      { name: 'Utrecht',    xFrac: 0.31, yFrac: 0.33 },
+    ]
+  },
+  {
+    name: 'Spain', color: '#8b0000',
+    cities: [
+      { name: 'Madrid',     xFrac: 0.11, yFrac: 0.83 },
+      { name: 'Barcelona',  xFrac: 0.24, yFrac: 0.79 },
+      { name: 'Seville',    xFrac: 0.08, yFrac: 0.92 },
+    ]
+  },
+  {
+    name: 'Sweden', color: '#005b9e',
+    cities: [
+      { name: 'Stockholm',   xFrac: 0.58, yFrac: 0.05 },
+      { name: 'Gothenburg',  xFrac: 0.45, yFrac: 0.10 },
+      { name: 'Malmö',       xFrac: 0.47, yFrac: 0.19 },
+    ]
+  },
+  {
+    name: 'Portugal', color: '#006b3c',
+    cities: [
+      { name: 'Lisbon',   xFrac: 0.05, yFrac: 0.90 },
+      { name: 'Porto',    xFrac: 0.05, yFrac: 0.80 },
+      { name: 'Coimbra',  xFrac: 0.06, yFrac: 0.83 },
+    ]
+  },
+  {
+    name: 'Italy', color: '#30b050',
+    cities: [
+      { name: 'Rome',      xFrac: 0.46, yFrac: 0.77 },
+      { name: 'Milan',     xFrac: 0.39, yFrac: 0.62 },
+      { name: 'Venice',    xFrac: 0.46, yFrac: 0.62 },
+      { name: 'Florence',  xFrac: 0.43, yFrac: 0.70 },
+    ]
+  },
+  {
+    name: 'Duchy of Warsaw', color: '#c7192a',
+    cities: [
+      { name: 'Warsaw',  xFrac: 0.64, yFrac: 0.33 },
+      { name: 'Kraków',  xFrac: 0.62, yFrac: 0.42 },
+      { name: 'Poznań',  xFrac: 0.57, yFrac: 0.30 },
+    ]
+  },
+  {
+    name: 'Kingdom of Naples', color: '#7a30aa',
+    cities: [
+      { name: 'Naples',   xFrac: 0.52, yFrac: 0.83 },
+      { name: 'Palermo',  xFrac: 0.48, yFrac: 0.92 },
+    ]
+  },
+  {
+    name: 'Kingdom of Saxony', color: '#7a9c3a',
+    cities: [
+      { name: 'Dresden',  xFrac: 0.50, yFrac: 0.40 },
+      { name: 'Leipzig',  xFrac: 0.46, yFrac: 0.39 },
+      { name: 'Erfurt',   xFrac: 0.44, yFrac: 0.38 },
+    ]
+  },
+  {
+    name: 'Prussia', color: '#3a4a8a',
+    cities: [
+      { name: 'Berlin',       xFrac: 0.47, yFrac: 0.30 },
+      { name: 'Königsberg',   xFrac: 0.63, yFrac: 0.22 },
+      { name: 'Breslau',      xFrac: 0.56, yFrac: 0.37 },
+    ]
+  },
 ];
 
-const CITY_PREFIXES = ['Austen','Brest','Caen','Dijon','Elba','Flers','Graz','Halle','Jena','Lyon',
-  'Metz','Nantes','Prague','Reims','Sedan','Toulon','Ulm','Valmy','Wagram','York','Zurich','Bonn',
-  'Cadiz','Danzig','Erfurt','Fiume','Mainz','Trier','Genoa','Turin','Milan','Venice','Parma'];
+const CITY_PREFIXES = ['Austen','Brest','Caen','Dijon','Elba','Flers','Halle','Jena',
+  'Metz','Nantes','Reims','Sedan','Toulon','Ulm','Valmy','Wagram','York','Zurich','Bonn',
+  'Danzig','Fiume','Mainz','Trier','Genoa','Turin','Parma'];
 const CITY_SUFFIXES = ['burg','heim','feld','stadt','dorf','bridge','haven','ford','mouth',
   'ton','bury','vale','hill','gate','wood','port','shore','cross','hold'];
 
@@ -2795,11 +2920,6 @@ function randomCityName() {
   if (Math.random() < 0.45) return CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)];
   const b = CITY_PREFIXES[Math.floor(Math.random() * CITY_PREFIXES.length)].slice(0, 3 + Math.floor(Math.random() * 2));
   return b + CITY_SUFFIXES[Math.floor(Math.random() * CITY_SUFFIXES.length)];
-}
-
-function randomColor() {
-  const h = Math.floor(Math.random() * 360);
-  return `hsl(${h}, 70%, 50%)`;
 }
 
 // ====================
@@ -3353,8 +3473,8 @@ function canFoundCity(x, y, nationId) {
   return { ok: true };
 }
 
-function foundCity(unit) {
-  const name = randomCityName();
+function foundCity(unit, cityName) {
+  const name = cityName || randomCityName();
   // Mark city site as settled
   const site = getCitySite(unit.x, unit.y);
   if (site) site.settled = true;
@@ -6067,6 +6187,45 @@ function drawHexEdge(context, x, y, w, cellH, edgeIndex) {
   context.stroke();
 }
 
+// Draw territory border edges with rounded corners where consecutive edges meet
+// borderEdges: array of edge indices (0-5) that face a different-owner neighbor
+function drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges) {
+  if (!borderEdges.length) return;
+  const cx = sx + w / 2, cy = fy + faceH / 2;
+  const hw = w / 2, hh = faceH / 2;
+  const verts = [
+    [cx - hw * 0.5, cy - hh],  // 0: top-left
+    [cx + hw * 0.5, cy - hh],  // 1: top-right
+    [cx + hw,       cy],        // 2: right
+    [cx + hw * 0.5, cy + hh],  // 3: bottom-right
+    [cx - hw * 0.5, cy + hh],  // 4: bottom-left
+    [cx - hw,       cy],        // 5: left
+  ];
+  const bSet = new Set(borderEdges);
+  const R = 0.28; // corner rounding factor (0=sharp, 0.5=max)
+  for (const ei of borderEdges) {
+    const v1 = verts[ei];
+    const v2 = verts[(ei + 1) % 6];
+    const prevIsBorder = bSet.has((ei + 5) % 6);
+    const nextIsBorder = bSet.has((ei + 1) % 6);
+    // Shorten edge at each end where there's an adjacent border edge (for the arc)
+    const startX = v1[0] + (v2[0] - v1[0]) * (prevIsBorder ? R : 0);
+    const startY = v1[1] + (v2[1] - v1[1]) * (prevIsBorder ? R : 0);
+    const endX   = v1[0] + (v2[0] - v1[0]) * (nextIsBorder ? 1 - R : 1);
+    const endY   = v1[1] + (v2[1] - v1[1]) * (nextIsBorder ? 1 - R : 1);
+    ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke();
+    // Draw rounded arc at v2 corner if next edge is also a border
+    if (nextIsBorder) {
+      const v3 = verts[(ei + 2) % 6];
+      const arcEndX = v2[0] + (v3[0] - v2[0]) * R;
+      const arcEndY = v2[1] + (v3[1] - v2[1]) * R;
+      ctx.beginPath(); ctx.moveTo(endX, endY);
+      ctx.quadraticCurveTo(v2[0], v2[1], arcEndX, arcEndY);
+      ctx.stroke();
+    }
+  }
+}
+
 // Draw a small Napoleon-era village overlay on city tiles
 function drawVillageOverlay(context, x, y, w, h) {
   const cx = x + w * 0.5;
@@ -6285,34 +6444,48 @@ function render() {
       const tcMap = getTileCityMap();
       const myCity = tcMap.get(i);
       const isContested = myCity && myCity.contested;
-      ctx.strokeStyle = isContested ? '#000000' : nations[t.owner].color;
-      ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
-      ctx.lineCap = 'round';
-      ctx.globalAlpha = 0.85;
+      const nationColor = nations[t.owner].color;
       const neighbors = hexNeighbors(mx, my);
       const edgeMap = [0, 3, 1, 2, 5, 4];
+      // Territory fill: soft colored tint on owned tiles
+      ctx.fillStyle = nationColor;
+      ctx.globalAlpha = 0.13;
+      drawHexPath(ctx, sx, fy, w, faceH);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+      // Collect outer border edges and draw inter-city dividers
+      const borderEdges = [];
       for (let ni = 0; ni < 6; ni++) {
         const nb = neighbors[ni];
         const nIdx = nb.row * MAP_COLS + nb.col;
         const neighborOwner = (nb.col >= 0 && nb.col < MAP_COLS && nb.row >= 0 && nb.row < MAP_ROWS)
           ? tiles[nIdx].owner : -1;
         if (neighborOwner !== t.owner) {
-          drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
-        } else if (myCity && neighborOwner === t.owner) {
-          // Gray city border: same nation, different city
+          borderEdges.push(edgeMap[ni]);
+        } else if (myCity) {
           const nbCity = tcMap.get(nIdx);
           if (nbCity && nbCity !== myCity) {
             ctx.save();
-            ctx.strokeStyle = 'rgba(180,170,150,0.3)';
+            ctx.strokeStyle = 'rgba(180,170,150,0.22)';
             ctx.lineWidth = Math.max(1, VIEW_TILE / 14);
+            ctx.lineCap = 'round';
             drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
             ctx.restore();
           }
         }
       }
-      ctx.globalAlpha = 1.0;
-      ctx.lineWidth = 1;
-      ctx.lineCap = 'butt';
+      if (borderEdges.length > 0) {
+        ctx.strokeStyle = isContested ? '#000000' : nationColor;
+        ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.88;
+        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        ctx.globalAlpha = 1.0;
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+      }
     }
 
     // Draw city site marker
@@ -7955,11 +8128,30 @@ function stopMenuSlideshow() {
 startMenuSlideshow();
 
 // Nation setup screen
+let _selectedNationIdx = 0;
+function renderNationPicker() {
+  const grid = document.getElementById('nationPickerGrid');
+  if (!grid) return;
+  grid.innerHTML = PRESET_NATIONS.map((n, i) => `
+    <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
+      <div class="nation-flag" style="background:${n.color};"></div>
+      <div>
+        <div class="nation-card-name">${n.name}</div>
+        <div class="nation-card-cities">${n.cities.slice(0, 3).map(c => c.name).join(', ')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+function pickNation(idx) {
+  _selectedNationIdx = idx;
+  renderNationPicker();
+}
+window.pickNation = pickNation;
 function showNewGame() {
   document.getElementById('menuMain').style.display = 'none';
   document.getElementById('menuSetup').style.display = 'block';
-  document.getElementById('setupName').value = NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)];
-  selectColorSwatch('#4488cc');
+  _selectedNationIdx = 0;
+  renderNationPicker();
 }
 function resumeLastGame() {
   const data = localStorage.getItem('sis_save_auto');
@@ -8015,9 +8207,10 @@ function cancelSetup() {
   document.getElementById('menuMain').style.display = 'block';
 }
 function confirmSetupAndStart() {
-  const name = document.getElementById('setupName').value.trim() || 'Unknown Kingdom';
-  const color = document.getElementById('setupColor').value;
-  const opponents = parseInt(document.getElementById('setupOpponents').value) || 3;
+  const preset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
+  const name = preset.name;
+  const color = preset.color;
+  const opponents = parseInt(document.getElementById('setupOpponents').value) || 4;
   const mapSize = document.getElementById('setupMapSize').value;
   const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
   const [cols, rows] = sizes[mapSize] || sizes.medium;
@@ -9404,16 +9597,36 @@ function findLandNear(cx, cy, radius) {
   return { x: cx, y: cy };
 }
 
-function spawnAINations(count) {
-  const usedNames = new Set([nations[playerNation].name]);
-  for (let i = 0; i < count; i++) {
-    let name;
-    do { name = NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)]; } while (usedNames.has(name));
-    usedNames.add(name);
-    const nId = createNation(name, randomColor(), false);
+// Spawn a city for a nation at a preset geographic position, with minimum-distance check
+function foundPresetCity(nationId, cityData, isCapital) {
+  const tx = Math.round(cityData.xFrac * MAP_COLS);
+  const ty = Math.round(cityData.yFrac * MAP_ROWS);
+  let sp = findLandNear(tx, ty, 18);
+  // If too close to existing city, nudge outward
+  let attempts = 0;
+  while (attempts < 12 && cities.some(c => Math.abs(c.x - sp.x) + Math.abs(c.y - sp.y) < 5)) {
+    const angle = (attempts / 12) * Math.PI * 2;
+    const nudge = 4 + Math.floor(attempts / 4) * 3;
+    sp = findLandNear(tx + Math.round(Math.cos(angle) * nudge), ty + Math.round(Math.sin(angle) * nudge), 6);
+    attempts++;
+  }
+  citySites.push({ x: sp.x, y: sp.y, settled: false });
+  const settler = spawnUnit('settler', nationId, sp.x, sp.y);
+  return { city: foundCity(settler, cityData.name), pos: sp };
+}
+
+function spawnAINations(count, playerNationIdx) {
+  // Build ordered list of AI preset nations (skip the player's chosen nation)
+  const aiPresets = PRESET_NATIONS.filter((_, i) => i !== playerNationIdx);
+  const toSpawn = Math.min(count, aiPresets.length);
+  for (let i = 0; i < toSpawn; i++) {
+    const preset = aiPresets[i];
+    const nId = createNation(preset.name, preset.color, false);
+    // Set up relations with all existing nations
     nations[playerNation].relations[nId] = 'peace'; nations[nId].relations[playerNation] = 'peace';
     nations[playerNation].loyalty[nId] = 50; nations[nId].loyalty[playerNation] = 50;
     for (let j = 0; j < nId; j++) {
+      if (!nations[j]) continue;
       if (nations[j].isBarbarian) {
         nations[j].relations[nId] = 'war'; nations[nId].relations[j] = 'war';
       } else {
@@ -9421,21 +9634,17 @@ function spawnAINations(count) {
         nations[j].loyalty[nId] = 50; nations[nId].loyalty[j] = 50;
       }
     }
-    let attempts = 0, sp;
-    do {
-      sp = findLandNear(Math.floor(Math.random() * MAP_COLS), Math.floor(Math.random() * MAP_ROWS), 10);
-      attempts++;
-    } while (attempts < 50 && units.some(u => Math.abs(u.x - sp.x) + Math.abs(u.y - sp.y) < 15));
-    // Add city site at AI spawn
-    citySites.push({ x: sp.x, y: sp.y, settled: false });
-    const settler = spawnUnit('settler', nId, sp.x, sp.y);
-    const aiCity = foundCity(settler);
-    aiCity.producing = 'settler';
+    // Found capital
+    const { city: capitalCity, pos: sp } = foundPresetCity(nId, preset.cities[0], true);
+    capitalCity.producing = 'settler';
     for (const uType of ['worker', 'worker', 'swordsman', 'scout']) {
       const wp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
       spawnUnit(uType, nId, wp.x, wp.y);
     }
-    // Spawn city sites near AI spawn
+    // Found secondary cities (up to 2 more)
+    for (let ci = 1; ci < Math.min(preset.cities.length, 3); ci++) {
+      foundPresetCity(nId, preset.cities[ci], false);
+    }
     spawnCitySites(sp.x, sp.y, 2);
   }
 }
@@ -9501,28 +9710,27 @@ function startGame(cols, rows, pName, pColor, opponents) {
 
 function generateAndPlay(pName, pColor, opponents) {
   generateMap();
-  pName = pName || NATION_NAMES[Math.floor(Math.random() * NATION_NAMES.length)];
-  pColor = pColor || '#4488cc';
+  // Use the selected preset nation for the player
+  const playerPreset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
+  pName = playerPreset.name;
+  pColor = playerPreset.color;
   playerNation = createNation(pName, pColor, true);
 
-  // Spawn in the middle of the map
-  const rx = Math.floor(MAP_COLS / 2);
-  const ry = Math.floor(MAP_ROWS / 2);
-  const sp = findLandNear(rx, ry, 20);
-
-  // Add city site at spawn point, then found city
-  citySites.push({ x: sp.x, y: sp.y, settled: false });
-  const settlerUnit = spawnUnit('settler', playerNation, sp.x, sp.y);
-  const startCity = foundCity(settlerUnit);
+  // Spawn player capital at historical position
+  const { city: startCity, pos: sp } = foundPresetCity(playerNation, playerPreset.cities[0], true);
   startCity.producing = 'settler';
   for (const uType of ['swordsman', 'scout', 'worker', 'worker']) {
     const lp = findLandNear(sp.x + Math.floor(Math.random()*2)-1, sp.y + Math.floor(Math.random()*2)-1, 2);
     spawnUnit(uType, playerNation, lp.x, lp.y);
   }
+  // Found secondary player cities (up to 2 more historical cities)
+  for (let ci = 1; ci < Math.min(playerPreset.cities.length, 3); ci++) {
+    foundPresetCity(playerNation, playerPreset.cities[ci], false);
+  }
   // Spawn city sites near player spawn
   spawnCitySites(sp.x, sp.y, 3);
 
-  // Zoom in and center camera on spawn
+  // Zoom in and center camera on capital
   VIEW_TILE = 32;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
   viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
@@ -9532,7 +9740,7 @@ function generateAndPlay(pName, pColor, opponents) {
   revealAllUnits(playerNation);
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
-  spawnAINations(aiCount);
+  spawnAINations(aiCount, _selectedNationIdx);
 
   // Spawn additional city sites across the map
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));

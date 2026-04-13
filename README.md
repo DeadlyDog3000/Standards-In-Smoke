@@ -31,6 +31,12 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 2.8 — 2026-04-13
+- **Feature**: 14 preset historical Napoleonic nations replace random kingdoms — Britain, Austria, France, Russia, Belgium, Holland, Spain, Sweden, Portugal, Italy, Duchy of Warsaw, Kingdom of Naples, Kingdom of Saxony, Prussia; each with assigned banner colour
+- **Feature**: Nation selection screen — pick which nation to play from an illustrated card grid before starting a campaign; up to 13 AI opponents from the same roster
+- **Feature**: Each nation starts with historically accurate capital and 1–2 secondary cities pre-founded at geographically proportional positions on the map
+- **Feature**: Civilization borders are now rounded — territory edges use quadratic bezier curves at corners where adjacent border edges meet, plus a soft semi-transparent territory colour fill on all owned tiles
+
 ### Beta 2.7 — 2026-04-13
 - **Feature**: Tech tree is now a full-screen visual graph — nodes arranged by prereq depth with bezier arrows, section colour-coding, click to research, hover tooltips, ESC to close
 - **Feature**: Lancer unit (8 ATK, 10 HP, 7 moves) — ZOC Pierce hits the primary target for 100% damage and the unit directly behind it for 25%
