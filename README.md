@@ -31,6 +31,15 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.5 — 2026-04-13
+- **Feature**: Noble Families system — every nation now has 2–4 historic noble houses (Habsburgs, Bonapartes, Romanovs, Hohenzollerns, etc.) with individual opinion scores (0–100); families with low opinion become Restless → Angry and eventually spawn scaled rebellions near the capital
+- **Feature**: Noble Families replace the old per-city discontent system entirely — `city.discontent` and `triggerRebellion` removed; rebellions now emerge from noble politics, not mob unhappiness
+- **Feature**: Family opinion is affected by legitimacy, treasury gold, buildings (Granary, Fortifications, Grand Cathedral), events, and city capture; Court panel shows opinion bars, status labels, and an Appease button (30g → +15 opinion)
+- **Feature**: Event system overhauled — 31 events expanded to 120 with conditional triggers; events now check game state before appearing (coastal city, mountain/forest/river tiles owned, at war, at peace, gold level, legitimacy, current season, tech researched, buildings, city count, turn number, family opinion, character existence)
+- **Feature**: 89 new events across 15 categories — Coastal, Mountain, Forest, River, War, Peace, High/Low Gold, High/Low Legitimacy, Many Cities, Tech-gated, Building-gated, Season, Early/Late game, Family politics, Flavour
+- **Feature**: Characters can now die from events — 4 events carry `charDeath` outcomes (Death of a General, Plague in the Palace, Assassination Attempt, Duel of Honour) killing heirs, spouses, or random courtiers; family opinion takes a hit on each death
+- **Fix**: Rebel nation creation no longer calls `initNationFamilies` / `initNationCharacters`, stopping orphaned characters and families accumulating in memory after each rebellion
+
 ### Beta 3.3 — 2026-04-13
 - **Scrapped**: Premade map ideas scrapped for now — nation selection screen, preset geographic city positions, world map terrain overrides, tribal nations system, and World (600×360) map size all removed
 - Nations and their historical city name pools are retained; nations now spawn at random positions on procedurally generated maps (same as before Beta 2.8)

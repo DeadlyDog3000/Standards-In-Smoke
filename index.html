@@ -550,6 +550,22 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Noble Families</b><br>
+        - Every nation now has 2&ndash;4 historic noble houses (e.g. Habsburgs, Bonapartes, Romanovs) with individual opinion scores (0&ndash;100)<br>
+        - Low family opinion triggers scaled rebellions near the capital; opinion drifts based on legitimacy, gold, buildings, and events<br>
+        - Court panel shows Noble Families section with opinion bars and Appease button (30g &rarr; +15 opinion)<br>
+        - Old per-city discontent &amp; rebellion system removed entirely<br>
+        <br>
+        <b style="color:#b8a070;">Events Overhaul</b><br>
+        - 31 events expanded to 120 &mdash; 89 new events across 15 categories<br>
+        - Events now require conditions: coastal city, mountain/forest/river tiles, at war, season, gold &amp; legitimacy levels, techs, buildings, and more<br>
+        - Characters can die from events: Plague in the Palace, Death of a General, Assassination Attempt, Duel of Honour<br>
+        <br>
+        <b style="color:#b8a070;">Bug Fixes</b><br>
+        - Fixed rebel nations accumulating orphaned families and characters in memory over time<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Changes</b><br>
@@ -870,6 +886,22 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.5</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Noble Families</b><br>
+          - Every nation now has 2&ndash;4 historic noble houses (e.g. Habsburgs, Bonapartes, Romanovs) with individual opinion scores (0&ndash;100)<br>
+          - Low family opinion triggers scaled rebellions near the capital; opinion drifts based on legitimacy, gold, buildings, and events<br>
+          - Court panel shows Noble Families section with opinion bars and Appease button (30g &rarr; +15 opinion)<br>
+          - Old per-city discontent &amp; rebellion system removed entirely<br>
+          <br>
+          <b style="color:#b8a070;">Events Overhaul</b><br>
+          - 31 events expanded to 120 &mdash; 89 new events across 15 categories<br>
+          - Events now require conditions: coastal city, mountain/forest/river tiles, at war, season, gold &amp; legitimacy levels, techs, buildings, and more<br>
+          - Characters can die from events: Plague in the Palace, Death of a General, Assassination Attempt, Duel of Honour<br>
+          <br>
+          <b style="color:#b8a070;">Bug Fixes</b><br>
+          - Fixed rebel nations accumulating orphaned families and characters in memory over time<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.3</b></div>
         <div style="margin-bottom:12px;">
@@ -1766,7 +1798,7 @@ function removeUnit(u) { const idx = units.indexOf(u); if (idx >= 0) units.splic
 let cities = [];
 let discoveredNations = new Set(); // nation IDs the player has encountered
 let selectedUnit = null, selectedCity = null;
-let moveMode = false, buyTileMode = false, gotoMode = false, rangedMode = false;
+let moveMode = false, buyTileMode = false, gotoMode = false, rangedMode = false, workerBuyMode = false;
 let animatingUnits = [], animationBlocking = false, animBlockStart = 0;
 let reachableTiles = new Set();
 let turnNumber = 1;
@@ -1796,7 +1828,7 @@ const SEASON_LENGTH = 1; // turns per season
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const START_YEAR = 1680;
 const TURNS_PER_YEAR = 32;
-function getCurrentYear() { return START_YEAR + Math.floor((turnNumber - 1) / TURNS_PER_YEAR); }
+function getCurrentYear() { return START_YEAR + Math.floor((turnNumber - 1) / (SEASON_LENGTH * 4)); }
 const SEASON_EFFECTS = {
   spring: { foodMult: 1.2, moveMod: 0, attrition: false, icon: '\uD83C\uDF31', desc: 'Fertile season, +20% food' },
   summer: { foodMult: 1.0, moveMod: 0, attrition: false, icon: '\u2600\uFE0F', desc: 'Clear weather, normal conditions' },
@@ -1838,7 +1870,7 @@ function tickWinterAttrition() {
 function tickSupply() {
   // Supply: each city supports 5 military units. Excess units lose morale
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     const nationCities = cities.filter(c => c.nationId === i).length;
     const armySize = units.filter(u => u.nationId === i && UNIT_DEFS[u.type]?.combat).length;
     const supplyCapacity = nationCities * 5;
@@ -1872,6 +1904,8 @@ function tickSupply() {
 // ====================
 let characters = [];
 let nextCharId = 1;
+let families = [];
+let nextFamilyId = 1;
 
 const FIRST_NAMES_MALE = [
   'Napoleon','Arthur','Friedrich','Alexander','Charles','Louis','Ferdinand','Leopold','Gustav',
@@ -2132,6 +2166,26 @@ function initNationCharacters(nationId) {
   ruler.spouseId = spouse.id;
   spouse.spouseId = ruler.id;
   nations[nationId].rulerId = ruler.id;
+}
+
+function initNationFamilies(nationId) {
+  const n = nations[nationId];
+  if (!n || n.isBarbarian || n.isTribe) return;
+  const presetList = NATION_FAMILIES[n.name];
+  if (presetList) {
+    for (const fname of presetList) {
+      families.push({ id: nextFamilyId++, name: fname, nationId, opinion: 60 });
+    }
+  } else {
+    // Random / custom nation: pick 2 distinct family names from LAST_NAMES
+    const used = new Set();
+    for (let i = 0; i < 2; i++) {
+      let fname;
+      do { fname = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]; } while (used.has(fname));
+      used.add(fname);
+      families.push({ id: nextFamilyId++, name: fname, nationId, opinion: 60 });
+    }
+  }
 }
 
 // ====================
@@ -2566,6 +2620,7 @@ const UNIT_DEFS = {
   barbarian_axeman: { moves: 5, vision: 3, icon: '\u2694', desc: 'Savage barbarian warrior. Pillages improvements.', combat: true, atk: 6, hp: 12 },
   barbarian_raider: { moves: 7, vision: 4, icon: '\uD83D\uDDE1', desc: 'Fast barbarian raider. Pillages and retreats.', combat: true, atk: 7, hp: 9 },
   barbarian_brute:  { moves: 4, vision: 3, icon: '\uD83D\uDEE1', desc: 'Armored barbarian champion. Tough and deadly.', combat: true, atk: 8, hp: 16 },
+  tribal_warrior:   { moves: 4, vision: 4, icon: '\uD83C\uDFF9', desc: 'Tribal warrior defending their homeland.', combat: true, atk: 5, hp: 10 },
   general:          { moves: 5, vision: 6, icon: '\u2655', desc: 'Commands nearby troops within 3 hexes. Provides bonuses based on traits.', combat: true, atk: 3, hp: 8 },
 };
 
@@ -2610,6 +2665,7 @@ const PRODUCTION_COSTS = {
   // City buildings
   fortifications: { stone: 30, steel: 20 },
   granary:        { wood: 20, gold: 15 },
+  factory:        { steel: 30, wood: 20, gold: 30 },
   // Wonders
   great_library:    { gold: 80, stone: 40 },
   grand_cathedral:  { stone: 60, gold: 60 },
@@ -2619,11 +2675,12 @@ const PRODUCTION_COSTS = {
 };
 
 const CITY_BUILDING_DEFS = {
-  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20%. Units heal +2 HP/turn. -3 discontent/turn (garrison keeps order).', category: 'military' },
-  granary:        { name: 'Granary', icon: '\uD83C\uDF3E', desc: '+8% population growth. Reduces discontent from growth.', category: 'growth' },
+  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20%. Units heal +2 HP/turn. Noble families +5 opinion (security).', category: 'military' },
+  granary:        { name: 'Granary', icon: '\uD83C\uDF3E', desc: '+8% population growth. Noble families +3 opinion (prosperity).', category: 'growth' },
+  factory:        { name: 'Factory', icon: '\uD83C\uDFED', desc: 'Unit production 25% faster in this city.', category: 'growth' },
   // Wonders (global unique — only one per game)
   great_library:    { name: 'Great Library', icon: '\uD83D\uDCDA', desc: '+50% science output for this nation. All cities gain +1 science yield.', category: 'wonder', wonder: true },
-  grand_cathedral:  { name: 'Grand Cathedral', icon: '\u26EA', desc: 'All cities gain -5 discontent. +20 legitimacy. Population growth +10% everywhere.', category: 'wonder', wonder: true },
+  grand_cathedral:  { name: 'Grand Cathedral', icon: '\u26EA', desc: '+20 legitimacy. Population growth +10% everywhere. All noble families +1 opinion/turn.', category: 'wonder', wonder: true },
   royal_arsenal:    { name: 'Royal Arsenal', icon: '\u2694\uFE0F', desc: 'All new military units start with 5 XP (Trained rank). +2 ATK for city garrison.', category: 'wonder', wonder: true },
   merchants_guild:  { name: "Merchant's Guild", icon: '\uD83D\uDCB0', desc: '+3 gold per city. Markets yield +2 gold. Unit maintenance halved.', category: 'wonder', wonder: true },
   war_college:      { name: 'War College', icon: '\uD83C\uDFDB', desc: 'All combat units gain +1 ATK. Units heal +1 HP/turn everywhere. +2 max orders.', category: 'wonder', wonder: true },
@@ -2673,6 +2730,7 @@ const TECHS = {
   // GROWTH
   advanced_scouting: { name: 'Advanced Scouting', section: 'growth', cost: 35, prereqs: [], unlocks: ['veteran_scout'], desc: 'Unlock veteran scout with extended range.' },
   engineering:       { name: 'Engineering', section: 'growth', cost: 45, prereqs: [], unlocks: ['veteran_worker'], desc: 'Unlock veteran worker, faster and more efficient.' },
+  factory_tech:      { name: 'Factory', section: 'growth', cost: 80, prereqs: ['engineering'], unlocks: ['factory'], desc: 'Unlock Factory building. Reduces unit production time by 25%.' },
   // ECONOMY
   banking:           { name: 'Banking', section: 'production', cost: 60, prereqs: ['animal_husbandry'], unlocks: ['treasury'], desc: 'Unlock treasury improvement. +1 gold per market.' },
   medicine:          { name: 'Medicine', section: 'growth', cost: 70, prereqs: ['engineering'], unlocks: [], desc: '+15% population growth in all cities. Units heal +1 HP/turn in cities.' },
@@ -2962,6 +3020,55 @@ const PRESET_NATIONS = [
       'Höxter','Herford','Bückeburg','Rinteln'],
   },
 ];
+
+const TRIBE_DATA = [
+  { name: 'Iroquois Confederacy', color: '#8b5e3c', capital: 'Onondaga' },
+  { name: 'Cherokee Nation',      color: '#6b7c4a', capital: 'Chota' },
+  { name: 'Sioux Nation',         color: '#a05020', capital: 'Black Hills' },
+  { name: 'Comanche',             color: '#c07840', capital: 'Comancheria' },
+  { name: 'Maya',                 color: '#3a7a50', capital: 'Uxmal' },
+  { name: 'Andean Tribes',        color: '#7a4a80', capital: 'Cusco' },
+  { name: 'Mapuche',              color: '#4a7a60', capital: 'Temuco' },
+  { name: 'Guaraní',              color: '#5a8a30', capital: 'Asunción' },
+  { name: 'Ashanti Empire',       color: '#c0940a', capital: 'Kumasi' },
+  { name: 'Oyo Empire',           color: '#8a6020', capital: 'Oyo-Ile' },
+  { name: 'Zulu Kingdom',         color: '#3a6a40', capital: 'Ulundi' },
+  { name: 'Kingdom of Kongo',     color: '#603050', capital: 'Mbanza Kongo' },
+  { name: 'Ethiopian Empire',     color: '#b04020', capital: 'Gondar' },
+  { name: 'Tuareg Confederacy',   color: '#a08040', capital: 'Agadez' },
+  { name: 'Qing China',           color: '#e0c040', capital: 'Beijing' },
+  { name: 'Japanese Shogunate',   color: '#c04040', capital: 'Edo' },
+  { name: 'Maratha Confederacy',  color: '#e07030', capital: 'Pune' },
+  { name: 'Qajar Persia',         color: '#50a070', capital: 'Tehran' },
+  { name: 'Kazakh Khanate',       color: '#809060', capital: 'Turkestan' },
+  { name: 'Hawaiian Kingdom',     color: '#2080a0', capital: 'Honolulu' },
+  { name: 'Maori Confederation',  color: '#306050', capital: 'Waitangi' },
+  { name: 'Aboriginal Australia', color: '#a05838', capital: 'Uluru' },
+];
+
+const NATION_FAMILIES = {
+  'Great Britain':       ['Hanover', 'Wellesley', 'Pitt', 'Spencer'],
+  'Austria':             ['Habsburg', 'Metternich', 'Schwarzenberg', 'Esterházy'],
+  'France':              ['Bonaparte', 'Bourbon', 'Murat', 'Ney'],
+  'Russia':              ['Romanov', 'Kutuzov', 'Bagration', 'Orlov'],
+  'Belgium':             ['Ligne', 'Arenberg', 'Mercy-Argenteau'],
+  'Kingdom of Holland':  ['Orange-Nassau', 'van der Duyn', 'Fagel'],
+  'Spain':               ['Bourbon', 'Godoy', 'Palafox', 'Osuna'],
+  'Sweden':              ['Bernadotte', 'Armfelt', 'Fersen'],
+  'Portugal':            ['Braganza', 'Beresford', 'Lobo'],
+  'Kingdom of Italy':    ['Beauharnais', 'Melzi', 'Visconti'],
+  'Duchy of Warsaw':     ['Poniatowski', 'Czartoryski', 'Zamoyski', 'Potocki'],
+  'Kingdom of Naples':   ['Murat', 'Caracciolo', 'Carafa'],
+  'Kingdom of Saxony':   ['Wettin', 'Marcolini', 'Einsiedel'],
+  'Prussia':             ['Hohenzollern', 'Blücher', 'Hardenberg', 'Scharnhorst'],
+  'Ottoman Empire':      ['Osman', 'Janissary', 'Köprülü', 'Bektashi'],
+  'United States':       ['Washington', 'Hamilton', 'Jefferson', 'Adams'],
+  'Bavaria':             ['Wittelsbach', 'Montgelas', 'Arco'],
+  'Duchy of Nassau':     ['Nassau-Usingen', 'Nassau-Weilburg', 'Solms'],
+  'Swiss Confederation': ['Berne', 'Zurich', 'Geneva', 'Uri'],
+  'Denmark-Norway':      ['Oldenburg', 'Bernstorff', 'Schimmelmann'],
+  'Westphalia':          ['Bonaparte', 'Fürstenstein', 'Simeon'],
+};
 
 const CITY_PREFIXES = ['Austen','Brest','Caen','Dijon','Elba','Flers','Halle','Jena',
   'Metz','Nantes','Reims','Sedan','Toulon','Ulm','Valmy','Wagram','York','Zurich','Bonn',
@@ -3376,6 +3483,7 @@ function createNation(name, color, isPlayer) {
   });
   if (name !== 'Barbarians') {
     initNationCharacters(id);
+    initNationFamilies(id);
   }
   return id;
 }
@@ -3501,7 +3609,7 @@ function getOrders(nationId) {
 
 function getMaxOrders(nationId) {
   const n = nations[nationId];
-  if (!n || n.eliminated || n.isBarbarian) return 99;
+  if (!n || n.eliminated || n.isBarbarian || n.isTribe) return 99;
   const cityCount = cities.filter(c => c.nationId === nationId).length;
   const leg = n.legitimacy || 50;
   let orders = 3 + cityCount + Math.floor(leg / 25);
@@ -3646,17 +3754,21 @@ function getScienceBoost(nationId) {
   return boost;
 }
 
+function getFactoryBonus(city) {
+  return (city.buildings || []).includes('factory') ? 1.25 : 1.0;
+}
+
 function getProductionTurns(city) {
   if (!city.producing) return 0;
   const costs = PRODUCTION_COSTS[city.producing];
   let total = 0; for (const k in costs) total += costs[k];
-  const rate = 5 * getScienceBoost(city.nationId);
+  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
 function tickProduction(city) {
   if (!city.producing) return;
-  city.productionProgress += 5 * getScienceBoost(city.nationId);
+  city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
   const costs = PRODUCTION_COSTS[city.producing];
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
@@ -4279,6 +4391,7 @@ function tickCityCapture() {
           }
           if (!nations[oldOwner].isBarbarian) {
             nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 3);
+            hitFamilyOpinion(oldOwner, -15);
           }
           if (occupier.nationId === playerNation) {
             showToast(`${city.name} has been captured!`);
@@ -4695,6 +4808,13 @@ function checkElimination() {
   for (const n of nations) {
     if (n.eliminated || n.isPlayer || n.isBarbarian) continue;
     const hasCities = cities.some(c => c.nationId === n.id);
+    // Tribes: just mark eliminated and remove warriors, no conqueror bonus
+    if (!hasCities && n.isTribe) {
+      n.eliminated = true;
+      units.filter(u => u.nationId === n.id).forEach(u => removeUnit(u));
+      showToast(`${n.name} has been dispersed.`);
+      continue;
+    }
     if (!hasCities) {
       n.eliminated = true;
       // Find who conquered them (nation at war with them)
@@ -4726,8 +4846,8 @@ function checkElimination() {
     showDefeat('domination');
     return;
   }
-  // Victory check (exclude barbarian nations)
-  const alive = nations.filter(n => !n.eliminated && !n.isPlayer && !n.isBarbarian);
+  // Victory check (exclude barbarian and tribe nations)
+  const alive = nations.filter(n => !n.eliminated && !n.isPlayer && !n.isBarbarian && !n.isTribe);
   if (alive.length === 0 && nations.length > 1 && turnNumber > 1) {
     showVictory('domination');
     return;
@@ -5718,74 +5838,106 @@ function getCityLoyaltyStatus(city) {
 
 function tickCityLoyalty() {
   for (const city of cities) {
-    if (nations[city.nationId]?.isBarbarian) continue;
-    // Population growth: +1 pop every 8 turns per city, faster with more food
+    if (nations[city.nationId]?.isBarbarian || nations[city.nationId]?.isTribe) continue;
+    // Population growth: +1 pop per city based on food surplus and buildings
     const cy = getCityYields(city);
-    const foodBonus = Math.max(0, cy.food - city.population); // surplus food
+    const foodBonus = Math.max(0, cy.food - city.population);
     const hasGranary = (city.buildings || []).includes('granary');
     const hasCathedral = nationHasWonder(city.nationId, 'grand_cathedral');
     const hasMedicine = nationHasTech(city.nationId, 'medicine');
     const growthChance = 0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0) + (hasCathedral ? 0.10 : 0) + (hasMedicine ? 0.15 : 0);
     if (Math.random() < growthChance) city.population = (city.population || 1) + 1;
-    // Loyalty: check jobs vs population need
-    const jobs = getCityJobs(city);
-    const needed = city.population * 2;
-    // Grand Cathedral: -5 discontent per turn for all cities
-    if (hasCathedral) city.discontent = Math.max(0, (city.discontent || 0) - 5);
-    // Fortifications: garrison keeps order, -3 discontent per turn
-    if ((city.buildings || []).includes('fortifications')) city.discontent = Math.max(0, (city.discontent || 0) - 3);
-    if (jobs >= needed) {
-      // Content cities recover discontent faster
-      city.discontent = Math.max(0, (city.discontent || 0) - 4);
-    } else {
-      const deficit = needed - jobs;
-      // Diminishing returns: discontent grows slower when already high
-      let growth = Math.max(1, Math.ceil(deficit / (2 + (city.discontent || 0) * 0.15)));
-      if ((city.buildings || []).includes('granary')) growth = Math.max(1, growth - 1);
-      city.discontent = (city.discontent || 0) + growth;
-    }
-    // Rebellion threshold: 35 discontent triggers revolt (chance-based)
-    if (city.discontent >= 35 && Math.random() < 0.3 + (city.discontent - 35) * 0.04) {
-      triggerRebellion(city);
-      city.discontent = 0;
+  }
+}
+
+function tickFamilyOpinions() {
+  // Pre-compute per-nation building bonuses
+  const nationBuildingBonus = new Map();
+  for (let nId = 0; nId < nations.length; nId++) {
+    const n = nations[nId];
+    if (!n || n.eliminated || n.isBarbarian || n.isTribe) continue;
+    let bonus = 0;
+    if (nationHasWonder(nId, 'grand_cathedral')) bonus += 1;
+    const nCities = cities.filter(c => c.nationId === nId);
+    if (nCities.some(c => (c.buildings || []).includes('fortifications'))) bonus += 0.25;
+    if (nCities.some(c => (c.buildings || []).includes('granary'))) bonus += 0.15;
+    nationBuildingBonus.set(nId, bonus);
+  }
+  for (const family of families) {
+    const n = nations[family.nationId];
+    if (!n || n.eliminated || n.isBarbarian || n.isTribe) continue;
+    // Natural drift toward 50
+    if (family.opinion > 50) family.opinion = Math.max(50, family.opinion - 0.5);
+    else if (family.opinion < 50) family.opinion = Math.min(50, family.opinion + 0.3);
+    // Legitimacy pressure
+    const leg = n.legitimacy || 50;
+    if (leg < 35) family.opinion = Math.max(0, family.opinion - 1);
+    else if (leg > 70) family.opinion = Math.min(100, family.opinion + 0.5);
+    // Building bonuses (Cathedral, Fortifications, Granary)
+    const bBonus = nationBuildingBonus.get(family.nationId) || 0;
+    if (bBonus > 0) family.opinion = Math.min(100, family.opinion + bBonus);
+    // Financial neglect
+    if (n.gold < 20) family.opinion = Math.max(0, family.opinion - 0.5);
+    // Clamp to [0,100]
+    family.opinion = Math.max(0, Math.min(100, family.opinion));
+    // Rebellion check: opinion below 25 risks revolt
+    if (family.opinion < 25) {
+      const chance = family.opinion < 5 ? 0.3 : family.opinion < 12 ? 0.15 : 0.05;
+      if (Math.random() < chance) {
+        triggerFamilyRebellion(family);
+        // Partial relief after venting — doesn't fix the root cause
+        family.opinion = Math.min(family.opinion + 10, 30);
+      }
     }
   }
 }
 
-function triggerRebellion(city) {
-  const severity = Math.min(6, Math.max(2, Math.floor(city.discontent / 5)));
-  // Find a barbarian nation to use
-  let barbNation = nations.findIndex(n => n.isBarbarian && !n.eliminated);
-  if (barbNation < 0) {
-    // No active barbarian nation — create one for the rebellion
-    barbNation = createNation('Rebels', '#8b0000', false);
-    nations[barbNation].isBarbarian = true;
-    nations[barbNation].eliminated = false;
+function triggerFamilyRebellion(family) {
+  const nationId = family.nationId;
+  // Find spawn city: capital preferred, then any city
+  let spawnCity = cities.find(c => c.nationId === nationId && c.isCapital) || cities.find(c => c.nationId === nationId);
+  if (!spawnCity) return;
+  // Severity based on opinion
+  const severity = family.opinion < 5 ? 5 : family.opinion < 10 ? 4 : family.opinion < 18 ? 3 : 2;
+  // Find or create a rebel nation — use 'Barbarians' as the name in createNation so that
+  // initNationFamilies/initNationCharacters are NOT called for a transient rebel faction
+  let rebelId = nations.findIndex(rn => rn.isBarbarian && !rn.eliminated);
+  if (rebelId < 0) {
+    rebelId = createNation('Barbarians', '#8b0000', false);
+    nations[rebelId].name = `${family.name} Rebels`;
+    nations[rebelId].isBarbarian = true;
+    nations[rebelId].eliminated = false;
     for (let i = 0; i < nations.length; i++) {
-      if (i === barbNation) continue;
-      nations[i].relations[barbNation] = 'war';
-      nations[barbNation].relations[i] = 'war';
+      if (i === rebelId) continue;
+      nations[i].relations[rebelId] = 'war';
+      nations[rebelId].relations[i] = 'war';
     }
   }
-  const neighbors = hexNeighbors(city.x, city.y);
+  const neighbors = hexNeighbors(spawnCity.x, spawnCity.y);
   let spawned = 0;
   for (const nb of neighbors) {
     if (spawned >= severity) break;
     if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
     const t = tiles[nb.row * MAP_COLS + nb.col];
-    if (t.type === 0) continue; // skip ocean
+    if (t.type === 0) continue;
     if (units.some(u => u.x === nb.col && u.y === nb.row)) continue;
-    const barbType = turnNumber >= 40 ? 'barbarian_brute' : turnNumber >= 20 ? 'barbarian_raider' : 'barbarian_axeman';
-    spawnUnit(barbType, barbNation, nb.col, nb.row);
+    const rType = turnNumber >= 40 ? 'barbarian_brute' : turnNumber >= 20 ? 'barbarian_raider' : 'barbarian_axeman';
+    spawnUnit(rType, rebelId, nb.col, nb.row);
     spawned++;
   }
-  if (city.nationId === playerNation) {
-    showToast(`Rebellion in ${city.name}! ${spawned} rebels have risen!`);
-    addFloatingText(city.x, city.y, 'REBELLION!', '#f44', 2500, 16);
+  if (nationId === playerNation) {
+    showToast(`The ${family.name} family is in open revolt! ${spawned} rebels near ${spawnCity.name}!`);
+    addFloatingText(spawnCity.x, spawnCity.y, `${family.name} REBELS!`, '#f44', 2500, 14);
     screenShake(6, 400);
   }
-  // Population drops from the chaos
-  city.population = Math.max(1, city.population - Math.floor(severity / 2));
+  // Population hit from the chaos
+  spawnCity.population = Math.max(1, spawnCity.population - 1);
+}
+
+function hitFamilyOpinion(nationId, amount) {
+  for (const f of families) {
+    if (f.nationId === nationId) f.opinion = Math.max(0, Math.min(100, f.opinion + amount));
+  }
 }
 
 function endTurn() {
@@ -5799,7 +5951,7 @@ function endTurn() {
   // Auto-dismiss election modal if still open
   if (window._dismissElection) window._dismissElection();
   document.getElementById('eventModal').classList.remove('active');
-  moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
+  moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   for (const u of units) { delete u._animating; delete u._animX; delete u._animY; }
   visionDirty = true;
   minimapDirty = true;
@@ -5815,6 +5967,7 @@ function endTurn() {
   }
   // Food consumption for all nations (cities + urban areas)
   for (let i = 0; i < nations.length; i++) {
+    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     const consumption = getFoodConsumption(i);
     nations[i].food -= consumption;
     if (nations[i].food < 0) nations[i].food = 0;
@@ -5826,7 +5979,7 @@ function endTurn() {
   for (const u of units) if (UNIT_DEFS[u.type]?.combat) milCounts[u.nationId]++;
   for (const c of cities) cityCounts[c.nationId]++;
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     const freeMil = cityCounts[i] * FREE_MIL_PER_CITY;
     const paidUnits = Math.max(0, milCounts[i] - freeMil);
     const rate = nationHasWonder(i, 'merchants_guild') ? UNIT_MAINTENANCE * 0.5 : UNIT_MAINTENANCE;
@@ -5839,6 +5992,7 @@ function endTurn() {
     if (i === playerNation) continue;
     try {
       if (isBarbarianNation(i)) barbarianAI(i);
+      else if (nations[i].isTribe) tribeAI(i);
       else aiTurn(i);
     } catch(e) { console.error(`AI turn error for nation ${i}:`, e); }
   }
@@ -5855,6 +6009,7 @@ function finishEndTurn() {
   try { tickBarbarianCamps(); } catch(e) { console.error('tickBarbarianCamps error:', e); }
   try { tickPillaged(); } catch(e) { console.error('tickPillaged error:', e); }
   try { tickCityLoyalty(); } catch(e) { console.error('tickCityLoyalty error:', e); }
+  try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   try { tickMoraleRecovery(); } catch(e) { console.error('tickMoraleRecovery error:', e); }
@@ -5928,14 +6083,14 @@ function finishEndTurn() {
   // City auto-expansion: every 5 turns, each city expands 2 tiles
   if (turnNumber % 5 === 0) {
     for (const c of cities) {
-      if (nations[c.nationId]?.isBarbarian) continue;
+      if (nations[c.nationId]?.isBarbarian || nations[c.nationId]?.isTribe) continue;
       expandCityBorder(c);
       expandCityBorder(c);
     }
   }
   // Legitimacy tick: +0.5 per city for non-barbarian/non-tribe nations, clamped 0-100
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     const nationCityCount = cities.filter(c => c.nationId === i).length;
     let legChange = nationCityCount * 0.5;
     // Ruler trait legitimacy modifier
@@ -5952,7 +6107,7 @@ function finishEndTurn() {
   }
   // Tick research for all non-barbarian/non-tribe nations
   for (let i = 0; i < nations.length; i++) {
-    if (nations[i].isBarbarian || nations[i].eliminated) continue;
+    if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     tickResearch(i);
   }
   // Reset orders for player
@@ -5972,6 +6127,44 @@ function finishEndTurn() {
 // ====================
 // EVENTS SYSTEM (Old World style)
 // ====================
+
+// Condition helpers — called by event condition functions
+function evtHasCoastalCity() {
+  return cities.filter(c => c.nationId === playerNation).some(c =>
+    hexNeighbors(c.x, c.y).some(nb => {
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
+      return tiles[nb.row * MAP_COLS + nb.col]?.type === 0;
+    })
+  );
+}
+function evtIsAtWar() {
+  const n = nations[playerNation];
+  return n ? Object.values(n.relations || {}).some(r => r === 'war') : false;
+}
+function evtCityCount() { return cities.filter(c => c.nationId === playerNation).length; }
+function evtGold() { return nations[playerNation]?.gold || 0; }
+function evtLeg() { return nations[playerNation]?.legitimacy || 50; }
+function evtGP() { return nations[playerNation]?.gunpowder || 0; }
+function evtHasTech(t) { return nationHasTech(playerNation, t); }
+function evtHasBuilding(b) { return cities.filter(c => c.nationId === playerNation).some(c => (c.buildings || []).includes(b)); }
+function evtSeason(s) { return currentSeason === s; }
+function evtHasTileType(type) {
+  return cities.filter(c => c.nationId === playerNation).some(c =>
+    [...(c.ownedTiles || [])].some(ti => tiles[ti]?.type === type)
+  );
+}
+function evtHasRiver() {
+  return cities.filter(c => c.nationId === playerNation).some(c =>
+    [...(c.ownedTiles || [])].some(ti => tiles[ti]?.hasRiver)
+  );
+}
+function evtHasAngryFamily() { return families.some(f => f.nationId === playerNation && f.opinion < 40); }
+function evtHasSpouse() {
+  const ruler = getNationRuler(playerNation);
+  return ruler ? characters.some(c => c.id === ruler.spouseId && !c.deathTurn) : false;
+}
+function evtHasHeir() { return characters.some(c => c.nationId === playerNation && c.role === 'heir' && !c.deathTurn); }
+
 const EVENTS = [
   { id: 'harvest', title: 'Bountiful Harvest', text: 'Favorable weather has blessed your fields with an abundant harvest.', choices: [
     { label: 'Store the surplus', effects: { food: 30 } },
@@ -6088,7 +6281,7 @@ const EVENTS = [
     { label: 'Promise better conditions', effects: { food: -10, legitimacy: 1 } },
     { label: 'Make an example of the ringleaders', effects: { legitimacy: -4 } }
   ]},
-  { id: 'pirate_fleet', title: 'Pirate Menace', text: 'Pirates have been raiding coastal settlements and disrupting trade routes. Your admirals await orders.', choices: [
+  { id: 'pirate_fleet', title: 'Pirate Menace', condition: () => evtHasCoastalCity(), text: 'Pirates have been raiding coastal settlements and disrupting trade routes. Your admirals await orders.', choices: [
     { label: 'Launch a naval expedition', effects: { gold: -20, wood: -10, legitimacy: 4 } },
     { label: 'Pay them off', effects: { gold: -15, legitimacy: -2 } },
     { label: 'Hire them as privateers', effects: { gold: -10, steel: 10, legitimacy: -1 } }
@@ -6127,15 +6320,680 @@ const EVENTS = [
     { label: 'Invest in the route', effects: { gold: -15, food: 15, loyalty: 8 } },
     { label: 'Tax it heavily', effects: { gold: 20, loyalty: -4 } },
     { label: 'Block it — too risky', effects: { loyalty: -6 } }
-  ]}
+  ]},
+
+  // ---- COASTAL EVENTS ----
+  { id: 'shipwreck_salvage', title: 'Shipwreck Salvage', condition: () => evtHasCoastalCity(),
+    text: 'A merchant vessel has run aground on your coast. Survivors and cargo wash ashore.',
+    choices: [
+      { label: 'Claim the cargo as salvage', effects: { gold: 30, wood: 15 } },
+      { label: 'Rescue the survivors first', effects: { legitimacy: 4, food: -5 } },
+      { label: 'Return everything to the owners', effects: { legitimacy: 5, gold: 5 } }
+    ]},
+  { id: 'naval_blockade', title: 'Enemy Blockade', condition: () => evtHasCoastalCity() && evtIsAtWar(),
+    text: 'Enemy warships have established a blockade off your coast, disrupting trade and supply lines.',
+    choices: [
+      { label: 'Attempt to break through', effects: { gold: -20, wood: -15, legitimacy: 3 } },
+      { label: 'Find overland supply routes', effects: { gold: -15, food: -10 } },
+      { label: 'Negotiate passage rights', effects: { gold: -25, legitimacy: -2 } }
+    ]},
+  { id: 'harbor_fire', title: 'Harbor Fire', condition: () => evtHasCoastalCity(),
+    text: 'A fire has broken out in the harbor district, threatening docked vessels and warehouses.',
+    choices: [
+      { label: 'Mobilize everyone to fight it', effects: { gold: -10, wood: -15, legitimacy: 3 } },
+      { label: 'Sacrifice the warehouses, save the ships', effects: { gold: -20, wood: -5 } },
+      { label: 'Let it burn — collect the insurance', effects: { gold: 10, legitimacy: -5 } }
+    ]},
+  { id: 'sea_monster', title: 'Creature of the Deep', condition: () => evtHasCoastalCity(),
+    text: 'Fishermen return pale-faced, speaking of an enormous creature lurking in the shallows and capsizing boats.',
+    choices: [
+      { label: 'Offer a bounty for its head', effects: { gold: -20, legitimacy: 4 } },
+      { label: 'Declare the waters sacred — no fishing', effects: { legitimacy: 3, food: -15 } },
+      { label: 'Ignore the fishermen', effects: { legitimacy: -2 } }
+    ]},
+  { id: 'coastal_flood', title: 'Coastal Flooding', condition: () => evtHasCoastalCity(),
+    text: 'Storm surges have flooded low-lying coastal settlements. Residents demand aid.',
+    choices: [
+      { label: 'Fund emergency relief', effects: { gold: -20, wood: -10, legitimacy: 5 } },
+      { label: 'Relocate the settlements inland', effects: { gold: -15, wood: -15, legitimacy: 2 } },
+      { label: 'Do nothing — they chose to live there', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'fisher_dispute', title: "Fishermen's Dispute", condition: () => evtHasCoastalCity(),
+    text: 'Local fishermen are in conflict over fishing rights with a foreign vessel operating close to shore.',
+    choices: [
+      { label: 'Expel the foreign vessel', effects: { legitimacy: 3, food: 10 } },
+      { label: 'Negotiate shared waters', effects: { food: 5, gold: 5 } },
+      { label: 'Arrest our own fishermen for causing trouble', effects: { legitimacy: -3, gold: 5 } }
+    ]},
+  { id: 'pearl_diver', title: 'Pearl Divers', condition: () => evtHasCoastalCity(),
+    text: 'Divers exploring the coastal reefs have discovered beds of oysters laden with pearls.',
+    choices: [
+      { label: 'Establish a royal diving monopoly', effects: { gold: 35, legitimacy: 2 } },
+      { label: 'Let the people dive freely', effects: { gold: 15, legitimacy: 5 } },
+      { label: 'Sell diving rights to foreign merchants', effects: { gold: 25, legitimacy: -2 } }
+    ]},
+  { id: 'naval_hero', title: 'Naval Hero', condition: () => evtHasCoastalCity() && evtIsAtWar(),
+    text: 'A daring captain has single-handedly captured an enemy supply vessel, becoming a legend in the fleet.',
+    choices: [
+      { label: 'Celebrate him publicly', effects: { legitimacy: 5, gold: 10 } },
+      { label: 'Promote him and give him a squadron', effects: { gold: -15, legitimacy: 3 } },
+      { label: 'Quietly keep the captured goods', effects: { gold: 25, legitimacy: -1 } }
+    ]},
+
+  // ---- MOUNTAIN EVENTS ----
+  { id: 'mountain_pass', title: 'Mountain Pass Discovered', condition: () => evtHasTileType(2),
+    text: 'Scouts have found a previously unknown pass through the mountains that could shorten supply lines considerably.',
+    choices: [
+      { label: 'Fortify and garrison it', effects: { gold: -20, steel: -10, legitimacy: 3 } },
+      { label: 'Improve the road through it', effects: { gold: -15, wood: -10, science: 8 } },
+      { label: 'Keep it secret for now', effects: { science: 5 } }
+    ]},
+  { id: 'avalanche', title: 'Avalanche', condition: () => evtHasTileType(2),
+    text: 'A devastating avalanche has struck a mountain settlement, burying roads and cutting off a garrison.',
+    choices: [
+      { label: 'Send relief troops immediately', effects: { gold: -15, legitimacy: 5 } },
+      { label: 'Wait for spring to clear the roads', effects: { legitimacy: -3, food: -10 } },
+      { label: 'Evacuate survivors only', effects: { legitimacy: 1, wood: -5 } }
+    ]},
+  { id: 'mountain_hermit', title: 'Mountain Sage', condition: () => evtHasTileType(2),
+    text: 'A hermit living in the high passes is said to possess knowledge of ancient metallurgy and alchemy.',
+    choices: [
+      { label: 'Invite him to court', effects: { science: 20, gold: -10 } },
+      { label: 'Send apprentices to study under him', effects: { science: 12 } },
+      { label: 'Leave him be', effects: {} }
+    ]},
+  { id: 'mine_collapse', title: 'Mine Collapse', condition: () => evtHasTileType(2),
+    text: 'One of your mountain mines has collapsed, trapping dozens of workers underground.',
+    choices: [
+      { label: 'Spare no expense on the rescue', effects: { gold: -20, wood: -10, legitimacy: 6 } },
+      { label: 'Standard rescue operation', effects: { gold: -10, legitimacy: 2 } },
+      { label: "Seal the mine — it's too dangerous", effects: { legitimacy: -5, steel: -10 } }
+    ]},
+  { id: 'mountain_bandits', title: 'Mountain Brigands', condition: () => evtHasTileType(2),
+    text: 'A ruthless band of brigands has established themselves in the mountain passes, extorting traders.',
+    choices: [
+      { label: 'Send troops to root them out', effects: { gold: -15, steel: -5, legitimacy: 4 } },
+      { label: 'Offer amnesty if they disband', effects: { gold: -10, legitimacy: 2 } },
+      { label: 'Secretly hire them as skirmishers', effects: { steel: 10, legitimacy: -3 } }
+    ]},
+  { id: 'earthquake', title: 'Earthquake', condition: () => evtHasTileType(2),
+    text: 'A significant earthquake has shaken your mountain provinces, cracking walls and disrupting mines.',
+    choices: [
+      { label: 'Deploy engineers and masons immediately', effects: { gold: -20, stone: -10, legitimacy: 4 } },
+      { label: 'Rebuild gradually over the season', effects: { gold: -10, legitimacy: 1 } },
+      { label: 'Use the chaos to recruit cheap labour', effects: { gold: 10, legitimacy: -4 } }
+    ]},
+
+  // ---- FOREST EVENTS ----
+  { id: 'forest_fire', title: 'Forest Fire', condition: () => evtHasTileType(5),
+    text: 'A fire ignited by lightning has spread through your woodlands. Entire stretches of forest are ablaze.',
+    choices: [
+      { label: 'Fight the fire with all available workers', effects: { gold: -10, wood: -10, legitimacy: 3 } },
+      { label: 'Create firebreaks and let it burn out', effects: { wood: -20, legitimacy: -1 } },
+      { label: 'Salvage the burnt timber', effects: { wood: 10, legitimacy: -2 } }
+    ]},
+  { id: 'ancient_ruins', title: 'Forest Ruins', condition: () => evtHasTileType(5),
+    text: 'Woodcutters have stumbled upon ancient stone ruins deep in the forest, hinting at a lost civilization.',
+    choices: [
+      { label: 'Commission an archaeological expedition', effects: { gold: -15, science: 25 } },
+      { label: 'Loot whatever is valuable', effects: { gold: 20, science: 5, legitimacy: -2 } },
+      { label: 'Leave them undisturbed', effects: { legitimacy: 2 } }
+    ]},
+  { id: 'poachers', title: 'Noble Poachers', condition: () => evtHasTileType(5),
+    text: 'A wealthy noble house has been caught poaching in your royal forests, decimating game populations.',
+    choices: [
+      { label: 'Fine them heavily', effects: { gold: 20, legitimacy: 2 } },
+      { label: 'Imprison the offenders', effects: { legitimacy: 4 } },
+      { label: 'Let it go — they are powerful allies', effects: { legitimacy: -3, gold: 10 } }
+    ]},
+  { id: 'rare_timber', title: 'Rare Timber', condition: () => evtHasTileType(5),
+    text: 'A grove of ancient, exceptionally strong oaks has been located deep within your forests — prized for shipbuilding.',
+    choices: [
+      { label: 'Harvest for naval construction', effects: { wood: 30, legitimacy: -1 } },
+      { label: 'Sell the rights to a shipbuilder', effects: { gold: 25, wood: 10 } },
+      { label: 'Protect the grove as a natural monument', effects: { legitimacy: 4 } }
+    ]},
+  { id: 'wolf_pack', title: 'Wolf Pack Terror', condition: () => evtHasTileType(5),
+    text: 'A large pack of wolves has been preying on livestock and even attacking isolated farmsteads near your forests.',
+    choices: [
+      { label: 'Organize a grand hunt', effects: { gold: -10, food: 5, legitimacy: 4 } },
+      { label: 'Offer a bounty per wolf killed', effects: { gold: -10, food: 8 } },
+      { label: 'Build palisades around the farms', effects: { wood: -10, food: 5 } }
+    ]},
+  { id: 'winter_hunt', title: 'Winter Hunt', condition: () => evtHasTileType(5) && evtSeason('winter'),
+    text: 'The cold months have driven game from the deep forest to the edges of your settlements — perfect hunting conditions.',
+    choices: [
+      { label: 'Organize a royal hunt', effects: { food: 20, legitimacy: 4, gold: -5 } },
+      { label: 'Let the peasants hunt freely', effects: { food: 15, legitimacy: 3 } },
+      { label: 'Reserve the hunt for the nobility only', effects: { food: 10, legitimacy: -2 } }
+    ]},
+
+  // ---- RIVER EVENTS ----
+  { id: 'flood_plains', title: 'River Flooding', condition: () => evtHasRiver(),
+    text: 'Spring snowmelt has swollen the river, flooding fertile plains and threatening riverside settlements.',
+    choices: [
+      { label: 'Build earthwork levees', effects: { gold: -15, stone: -10, food: 10, legitimacy: 3 } },
+      { label: 'Evacuate and wait for waters to recede', effects: { legitimacy: 1, food: -10 } },
+      { label: 'Use the floodwaters for irrigation', effects: { food: 20, legitimacy: 1 } }
+    ]},
+  { id: 'river_trade', title: 'River Trade Boom', condition: () => evtHasRiver() && !evtIsAtWar(),
+    text: 'Merchants report that river traffic has swelled dramatically, carrying goods deeper into your territory than ever before.',
+    choices: [
+      { label: 'Build docks and improve the river route', effects: { gold: -15, wood: -10, food: 15, science: 5 } },
+      { label: 'Tax river commerce', effects: { gold: 25, legitimacy: -2 } },
+      { label: 'Let the free market flourish', effects: { gold: 10, food: 8 } }
+    ]},
+
+  // ---- WAR EVENTS ----
+  { id: 'war_profiteer', title: 'War Profiteers', condition: () => evtIsAtWar(),
+    text: 'Merchants are selling supplies to both sides of the war. Your treasury suffers while they grow rich.',
+    choices: [
+      { label: 'Nationalize their stockpiles', effects: { steel: 15, food: 10, legitimacy: -2 } },
+      { label: 'Tax their windfall profits', effects: { gold: 25, legitimacy: 1 } },
+      { label: 'Make them official army suppliers', effects: { gold: 15, steel: 10, legitimacy: -1 } }
+    ]},
+  { id: 'captured_officer', title: 'Captured Enemy Officer', condition: () => evtIsAtWar(),
+    text: 'Your forces have captured a high-ranking enemy officer. He could yield valuable information — or be ransomed.',
+    choices: [
+      { label: 'Interrogate him thoroughly', effects: { science: 15, legitimacy: -2 } },
+      { label: 'Ransom him back', effects: { gold: 30, legitimacy: 2 } },
+      { label: 'Treat him with honour and release him', effects: { legitimacy: 5, gold: -10 } }
+    ]},
+  { id: 'war_fatigue', title: 'War Weariness', condition: () => evtIsAtWar(),
+    text: "Years of conflict have worn down the people's spirit. Merchants close shops early and mothers weep at the gates.",
+    choices: [
+      { label: 'Declare a week of mourning and remembrance', effects: { legitimacy: 4, food: -10 } },
+      { label: 'Increase troop pay to boost morale', effects: { gold: -25, legitimacy: 3 } },
+      { label: 'Press on — victory is near', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'rally_troops', title: 'Call to Arms', condition: () => evtIsAtWar(),
+    text: 'With war raging, volunteers are flooding the recruitment offices. Equipping them all will strain reserves.',
+    choices: [
+      { label: 'Equip and train them all', effects: { gold: -20, steel: -10, legitimacy: 5 } },
+      { label: 'Accept only the fit ones', effects: { gold: -10, steel: -5, legitimacy: 2 } },
+      { label: 'Turn them away — no supplies', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'enemy_deserters', title: 'Enemy Deserters', condition: () => evtIsAtWar(),
+    text: 'A large group of enemy soldiers has deserted their lines and is requesting asylum within your borders.',
+    choices: [
+      { label: 'Conscript them into your army', effects: { legitimacy: 2, gold: -10 } },
+      { label: 'Grant them civilian refuge', effects: { legitimacy: 4, food: -10 } },
+      { label: 'Return them for diplomatic gain', effects: { legitimacy: -2, gold: 15 } }
+    ]},
+  { id: 'siege_innovation', title: 'Siege Innovation', condition: () => evtIsAtWar(),
+    text: 'An engineer claims he can build a siege weapon that could level fortress walls in days — but requires rare materials.',
+    choices: [
+      { label: 'Fund the project', effects: { gold: -20, steel: -15, science: 20 } },
+      { label: 'Fund it partially', effects: { gold: -10, science: 10 } },
+      { label: 'Stick to proven methods', effects: {} }
+    ]},
+  { id: 'spy_network', title: 'Spy Network Uncovered', diplomatic: true, condition: () => evtIsAtWar(),
+    text: '{NATION} has been running a deep spy network in your cities for years. Your counterintelligence has finally rolled it up.',
+    choices: [
+      { label: 'Publicize it to embarrass them', effects: { legitimacy: 5, loyalty: -15 } },
+      { label: 'Use the captured spies as double agents', effects: { science: 15, loyalty: -8 } },
+      { label: 'Quietly expel them to preserve dialogue', effects: { loyalty: -4 } }
+    ]},
+  { id: 'field_hospital', title: 'Field Hospital Crisis', condition: () => evtIsAtWar(),
+    text: 'Your field surgeons are overwhelmed. Wounded soldiers flood the tents and supplies are critically low.',
+    choices: [
+      { label: 'Rush emergency medical supplies', effects: { gold: -20, food: -10, legitimacy: 4 } },
+      { label: 'Recruit civilian physicians', effects: { gold: -10, science: 5, legitimacy: 2 } },
+      { label: 'The strong will recover on their own', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'rebel_informant', title: 'Rebel Informant', condition: () => evtIsAtWar() && evtLeg() < 50,
+    text: 'An informant within the enemy ranks offers to sell you their battle plans — for a price.',
+    choices: [
+      { label: 'Pay for the information', effects: { gold: -25, science: 20 } },
+      { label: 'Capture him as a double agent', effects: { science: 10, legitimacy: -1 } },
+      { label: 'Refuse — could be a trap', effects: {} }
+    ]},
+  { id: 'border_wall', title: 'Border Fortifications', condition: () => evtIsAtWar() && evtHasBuilding('fortifications'),
+    text: 'Your engineers propose extending your frontier fortifications into a continuous defensive line.',
+    choices: [
+      { label: 'Approve the full extension', effects: { stone: -25, gold: -20, legitimacy: 3 } },
+      { label: 'Fortify only the critical passes', effects: { stone: -12, gold: -10 } },
+      { label: 'Mobile defense is superior', effects: {} }
+    ]},
+
+  // ---- PEACE EVENTS ----
+  { id: 'trade_expansion', title: 'Trade Network Expansion', condition: () => !evtIsAtWar() && evtCityCount() >= 2,
+    text: 'Peaceful conditions have opened new trade corridors. Merchant guilds report unprecedented traffic.',
+    choices: [
+      { label: 'Invest in road infrastructure', effects: { gold: -20, wood: -10, food: 15, science: 5 } },
+      { label: 'Tax the new flow of goods', effects: { gold: 30, legitimacy: -2 } },
+      { label: 'Regulate and standardize commerce', effects: { gold: 15, science: 8, legitimacy: 2 } }
+    ]},
+  { id: 'peace_dividend', title: 'Peace Dividend', condition: () => !evtIsAtWar(),
+    text: 'With borders quiet, soldiers are returning home. Fields go untended no longer and workshops reopen.',
+    choices: [
+      { label: 'Reinvest in civilian works', effects: { food: 20, wood: 15, legitimacy: 4 } },
+      { label: 'Maintain military readiness anyway', effects: { steel: 15, gold: -10, legitimacy: 1 } },
+      { label: 'Tax the increased commerce', effects: { gold: 25 } }
+    ]},
+  { id: 'trade_embargo', title: 'Trade Embargo', diplomatic: true, condition: () => !evtIsAtWar(),
+    text: '{NATION} has placed a trade embargo on your goods, citing unfair competition.',
+    choices: [
+      { label: 'Retaliate with your own embargo', effects: { gold: -10, loyalty: -10, legitimacy: 2 } },
+      { label: 'Negotiate to lift the embargo', effects: { gold: -10, loyalty: 5 } },
+      { label: 'Find alternative markets', effects: { gold: 5, science: 5 } }
+    ]},
+  { id: 'joint_expedition', title: 'Joint Expedition', diplomatic: true, condition: () => !evtIsAtWar(),
+    text: '{NATION} proposes a joint cartographic expedition into uncharted territory, sharing discoveries equally.',
+    choices: [
+      { label: 'Agree and fund our share', effects: { gold: -15, science: 20, loyalty: 10 } },
+      { label: 'Agree but contribute minimally', effects: { science: 10, loyalty: 4 } },
+      { label: 'Refuse — keep our borders private', effects: { loyalty: -5 } }
+    ]},
+
+  // ---- HIGH GOLD EVENTS ----
+  { id: 'lavish_court', title: 'Lavish Court Rumours', condition: () => evtGold() >= 100,
+    text: 'Rumours of your great wealth have spread. Foreign nobles seek positions at court, each bearing gifts.',
+    choices: [
+      { label: 'Welcome them with a grand banquet', effects: { gold: -30, legitimacy: 8, science: 10 } },
+      { label: 'Accept only the most distinguished', effects: { gold: -10, legitimacy: 5, science: 5 } },
+      { label: 'Turn them all away — spies and sycophants', effects: { legitimacy: -3 } }
+    ]},
+  { id: 'grand_project', title: 'Grand Building Project', condition: () => evtGold() >= 60,
+    text: 'An architect presents plans for a grand public works project — an aqueduct, fountain, and bathhouse for the capital.',
+    choices: [
+      { label: 'Commission the full project', effects: { gold: -50, stone: -15, legitimacy: 10, science: 8 } },
+      { label: 'Build just the aqueduct', effects: { gold: -25, stone: -10, legitimacy: 5 } },
+      { label: 'Decline — too costly', effects: {} }
+    ]},
+  { id: 'diplomatic_banquet', title: 'State Banquet', diplomatic: true, condition: () => evtGold() >= 50 && !evtIsAtWar(),
+    text: 'Your court proposes hosting a lavish state banquet for dignitaries from {NATION} to strengthen bonds.',
+    choices: [
+      { label: 'Spare no expense', effects: { gold: -40, legitimacy: 6, loyalty: 15 } },
+      { label: 'Host a modest but dignified dinner', effects: { gold: -15, legitimacy: 2, loyalty: 6 } },
+      { label: 'Cancel — too expensive', effects: { loyalty: -4 } }
+    ]},
+
+  // ---- LOW GOLD EVENTS ----
+  { id: 'creditor_pressure', title: 'Creditors at the Gate', condition: () => evtGold() < 20,
+    text: 'Foreign bankers to whom your nation owes debts are demanding repayment — or they will freeze your credit.',
+    choices: [
+      { label: 'Sell crown jewels to pay them', effects: { gold: 30, legitimacy: -4 } },
+      { label: 'Seize noble estates to raise funds', effects: { gold: 20, legitimacy: -6 } },
+      { label: 'Default and face the consequences', effects: { legitimacy: -8, gold: 5 } }
+    ]},
+  { id: 'debase_currency', title: 'Debasement Debate', condition: () => evtGold() < 30,
+    text: 'Your treasury minister proposes debasing the coinage — mixing cheap metals — to increase the money supply.',
+    choices: [
+      { label: 'Approve the debasement', effects: { gold: 25, legitimacy: -5 } },
+      { label: 'Refuse — protect monetary integrity', effects: { legitimacy: 2 } },
+      { label: 'Cut court expenses instead', effects: { gold: 10, legitimacy: -1 } }
+    ]},
+  { id: 'salt_tax', title: 'Salt Tax Proposal', condition: () => evtGold() < 40,
+    text: 'Your finance minister suggests a new salt tax. It will fill the treasury but burden the poor most heavily.',
+    choices: [
+      { label: 'Implement the salt tax', effects: { gold: 30, legitimacy: -5 } },
+      { label: 'Tax luxury goods instead', effects: { gold: 15, legitimacy: 1 } },
+      { label: 'Cut military spending temporarily', effects: { steel: -10, gold: 20, legitimacy: 1 } }
+    ]},
+
+  // ---- HIGH LEGITIMACY EVENTS ----
+  { id: 'pilgrims_visit', title: 'Pilgrim Procession', condition: () => evtLeg() >= 70,
+    text: 'Thousands of pilgrims from across the realm have converged on your capital, seeing it as a holy city of virtue.',
+    choices: [
+      { label: 'Declare a holy festival', effects: { legitimacy: 5, food: -15, gold: -10 } },
+      { label: 'Build a shrine for them', effects: { stone: -15, legitimacy: 8, gold: -10 } },
+      { label: 'Tax the pilgrims', effects: { gold: 20, legitimacy: -4 } }
+    ]},
+  { id: 'noble_fealty', title: 'Noble Pledge of Fealty', condition: () => evtLeg() >= 65,
+    text: 'An independent duke on your borders, impressed by your rule, voluntarily offers fealty to your crown.',
+    choices: [
+      { label: 'Accept with ceremony', effects: { legitimacy: 4, gold: -15, food: 10 } },
+      { label: 'Accept and immediately levy taxes on him', effects: { gold: 25, legitimacy: -2 } },
+      { label: 'Decline — too many obligations', effects: {} }
+    ]},
+  { id: 'foreign_princess', title: 'Foreign Princess', diplomatic: true, condition: () => evtLeg() >= 60,
+    text: 'The royal family of {NATION} proposes a dynastic union — their princess to be wed into your line.',
+    choices: [
+      { label: 'Accept eagerly', effects: { legitimacy: 5, loyalty: 15, gold: -15 } },
+      { label: 'Negotiate terms first', effects: { legitimacy: 2, loyalty: 8 } },
+      { label: 'Politely decline', effects: { loyalty: -5 } }
+    ]},
+
+  // ---- LOW LEGITIMACY EVENTS ----
+  { id: 'pretender_emerges', title: 'A Pretender Rises', condition: () => evtLeg() < 35,
+    text: 'A nobleman claiming descent from the old dynasty has appeared, gathering support among the disaffected.',
+    choices: [
+      { label: 'Arrest him at once', effects: { legitimacy: -3, steel: -5 } },
+      { label: 'Buy him off with a title', effects: { gold: -30, legitimacy: 2 } },
+      { label: 'Challenge him to trial by combat', effects: { legitimacy: 4, gold: -10 } }
+    ]},
+  { id: 'nobles_demand_reforms', title: 'Magna Carta Demands', condition: () => evtLeg() < 40,
+    text: 'A coalition of nobles presents a document demanding limits on royal power and new rights for the nobility.',
+    choices: [
+      { label: 'Sign under duress', effects: { legitimacy: 3, gold: -15 } },
+      { label: 'Tear it up publicly', effects: { legitimacy: -5, steel: -5 } },
+      { label: 'Negotiate a compromise charter', effects: { legitimacy: 5, science: 5, gold: -10 } }
+    ]},
+  { id: 'palace_conspiracy', title: 'Palace Conspiracy', condition: () => evtLeg() < 30,
+    text: 'Your spymaster has uncovered a plot to seize power. The conspirators lurk within your court.',
+    choices: [
+      { label: 'Round up all suspects', effects: { legitimacy: -4, gold: -10 } },
+      { label: 'Set a trap and catch them in the act', effects: { science: 10, legitimacy: 3 } },
+      { label: 'Publicly execute the ringleader', effects: { legitimacy: -2, gold: -5 } }
+    ]},
+
+  // ---- MANY CITIES EVENTS ----
+  { id: 'administrative_crisis', title: 'Administrative Overload', condition: () => evtCityCount() >= 5,
+    text: 'With so many provinces, administrators are overwhelmed. Reports arrive late and corruption spreads.',
+    choices: [
+      { label: 'Create a ministry of internal affairs', effects: { gold: -25, science: 15, legitimacy: 2 } },
+      { label: 'Appoint regional governors', effects: { gold: -20, legitimacy: 4 } },
+      { label: 'Ignore it — rule through fear', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'provincial_corruption', title: 'Corrupt Governor', condition: () => evtCityCount() >= 4,
+    text: 'One of your provincial governors has been caught skimming taxes and selling state offices.',
+    choices: [
+      { label: 'Execute him publicly', effects: { legitimacy: 5, gold: -5 } },
+      { label: 'Force him to repay and exile him', effects: { gold: 20, legitimacy: 3 } },
+      { label: 'Cover it up — he has useful connections', effects: { legitimacy: -5, gold: 10 } }
+    ]},
+  { id: 'census_reveals', title: 'Census Results', condition: () => evtCityCount() >= 4,
+    text: 'A royal census reveals your population is larger than thought — and that many are unhappy with tax collection.',
+    choices: [
+      { label: 'Reform the tax system', effects: { science: 10, legitimacy: 5, gold: -10 } },
+      { label: 'Use the data to raise taxes efficiently', effects: { gold: 25, legitimacy: -3 } },
+      { label: 'Suppress the census results', effects: { legitimacy: -2, gold: 5 } }
+    ]},
+  { id: 'mining_guilds', title: 'Mining Guild Dispute', condition: () => evtCityCount() >= 4 && evtHasTileType(2),
+    text: 'Rival mining guilds are at war over extraction rights in your mountain provinces, hampering production.',
+    choices: [
+      { label: 'Impose a royal monopoly on all mines', effects: { steel: 20, gold: -10, legitimacy: -2 } },
+      { label: 'Mediate a guild agreement', effects: { science: 8, steel: 10, gold: -5 } },
+      { label: 'Let them fight — the winner will be efficient', effects: { steel: 5, legitimacy: -3 } }
+    ]},
+
+  // ---- TECH-GATED EVENTS ----
+  { id: 'gunpowder_accident', title: 'Powder Magazine Explosion', condition: () => evtGP() >= 20,
+    text: 'Careless handling has caused a powder magazine to explode, killing soldiers and damaging a city wall.',
+    choices: [
+      { label: 'Improve safety protocols', effects: { science: 10, gunpowder: -10, gold: -10 } },
+      { label: 'Blame and execute the responsible officer', effects: { legitimacy: -3, gunpowder: -5 } },
+      { label: 'Cover it up and rebuild quietly', effects: { gold: -15, gunpowder: -5, legitimacy: -1 } }
+    ]},
+  { id: 'medical_breakthrough', title: 'Medical Discovery', condition: () => evtHasTech('medicine'),
+    text: 'Your royal physicians have made a breakthrough in treating battlefield wounds — infection rates plummet.',
+    choices: [
+      { label: 'Publish the findings widely', effects: { science: 20, legitimacy: 4 } },
+      { label: 'Keep it as a military secret', effects: { steel: 5, legitimacy: 1 } },
+      { label: 'Sell the knowledge to foreign courts', effects: { gold: 30, science: 5, legitimacy: -2 } }
+    ]},
+  { id: 'engineering_marvel', title: 'Bridge Proposal', condition: () => evtHasTech('engineering'),
+    text: 'A master engineer proposes spanning a strategic river with a great stone bridge, opening new supply routes.',
+    choices: [
+      { label: 'Approve and fund it fully', effects: { stone: -20, gold: -20, science: 10, legitimacy: 4 } },
+      { label: 'Build a simpler wooden bridge', effects: { wood: -15, gold: -10, legitimacy: 2 } },
+      { label: 'The fords are sufficient', effects: {} }
+    ]},
+  { id: 'industrial_stirrings', title: 'Stirrings of Industry', condition: () => turnNumber >= 60 && evtHasTech('engineering'),
+    text: 'Inventors speak of harnessing water and steam to power machinery. A new age may be dawning.',
+    choices: [
+      { label: 'Fund experimental workshops', effects: { gold: -30, science: 30, legitimacy: 2 } },
+      { label: 'Allow private investors to fund it', effects: { gold: -10, science: 15 } },
+      { label: 'Restrict it — guilds fear unemployment', effects: { legitimacy: 3, science: -5 } }
+    ]},
+
+  // ---- BUILDING-GATED EVENTS ----
+  { id: 'granary_surplus', title: 'Granary Overflow', condition: () => evtHasBuilding('granary'),
+    text: 'Your granaries are bursting with excess grain after a string of good harvests. Storage is becoming a problem.',
+    choices: [
+      { label: 'Distribute to the poor', effects: { food: -15, legitimacy: 6 } },
+      { label: 'Sell the surplus abroad', effects: { food: -20, gold: 30 } },
+      { label: 'Build additional storage', effects: { wood: -15, stone: -10, food: 10 } }
+    ]},
+  { id: 'cathedral_miracle', title: 'Miracle at the Cathedral', condition: () => evtHasBuilding('cathedral'),
+    text: 'Pilgrims claim a statue in your cathedral is weeping. Thousands flood the city seeking blessings.',
+    choices: [
+      { label: 'Declare it a divine miracle', effects: { legitimacy: 8, gold: 15 } },
+      { label: 'Commission an investigation', effects: { science: 10, legitimacy: 2 } },
+      { label: 'Dismiss it as superstition', effects: { legitimacy: -4, gold: 5 } }
+    ]},
+  { id: 'fortification_inspection', title: 'Fortification Review', condition: () => evtHasBuilding('fortifications'),
+    text: 'An inspection reveals some walls are ageing and in need of repair before winter.',
+    choices: [
+      { label: 'Full renovation — spare no stone', effects: { stone: -20, gold: -15, legitimacy: 3 } },
+      { label: 'Patch the worst sections', effects: { stone: -10, gold: -5 } },
+      { label: 'Defer repairs — other priorities', effects: { legitimacy: -2 } }
+    ]},
+  { id: 'drought_relief', title: 'Famine Relief Request', condition: () => evtHasBuilding('granary') && evtSeason('summer'),
+    text: 'Drought has struck a neighbouring district. Your granaries are full — and their people are starving.',
+    choices: [
+      { label: 'Send grain freely as humanitarian aid', effects: { food: -20, legitimacy: 7 } },
+      { label: 'Sell them grain at market rates', effects: { food: -15, gold: 20 } },
+      { label: 'Refuse — we may need it ourselves', effects: { legitimacy: -3 } }
+    ]},
+
+  // ---- SEASON EVENTS ----
+  { id: 'spring_planting', title: 'Spring Planting Season', condition: () => evtSeason('spring'),
+    text: 'The frost has broken and farmers are eager to plant, but there are not enough tools and oxen to go around.',
+    choices: [
+      { label: 'Distribute state tools and animals', effects: { food: 25, gold: -15, legitimacy: 4 } },
+      { label: 'Let the market sort it out', effects: { food: 10 } },
+      { label: 'Conscript farmers for road-building first', effects: { food: -10, legitimacy: -3, stone: 10 } }
+    ]},
+  { id: 'summer_drought', title: 'Summer Drought', condition: () => evtSeason('summer'),
+    text: 'A scorching summer has dried up rivers and withered crops. Water rationing has begun in several cities.',
+    choices: [
+      { label: 'Import food and dig new wells', effects: { food: 15, gold: -25, legitimacy: 3 } },
+      { label: 'Ration strictly and pray for rain', effects: { food: -15, legitimacy: -2 } },
+      { label: 'Redirect irrigation from noble estates', effects: { food: 10, legitimacy: 2, gold: -5 } }
+    ]},
+  { id: 'autumn_harvest', title: 'Harvest Festival', condition: () => evtSeason('autumn'),
+    text: 'Autumn has brought a plentiful harvest. The people wish to celebrate before the long winter sets in.',
+    choices: [
+      { label: 'Sponsor a grand harvest festival', effects: { food: -15, gold: -15, legitimacy: 7 } },
+      { label: 'Modest local celebrations only', effects: { legitimacy: 3 } },
+      { label: 'Store everything for winter — no celebrations', effects: { food: 20, legitimacy: -3 } }
+    ]},
+  { id: 'winter_blizzard', title: 'Great Blizzard', condition: () => evtSeason('winter'),
+    text: 'A brutal blizzard has buried roads, cut off supply routes, and killed livestock across your provinces.',
+    choices: [
+      { label: 'Emergency food distribution', effects: { food: -20, gold: -10, legitimacy: 5 } },
+      { label: 'Hunker down and wait it out', effects: { food: -25, legitimacy: -2 } },
+      { label: 'Only save the cities, abandon the villages', effects: { food: -10, legitimacy: -5 } }
+    ]},
+  { id: 'winter_disease', title: 'Winter Sickness', condition: () => evtSeason('winter'),
+    text: 'Cold and crowded conditions have brought a sweeping illness through your cities. The elderly are most at risk.',
+    choices: [
+      { label: 'Fund the physicians and apothecaries', effects: { gold: -20, science: 8, legitimacy: 3 } },
+      { label: 'Quarantine the worst districts', effects: { legitimacy: 1 } },
+      { label: 'Do nothing and hope it passes', effects: { legitimacy: -4 } }
+    ]},
+  { id: 'locust_swarm', title: 'Locust Plague', condition: () => evtSeason('summer') || evtSeason('spring'),
+    text: 'A vast swarm of locusts has descended on your farmlands, consuming entire fields before they can be harvested.',
+    choices: [
+      { label: 'Burn the infested fields to halt the spread', effects: { food: -20, legitimacy: 2 } },
+      { label: 'Import emergency grain', effects: { gold: -25, food: 15 } },
+      { label: 'Pray for wind to carry them away', effects: { food: -30, legitimacy: -2 } }
+    ]},
+
+  // ---- EARLY GAME EVENTS ----
+  { id: 'nomad_tribe', title: 'Nomadic Tribe Encounter', condition: () => turnNumber <= 50,
+    text: 'A nomadic tribe has camped near your borders. They are wary but willing to trade, and speak of rich lands to the east.',
+    choices: [
+      { label: 'Invite them to settle and farm', effects: { food: 15, legitimacy: 2, wood: 10 } },
+      { label: 'Trade goods with them', effects: { gold: 10, food: 10 } },
+      { label: 'Drive them off our land', effects: { legitimacy: -3 } }
+    ]},
+  { id: 'local_chieftain', title: 'Local Chief Swears Loyalty', condition: () => turnNumber <= 40,
+    text: 'The chieftain of a nearby hill settlement offers tribute and fealty in exchange for your protection.',
+    choices: [
+      { label: 'Welcome them with open arms', effects: { food: 10, legitimacy: 4 } },
+      { label: 'Demand more tribute first', effects: { gold: 15, legitimacy: -2 } },
+      { label: 'Reject them — we have enough to manage', effects: { legitimacy: -1 } }
+    ]},
+  { id: 'ancient_map', title: 'Ancient Map Discovered', condition: () => turnNumber <= 60,
+    text: 'An old map is found in a crumbling monastery, depicting roads and settlements of a forgotten empire.',
+    choices: [
+      { label: 'Follow the routes and explore', effects: { science: 20, gold: -10 } },
+      { label: 'Sell it to foreign scholars', effects: { gold: 20, science: 5 } },
+      { label: 'Study it carefully before acting', effects: { science: 12 } }
+    ]},
+
+  // ---- LATE GAME EVENTS ----
+  { id: 'population_boom', title: 'Population Boom', condition: () => turnNumber >= 50 && evtCityCount() >= 3,
+    text: 'A generation of relative peace has produced an unexpected surge in births. Your cities are swelling.',
+    choices: [
+      { label: 'Expand city limits and build housing', effects: { gold: -20, wood: -15, stone: -10, legitimacy: 5 } },
+      { label: 'Route surplus population to farms', effects: { food: 20, legitimacy: 2 } },
+      { label: 'Let the market handle it', effects: {} }
+    ]},
+  { id: 'great_thinker', title: 'The Great Thinker', condition: () => turnNumber >= 40,
+    text: 'A philosopher of extraordinary breadth seeks a patron. His works on governance are already celebrated.',
+    choices: [
+      { label: 'Patronize him generously', effects: { gold: -20, science: 25, legitimacy: 5 } },
+      { label: 'Offer him a modest stipend', effects: { gold: -10, science: 12 } },
+      { label: 'Let him find patronage elsewhere', effects: {} }
+    ]},
+
+  // ---- FAMILY-RELATED EVENTS ----
+  { id: 'family_request', title: 'Noble House Petition', condition: () => evtHasAngryFamily(),
+    text: 'A noble house has petitioned the crown, complaining of being overlooked for military commands and administrative posts.',
+    choices: [
+      { label: 'Grant them positions of influence', effects: { legitimacy: 3, familyOpinion: 15 } },
+      { label: 'Invite them to court and hear their grievances', effects: { legitimacy: 2, familyOpinion: 8 } },
+      { label: 'Dismiss the petition', effects: { legitimacy: -2 } }
+    ]},
+  { id: 'family_wedding', title: 'Grand Noble Wedding', condition: () => families.filter(f => f.nationId === playerNation).length >= 2,
+    text: 'Two great houses of your realm propose a marriage between their heirs, asking your blessing and patronage.',
+    choices: [
+      { label: 'Sponsor the wedding lavishly', effects: { gold: -25, legitimacy: 6, familyOpinion: 12 } },
+      { label: 'Give a modest royal gift', effects: { gold: -10, legitimacy: 3, familyOpinion: 5 } },
+      { label: 'Decline to be involved', effects: { legitimacy: -1 } }
+    ]},
+
+  // ---- CHARACTER DEATH EVENTS ----
+  { id: 'general_falls', title: 'Death of a General', condition: () => evtIsAtWar(),
+    text: 'Word arrives that one of your most capable commanders has fallen in battle. His loss is deeply felt.',
+    choices: [
+      { label: 'Hold a state funeral', effects: { gold: -15, legitimacy: 4, charDeath: 'heir' } },
+      { label: 'Announce his heroism to inspire the troops', effects: { legitimacy: 5, charDeath: 'heir' } },
+      { label: 'Suppress the news to avoid panic', effects: { legitimacy: -3, charDeath: 'heir' } }
+    ]},
+  { id: 'plague_strikes_court', title: 'Plague in the Palace', condition: () => evtHasSpouse(),
+    text: 'A fever sweeps through the royal palace. Several courtiers have already succumbed, and your closest kin are not spared.',
+    choices: [
+      { label: 'Quarantine the entire palace district', effects: { legitimacy: 2, charDeath: 'spouse' } },
+      { label: 'Call the finest physicians in the realm', effects: { gold: -30, charDeath: 'spouse' } },
+      { label: 'Pray and let fate decide', effects: { charDeath: 'spouse' } }
+    ]},
+  { id: 'assassination_attempt', title: 'Assassination Attempt', condition: () => evtLeg() < 50,
+    text: "An assassin's blade finds its mark in the dark corridors of your palace. Whispers of conspiracy fill the court.",
+    choices: [
+      { label: 'Launch a purge of suspected traitors', effects: { legitimacy: -3, charDeath: 'random' } },
+      { label: 'Quietly investigate before acting', effects: { science: 8, charDeath: 'random' } },
+      { label: 'Show no fear — it was nothing', effects: { legitimacy: 3, charDeath: 'random' } }
+    ]},
+  { id: 'duel_scandal', title: 'Duel of Honour', condition: () => evtHasHeir(),
+    text: 'Your heir has accepted a challenge to a duel from a rival noble, claiming an insult to his honour.',
+    choices: [
+      { label: "Forbid the duel — beneath a prince", effects: { legitimacy: -2 } },
+      { label: 'Allow it — honour must be satisfied', effects: { charDeath: 'heir', legitimacy: 3 } },
+      { label: 'Arrange for the rival to withdraw', effects: { gold: -15, legitimacy: 1 } }
+    ]},
+
+  // ---- UNCONDITIONAL FLAVOUR EVENTS ----
+  { id: 'comet', title: 'Blazing Comet',
+    text: 'A great comet blazes across the night sky for several days. Astrologers disagree on whether it portends glory or disaster.',
+    choices: [
+      { label: 'Declare it an omen of our destiny', effects: { legitimacy: 6 } },
+      { label: 'Commission scholars to record it', effects: { science: 15 } },
+      { label: 'Ignore superstition', effects: {} }
+    ]},
+  { id: 'court_jester', title: "The Court Jester's Prophecy",
+    text: 'Your court jester delivers a cryptic warning: "Three crows on the throne, the fourth flies alone."',
+    choices: [
+      { label: 'Banish him — insolence in the hall', effects: { legitimacy: -2 } },
+      { label: 'Have scholars interpret the omen', effects: { science: 8, gold: -5 } },
+      { label: 'Laugh it off and reward his boldness', effects: { legitimacy: 3 } }
+    ]},
+  { id: 'master_spy', title: 'Master Spy Offer',
+    text: 'A shadowy figure claiming to be the greatest spymaster in Europe offers his services — his price is steep.',
+    choices: [
+      { label: 'Hire him at full price', effects: { gold: -30, science: 20, legitimacy: -1 } },
+      { label: 'Negotiate a lower rate', effects: { gold: -15, science: 10 } },
+      { label: 'Arrest him on principle', effects: { legitimacy: 2 } }
+    ]},
+  { id: 'royal_library', title: 'Royal Library Proposal',
+    text: 'A scholar proposes converting a wing of the palace into a great library to house manuscripts from across the continent.',
+    choices: [
+      { label: 'Found the library and fund acquisitions', effects: { gold: -25, stone: -10, science: 25, legitimacy: 4 } },
+      { label: 'Allow it on a modest scale', effects: { gold: -10, science: 12 } },
+      { label: 'The palace needs no library', effects: {} }
+    ]},
+  { id: 'crop_rotation', title: 'Crop Rotation Proposal',
+    text: 'A farmer explains a three-field rotation system from the Low Countries that could dramatically increase yields.',
+    choices: [
+      { label: 'Implement it across all royal estates', effects: { food: 25, gold: -10, science: 8 } },
+      { label: 'Let individual farmers adopt it voluntarily', effects: { food: 12, science: 4 } },
+      { label: 'Our farmers know what they\'re doing', effects: {} }
+    ]},
+  { id: 'bandit_king', title: 'The Bandit King',
+    text: 'A notorious outlaw who styles himself "the Bandit King" has been robbing tax collectors and giving gold to the poor.',
+    choices: [
+      { label: 'Hunt him down with troops', effects: { gold: -15, steel: -5, legitimacy: 3 } },
+      { label: 'Offer amnesty — he clearly has popular support', effects: { legitimacy: 5, gold: -10 } },
+      { label: 'Secretly hire him as a smuggler', effects: { gold: 15, legitimacy: -4 } }
+    ]},
+  { id: 'philosopher_visits', title: "The Philosopher's Visit",
+    text: 'A renowned philosopher has come to your court, engaging your advisors in debate about just governance.',
+    choices: [
+      { label: 'Engage him and implement his ideas', effects: { science: 15, legitimacy: 4, gold: -10 } },
+      { label: 'Let him speak freely', effects: { science: 10, legitimacy: 2 } },
+      { label: 'Expel him — dangerous ideas spread', effects: { legitimacy: -3, science: -5 } }
+    ]},
+  { id: 'rival_innovation', title: 'Foreign Innovation', diplomatic: true,
+    text: '{NATION} has developed an impressive new military technology. Your engineers are eager to study it.',
+    choices: [
+      { label: 'Attempt to buy the knowledge', effects: { gold: -25, science: 20, loyalty: 6 } },
+      { label: 'Send spies to steal the plans', effects: { science: 15, loyalty: -12, legitimacy: -2 } },
+      { label: 'Develop our own solution', effects: { gold: -10, science: 8 } }
+    ]},
+  { id: 'mysterious_illness', title: 'Mysterious Illness',
+    text: 'A strange sickness is spreading among the livestock. Farmers fear it may jump to people next.',
+    choices: [
+      { label: 'Quarantine all affected farms immediately', effects: { food: -10, gold: -10, legitimacy: 3 } },
+      { label: 'Slaughter and burn the sick animals', effects: { food: -20, legitimacy: 1 } },
+      { label: 'Do nothing — wait and see', effects: { food: -15, legitimacy: -3 } }
+    ]},
+  { id: 'runaway_serf', title: 'Runaway Serfs',
+    text: 'Hundreds of serfs have fled their noble masters and are living as free workers on unclaimed land.',
+    choices: [
+      { label: 'Let them remain free — good for productivity', effects: { food: 15, legitimacy: 2 } },
+      { label: 'Return them to their lords', effects: { legitimacy: -4, gold: 15 } },
+      { label: 'Organize them into a state labour corps', effects: { stone: 15, wood: 10, legitimacy: -1 } }
+    ]},
+  { id: 'alchemist', title: 'The Alchemist',
+    text: 'An alchemist claims he can transmute lead into gold — for a fee. Your court is skeptical but intrigued.',
+    choices: [
+      { label: 'Fund his experiments', effects: { gold: -20, science: 15 } },
+      { label: 'Arrest him as a fraud', effects: { legitimacy: 1 } },
+      { label: 'Let private investors take the risk', effects: { science: 5 } }
+    ]},
+  { id: 'veteran_storyteller', title: 'War Chronicles',
+    text: 'A veteran soldier has written a vivid account of your wars. It is spreading across the continent.',
+    choices: [
+      { label: 'Commission an official illustrated edition', effects: { gold: -15, legitimacy: 6 } },
+      { label: 'Suppress it — too many uncomfortable truths', effects: { legitimacy: -3, science: -5 } },
+      { label: 'Leave it be — history writes itself', effects: { legitimacy: 2 } }
+    ]}
 ];
 
 let currentEventNation = null; // Track which nation a diplomatic event is about
 function triggerEvent() {
   // Find valid nations for diplomatic events (discovered, not eliminated, not barbarian, not player)
   const validDiploNations = nations.filter(n => !n.isBarbarian && !n.eliminated && n.id !== playerNation && discoveredNations.has(n.id));
-  // Filter events: diplomatic events need a valid nation
-  const available = EVENTS.filter(e => !e.diplomatic || validDiploNations.length > 0);
+  // Filter events: diplomatic events need a valid nation; conditional events must pass their condition
+  const available = EVENTS.filter(e => {
+    if (e.diplomatic && validDiploNations.length === 0) return false;
+    try { if (e.condition && !e.condition()) return false; } catch(err) { return false; }
+    return true;
+  });
   if (available.length === 0) return;
   const evt = available[Math.floor(Math.random() * available.length)];
   currentEventNation = null;
@@ -6151,14 +7009,14 @@ function triggerEvent() {
   let html = `<h3>${evt.title}</h3><p>${eventText}</p>`;
   const pn = nations[playerNation];
   evt.choices.forEach((ch, idx) => {
-    const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman').map(([k, v]) => {
+    const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
       const sign = v > 0 ? '+' : '';
       const label = k === 'legitimacy' ? '⚜' : k === 'loyalty' ? 'Relations' : k.charAt(0).toUpperCase() + k.slice(1);
       return `${sign}${v} ${label}`;
     }).join(', ');
     // Gray out choices the player can't afford (skip loyalty and special effects - not resources)
     const canAfford = Object.entries(ch.effects).every(([k, v]) => {
-      if (v >= 0 || k === 'loyalty' || k === 'spawnWorker' || k === 'spawnSwordsman') return true;
+      if (v >= 0 || k === 'loyalty' || k === 'spawnWorker' || k === 'spawnSwordsman' || k === 'charDeath' || k === 'familyOpinion') return true;
       if (k === 'legitimacy') return (pn.legitimacy || 50) + v >= 0;
       return (pn[k] || 0) + v >= 0;
     });
@@ -6183,14 +7041,9 @@ function applyEventChoice(eventId, choiceIndex) {
       }
     } else if (key === 'legitimacy') {
       n.legitimacy = Math.min(100, Math.max(0, (n.legitimacy || 50) + val));
-      // Pro-people choices (positive legitimacy) reduce city discontent
-      if (val > 0) {
-        const playerCities = cities.filter(c => c.nationId === playerNation);
-        for (const c of playerCities) {
-          const reduction = c.isCapital ? val * 2 : Math.ceil(val / 2);
-          c.discontent = Math.max(0, (c.discontent || 0) - reduction);
-        }
-      }
+      // Pro-people choices improve noble family opinions
+      if (val > 0) hitFamilyOpinion(playerNation, Math.ceil(val / 2));
+      else if (val < 0) hitFamilyOpinion(playerNation, Math.floor(val / 2));
     } else if (key === 'spawnWorker') {
       const capital = cities.find(c => c.nationId === playerNation && c.isCapital);
       if (capital) {
@@ -6206,11 +7059,28 @@ function applyEventChoice(eventId, choiceIndex) {
       } else {
         showToast('No city available to recruit mercenary!');
       }
+    } else if (key === 'familyOpinion') {
+      hitFamilyOpinion(playerNation, val);
+    } else if (key === 'charDeath') {
+      let target = null;
+      if (val === 'spouse') {
+        const ruler = getNationRuler(playerNation);
+        if (ruler) target = characters.find(c => c.id === ruler.spouseId && !c.deathTurn);
+      } else if (val === 'heir') {
+        target = characters.find(c => c.nationId === playerNation && c.role === 'heir' && !c.deathTurn);
+      } else if (val === 'random') {
+        const cands = characters.filter(c => c.nationId === playerNation && !c.deathTurn && c.role !== 'ruler');
+        target = cands.length > 0 ? cands[Math.floor(Math.random() * cands.length)] : null;
+      }
+      if (target) {
+        characterDeath(target);
+        hitFamilyOpinion(playerNation, -8);
+      }
     } else {
       n[key] = Math.max(0, (n[key] || 0) + val);
     }
   }
-  const effectStr = Object.entries(choice.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman').map(([k, v]) => {
+  const effectStr = Object.entries(choice.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
     const sign = v > 0 ? '+' : '';
     return `${sign}${v} ${k}`;
   }).join(', ');
@@ -6539,8 +7409,8 @@ function render() {
           const nbCity = tcMap.get(nIdx);
           if (nbCity && nbCity !== myCity) {
             ctx.save();
-            ctx.strokeStyle = 'rgba(180,170,150,0.22)';
-            ctx.lineWidth = Math.max(1, VIEW_TILE / 14);
+            ctx.strokeStyle = 'rgba(160,155,140,0.5)';
+            ctx.lineWidth = Math.max(1, VIEW_TILE / 18);
             ctx.lineCap = 'round';
             drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
             ctx.restore();
@@ -6628,12 +7498,12 @@ function render() {
   }
 
   // Reachable tiles overlay
-  if (moveMode || buyTileMode) for (const key of reachableTiles) {
+  if (moveMode || buyTileMode || workerBuyMode) for (const key of reachableTiles) {
     const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
     if (!tiles[key].revealed.has(pId)) continue;
     const pos = hexScreenPos(rx, ry);
     if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
-    ctx.fillStyle = buyTileMode ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
+    ctx.fillStyle = (buyTileMode || workerBuyMode) ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
     drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
     ctx.fill();
   }
@@ -7050,7 +7920,7 @@ function cycleToNextUnit() {
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
   selectedUnit = next; selectedCity = null;
-  moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
+  moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   panCameraTo(next.x, next.y);
   enterMoveMode();
   showUnitPanel(next); render();
@@ -7174,6 +8044,11 @@ function showUnitPanel(unit) {
           html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t -> ${yieldStr}</span></button>`;
         }
       }
+      if (unit.nationId === playerNation && unit.movesLeft > 0) {
+        const canAffordBuy = nations[playerNation].gold >= 5;
+        html += `<div class="section-title">Territory</div>`;
+        html += `<button class="p-btn" onclick="enterWorkerBuyTileMode()" ${!canAffordBuy ? 'disabled' : ''}>Buy Adjacent Tile <span class="cost">5g / 7g improved</span></button>`;
+      }
     }
   }
   if (UNIT_DEFS[unit.type].ranged && unit.nationId === playerNation) {
@@ -7272,22 +8147,14 @@ function showCityPanel(city) {
   const jobs = getCityJobs(city);
   const needed = pop * 2;
   const loyalty = getCityLoyaltyStatus(city);
-  const discontentPct = Math.min(100, Math.round((city.discontent || 0) / 15 * 100));
   const queue = city.productionQueue || [];
   const queueStr = queue.length > 0 ? `<br><span style="font-size:11px;color:#998;">Queue: ${queue.map(q => getProductionName(q)).join(' → ')}</span>` : '';
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}${queueStr}</p>`;
   html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
   html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
-  if (city.discontent > 0) html += `<div style="margin-top:3px;height:4px;background:rgba(0,0,0,0.3);border-radius:2px;"><div style="width:${discontentPct}%;height:100%;background:${discontentPct > 60 ? '#c33' : '#c80'};border-radius:2px;"></div></div>`;
   const bldgs = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
   if (bldgs.length > 0) html += `<div style="margin-top:3px;font-size:11px;color:#8ab;">${bldgs.map(b => `${b.icon} ${b.name}`).join(' &bull; ')}</div>`;
   html += `</div>`;
-  // Appease button: spend gold to reduce discontent
-  if (city.nationId === playerNation && (city.discontent || 0) > 0) {
-    const appeaseCost = Math.max(10, Math.floor((city.discontent || 0) * 1.5));
-    const canAppease = nations[playerNation].gold >= appeaseCost;
-    html += `<button class="p-btn" onclick="appeaseCity()" ${!canAppease ? 'disabled' : ''} style="border-color:rgba(100,200,100,0.3);color:#8c8;">Appease Citizens <span class="cost">${appeaseCost} gold → -10 discontent</span></button>`;
-  }
   if (city.producing && city.nationId === playerNation) {
     const rushCost = getRushCost(city.nationId);
     const canRush = nations[city.nationId].gold >= rushCost;
@@ -7396,7 +8263,7 @@ function showCityTab(tab) {
 }
 
 function enterBuyTileMode() {
-  buyTileMode = true; moveMode = false; reachableTiles.clear();
+  buyTileMode = true; moveMode = false; workerBuyMode = false; reachableTiles.clear();
   if (!selectedCity) return;
   const city = selectedCity;
   for (const ti of city.ownedTiles) {
@@ -7408,6 +8275,46 @@ function enterBuyTileMode() {
     }
   }
   render();
+}
+
+function enterWorkerBuyTileMode() {
+  workerBuyMode = true; buyTileMode = false; moveMode = false; reachableTiles.clear();
+  if (!selectedUnit) return;
+  const nId = selectedUnit.nationId;
+  for (const city of cities) {
+    if (city.nationId !== nId) continue;
+    for (const ti of city.ownedTiles) {
+      const tx = ti % MAP_COLS, ty = Math.floor(ti / MAP_COLS);
+      for (const nb of hexNeighbors(tx, ty)) {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+        const ni = nb.row * MAP_COLS + nb.col;
+        if (tiles[ni].type !== 0 && tiles[ni].owner < 0) reachableTiles.add(ni);
+      }
+    }
+  }
+  render();
+}
+
+function workerBuyTile(worker, tx, ty) {
+  const nId = worker.nationId;
+  const n = nations[nId];
+  const ti = ty * MAP_COLS + tx;
+  if (tiles[ti].type === 0 || tiles[ti].owner >= 0) return false;
+  const cost = tiles[ti].improvement ? 7 : 5;
+  if (n.gold < cost) { showToast(`Need ${cost} gold to buy this tile.`); return false; }
+  let nearest = null, nearestDist = Infinity;
+  for (const city of cities) {
+    if (city.nationId !== nId) continue;
+    const d = Math.abs(city.x - tx) + Math.abs(city.y - ty);
+    if (d < nearestDist) { nearestDist = d; nearest = city; }
+  }
+  if (!nearest) return false;
+  n.gold -= cost;
+  tiles[ti].owner = nId;
+  nearest.ownedTiles.add(ti);
+  _tileCityMapDirty = true;
+  worker.movesLeft = Math.max(0, worker.movesLeft - 1);
+  return true;
 }
 
 function setProd(type) {
@@ -7449,17 +8356,6 @@ window.clearQueue = function() {
   showCityPanel(selectedCity);
 };
 
-window.appeaseCity = function() {
-  if (!selectedCity || selectedCity.nationId !== playerNation) return;
-  const cost = Math.max(10, Math.floor((selectedCity.discontent || 0) * 1.5));
-  const n = nations[playerNation];
-  if (n.gold < cost) { showToast('Not enough gold!'); return; }
-  n.gold -= cost;
-  selectedCity.discontent = Math.max(0, (selectedCity.discontent || 0) - 10);
-  showToast(`Citizens appeased! Discontent reduced by 10.`);
-  addFloatingText(selectedCity.x, selectedCity.y, '-10 discontent', '#6c6', 1500, 12);
-  showCityPanel(selectedCity); updateUI(); render();
-};
 
 // ====================
 // SETTLE CONFIRMATION
@@ -7492,7 +8388,7 @@ function renderKingdoms() {
   let html = '<h3>Kingdoms</h3>';
   for (const n of nations) {
     // Don't show barbarian or tribe nations in the main section, or undiscovered nations
-    if (n.isBarbarian) continue;
+    if (n.isBarbarian || n.isTribe) continue;
     if (n.id !== playerNation && !discoveredNations.has(n.id)) continue;
     if (n.eliminated && n.id !== playerNation) {
       html += `<div class="kingdom-row" style="opacity:0.4">
@@ -7581,8 +8477,49 @@ function renderKingdoms() {
     }
     html += `</div>`;
   }
+
+  // Tribal Nations section
+  const discoveredTribes = nations.filter(n => n.isTribe && !n.eliminated && discoveredNations.has(n.id));
+  const undiscoveredTribeCount = nations.filter(n => n.isTribe && !n.eliminated && !discoveredNations.has(n.id)).length;
+  if (discoveredTribes.length > 0 || undiscoveredTribeCount > 0) {
+    html += `<div class="section-title" style="margin-top:12px;color:#a89060;">Tribal Nations</div>`;
+    for (const n of discoveredTribes) {
+      const rel = nations[playerNation].relations[n.id] || 'peace';
+      const relColor = rel === 'war' ? '#e44' : '#8ac';
+      const settlement = cities.find(c => c.nationId === n.id);
+      const warriors = units.filter(u => u.nationId === n.id).length;
+      html += `<div class="kingdom-row">
+        <span class="kingdom-dot" style="background:${n.color}"></span>
+        <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">${settlement ? settlement.name : '—'}, ${warriors} warriors</span></span>
+        <span class="kingdom-status" style="color:${relColor}">${rel}</span>
+        <div style="margin-top:4px;margin-left:20px;">`;
+      if (rel !== 'war') {
+        const canEnvoy = nations[playerNation].gold >= 20;
+        html += `<button class="diplo-btn" onclick="sendEnvoy(${n.id})" ${!canEnvoy ? 'disabled' : ''} title="Costs 20 gold">Send Envoy</button> `;
+      }
+      html += `<button class="diplo-btn" onclick="toggleDiplomacy(${n.id})" style="${rel === 'war' ? 'background:#252;border-color:#4a4;' : 'background:#422;border-color:#a44;'}">${rel === 'war' ? 'Seek Peace' : 'Declare War'}</button>`;
+      html += `</div></div>`;
+    }
+    if (undiscoveredTribeCount > 0) {
+      html += `<div style="font-size:11px;color:#6a5a40;padding:4px 0 2px 4px;">${undiscoveredTribeCount} undiscovered tribal nation${undiscoveredTribeCount > 1 ? 's' : ''}</div>`;
+    }
+  }
+
   el.innerHTML = html;
 }
+function sendEnvoy(nationId) {
+  const pn = nations[playerNation];
+  if (pn.gold < 20) { showToast('Not enough gold (need 20g).'); return; }
+  pn.gold -= 20;
+  pn.relations[nationId] = 'peace';
+  nations[nationId].relations[playerNation] = 'peace';
+  changeLoyalty(nationId, playerNation, 25);
+  changeLoyalty(playerNation, nationId, 15);
+  discoverNation(nationId);
+  showToast(`Envoy sent to ${nations[nationId].name}. Relations improved.`);
+  renderKingdoms();
+}
+
 function acceptPeace(nationId) {
   const n = nations[nationId];
   const pn = nations[playerNation];
@@ -8584,6 +9521,20 @@ canvas.addEventListener('click', (e) => {
     } else { buyTileMode = false; reachableTiles.clear(); }
   }
 
+  if (workerBuyMode && selectedUnit) {
+    if (reachableTiles.has(ti)) {
+      const tileCost = tiles[ti].improvement ? 7 : 5;
+      const bought = workerBuyTile(selectedUnit, mx, my);
+      workerBuyMode = false; reachableTiles.clear();
+      if (bought) {
+        showToast(`Tile purchased for ${tileCost} gold.`);
+        if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
+      }
+      showUnitPanel(selectedUnit); updateUI(); render();
+      return;
+    } else { workerBuyMode = false; reachableTiles.clear(); render(); }
+  }
+
   if (rangedMode && selectedUnit) {
     const canAttackAfterMove = selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0;
     if (selectedUnit.movesLeft < selectedUnit.maxMoves && !canAttackAfterMove) {
@@ -8721,7 +9672,7 @@ canvas.addEventListener('click', (e) => {
   if (clickedUnit) {
     playClick();
     selectedUnit = clickedUnit; selectedCity = null;
-    buyTileMode = false; gotoMode = false; rangedMode = false;
+    buyTileMode = false; gotoMode = false; rangedMode = false; workerBuyMode = false;
     // Auto-enter move mode when clicking a unit with moves left
     if (clickedUnit.movesLeft > 0) {
       moveMode = false; reachableTiles.clear();
@@ -8736,12 +9687,12 @@ canvas.addEventListener('click', (e) => {
   if (clickedCity) {
     playClick();
     selectedCity = clickedCity; selectedUnit = null;
-    moveMode = false; reachableTiles.clear(); buyTileMode = false;
+    moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
     showCityPanel(clickedCity); render(); return;
   }
 
   selectedUnit = null; selectedCity = null;
-  moveMode = false; reachableTiles.clear(); buyTileMode = false;
+  moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
   hidePanel(); render();
 });
 
@@ -8947,7 +9898,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (eventModalOpen) return; // Can't ESC out of events, must choose
     if (escMenuOpen) closeEscMenu();
-    else if (moveMode || buyTileMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
+    else if (moveMode || buyTileMode || workerBuyMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; workerBuyMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
     return;
   }
@@ -8983,7 +9934,7 @@ document.addEventListener('keydown', (e) => {
       else idx = (idx - 1 + playerCities.length) % playerCities.length;
       const city = playerCities[idx];
       selectedCity = city; selectedUnit = null;
-      moveMode = false; reachableTiles.clear(); buyTileMode = false;
+      moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
       panCameraTo(city.x, city.y);
       showCityPanel(city); render();
     }
@@ -9038,7 +9989,7 @@ window.enterRangedMode = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || selectedUnit.movesLeft <= 0) return;
   // Block if artillery is reloading
   if (UNIT_DEFS[selectedUnit.type].artillery && selectedUnit.reloadTurns > 0) return;
-  rangedMode = true; moveMode = false; gotoMode = false; buyTileMode = false;
+  rangedMode = true; moveMode = false; gotoMode = false; buyTileMode = false; workerBuyMode = false;
   reachableTiles.clear();
   render();
 };
@@ -9126,7 +10077,7 @@ window.enterGotoMode = function() {
   if (!selectedUnit) return;
   if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
   if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
-  gotoMode = true; moveMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
+  gotoMode = true; moveMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   showToast('Click destination tile for go-to order.');
   render();
 };
@@ -9206,7 +10157,7 @@ window.enterMoveMode = function() {
   if (!selectedUnit || selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
   if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
-  moveMode = true; gotoMode = false; rangedMode = false; buyTileMode = false; reachableTiles.clear();
+  moveMode = true; gotoMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   const u = selectedUnit;
   const start = u.y * MAP_COLS + u.x;
   const visited = new Map(); visited.set(start, 0);
@@ -9377,9 +10328,47 @@ function renderCourtPanel() {
     }
   }
 
+  // Noble Families
+  const playerFamilies = families.filter(f => f.nationId === playerNation);
+  if (playerFamilies.length > 0) {
+    html += `<div class="section-title" style="margin-top:10px;">Noble Families</div>`;
+    const pn = nations[playerNation];
+    for (const f of playerFamilies) {
+      const op = Math.round(f.opinion);
+      const opColor = op >= 60 ? '#6a6' : op >= 40 ? '#cc6' : op >= 25 ? '#c80' : '#c33';
+      const opLabel = op >= 60 ? 'Loyal' : op >= 40 ? 'Content' : op >= 25 ? 'Restless' : 'Angry';
+      const opPct = op;
+      const appeaseCost = 30;
+      const canAppease = pn.gold >= appeaseCost && op < 80;
+      html += `<div style="padding:6px 8px;margin:3px 0;background:rgba(40,30,20,0.4);border:1px solid rgba(160,140,100,0.2);border-radius:4px;">`;
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">`;
+      html += `<span style="font-size:12px;color:#e0c880;">House of ${f.name}</span>`;
+      html += `<span style="font-size:11px;color:${opColor};">${opLabel} (${op})</span>`;
+      html += `</div>`;
+      html += `<div style="height:4px;background:rgba(0,0,0,0.3);border-radius:2px;margin-bottom:4px;">`;
+      html += `<div style="width:${opPct}%;height:100%;background:${opColor};border-radius:2px;transition:width 0.3s;"></div>`;
+      html += `</div>`;
+      if (op < 80) {
+        html += `<button class="p-btn" onclick="appeaseFamilyOpinion(${f.id})" ${!canAppease ? 'disabled' : ''} style="font-size:11px;padding:2px 8px;">Appease <span class="cost">${appeaseCost}g → +15 opinion</span></button>`;
+      }
+      html += `</div>`;
+    }
+  }
+
   html += `<button class="p-btn" onclick="document.getElementById('courtPanel').style.display='none'" style="margin-top:8px;">Close</button>`;
   panel.innerHTML = html;
 }
+
+window.appeaseFamilyOpinion = function(familyId) {
+  const pn = nations[playerNation];
+  const family = families.find(f => f.id === familyId);
+  if (!family || pn.gold < 30) { showToast('Not enough gold (need 30g).'); return; }
+  pn.gold -= 30;
+  family.opinion = Math.min(100, family.opinion + 15);
+  showToast(`The ${family.name} family has been appeased.`);
+  renderCourtPanel();
+  updateUI();
+};
 
 window.setAmmo = function(ammo) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.artillery) return;
@@ -9468,7 +10457,9 @@ window.restUnit = function() {
 window.setProd = setProd;
 window.showCityTab = showCityTab;
 window.enterBuyTileMode = enterBuyTileMode;
+window.enterWorkerBuyTileMode = enterWorkerBuyTileMode;
 window.toggleKingdoms = toggleKingdoms;
+window.sendEnvoy = sendEnvoy;
 window.toggleDiplomacy = toggleDiplomacy;
 window.endTurn = endTurn;
 window.generateAndPlay = generateAndPlay;
@@ -9521,7 +10512,7 @@ function serializeGame() {
     barbarianCamps, citySites, pillaged, barbarianDensity,
     barbSpawnTurn, barbSpawnChance, barbMaxUnits, barbRespawnTurns, barbRaidRange, barbRaiderInterval, barbCampSpacing,
     gameDifficulty, agreements: sAgreements,
-    currentSeason, characters, nextCharId,
+    currentSeason, characters, nextCharId, families, nextFamilyId,
   });
 }
 
@@ -9597,6 +10588,8 @@ function deserializeGame(json) {
   }
   characters = d.characters || [];
   nextCharId = d.nextCharId || (characters.length > 0 ? Math.max(...characters.map(c => c.id)) + 1 : 1);
+  families = d.families || [];
+  nextFamilyId = d.nextFamilyId || (families.length > 0 ? Math.max(...families.map(f => f.id)) + 1 : 1);
   // v9->v10 migration: generate default rulers for nations that lack characters
   if (d.v < 10 && typeof initNationCharacters === 'function') {
     for (let i = 0; i < nations.length; i++) {
@@ -9606,8 +10599,15 @@ function deserializeGame(json) {
       }
     }
   }
+  // Migration: generate families for nations that lack them (old saves)
+  if (!d.families) {
+    for (let i = 0; i < nations.length; i++) {
+      if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
+      if (!families.some(f => f.nationId === i)) initNationFamilies(i);
+    }
+  }
   selectedUnit = null; selectedCity = null;
-  moveMode = false; buyTileMode = false; reachableTiles.clear();
+  moveMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   ordersRemaining = getMaxOrders(playerNation);
   activatedUnits = new Set();
   return true;
@@ -9735,6 +10735,98 @@ function spawnAINations(count) {
   }
 }
 
+function spawnTribes(count) {
+  const shuffled = [...TRIBE_DATA].sort(() => Math.random() - 0.5);
+  const toSpawn = Math.min(count, shuffled.length);
+  for (let i = 0; i < toSpawn; i++) {
+    const td = shuffled[i];
+    const nId = createNation(td.name, td.color, false);
+    nations[nId].isTribe = true;
+    // Tribes start neutral (peace) with everyone
+    nations[playerNation].relations[nId] = 'peace'; nations[nId].relations[playerNation] = 'peace';
+    nations[playerNation].loyalty[nId] = 20; nations[nId].loyalty[playerNation] = 20;
+    for (let j = 0; j < nId; j++) {
+      if (!nations[j] || nations[j].isBarbarian) continue;
+      nations[j].relations[nId] = 'peace'; nations[nId].relations[j] = 'peace';
+      nations[j].loyalty[nId] = 20; nations[nId].loyalty[j] = 20;
+    }
+    const sp = findRandomCapitalSite();
+    // Check capital name dedup
+    const usedCityNames = new Set(cities.map(c => c.name));
+    const capitalName = usedCityNames.has(td.capital) ? randomCityName() : td.capital;
+    // Create city directly (no settler needed)
+    const city = {
+      x: sp.x, y: sp.y, name: capitalName, nationId: nId,
+      producing: null, productionProgress: 0, productionQueue: [],
+      ownedTiles: new Set(),
+      isCapital: true,
+      population: 1, discontent: 0,
+      buildings: [],
+    };
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const tx = sp.x + dx, ty = sp.y + dy;
+      if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+      const ci = ty * MAP_COLS + tx;
+      if (tiles[ci].type !== 0) city.ownedTiles.add(ci);
+    }
+    cities.push(city);
+    setCityTiles(city);
+    _tileCityMapDirty = true;
+    revealAround(sp.x, sp.y, CITY_VISION_BASE, nId);
+    // Spawn 3 tribal warriors nearby
+    for (let w = 0; w < 3; w++) {
+      const wp = findLandNear(sp.x + Math.floor(Math.random()*3)-1, sp.y + Math.floor(Math.random()*3)-1, 3);
+      spawnUnit('tribal_warrior', nId, wp.x, wp.y);
+    }
+  }
+}
+
+function tribeAI(nationId) {
+  const n = nations[nationId];
+  if (!n || n.eliminated || !n.isTribe) return;
+  const tribeUnits = units.filter(u => u.nationId === nationId);
+  for (const u of tribeUnits) {
+    if (u.movesLeft <= 0) continue;
+    // Check if any adjacent enemy (at war) to attack
+    const adjCells = hexNeighbors(u.x, u.y);
+    let attacked = false;
+    for (const nb of adjCells) {
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+      const enemy = units.find(e => e.x === nb.col && e.y === nb.row && e.nationId !== nationId && n.relations[e.nationId] === 'war');
+      if (enemy) {
+        doAttack(u, enemy.x, enemy.y);
+        attacked = true;
+        break;
+      }
+    }
+    if (!attacked) {
+      // If at war and enemies are nearby, move toward them; otherwise stay near home city
+      const atWar = Object.values(n.relations).includes('war');
+      if (atWar) {
+        let nearest = null, nearestDist = Infinity;
+        for (const e of units) {
+          if (e.nationId === nationId || n.relations[e.nationId] !== 'war') continue;
+          const d = Math.abs(e.x - u.x) + Math.abs(e.y - u.y);
+          if (d < nearestDist && d <= 6) { nearestDist = d; nearest = e; }
+        }
+        if (nearest) {
+          const adj = hexNeighbors(u.x, u.y);
+          let bestNb = null, bestDist = nearestDist;
+          for (const nb of adj) {
+            if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+            const ni = nb.row * MAP_COLS + nb.col;
+            if (tiles[ni].type === 0) continue;
+            if (units.some(ou => ou.x === nb.col && ou.y === nb.row)) continue;
+            const d = Math.abs(nb.col - nearest.x) + Math.abs(nb.row - nearest.y);
+            if (d < bestDist) { bestDist = d; bestNb = nb; }
+          }
+          if (bestNb) { u.x = bestNb.col; u.y = bestNb.row; u.movesLeft = 0; revealAround(u.x, u.y, u.vision, nationId); }
+        }
+      }
+    }
+  }
+}
+
 // ====================
 // TUTORIAL
 // ====================
@@ -9821,6 +10913,8 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
   spawnAINations(aiCount);
+  const tribeCount = Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));
+  spawnTribes(tribeCount);
 
   // Spawn additional city sites across the map
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
@@ -9832,7 +10926,7 @@ function generateAndPlay(pName, pColor, opponents) {
   }
 
   selectedUnit = null; selectedCity = null;
-  moveMode = false; reachableTiles.clear(); buyTileMode = false;
+  moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
   ordersRemaining = getMaxOrders(playerNation);
   activatedUnits = new Set();
   hidePanel();
