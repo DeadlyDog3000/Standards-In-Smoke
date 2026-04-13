@@ -2450,7 +2450,7 @@ function updateAmbientTown() {
       }
     }
   }
-  const targetVol = townVisible ? Math.min(0.5, (VIEW_TILE - 28) / 100 * 0.5 + 0.1) : 0;
+  const targetVol = townVisible ? Math.min(0.08, (VIEW_TILE - 28) / 100 * 0.08 + 0.03) : 0;
   if (townVisible && !townPlaying) {
     townSound.volume = 0;
     townSound.play().catch(() => {});
@@ -2462,7 +2462,7 @@ function updateAmbientTown() {
       townSound.volume = targetVol;
       if (targetVol <= 0) { townSound.pause(); townPlaying = false; }
     } else {
-      townSound.volume = Math.max(0, Math.min(0.5, townSound.volume + diff * 0.15));
+      townSound.volume = Math.max(0, Math.min(0.08, townSound.volume + diff * 0.15));
     }
   }
 }
@@ -2504,6 +2504,8 @@ const UNIT_DEFS = {
   rifleman:       { moves: 4, vision: 6, icon: '\uD83C\uDFAF', desc: 'Elite sharpshooter with Baker rifle. Long range, high accuracy.', combat: true, atk: 9, hp: 8, ranged: true },
   grenadier:      { moves: 3, vision: 4, icon: '\uD83D\uDCA2', desc: 'Heavy shock infantry. Throws grenades and charges with bayonets.', combat: true, atk: 9, hp: 14, ability: 'Splash: 2 dmg to adjacent enemies' },
   hussar:         { moves: 9, vision: 6, icon: '\uD83C\uDFC7', desc: 'Light cavalry with pistols. Fast raider and flanker.', combat: true, atk: 6, hp: 8, ability: 'Raid: +2 ATK vs non-combat units' },
+  lancer:         { moves: 7, vision: 5, icon: '\uD83E\uDE84', desc: 'Medium cavalry armed with lances. Pierces through targets — damages both the primary and the unit directly behind it.', combat: true, atk: 8, hp: 10, ability: 'ZOC Pierce: primary takes 100% dmg, unit behind takes 25%' },
+  heavy_cavalry:  { moves: 5, vision: 4, icon: '\uD83D\uDEE1', desc: 'Armoured shock cavalry. Slow but devastating in a charge.', combat: true, atk: 13, hp: 14, ability: 'Shock: highest ATK of any cavalry' },
   dragoon:        { moves: 6, vision: 5, icon: '\uD83D\uDC34', desc: 'Mounted infantry with carbines. Versatile and mobile.', combat: true, atk: 7, hp: 9, ranged: true, ability: 'Skirmish: can attack after moving' },
   field_gun:      { moves: 3, vision: 5, icon: '\u2604', desc: 'Mobile field artillery. Effective against troops and cities.', combat: true, atk: 11, hp: 7, ranged: true, siege: true, reloadTime: 1, ammoTypes: ['cannonball', 'grapeshot'], moraleDmg: 20, artillery: true },
   cannon:         { moves: 2, vision: 4, icon: '\uD83D\uDCA3', desc: 'Siege artillery. Devastating vs cities.', combat: true, atk: 10, hp: 8, ranged: true, siege: true, reloadTime: 2, ammoTypes: ['cannonball', 'grapeshot'], moraleDmg: 25, artillery: true },
@@ -2545,6 +2547,8 @@ const PRODUCTION_COSTS = {
   rifleman:       { steel: 20, gold: 25, gunpowder: 20 },
   grenadier:      { steel: 20, gold: 20, gunpowder: 20 },
   hussar:         { food: 20, gold: 30, steel: 15 },
+  lancer:         { food: 25, gold: 40, steel: 25 },
+  heavy_cavalry:  { food: 30, gold: 50, steel: 40 },
   dragoon:        { food: 15, gold: 30, steel: 25 },
   field_gun:      { steel: 25, gold: 25, gunpowder: 15 },
   cannon:         { steel: 25, gold: 25, gunpowder: 15 },
@@ -2582,6 +2586,8 @@ const UNIT_UPGRADES = {
   crossbowman: { to: 'musketeer', tech: 'gunpowder_tech', cost: { steel: 10, gold: 15, gunpowder: 10 } },
   swordsman:   { to: 'grenadier', tech: 'bayonet_drill', cost: { steel: 10, gold: 15, gunpowder: 10 } },
   cavalry:     { to: 'hussar', tech: 'hussar_tactics', cost: { gold: 20, steel: 10 } },
+  hussar:      { to: 'lancer', tech: 'lancer_tactics', cost: { gold: 25, steel: 20 } },
+  lancer:      { to: 'heavy_cavalry', tech: 'heavy_cavalry_tactics', cost: { gold: 35, steel: 30 } },
   musketeer:   { to: 'rifleman', tech: 'rifling', cost: { steel: 10, gold: 20, gunpowder: 10 } },
   cannon:      { to: 'field_gun', tech: 'field_artillery', cost: { steel: 15, gold: 15 } },
   scout:       { to: 'veteran_scout', tech: 'advanced_scouting', cost: { food: 15, gold: 10 } },
@@ -2602,7 +2608,9 @@ const TECHS = {
   // MILITARY - Napoleonic
   rifling:         { name: 'Rifling', section: 'military', cost: 100, prereqs: ['gunpowder_tech'], unlocks: ['rifleman'], desc: 'Unlock riflemen. Grooved barrels give deadly accuracy at range.' },
   bayonet_drill:   { name: 'Bayonet Drill', section: 'military', cost: 90, prereqs: ['gunpowder_tech'], unlocks: ['grenadier'], desc: 'Unlock grenadiers. Elite shock troops with grenades and bayonets.' },
-  hussar_tactics:  { name: 'Hussar Tactics', section: 'military', cost: 85, prereqs: ['cavalry_tactics','gunpowder_tech'], unlocks: ['hussar'], desc: 'Unlock hussars. Light cavalry armed with pistols and sabres.' },
+  hussar_tactics:       { name: 'Hussar Tactics', section: 'military', cost: 85, prereqs: ['cavalry_tactics','gunpowder_tech'], unlocks: ['hussar'], desc: 'Unlock hussars. Light cavalry armed with pistols and sabres.' },
+  lancer_tactics:       { name: 'Lancer Tactics', section: 'military', cost: 110, prereqs: ['hussar_tactics'], unlocks: ['lancer'], desc: 'Unlock lancers. Medium cavalry whose charge pierces through enemies.' },
+  heavy_cavalry_tactics:{ name: 'Heavy Cavalry', section: 'military', cost: 140, prereqs: ['lancer_tactics'], unlocks: ['heavy_cavalry'], desc: 'Unlock heavy cavalry. Armoured shock troops — slow but devastating.' },
   dragoon_tactics: { name: 'Dragoon Tactics', section: 'military', cost: 95, prereqs: ['cavalry_tactics','gunpowder_tech'], unlocks: ['dragoon'], desc: 'Unlock dragoons. Mounted infantry who fight on foot with carbines.' },
   field_artillery: { name: 'Field Artillery', section: 'military', cost: 110, prereqs: ['siege_warfare','gunpowder_tech'], unlocks: ['field_gun'], desc: 'Unlock field guns. Mobile horse-drawn artillery for open battle.' },
   military_leadership: { name: 'Military Leadership', section: 'military', cost: 70, prereqs: ['cavalry_tactics'], unlocks: ['general'], desc: 'Unlock generals. Commanders who buff nearby troops and provide tactical advantages.' },
@@ -3874,6 +3882,37 @@ function doAttack(attacker, tx, ty) {
   const dmgToAttacker = attackerHpBefore - attacker.hp;
   const defenderDied = target.hp <= 0;
   const attackerDied = attacker.hp <= 0;
+
+  // Lancer ZOC pierce: 25% damage to the unit directly behind the primary target
+  if (attacker.type === 'lancer' && !attackerDied && units.includes(target)) {
+    // Find the neighbour of the target that lies furthest in the attacker→target direction
+    // by picking the neighbour whose screen-space dot product with the attack vector is highest
+    const adx = tx - attacker.x, ady = ty - attacker.y;
+    let bestPierce = null, bestDot = -Infinity;
+    for (const nb of hexNeighbors(tx, ty)) {
+      if (nb.col === attacker.x && nb.row === attacker.y) continue; // don't bounce back
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+      const dot = (nb.col - tx) * adx + (nb.row - ty) * ady;
+      if (dot > bestDot) { bestDot = dot; bestPierce = nb; }
+    }
+    if (bestPierce) {
+      const pierceTarget = units.find(u => u.x === bestPierce.col && u.y === bestPierce.row && u.nationId !== attacker.nationId && UNIT_DEFS[u.type]?.combat);
+      if (pierceTarget) {
+        const pierceDmg = Math.max(1, Math.round(dmgToDefender * 0.25));
+        pierceTarget.hp -= pierceDmg;
+        applyMoraleDamage(pierceTarget, Math.round(pierceDmg * 1.5), 'lancer_pierce');
+        if (attacker.nationId === playerNation)
+          addFloatingText(bestPierce.col, bestPierce.row, `-${pierceDmg} ⚔`, '#f8c060', 1200, 13);
+        if (pierceTarget.hp <= 0) {
+          awardXP(attacker, XP_PER_KILL);
+          removeUnit(pierceTarget);
+        } else {
+          checkMoraleBreak(pierceTarget, 0);
+          awardXP(attacker, XP_PER_HIT);
+        }
+      }
+    }
+  }
 
   // Grenadier splash: 2 damage to all enemies adjacent to the target
   if (attacker.type === 'grenadier' && !attackerDied) {
@@ -7395,77 +7434,375 @@ window.sendGift = sendGift;
 // TECH TREE UI
 // ====================
 let techTreeOpen = false;
+
 function showTechTree() {
-  const panel = document.getElementById('panel');
   techTreeOpen = true;
   selectedUnit = null; selectedCity = null; moveMode = false; reachableTiles.clear();
-  const n = nations[playerNation];
-  const sciPerTurn = getTotalYields(playerNation).science || 0;
-  const currentRes = n.currentResearch;
-  let html = `<h3>Tech Tree</h3><p>Science/turn: +${sciPerTurn.toFixed(1)}</p>`;
-  if (currentRes && TECHS[currentRes]) {
-    const ct = TECHS[currentRes];
-    const prog = n.researchProgress || 0;
-    const pct = Math.min(100, Math.floor(prog / ct.cost * 100));
-    const turnsLeft = getResearchTurnsLeft(playerNation);
-    html += `<div style="margin-bottom:8px;padding:6px;background:rgba(180,140,60,0.15);border:1px solid rgba(180,140,60,0.3);border-radius:4px;">
-      <span style="color:#d4a856;">Researching: ${ct.name}</span><br>
-      <div style="background:rgba(0,0,0,0.3);border-radius:3px;height:8px;margin:4px 0;">
-        <div style="background:#d4a856;height:100%;width:${pct}%;border-radius:3px;"></div>
-      </div>
-      <span style="font-size:10px;color:#a89878;">${Math.floor(prog)}/${ct.cost} (${turnsLeft} turns left)</span>
-    </div>`;
-  } else {
-    html += `<p style="color:#a89878;font-size:11px;">No research selected. Choose a technology below.</p>`;
-  }
-  const sections = { military: 'Military', production: 'Production', growth: 'Growth' };
-  for (const [sKey, sName] of Object.entries(sections)) {
-    html += `<div class="section-title">${sName}</div>`;
-    for (const [tKey, tech] of Object.entries(TECHS)) {
-      if (tech.section !== sKey) continue;
-      const researched = nationHasTech(playerNation, tKey);
-      const canDo = nationCanResearch(playerNation, tKey);
-      const prereqsMet = tech.prereqs.every(p => nationHasTech(playerNation, p));
-      let status = '';
-      let blocked = '';
-      if (researched) status = ' [Done]';
-      else if (tKey === currentRes) {
-        const prog = n.researchProgress || 0;
-        status = ` (${Math.floor(prog)}/${tech.cost})`;
-      }
-      else if (!prereqsMet) { status = ' [Locked]'; blocked = 'Requires: ' + tech.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', '); }
-      else if (tech.needsResource) {
-        const resType = tech.needsResource === 'horses' ? 6 : -1;
-        if (resType >= 0) {
-          const has = tiles.some((t, i) => t.owner === playerNation && t.type === resType);
-          if (!has) { status = ` (need ${tech.needsResource})`; blocked = `Need ${tech.needsResource} resource in your territory`; }
-        }
-      }
-      const unlockStr = tech.unlocks.map(u => {
-        const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
-        return ud ? ud.icon + ' ' + u : id ? id.icon + ' ' + u : u;
-      }).join(', ');
-      const isLocked = !prereqsMet && !researched;
-      const isActive = tKey === currentRes;
-      const turnsEst = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '?';
-      html += `<button class="p-btn" onclick="doResearch('${tKey}')" ${!canDo || researched ? 'disabled' : ''} style="${isLocked ? 'opacity:0.35' : researched ? 'border-left:3px solid #6a6' : isActive ? 'border-left:3px solid #d4a856;background:rgba(180,140,60,0.15)' : prereqsMet && canDo ? 'border-left:3px solid #886' : ''}">
-        ${tech.name}${status} <span class="cost">${tech.cost} sci (${turnsEst}t) -> ${unlockStr}</span>
-      </button>`;
-    }
-  }
-  html += `<button class="p-btn" onclick="closeTechTree()">Close</button>`;
-  panel.innerHTML = html; panel.style.display = 'block';
-  render();
+  _buildTechTreeOverlay();
 }
-function closeTechTree() { techTreeOpen = false; hidePanel(); render(); }
+
+function closeTechTree() {
+  techTreeOpen = false;
+  const ov = document.getElementById('techTreeOverlay');
+  if (ov) ov.remove();
+  hidePanel(); render();
+}
+
 window.showTechTree = showTechTree;
 window.closeTechTree = closeTechTree;
+
 window.doResearch = function(tKey) {
   if (setResearchTarget(playerNation, tKey)) {
     showToast(`Now researching: ${TECHS[tKey].name}`);
-    showTechTree(); updateUI();
+    _buildTechTreeOverlay(); updateUI();
   }
 };
+
+function _buildTechTreeOverlay() {
+  // Remove existing overlay if any
+  const existing = document.getElementById('techTreeOverlay');
+  if (existing) existing.remove();
+
+  const n = nations[playerNation];
+  const sciPerTurn = getTotalYields(playerNation).science || 0;
+  const currentRes = n.currentResearch;
+
+  // --- Compute depth (column) for each tech via longest prereq chain ---
+  const depth = {};
+  function getDepth(key) {
+    if (depth[key] !== undefined) return depth[key];
+    const t = TECHS[key];
+    if (!t || t.prereqs.length === 0) { depth[key] = 0; return 0; }
+    depth[key] = Math.max(...t.prereqs.map(p => getDepth(p))) + 1;
+    return depth[key];
+  }
+  for (const k in TECHS) getDepth(k);
+
+  // --- Layout: group by section, then sort by depth within each section ---
+  const SECTIONS = [
+    { key: 'military', label: '⚔ Military', color: '#c04040' },
+    { key: 'production', label: '⚒ Production', color: '#c08840' },
+    { key: 'growth', label: '🌿 Growth', color: '#40a860' },
+  ];
+
+  // Assign a row index per tech — within each section sort by depth, break ties by key name
+  const techLayout = {}; // key -> { col, row, section }
+  let globalRow = 0;
+  for (const sec of SECTIONS) {
+    const secTechs = Object.entries(TECHS)
+      .filter(([, t]) => t.section === sec.key)
+      .sort((a, b) => depth[a[0]] - depth[b[0]] || a[0].localeCompare(b[0]));
+    for (const [key] of secTechs) {
+      techLayout[key] = { col: depth[key], row: globalRow, section: sec.key };
+      globalRow++;
+    }
+    globalRow++; // gap between sections
+  }
+
+  const maxCol = Math.max(...Object.values(techLayout).map(l => l.col));
+  const NODE_W = 160, NODE_H = 72, COL_GAP = 48, ROW_GAP = 12;
+  const COLS = maxCol + 1;
+  const ROWS = globalRow;
+  const CANVAS_W = COLS * (NODE_W + COL_GAP) + COL_GAP;
+  const CANVAS_H = ROWS * (NODE_H + ROW_GAP) + ROW_GAP + 16;
+
+  // Node centre position helper
+  function nodePos(key) {
+    const l = techLayout[key];
+    const x = COL_GAP + l.col * (NODE_W + COL_GAP) + NODE_W / 2;
+    const y = ROW_GAP + l.row * (NODE_H + ROW_GAP) + NODE_H / 2;
+    return { x, y };
+  }
+
+  // --- Build overlay container ---
+  const overlay = document.createElement('div');
+  overlay.id = 'techTreeOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:200;
+    background:rgba(8,6,4,0.96);
+    display:flex;flex-direction:column;
+    font-family:'Cinzel',serif;
+    overflow:hidden;
+  `;
+
+  // --- Top bar ---
+  const topBar = document.createElement('div');
+  topBar.style.cssText = `
+    flex-shrink:0;padding:10px 20px;
+    background:rgba(20,15,8,0.95);
+    border-bottom:1px solid rgba(180,150,80,0.3);
+    display:flex;align-items:center;justify-content:space-between;
+  `;
+  const ct = currentRes && TECHS[currentRes];
+  const prog = n.researchProgress || 0;
+  const pct = ct ? Math.min(100, Math.floor(prog / ct.cost * 100)) : 0;
+  const turnsLeft = ct ? getResearchTurnsLeft(playerNation) : 0;
+  topBar.innerHTML = `
+    <div style="color:#d4a856;font-size:18px;font-weight:bold;letter-spacing:1px;">⚗ Tech Tree</div>
+    <div style="font-size:12px;color:#a89878;text-align:center;">
+      <span style="color:#8cf;">+${sciPerTurn.toFixed(1)} science/turn</span>
+      ${ct ? `&nbsp;·&nbsp;<span style="color:#d4a856;">Researching: ${ct.name}</span>
+        &nbsp;<span style="color:#8a7a5a;">${Math.floor(prog)}/${ct.cost} · ${turnsLeft}t left</span>
+        <div style="display:inline-block;vertical-align:middle;width:100px;height:6px;background:rgba(0,0,0,0.4);border-radius:3px;margin-left:6px;">
+          <div style="background:#d4a856;height:100%;width:${pct}%;border-radius:3px;"></div>
+        </div>` : `&nbsp;·&nbsp;<span style="color:#6a6060;">No research selected</span>`}
+    </div>
+    <button onclick="closeTechTree()" style="
+      background:rgba(80,20,20,0.5);border:1px solid rgba(200,80,60,0.4);
+      color:#f88;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px;
+    ">✕ Close</button>
+  `;
+  overlay.appendChild(topBar);
+
+  // --- Section legend ---
+  const legend = document.createElement('div');
+  legend.style.cssText = 'flex-shrink:0;padding:4px 20px;display:flex;gap:20px;background:rgba(12,10,6,0.8);border-bottom:1px solid rgba(100,80,40,0.2);';
+  for (const sec of SECTIONS) {
+    legend.innerHTML += `<span style="color:${sec.color};font-size:11px;">${sec.label}</span>`;
+  }
+  overlay.appendChild(legend);
+
+  // --- Scrollable canvas area ---
+  const scroll = document.createElement('div');
+  scroll.style.cssText = 'flex:1;overflow:auto;padding:16px;';
+
+  const cvs = document.createElement('canvas');
+  cvs.width = CANVAS_W;
+  cvs.height = CANVAS_H;
+  cvs.style.cssText = `display:block;cursor:pointer;`;
+  scroll.appendChild(cvs);
+  overlay.appendChild(scroll);
+  document.body.appendChild(overlay);
+
+  const ctx2 = cvs.getContext('2d');
+
+  function drawTree() {
+    ctx2.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // --- Draw prerequisite arrows ---
+    ctx2.lineWidth = 1.5;
+    for (const [key, tech] of Object.entries(TECHS)) {
+      const to = nodePos(key);
+      for (const prereqKey of tech.prereqs) {
+        if (!techLayout[prereqKey]) continue;
+        const from = nodePos(prereqKey);
+        const researched = nationHasTech(playerNation, prereqKey);
+        ctx2.strokeStyle = researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
+        ctx2.beginPath();
+        // Elbow routing: from right edge of prereq to left edge of target
+        const fx = from.x + NODE_W / 2, fy = from.y;
+        const tx2 = to.x - NODE_W / 2, ty2 = to.y;
+        const mx2 = (fx + tx2) / 2;
+        ctx2.moveTo(fx, fy);
+        ctx2.bezierCurveTo(mx2, fy, mx2, ty2, tx2, ty2);
+        ctx2.stroke();
+        // Arrow head
+        const angle = Math.atan2(ty2 - fy, tx2 - fx);
+        ctx2.save();
+        ctx2.translate(tx2, ty2);
+        ctx2.rotate(angle);
+        ctx2.fillStyle = researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
+        ctx2.beginPath();
+        ctx2.moveTo(0, 0); ctx2.lineTo(-10, -4); ctx2.lineTo(-10, 4);
+        ctx2.closePath(); ctx2.fill();
+        ctx2.restore();
+      }
+    }
+
+    // --- Draw nodes ---
+    for (const [key, tech] of Object.entries(TECHS)) {
+      const l = techLayout[key];
+      const { x, y } = nodePos(key);
+      const nx = x - NODE_W / 2, ny = y - NODE_H / 2;
+      const researched = nationHasTech(playerNation, key);
+      const isActive = key === currentRes;
+      const prereqsMet = tech.prereqs.every(p => nationHasTech(playerNation, p));
+      const canDo = nationCanResearch(playerNation, key);
+      const sec = SECTIONS.find(s => s.key === tech.section);
+      const secColor = sec ? sec.color : '#888';
+
+      // Node background
+      let bgColor;
+      if (researched)      bgColor = 'rgba(30,60,30,0.9)';
+      else if (isActive)   bgColor = 'rgba(60,50,10,0.95)';
+      else if (prereqsMet && canDo) bgColor = 'rgba(30,25,15,0.95)';
+      else                 bgColor = 'rgba(18,15,10,0.85)';
+
+      ctx2.fillStyle = bgColor;
+      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
+      ctx2.fill();
+
+      // Border
+      let borderColor;
+      if (researched)     borderColor = '#4a8a4a';
+      else if (isActive)  borderColor = '#d4a856';
+      else if (prereqsMet && canDo) borderColor = secColor;
+      else                borderColor = 'rgba(60,50,35,0.5)';
+      ctx2.strokeStyle = borderColor;
+      ctx2.lineWidth = isActive ? 2.5 : 1.5;
+      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
+      ctx2.stroke();
+
+      // Active research glow
+      if (isActive) {
+        ctx2.save();
+        ctx2.shadowColor = '#d4a856';
+        ctx2.shadowBlur = 16;
+        ctx2.strokeStyle = '#d4a856';
+        ctx2.lineWidth = 2;
+        _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
+        ctx2.stroke();
+        ctx2.restore();
+      }
+
+      // Colour stripe on left edge
+      ctx2.fillStyle = researched ? '#4a8a4a' : isActive ? '#d4a856' : prereqsMet ? secColor : 'rgba(60,50,35,0.5)';
+      _roundRect(ctx2, nx, ny, 4, NODE_H, 4);
+      ctx2.fill();
+
+      // Done checkmark / lock icon
+      const alpha = (researched || prereqsMet || isActive) ? 1.0 : 0.38;
+      ctx2.globalAlpha = alpha;
+
+      // Tech name
+      ctx2.font = 'bold 12px Cinzel, serif';
+      ctx2.fillStyle = researched ? '#8ecf8e' : isActive ? '#f0c060' : prereqsMet ? '#e8dcc8' : '#6a5a48';
+      ctx2.textAlign = 'left';
+      ctx2.textBaseline = 'top';
+      let label = tech.name;
+      if (researched) label = '✓ ' + label;
+      else if (!prereqsMet) label = '🔒 ' + label;
+      ctx2.fillText(label, nx + 10, ny + 8, NODE_W - 20);
+
+      // Cost
+      ctx2.font = '10px sans-serif';
+      ctx2.fillStyle = '#a89878';
+      const turnsEst = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '?';
+      ctx2.fillText(`${tech.cost} sci · ${turnsEst}t`, nx + 10, ny + 26, NODE_W - 20);
+
+      // Unlocks icons
+      const unlockIcons = tech.unlocks.map(u => {
+        const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
+        return ud ? ud.icon : id ? id.icon : '?';
+      }).join(' ');
+      ctx2.font = '13px sans-serif';
+      ctx2.fillStyle = '#c8b870';
+      ctx2.fillText(unlockIcons || '', nx + 10, ny + 42, NODE_W - 20);
+
+      // Active progress bar
+      if (isActive) {
+        const barX = nx + 8, barY = ny + NODE_H - 12, barW = NODE_W - 16;
+        ctx2.fillStyle = 'rgba(0,0,0,0.4)';
+        _roundRect(ctx2, barX, barY, barW, 6, 3); ctx2.fill();
+        ctx2.fillStyle = '#d4a856';
+        _roundRect(ctx2, barX, barY, barW * pct / 100, 6, 3); ctx2.fill();
+      }
+
+      ctx2.globalAlpha = 1.0;
+    }
+  }
+
+  function _roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  drawTree();
+
+  // --- Click to select research ---
+  cvs.addEventListener('click', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (cvs.width / rect.width);
+    const my = (e.clientY - rect.top) * (cvs.height / rect.height);
+    for (const [key] of Object.entries(TECHS)) {
+      const { x, y } = nodePos(key);
+      const nx = x - NODE_W / 2, ny = y - NODE_H / 2;
+      if (mx >= nx && mx <= nx + NODE_W && my >= ny && my <= ny + NODE_H) {
+        if (nationHasTech(playerNation, key)) return; // already done
+        if (!nationCanResearch(playerNation, key)) {
+          const t = TECHS[key];
+          const missing = t.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', ');
+          showToast(missing ? `Requires: ${missing}` : `Cannot research ${t.name} yet.`);
+          return;
+        }
+        window.doResearch(key);
+        return;
+      }
+    }
+  });
+
+  // Hover tooltip
+  let hoverKey = null;
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = `
+    position:fixed;z-index:210;background:rgba(10,8,4,0.97);border:1px solid rgba(180,150,80,0.5);
+    border-radius:6px;padding:8px 12px;font-size:12px;color:#e8dcc8;pointer-events:none;
+    max-width:240px;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.8);
+  `;
+  document.body.appendChild(tooltip);
+  overlay.addEventListener('remove', () => tooltip.remove());
+
+  cvs.addEventListener('mousemove', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (cvs.width / rect.width);
+    const my = (e.clientY - rect.top) * (cvs.height / rect.height);
+    let found = null;
+    for (const [key] of Object.entries(TECHS)) {
+      const { x, y } = nodePos(key);
+      if (mx >= x - NODE_W / 2 && mx <= x + NODE_W / 2 && my >= y - NODE_H / 2 && my <= y + NODE_H / 2) {
+        found = key; break;
+      }
+    }
+    if (found !== hoverKey) {
+      hoverKey = found;
+      if (found) {
+        const t = TECHS[found];
+        const researched = nationHasTech(playerNation, found);
+        const prereqsMet = t.prereqs.every(p => nationHasTech(playerNation, p));
+        const unlockStr = t.unlocks.map(u => {
+          const ud = UNIT_DEFS[u]; const id2 = IMPROVEMENT_DEFS[u];
+          return (ud ? ud.icon + ' ' + (ud.name || u) : id2 ? id2.icon + ' ' + (id2.name || u) : u);
+        }).join(', ');
+        const prereqStr = t.prereqs.length ? t.prereqs.map(p => TECHS[p]?.name || p).join(', ') : 'None';
+        const statusStr = researched ? '<span style="color:#4a8">✓ Researched</span>' :
+          found === currentRes ? `<span style="color:#d4a856">In progress (${pct}%)</span>` :
+          prereqsMet ? '<span style="color:#8cf">Available</span>' : '<span style="color:#a44">🔒 Locked</span>';
+        tooltip.innerHTML = `
+          <div style="font-weight:bold;color:#f0d890;margin-bottom:4px;">${t.name}</div>
+          <div style="color:#8cf;margin-bottom:2px;">${statusStr}</div>
+          <div style="color:#a89878;margin-bottom:4px;font-size:11px;">${t.desc}</div>
+          ${unlockStr ? `<div style="margin-bottom:2px;"><span style="color:#8a7">Unlocks:</span> ${unlockStr}</div>` : ''}
+          ${t.prereqs.length ? `<div style="color:#a89878;font-size:11px;">Requires: ${prereqStr}</div>` : ''}
+        `;
+        tooltip.style.display = 'block';
+      } else {
+        tooltip.style.display = 'none';
+      }
+    }
+    if (found) {
+      tooltip.style.left = Math.min(e.clientX + 14, window.innerWidth - 260) + 'px';
+      tooltip.style.top = Math.min(e.clientY + 10, window.innerHeight - 160) + 'px';
+    }
+  });
+  cvs.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoverKey = null; });
+
+  // Keyboard close
+  const keyClose = (e) => { if (e.key === 'Escape' || e.key === 't') { closeTechTree(); document.removeEventListener('keydown', keyClose); tooltip.remove(); } };
+  document.addEventListener('keydown', keyClose);
+
+  // Cleanup tooltip when overlay is removed
+  const obs = new MutationObserver(() => { if (!document.getElementById('techTreeOverlay')) { tooltip.remove(); obs.disconnect(); } });
+  obs.observe(document.body, { childList: true });
+}
 
 function toggleDiplomacy(nationId) {
   const pn = nations[playerNation];
