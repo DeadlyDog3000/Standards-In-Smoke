@@ -301,6 +301,12 @@
     }
     .color-swatch { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
     .color-swatch:hover, .color-swatch.selected { border-color: #e0c880; }
+    .nation-card { background:rgba(20,16,10,0.7); border:2px solid rgba(160,140,100,0.3); border-radius:6px; padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:9px; transition:border-color 0.15s,background 0.15s; }
+    .nation-card:hover { background:rgba(40,32,20,0.8); border-color:rgba(200,170,90,0.5); }
+    .nation-card.selected { border-color:#e0c880; box-shadow:0 0 8px rgba(224,200,128,0.3); background:rgba(50,40,20,0.85); }
+    .nation-flag { width:12px; border-radius:2px; flex-shrink:0; align-self:stretch; min-height:32px; }
+    .nation-card-name { font-size:12px; color:#e8dcc8; font-weight:bold; margin-bottom:1px; }
+    .nation-card-sub { font-size:10px; color:#a89878; }
     .slider-val {
       font-size: 13px;
       color: #e8dcc8;
@@ -366,26 +372,37 @@
       <!-- Section 1: Your Nation -->
       <div class="setup-section">
         <div class="setup-section-title">Your Nation</div>
-        <div class="setup-row">
-          <span class="setup-label">Nation Name</span>
-          <input id="setupName" type="text" value="France" maxlength="24" class="setup-input" style="width:180px;" />
+        <!-- Tab toggle -->
+        <div style="display:flex;gap:0;margin-bottom:12px;">
+          <button id="tabPreset" onclick="switchNationTab('preset')" style="flex:1;padding:6px 0;font-size:12px;font-family:inherit;cursor:pointer;border:1px solid rgba(160,140,100,0.4);border-radius:5px 0 0 5px;background:rgba(212,168,86,0.18);color:#e0c880;">Preset Nations</button>
+          <button id="tabCustom" onclick="switchNationTab('custom')" style="flex:1;padding:6px 0;font-size:12px;font-family:inherit;cursor:pointer;border:1px solid rgba(160,140,100,0.4);border-left:none;border-radius:0 5px 5px 0;background:rgba(30,25,18,0.6);color:#a89868;">Custom Nation</button>
         </div>
-        <div class="setup-row">
-          <span class="setup-label">Banner Color</span>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;max-width:220px;">
-            <input id="setupColor" type="color" value="#1a50c0" style="width:36px;height:28px;cursor:pointer;border:none;background:none;" />
-            <span style="font-size:11px;color:#a89868;align-self:center;">or pick a preset:</span>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;">
-              <div class="color-swatch" data-color="#cc1111" style="background:#cc1111" onclick="selectColorSwatch('#cc1111')"></div>
-              <div class="color-swatch" data-color="#1a50c0" style="background:#1a50c0" onclick="selectColorSwatch('#1a50c0')"></div>
-              <div class="color-swatch" data-color="#1a6b1a" style="background:#1a6b1a" onclick="selectColorSwatch('#1a6b1a')"></div>
-              <div class="color-swatch" data-color="#c8a800" style="background:#c8a800" onclick="selectColorSwatch('#c8a800')"></div>
-              <div class="color-swatch" data-color="#8b0000" style="background:#8b0000" onclick="selectColorSwatch('#8b0000')"></div>
-              <div class="color-swatch" data-color="#3a4a8a" style="background:#3a4a8a" onclick="selectColorSwatch('#3a4a8a')"></div>
-              <div class="color-swatch" data-color="#b05000" style="background:#b05000" onclick="selectColorSwatch('#b05000')"></div>
-              <div class="color-swatch" data-color="#7a30aa" style="background:#7a30aa" onclick="selectColorSwatch('#7a30aa')"></div>
-              <div class="color-swatch" data-color="#c87820" style="background:#c87820" onclick="selectColorSwatch('#c87820')"></div>
-              <div class="color-swatch" data-color="#30b050" style="background:#30b050" onclick="selectColorSwatch('#30b050')"></div>
+        <!-- Preset grid -->
+        <div id="nationPresetPane">
+          <div id="nationPickerGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;max-height:220px;overflow-y:auto;"></div>
+        </div>
+        <!-- Custom fields -->
+        <div id="nationCustomPane" style="display:none;">
+          <div class="setup-row">
+            <span class="setup-label">Nation Name</span>
+            <input id="setupName" type="text" value="My Kingdom" maxlength="24" class="setup-input" style="width:180px;" />
+          </div>
+          <div class="setup-row">
+            <span class="setup-label">Banner Color</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;max-width:220px;">
+              <input id="setupColor" type="color" value="#cc4400" style="width:36px;height:28px;cursor:pointer;border:none;background:none;" />
+              <div style="display:flex;gap:4px;flex-wrap:wrap;align-self:center;">
+                <div class="color-swatch" data-color="#cc1111" style="background:#cc1111" onclick="selectColorSwatch('#cc1111')"></div>
+                <div class="color-swatch" data-color="#1a50c0" style="background:#1a50c0" onclick="selectColorSwatch('#1a50c0')"></div>
+                <div class="color-swatch" data-color="#1a6b1a" style="background:#1a6b1a" onclick="selectColorSwatch('#1a6b1a')"></div>
+                <div class="color-swatch" data-color="#c8a800" style="background:#c8a800" onclick="selectColorSwatch('#c8a800')"></div>
+                <div class="color-swatch" data-color="#8b0000" style="background:#8b0000" onclick="selectColorSwatch('#8b0000')"></div>
+                <div class="color-swatch" data-color="#3a4a8a" style="background:#3a4a8a" onclick="selectColorSwatch('#3a4a8a')"></div>
+                <div class="color-swatch" data-color="#b05000" style="background:#b05000" onclick="selectColorSwatch('#b05000')"></div>
+                <div class="color-swatch" data-color="#7a30aa" style="background:#7a30aa" onclick="selectColorSwatch('#7a30aa')"></div>
+                <div class="color-swatch" data-color="#c87820" style="background:#c87820" onclick="selectColorSwatch('#c87820')"></div>
+                <div class="color-swatch" data-color="#30b050" style="background:#30b050" onclick="selectColorSwatch('#30b050')"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -8183,9 +8200,45 @@ function stopMenuSlideshow() {
 }
 startMenuSlideshow();
 
+let _selectedNationIdx = 0; // -1 = custom
+let _nationTab = 'preset';
+
+function renderNationPicker() {
+  const grid = document.getElementById('nationPickerGrid');
+  if (!grid) return;
+  grid.innerHTML = PRESET_NATIONS.map((n, i) => `
+    <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
+      <div class="nation-flag" style="background:${n.color}"></div>
+      <div>
+        <div class="nation-card-name">${n.name}</div>
+        <div class="nation-card-sub">${n.cityNames.slice(0,2).join(', ')}</div>
+      </div>
+    </div>`).join('');
+}
+window.pickNation = function(idx) {
+  _selectedNationIdx = idx;
+  renderNationPicker();
+};
+
+function switchNationTab(tab) {
+  _nationTab = tab;
+  const isPreset = tab === 'preset';
+  document.getElementById('nationPresetPane').style.display = isPreset ? '' : 'none';
+  document.getElementById('nationCustomPane').style.display = isPreset ? 'none' : '';
+  document.getElementById('tabPreset').style.background = isPreset ? 'rgba(212,168,86,0.18)' : 'rgba(30,25,18,0.6)';
+  document.getElementById('tabPreset').style.color = isPreset ? '#e0c880' : '#a89868';
+  document.getElementById('tabCustom').style.background = isPreset ? 'rgba(30,25,18,0.6)' : 'rgba(212,168,86,0.18)';
+  document.getElementById('tabCustom').style.color = isPreset ? '#a89868' : '#e0c880';
+}
+window.switchNationTab = switchNationTab;
+
 function showNewGame() {
   document.getElementById('menuMain').style.display = 'none';
   document.getElementById('menuSetup').style.display = 'block';
+  _selectedNationIdx = 0;
+  _nationTab = 'preset';
+  switchNationTab('preset');
+  renderNationPicker();
 }
 function resumeLastGame() {
   const data = localStorage.getItem('sis_save_auto');
@@ -8241,8 +8294,15 @@ function cancelSetup() {
   document.getElementById('menuMain').style.display = 'block';
 }
 function confirmSetupAndStart() {
-  const name = (document.getElementById('setupName').value || 'France').trim();
-  const color = document.getElementById('setupColor').value || '#1a50c0';
+  let name, color;
+  if (_nationTab === 'preset') {
+    const preset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
+    name = preset.name;
+    color = preset.color;
+  } else {
+    name = (document.getElementById('setupName').value || 'My Kingdom').trim();
+    color = document.getElementById('setupColor').value || '#cc4400';
+  }
   const opponents = parseInt(document.getElementById('setupOpponents').value) || 4;
   const mapSize = document.getElementById('setupMapSize').value;
   const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
