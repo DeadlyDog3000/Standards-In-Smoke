@@ -7573,7 +7573,7 @@ function render() {
           const impKey = impSpriteMap[t.improvement] || t.improvement;
           const impImg = hexImages[impKey];
           if (impImg && impImg.complete && impImg.naturalWidth > 0) {
-            ctx.drawImage(impImg, sx, sy + facePad, drawW, drawH);
+            ctx.drawImage(impImg, sx, sy, drawW, drawH);
           }
         }
         if (t.type === 4 && VIEW_TILE >= 12) {
