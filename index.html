@@ -3262,7 +3262,7 @@ function showIdleCitiesPopup(idleCities) {
       if (techReq && !nationHasTech(nId, techReq)) continue;
       const def = UNIT_DEFS[type];
       if (!def) continue;
-      const costs = PRODUCTION_COSTS[type];
+      const costs = PRODUCTION_COSTS[type] ? getScaledCosts(nId, PRODUCTION_COSTS[type]) : null;
       const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
       const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
       inner += `<button onclick="window._idleCityPick('${city.name}','${type}')" title="${costTip}" `;
@@ -3272,7 +3272,7 @@ function showIdleCitiesPopup(idleCities) {
 
     const availBldgs = Object.entries(CITY_BUILDING_DEFS).filter(([key, bld]) => !bld.wonder && !cityBuildings.includes(key));
     for (const [key, bld] of availBldgs) {
-      const costs = PRODUCTION_COSTS[key];
+      const costs = PRODUCTION_COSTS[key] ? getScaledCosts(nId, PRODUCTION_COSTS[key]) : null;
       const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
       const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
       inner += `<button onclick="window._idleCityPick('${city.name}','${key}')" title="${costTip}" `;
@@ -3992,9 +3992,21 @@ function getFactoryBonus(city) {
   return (city.buildings || []).includes('factory') ? 1.25 : 1.0;
 }
 
+function getCityScaleFactor(nationId) {
+  const count = cities.filter(c => c.nationId === nationId).length;
+  return 1 + 0.2 * Math.max(0, count - 1);
+}
+function getScaledCosts(nationId, costs) {
+  const s = getCityScaleFactor(nationId);
+  if (s === 1) return costs;
+  const out = {};
+  for (const k in costs) out[k] = Math.ceil(costs[k] * s);
+  return out;
+}
+
 function getProductionTurns(city) {
   if (!city.producing) return 0;
-  const costs = PRODUCTION_COSTS[city.producing];
+  const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
@@ -4003,7 +4015,7 @@ function getProductionTurns(city) {
 function tickProduction(city) {
   if (!city.producing) return;
   city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
-  const costs = PRODUCTION_COSTS[city.producing];
+  const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
     const n = nations[city.nationId];
@@ -4087,7 +4099,7 @@ window.rushProduce = function() {
   if (n.gold < cost) { showToast('Not enough gold!'); return; }
   n.gold -= cost;
   // Complete production immediately
-  const costs = PRODUCTION_COSTS[selectedCity.producing];
+  const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
   let canAfford = true;
   for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
   if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
@@ -7256,17 +7268,21 @@ function triggerEvent() {
   const card = document.getElementById('eventCard');
   let html = `<h3>${evt.title}</h3><p>${eventText}</p>`;
   const pn = nations[playerNation];
+  const evtScale = getCityScaleFactor(playerNation);
+  const specialEffectKeys = new Set(['spawnWorker', 'spawnSwordsman', 'charDeath', 'familyOpinion', 'loyalty', 'legitimacy']);
   evt.choices.forEach((ch, idx) => {
     const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
-      const sign = v > 0 ? '+' : '';
+      const scaled = (!specialEffectKeys.has(k) && v < 0) ? -Math.ceil(-v * evtScale) : v;
+      const sign = scaled > 0 ? '+' : '';
       const label = k === 'legitimacy' ? '⚜' : k === 'loyalty' ? 'Relations' : k.charAt(0).toUpperCase() + k.slice(1);
-      return `${sign}${v} ${label}`;
+      return `${sign}${scaled} ${label}`;
     }).join(', ');
     // Gray out choices the player can't afford (skip loyalty and special effects - not resources)
     const canAfford = Object.entries(ch.effects).every(([k, v]) => {
       if (v >= 0 || k === 'loyalty' || k === 'spawnWorker' || k === 'spawnSwordsman' || k === 'charDeath' || k === 'familyOpinion') return true;
       if (k === 'legitimacy') return (pn.legitimacy || 50) + v >= 0;
-      return (pn[k] || 0) + v >= 0;
+      const scaled = -Math.ceil(-v * evtScale);
+      return (pn[k] || 0) + scaled >= 0;
     });
     const disabled = canAfford ? '' : ' disabled style="opacity:0.4;cursor:default;"';
     html += `<button class="event-choice"${disabled} onclick="applyEventChoice('${evt.id}', ${idx})">${ch.label}${effectStr ? `<span class="event-effect">${effectStr}</span>` : ''}</button>`;
@@ -7281,6 +7297,8 @@ function applyEventChoice(eventId, choiceIndex) {
   if (!evt) return;
   const choice = evt.choices[choiceIndex];
   const n = nations[playerNation];
+  const applyScale = getCityScaleFactor(playerNation);
+  const _specialEvtKeys = new Set(['spawnWorker', 'spawnSwordsman', 'charDeath', 'familyOpinion', 'loyalty', 'legitimacy']);
   for (const [key, val] of Object.entries(choice.effects)) {
     if (key === 'loyalty') {
       if (currentEventNation !== null) {
@@ -7325,12 +7343,14 @@ function applyEventChoice(eventId, choiceIndex) {
         hitFamilyOpinion(playerNation, -8);
       }
     } else {
-      n[key] = Math.max(0, (n[key] || 0) + val);
+      const scaledVal = (!_specialEvtKeys.has(key) && val < 0) ? -Math.ceil(-val * applyScale) : val;
+      n[key] = Math.max(0, (n[key] || 0) + scaledVal);
     }
   }
   const effectStr = Object.entries(choice.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
-    const sign = v > 0 ? '+' : '';
-    return `${sign}${v} ${k}`;
+    const scaled = (!_specialEvtKeys.has(k) && v < 0) ? -Math.ceil(-v * applyScale) : v;
+    const sign = scaled > 0 ? '+' : '';
+    return `${sign}${scaled} ${k}`;
   }).join(', ');
   if (effectStr) logEvent(`${evt.title}: ${choice.label} (${effectStr})`);
   else logEvent(`${evt.title}: ${choice.label}`);
@@ -8467,7 +8487,7 @@ function showCityTab(tab) {
     const nId = selectedCity.nationId;
     let html = '<div class="section-title">Growth</div>';
     function prodBtn(type) {
-      const costs = PRODUCTION_COSTS[type]; const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
+      const costs = getScaledCosts(nId, PRODUCTION_COSTS[type]); const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
       const typeName = type.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
       const def = UNIT_DEFS[type]; const icon = def.icon;
       let statStr = '';
@@ -8509,7 +8529,7 @@ function showCityTab(tab) {
     if (availableBuildings.length > 0) {
       html += '<div class="section-title">Buildings</div>';
       for (const [key, bld] of availableBuildings) {
-        const costs = PRODUCTION_COSTS[key];
+        const costs = getScaledCosts(nId, PRODUCTION_COSTS[key]);
         const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
         const canAfford = Object.entries(costs).every(([k,v]) => (n[k] || 0) >= v);
         const active = selectedCity.producing === key;
@@ -8523,7 +8543,7 @@ function showCityTab(tab) {
     if (availableWonders.length > 0) {
       html += '<div class="section-title" style="color:#e0c880;">Wonders <span style="font-size:10px;color:#998;">(one per game)</span></div>';
       for (const [key, bld] of availableWonders) {
-        const costs = PRODUCTION_COSTS[key];
+        const costs = getScaledCosts(nId, PRODUCTION_COSTS[key]);
         const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
         const canAfford = Object.entries(costs).every(([k,v]) => (n[k] || 0) >= v);
         const active = selectedCity.producing === key;
