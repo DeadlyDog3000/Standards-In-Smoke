@@ -1733,7 +1733,7 @@ function getDifficultyModifiers() {
 const HEX_IMG_W = 32, HEX_IMG_H = 48; // native sprite size
 const hexImages = {};
 const HEX_TILE_FILES = [
-  'Grass','Grass_Pine','Grass_Plants','Grass_Trees',
+  'Grass_Pine','Grass_Plants','Grass_Trees',
   'farm','market','mine','quarry','factory','urban','lumber_mill','barn','port','pasture','science_lab','treasury',
   'Water','Water_Duck','Water_Lilypads',
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
@@ -1751,10 +1751,10 @@ for (const name of HEX_TILE_FILES) {
 // Map tile types to hex sprite names (arrays = random variant per tile)
 const TILE_SPRITES = {
   0: ['Water'],                                            // ocean
-  1: ['Grass', 'Grass_Plants'],                            // plains
+  1: ['Grass_Plants'],                                     // plains
   2: ['Snow', 'Snow_Patch', 'Snow_Plants'],               // mountain
   3: ['Dirt', 'Dirt_Sprouts'],                             // swamp
-  4: ['Grass'],                                            // city (drawn with overlay)
+  4: ['Grass_Plants'],                                     // city (drawn with overlay)
   5: ['Grass_Trees', 'Grass_Pine', 'Grass_Trees', 'Grass_Pine'], // forest (more common variants)
   6: ['Dirt_Pumpkins', 'Grass_Plants'],                    // herd
   7: ['Snow_Plants', 'Snow_Patch', 'Grass_Plants'],       // hill (elevated terrain)
@@ -7563,7 +7563,7 @@ function render() {
         if (sx < -w * 2 || sy < -ch * 2 || sx > canvas.width + w || sy > canvas.height + ch) continue;
         if (!t.revealed.has(pId)) continue;
 
-        const img = hexImages[t.spriteKey] || hexImages['Grass'];
+        const img = hexImages[t.spriteKey] || hexImages['Grass_Plants'];
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.drawImage(img, sx, sy, drawW, drawH);
         }
