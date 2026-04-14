@@ -1987,6 +1987,7 @@ function createCharacter(nationId, role, gender) {
   }
   const age = role === 'ruler' ? 30 + Math.floor(Math.random() * 20) :
               role === 'spouse' ? 25 + Math.floor(Math.random() * 15) :
+              role === 'noble' ? 35 + Math.floor(Math.random() * 25) :
               0;
   const char = {
     id: nextCharId++,
@@ -2192,19 +2193,21 @@ function initNationFamilies(nationId) {
   const n = nations[nationId];
   if (!n || n.isBarbarian || n.isTribe) return;
   const presetList = NATION_FAMILIES[n.name];
-  if (presetList) {
-    for (const fname of presetList) {
-      families.push({ id: nextFamilyId++, name: fname, nationId, opinion: 60 });
-    }
-  } else {
-    // Random / custom nation: pick 2 distinct family names from LAST_NAMES
+  const nameList = presetList || (() => {
     const used = new Set();
+    const names = [];
     for (let i = 0; i < 2; i++) {
       let fname;
       do { fname = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]; } while (used.has(fname));
-      used.add(fname);
-      families.push({ id: nextFamilyId++, name: fname, nationId, opinion: 60 });
+      used.add(fname); names.push(fname);
     }
+    return names;
+  })();
+  for (const fname of nameList) {
+    const head = createCharacter(nationId, 'noble');
+    // Give the head the family surname
+    head.name = head.name.split(' ')[0] + ' ' + fname;
+    families.push({ id: nextFamilyId++, name: fname, nationId, opinion: 60, headId: head.id });
   }
 }
 
@@ -6116,6 +6119,8 @@ function tickFamilyOpinions() {
     if (n.gold < 20) family.opinion = Math.max(0, family.opinion - 0.5);
     // Clamp to [0,100]
     family.opinion = Math.max(0, Math.min(100, family.opinion));
+    // High opinion: loyal families boost legitimacy
+    if (family.opinion >= 80) n.legitimacy = Math.min(100, (n.legitimacy || 50) + 2);
     // Rebellion check: opinion below 25 risks revolt
     if (family.opinion < 25) {
       const chance = family.opinion < 5 ? 0.3 : family.opinion < 12 ? 0.15 : 0.05;
@@ -9854,6 +9859,7 @@ canvas.addEventListener('click', (e) => {
     const isNaval = UNIT_DEFS[selectedUnit.type].naval;
     const tileOk = isNaval ? tiles[ti].type === 0 : tiles[ti].type !== 0;
     if (tileOk) {
+      if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) { gotoMode = false; render(); return; }
       selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
       gotoMode = false;
       // Immediately move toward destination with animation
@@ -10656,6 +10662,7 @@ function renderCourtPanel() {
       const opPct = op;
       const appeaseCost = 30;
       const canAppease = pn.gold >= appeaseCost && op < 80;
+      const head = f.headId ? characters.find(c => c.id === f.headId && !c.deathTurn) : null;
       html += `<div style="padding:6px 8px;margin:3px 0;background:rgba(40,30,20,0.4);border:1px solid rgba(160,140,100,0.2);border-radius:4px;">`;
       html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">`;
       html += `<span style="font-size:12px;color:#e0c880;">House of ${f.name}</span>`;
@@ -10664,6 +10671,13 @@ function renderCourtPanel() {
       html += `<div style="height:4px;background:rgba(0,0,0,0.3);border-radius:2px;margin-bottom:4px;">`;
       html += `<div style="width:${opPct}%;height:100%;background:${opColor};border-radius:2px;transition:width 0.3s;"></div>`;
       html += `</div>`;
+      if (head) {
+        const traitStr = head.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ');
+        html += `<div style="font-size:11px;color:#c8b080;padding:3px 0 2px 0;">`;
+        html += `<span style="color:#e0c880;">Head:</span> ${head.name} (Age ${head.age}, ${head.gender})`;
+        if (traitStr) html += ` — <span style="color:#d4a856;">${traitStr}</span>`;
+        html += `</div>`;
+      }
       if (op < 80) {
         html += `<button class="p-btn" onclick="appeaseFamilyOpinion(${f.id})" ${!canAppease ? 'disabled' : ''} style="font-size:11px;padding:2px 8px;">Appease <span class="cost">${appeaseCost}g → +15 opinion</span></button>`;
       }
@@ -10968,6 +10982,14 @@ function loadGame(slot) {
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
   viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
   if (deserializeGame(data)) {
+    // Migration: give families a noble head character if missing (old saves)
+    for (const f of families) {
+      if (!f.headId) {
+        const head = createCharacter(f.nationId, 'noble');
+        head.name = head.name.split(' ')[0] + ' ' + f.name;
+        f.headId = head.id;
+      }
+    }
     // Fix corrupted spriteKeys from period when lumber_mill.png == Grass_Pine.png
     for (const t of tiles) {
       if (!hexImages[t.spriteKey]) {
