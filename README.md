@@ -31,6 +31,11 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.6 — 2026-04-13
+- **Feature**: New cities start with a free worker unit — no longer stranded with a bare capital
+- **Feature**: Orders exhausted popup — a centred overlay appears when you use your last order, prompting you to end your turn
+- **Fix**: Tech research sound now plays reliably on completion — was silently failing due to cloneNode not loading audio data
+
 ### Beta 3.5 — 2026-04-13
 - **Feature**: Noble Families system — every nation now has 2–4 historic noble houses (Habsburgs, Bonapartes, Romanovs, Hohenzollerns, etc.) with individual opinion scores (0–100); families with low opinion become Restless → Angry and eventually spawn scaled rebellions near the capital
 - **Feature**: Noble Families replace the old per-city discontent system entirely — `city.discontent` and `triggerRebellion` removed; rebellions now emerge from noble politics, not mob unhappiness

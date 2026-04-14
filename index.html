@@ -2582,6 +2582,14 @@ const TILE_COLORS = {
 };
 
 const TILE_NAMES = ['Ocean', 'Plains', 'Mountain', 'Swamp', 'City', 'Forest', 'Herd', 'Hill', 'River'];
+
+const ANIMAL_DATA = {
+  horse: { icon: '🐴', name: 'Wild Horses',  huntYield: { gold: 15, food: 5  }, baseYield: { food: 1, gold: 2  } },
+  deer:  { icon: '🦌', name: 'Deer',          huntYield: { food: 30           }, baseYield: { food: 3          } },
+  cattle:{ icon: '🐄', name: 'Wild Cattle',   huntYield: { food: 20, gold: 5  }, baseYield: { food: 2, gold: 1  } },
+  sheep: { icon: '🐑', name: 'Wild Sheep',    huntYield: { food: 15, gold: 5  }, baseYield: { food: 2, gold: 1  } },
+  boar:  { icon: '🐗', name: 'Wild Boar',     huntYield: { food: 25           }, baseYield: { food: 2, wood: 1  } },
+};
 const TILE_DESCS = [
   'Deep water, impassable to land units.',
   'Open grassland, suitable for farming.',
@@ -2631,7 +2639,7 @@ const IMPROVEMENT_DEFS = {
   quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2, 7], buildTurns: 2 },
   steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 20, steel: 25 }, validOn: [1, 5], buildTurns: 5 },
   urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1, 5], buildTurns: 3 },
-  pasture:     { name: 'Pasture', icon: '\uD83D\uDC11', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [6], tech: 'animal_husbandry', buildTurns: 2 },
+  pasture:     { name: 'Pasture', icon: '🐄', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [1, 6, 7], requiresAnimal: true, tech: 'animal_husbandry', buildTurns: 2 },
   barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1, 5], tech: 'agriculture', buildTurns: 4 },
   lumbermill:  { name: 'Lumbermill', icon: '\uD83E\uDE93', yields: { wood: 3 }, cost: { stone: 10, gold: 10 }, validOn: [5], tech: 'lumbermill', buildTurns: 3 },
   science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 4 }, cost: { stone: 15, gold: 20 }, validOn: [1, 5], buildTurns: 4 },
@@ -3125,6 +3133,18 @@ function showToast(msg, noLog) {
   if (!noLog && typeof logEvent === 'function') logEvent(msg);
 }
 
+function showOrdersExhaustedPopup() {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(20,10,5,0.92);border:2px solid #8b6914;border-radius:10px;padding:18px 36px;text-align:center;z-index:200;pointer-events:none;color:#e8c87a;font-size:1.2em;font-weight:bold;letter-spacing:0.04em;box-shadow:0 4px 32px #0008;';
+  el.textContent = 'No orders remaining — End your turn!';
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.4s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 420);
+  }, 2000);
+}
+
 function showFirstContact(nation) {
   logEvent(`Discovered ${nation.name}!`);
   playAchievement();
@@ -3168,7 +3188,7 @@ function showTurnBanner(turn) {
 
 function playTechUnlockFX() {
   // --- Sound: play for 14 seconds then fade out ---
-  const sound = techBangSound.cloneNode();
+  const sound = new Audio('tiles/achievement_bang.mp3');
   sound.volume = 0.75;
   sound.play().catch(() => {});
   setTimeout(() => {
@@ -3366,7 +3386,7 @@ function generateMap() {
     }
     const sv = Math.floor(spriteRand() * 997);
     const spriteKey = pickSprite(type, sv);
-    tiles[i] = { type, color, baseColor: color, owner: -1, improvement: null, revealed: new Set(), spriteKey, hasRiver: false };
+    tiles[i] = { type, color, baseColor: color, owner: -1, improvement: null, revealed: new Set(), spriteKey, hasRiver: false, animal: null };
   }
   // Post-process: generate rivers from mountains toward ocean
   const riverCount = Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 500));
@@ -3458,6 +3478,31 @@ function generateMap() {
       }
       lakesCreated++;
     }
+  }
+
+  // Scatter animal resources on land tiles (~6% of eligible tiles)
+  const animalRand = mulberry32(seed + 88888);
+  for (let i = 0; i < tiles.length; i++) {
+    const t = tiles[i];
+    if (t.type === 0 || t.type === 2 || t.type === 3 || t.type === 4) continue; // skip ocean, mountain, swamp, city
+    if (animalRand() > 0.06) continue;
+    const ax = i % MAP_COLS, ay = Math.floor(i / MAP_COLS);
+    const nearForest = hexNeighbors(ax, ay).some(nb => {
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
+      return tiles[nb.row * MAP_COLS + nb.col].type === 5;
+    });
+    const r = animalRand();
+    let animal;
+    if (t.type === 6) {              // herd tiles: cattle or sheep
+      animal = r < 0.55 ? 'cattle' : 'sheep';
+    } else if (t.type === 7) {       // hills: sheep or deer
+      animal = r < 0.6 ? 'sheep' : 'deer';
+    } else if (nearForest) {         // forest edge: deer or boar
+      animal = r < 0.5 ? 'deer' : r < 0.8 ? 'boar' : 'sheep';
+    } else {                         // open plains
+      animal = r < 0.18 ? 'horse' : r < 0.5 ? 'cattle' : r < 0.78 ? 'deer' : 'sheep';
+    }
+    t.animal = animal;
   }
 
   units = []; cities = []; nations = []; turnNumber = 1;
@@ -3626,6 +3671,7 @@ function tryActivateUnit(unit) {
   ordersRemaining--;
   activatedUnits.add(unit);
   updateUI();
+  if (ordersRemaining === 0) showOrdersExhaustedPopup();
   return true;
 }
 
@@ -3691,6 +3737,8 @@ function foundCity(unit, cityName) {
   revealAround(city.x, city.y, CITY_VISION_BASE, unit.nationId);
   removeUnit(unit);
   if (selectedUnit === unit) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
+  // New cities start with a free worker
+  spawnUnit('worker', city.nationId, city.x, city.y);
   return city;
 }
 
@@ -3699,11 +3747,21 @@ function getCityYields(city) {
   for (const ti of city.ownedTiles) {
     const t = tiles[ti];
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
-      const yields = IMPROVEMENT_DEFS[t.improvement].yields;
-      for (const k in yields) y[k] = (y[k] || 0) + yields[k];
+      // Pasture yields depend on the animal type on the tile
+      if (t.improvement === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) {
+        const baseY = ANIMAL_DATA[t.animal].baseYield;
+        for (const k in baseY) y[k] = (y[k] || 0) + baseY[k];
+      } else {
+        const yields = IMPROVEMENT_DEFS[t.improvement].yields;
+        for (const k in yields) y[k] = (y[k] || 0) + yields[k];
+      }
     }
     // Forests no longer give passive wood — chop them or build a lumbermill
-    if (t.type === 6 && !t.improvement) y.food += 0.5; // unimproved herds give a little food
+    // Unimproved animal tiles and bare herd tiles give a little passive food
+    if (!t.improvement) {
+      if (t.animal) y.food += 0.5;
+      else if (t.type === 6) y.food += 0.5;
+    }
   }
   // Great Library: +1 science per city
   if (nationHasWonder(city.nationId, 'great_library')) y.science += 1;
@@ -3773,10 +3831,16 @@ function tickProduction(city) {
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
     const n = nations[city.nationId];
-    let canAfford = true;
-    for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
-    if (canAfford) {
+    const isBuilding = !!CITY_BUILDING_DEFS[city.producing];
+    // Buildings consume materials (stone, wood, steel) — check and deduct at completion.
+    // Units do NOT re-check resources: production time already represents the cost.
+    if (isBuilding) {
+      let canAfford = true;
+      for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
+      if (!canAfford) return; // stall until resources available (buildings need real materials)
       for (const k in costs) n[k] -= costs[k];
+    }
+    {
       // Check if this is a city building
       if (CITY_BUILDING_DEFS[city.producing]) {
         const bld = CITY_BUILDING_DEFS[city.producing];
@@ -3811,9 +3875,7 @@ function tickProduction(city) {
           if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; foundTile = true; break; }
         }
         if (!foundTile && units.some(u => u.x === sx && u.y === sy)) {
-          // No valid tile — refund and notify
-          const refundCosts = PRODUCTION_COSTS[city.producing];
-          if (refundCosts) for (const k in refundCosts) n[k] = (n[k] || 0) + refundCosts[k];
+          // No valid tile — stall until a space opens
           if (city.nationId === playerNation) showToast(`No room to deploy unit near ${city.name}!`);
         } else {
           spawnUnit(city.producing, city.nationId, sx, sy);
@@ -3914,6 +3976,7 @@ function canBuildImprovement(worker, impKey) {
   const t = tiles[i];
   if (t.improvement || t.owner !== worker.nationId) return false;
   if (!imp.validOn.includes(t.type)) return false;
+  if (imp.requiresAnimal && !t.animal) return false;
   if (imp.tech && !nationHasTech(worker.nationId, imp.tech)) return false;
   if (imp.coastal && !isCoastal(worker.x, worker.y)) return false;
   if (impKey === 'science_lab') {
@@ -6139,7 +6202,12 @@ function evtHasCoastalCity() {
 }
 function evtIsAtWar() {
   const n = nations[playerNation];
-  return n ? Object.values(n.relations || {}).some(r => r === 'war') : false;
+  if (!n) return false;
+  return Object.entries(n.relations || {}).some(([nId, r]) => {
+    if (r !== 'war') return false;
+    const other = nations[parseInt(nId)];
+    return other && !other.isBarbarian && !other.isTribe && !other.eliminated;
+  });
 }
 function evtCityCount() { return cities.filter(c => c.nationId === playerNation).length; }
 function evtGold() { return nations[playerNation]?.gold || 0; }
@@ -7381,6 +7449,13 @@ function render() {
       ctx.font = `${Math.max(9, w * 0.4)}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
+    } else if (t.animal && !t.improvement && VIEW_TILE >= 14) {
+      const ad = ANIMAL_DATA[t.animal];
+      if (ad) {
+        ctx.font = `${Math.max(10, w * 0.42)}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(ad.icon, sx + w / 2, fy + ch * 0.48);
+      }
     }
 
     if (t.owner >= 0 && !isBarbarianNation(t.owner)) {
@@ -8008,6 +8083,17 @@ function showUnitPanel(unit) {
     html += `<button class="p-btn" onclick="confirmSettle()" ${!check.ok ? 'disabled' : ''}>Found City (F)</button>`;
     if (!check.ok) html += `<p style="font-size:11px;color:#a66">${check.reason}</p>`;
   }
+  // Hunt action: any unit on an animal tile outside player territory
+  {
+    const _hti = unit.y * MAP_COLS + unit.x;
+    const _ht = tiles[_hti];
+    if (_ht.animal && !_ht.improvement && _ht.owner !== playerNation && unit.nationId === playerNation && unit.movesLeft > 0) {
+      const _ad = ANIMAL_DATA[_ht.animal];
+      const _huntStr = Object.entries(_ad.huntYield).map(([k,v]) => `+${v} ${k}`).join(', ');
+      html += `<div class="section-title">Hunt</div>`;
+      html += `<button class="p-btn" onclick="doHunt()" style="border-color:#c84;color:#fc8">${_ad.icon} Hunt ${_ad.name} <span class="cost">${_huntStr}</span></button>`;
+    }
+  }
   if (unit.type === 'worker' || unit.type === 'veteran_worker') {
     const ti = unit.y * MAP_COLS + unit.x; const t = tiles[ti];
     // Show build progress if currently building
@@ -8039,9 +8125,16 @@ function showUnitPanel(unit) {
           const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
           const currentCost = getImprovementCost(key, unit.nationId);
           const costStr = Object.entries(currentCost).map(([k,v]) => `${v} ${k}`).join(', ') || 'Free';
-          const yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+          // Pasture: show animal-specific yields when on an animal tile
+          let yieldStr;
+          if (key === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) {
+            const baseY = ANIMAL_DATA[t.animal].baseYield;
+            yieldStr = Object.entries(baseY).map(([k,v]) => `+${v} ${k}`).join(', ');
+          } else {
+            yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+          }
           const bTurns = (unit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
-          html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t -> ${yieldStr}</span></button>`;
+          html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t → ${yieldStr}</span></button>`;
         }
       }
       if (unit.nationId === playerNation && unit.movesLeft > 0) {
@@ -9297,7 +9390,20 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     }
   }
   if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">Build lumbermill or chop for wood</div>`;
-  if (t.type === 6 && !t.improvement) html += `<div class="tt-detail">+0.5 food/turn</div>`;
+  if (t.type === 6 && !t.improvement && !t.animal) html += `<div class="tt-detail">+0.5 food/turn</div>`;
+  if (t.animal && !t.improvement) {
+    const _ad = ANIMAL_DATA[t.animal];
+    if (_ad) {
+      html += `<div class="tt-detail">${_ad.icon} ${_ad.name}</div>`;
+      if (t.owner === playerNation) {
+        const pY = Object.entries(_ad.baseYield).map(([k,v]) => `+${v} ${k}`).join(', ');
+        html += `<div class="tt-detail" style="color:#7f7">Build Pasture → ${pY}/turn</div>`;
+      } else {
+        const hY = Object.entries(_ad.huntYield).map(([k,v]) => `+${v} ${k}`).join(', ');
+        html += `<div class="tt-detail" style="color:#fc8">Move unit here to Hunt (${hY})</div>`;
+      }
+    }
+  }
   // Show total tile yield contribution if part of a city
   if (t.owner >= 0 && t.type === 4) {
     const ownerCity = cities.find(c => c.x === mx && c.y === my);
@@ -10213,6 +10319,25 @@ window.doChop = function() {
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 
+window.doHunt = function() {
+  if (!selectedUnit || selectedUnit.nationId !== playerNation || selectedUnit.movesLeft <= 0) return;
+  if (!tryActivateUnit(selectedUnit)) return;
+  const ti = selectedUnit.y * MAP_COLS + selectedUnit.x;
+  const t = tiles[ti];
+  if (!t.animal || t.improvement || t.owner === playerNation) return;
+  const ad = ANIMAL_DATA[t.animal];
+  if (!ad) return;
+  const n = nations[playerNation];
+  for (const [k, v] of Object.entries(ad.huntYield)) n[k] = (n[k] || 0) + v;
+  const yStr = Object.entries(ad.huntYield).map(([k,v]) => `+${v} ${k}`).join(', ');
+  showToast(`Hunted ${ad.name}! (${yStr})`);
+  addFloatingText(selectedUnit.x, selectedUnit.y, ad.icon, '#fc8', 1800, 16);
+  t.animal = null;
+  selectedUnit.movesLeft = 0;
+  if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
+  showUnitPanel(selectedUnit); updateUI(); render();
+};
+
 window.doRepair = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
@@ -10480,6 +10605,7 @@ function serializeGame() {
     if (t.improvement) ct.i = t.improvement;
     if (t.spriteKey) ct.s = t.spriteKey;
     if (t.hasRiver) ct.rv = true;
+    if (t.animal) ct.an = t.animal;
     return ct;
   });
   const sCities = cities.map(c => ({
@@ -10527,7 +10653,7 @@ function deserializeGame(json) {
       const type = d.v >= 10 ? t.t : (t.t === 7 ? 2 : t.t); // v10+ has hills (7) and rivers (8)
       const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
       const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
-      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv };
+      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, animal: t.an || null };
     });
   } else {
     // Legacy verbose format (v2-v7)
