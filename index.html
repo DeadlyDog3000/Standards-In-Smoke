@@ -1727,7 +1727,8 @@ function getDifficultyModifiers() {
 const HEX_IMG_W = 32, HEX_IMG_H = 48; // native sprite size
 const hexImages = {};
 const HEX_TILE_FILES = [
-  'Grass','Grass_Pine','Grass_Plants','Grass_Plants2','Grass_Trees',
+  'Grass','Grass_Pine','Grass_Plants','Grass_Trees',
+  'farm','market','mine','quarry','factory','urban','lumber_mill','barn',
   'Water','Water_Duck','Water_Lilypads',
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
   'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
@@ -1744,7 +1745,7 @@ for (const name of HEX_TILE_FILES) {
 // Map tile types to hex sprite names (arrays = random variant per tile)
 const TILE_SPRITES = {
   0: ['Water'],                                            // ocean
-  1: ['Grass', 'Grass_Plants', 'Grass_Plants2'],          // plains
+  1: ['Grass', 'Grass_Plants'],                            // plains
   2: ['Snow', 'Snow_Patch', 'Snow_Plants'],               // mountain
   3: ['Dirt', 'Dirt_Sprouts'],                             // swamp
   4: ['Grass'],                                            // city (drawn with overlay)
@@ -7611,12 +7612,20 @@ function render() {
 
     if (t.improvement && VIEW_TILE >= 16) {
       const imp = IMPROVEMENT_DEFS[t.improvement];
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = `${Math.max(9, w * 0.4)}px system-ui`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
+      if (t.improvement === 'farm' || t.improvement === 'market' || t.improvement === 'mine' || t.improvement === 'quarry' || t.improvement === 'steel_mill' || t.improvement === 'urban' || t.improvement === 'lumbermill' || t.improvement === 'barn') {
+        const spriteKey = t.improvement === 'steel_mill' ? 'factory' : t.improvement === 'lumbermill' ? 'lumber_mill' : t.improvement;
+        const sprite = hexImages[spriteKey];
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+          ctx.drawImage(sprite, sx, fy - facePad, drawW, drawH);
+        }
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = `${Math.max(9, w * 0.4)}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
+      }
     } else if (t.animal && !t.improvement && VIEW_TILE >= 14) {
       const ad = ANIMAL_DATA[t.animal];
       if (ad) {
