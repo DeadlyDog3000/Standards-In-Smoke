@@ -8364,8 +8364,8 @@ function showUnitPanel(unit) {
     html += '</div>';
   }
   if (UNIT_DEFS[unit.type]?.combat) {
-    const moveAndAttack = unit.type === 'dragoon';
-    html += `<p style="font-size:11px;color:#a66">${moveAndAttack ? 'Dragoons can move and attack in the same turn.' : 'Attacking uses the entire turn. Cannot move and attack.'}</p>`;
+    const moveAndAttack = unit.type === 'dragoon' || unit.type === 'swordsman';
+    html += `<p style="font-size:11px;color:#a66">${moveAndAttack ? `${unit.type === 'swordsman' ? 'Swordsmen' : 'Dragoons'} can move and attack in the same turn.` : 'Attacking uses the entire turn. Cannot move and attack.'}</p>`;
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
       if (unit.fortified) {
