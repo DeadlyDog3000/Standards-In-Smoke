@@ -550,6 +550,19 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Idle Reminders</b><br>
+        - Popup appears at end of turn when any city is not producing &mdash; pick a unit or building directly from the popup or click More to open the full city panel<br>
+        - Popup appears when no research is selected &mdash; browse available techs grouped by section with cost and turns estimate; open full Tech Tree from within the popup<br>
+        - Both popups chain: idle cities appear first, then the research picker if still unset<br>
+        - Dismiss with Escape or the Later button; they reappear next turn if still idle<br>
+        <br>
+        <b style="color:#b8a070;">Other</b><br>
+        - New cities now start with a free worker<br>
+        - Orders exhausted popup when you use your last order<br>
+        - Tech research sound fixed<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Noble Families</b><br>
@@ -3144,6 +3157,159 @@ function showOrdersExhaustedPopup() {
     setTimeout(() => el.remove(), 420);
   }, 2000);
 }
+
+// ====================
+// END-TURN REMINDERS
+// ====================
+function checkEndTurnReminders() {
+  if (eventModalOpen || techTreeOpen) return;
+  const idleCities = cities.filter(c => c.nationId === playerNation && !c.ruined && !c.producing && !(c.productionQueue?.length));
+  if (idleCities.length > 0) {
+    showIdleCitiesPopup(idleCities);
+  } else {
+    const n = nations[playerNation];
+    if (n && !n.currentResearch) showNoResearchPopup();
+  }
+}
+
+function _reminderPopupWrap(id) {
+  const existing = document.getElementById(id);
+  if (existing) { existing.remove(); return null; }
+  const overlay = document.createElement('div');
+  overlay.id = id;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:145;display:flex;align-items:center;justify-content:center;';
+  return overlay;
+}
+
+function showNoResearchPopup() {
+  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup')) return;
+  const n = nations[playerNation];
+  if (!n) return;
+  const available = Object.entries(TECHS).filter(([key]) => nationCanResearch(playerNation, key));
+  if (available.length === 0) return;
+  const overlay = _reminderPopupWrap('noResearchPopup');
+  if (!overlay) return;
+
+  const sciPerTurn = getTotalYields(playerNation).science || 0;
+  const SECTION_LABELS = { military: '⚔ Military', production: '🏗 Production', growth: '📈 Growth' };
+  const sections = {};
+  for (const [key, tech] of available) {
+    if (!sections[tech.section]) sections[tech.section] = [];
+    sections[tech.section].push([key, tech]);
+  }
+
+  let inner = `<div style="background:#1a140a;border:2px solid #8b6914;border-radius:12px;padding:20px 24px;width:440px;max-height:68vh;overflow-y:auto;position:relative;">`;
+  inner += `<button onclick="document.getElementById('noResearchPopup')?.remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">✕</button>`;
+  inner += `<h3 style="color:#d4a856;margin:0 0 4px;font-size:1.05em;">📜 No Research Selected</h3>`;
+  inner += `<p style="color:#7a7a6a;font-size:11px;margin:0 0 10px;">+${sciPerTurn.toFixed(1)} science/turn — click a tech to begin.</p>`;
+
+  for (const [sec, techs] of Object.entries(sections)) {
+    inner += `<div style="color:#c8a060;font-size:10px;font-weight:bold;margin:10px 0 3px;text-transform:uppercase;letter-spacing:0.07em;">${SECTION_LABELS[sec] || sec}</div>`;
+    for (const [key, tech] of techs) {
+      const turns = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '∞';
+      const unlocks = tech.unlocks.map(u => UNIT_DEFS[u]?.icon || CITY_BUILDING_DEFS[u]?.icon || IMPROVEMENT_DEFS[u]?.icon || '').filter(Boolean).join(' ');
+      inner += `<button onclick="setResearchTarget(${playerNation},'${key}');document.getElementById('noResearchPopup')?.remove();updateUI();" `;
+      inner += `style="width:100%;text-align:left;background:#241900;border:1px solid #4a3810;border-radius:5px;color:#e0d0a0;padding:6px 10px;margin:2px 0;cursor:pointer;font-size:12px;display:block;">`;
+      inner += `<strong>${tech.name}</strong>${unlocks ? ' <span style="opacity:0.7">' + unlocks + '</span>' : ''}<span style="color:#7a7a6a;font-size:10px;float:right;">${tech.cost}⚗ · ${turns}t</span>`;
+      inner += `<div style="font-size:10px;color:#7a7a6a;margin-top:2px;">${tech.desc}</div></button>`;
+    }
+  }
+
+  inner += `<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">`;
+  inner += `<button onclick="document.getElementById('noResearchPopup')?.remove();showTechTree();" style="background:#1e1a0a;border:1px solid #5a4820;color:#c8a060;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;">Full Tech Tree</button>`;
+  inner += `<button onclick="document.getElementById('noResearchPopup')?.remove();" style="background:#1a1a1a;border:1px solid #444;color:#777;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;">Later</button>`;
+  inner += `</div></div>`;
+
+  overlay.innerHTML = inner;
+  document.body.appendChild(overlay);
+}
+
+function showIdleCitiesPopup(idleCities) {
+  if (eventModalOpen || techTreeOpen || document.getElementById('idleCitiesPopup')) return;
+  const overlay = _reminderPopupWrap('idleCitiesPopup');
+  if (!overlay) return;
+  const n = nations[playerNation];
+
+  let inner = `<div style="background:#1a140a;border:2px solid #8b6914;border-radius:12px;padding:20px 24px;width:460px;max-height:68vh;overflow-y:auto;position:relative;">`;
+  inner += `<button onclick="window._closeIdlePopup()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">✕</button>`;
+  inner += `<h3 style="color:#d4a856;margin:0 0 4px;font-size:1.05em;">🏙 ${idleCities.length} Idle Cit${idleCities.length === 1 ? 'y' : 'ies'}</h3>`;
+  inner += `<p style="color:#7a7a6a;font-size:11px;margin:0 0 10px;">These cities are not producing anything. Assign them a task.</p>`;
+
+  for (const city of idleCities) {
+    const nId = city.nationId;
+    const cityBuildings = city.buildings || [];
+    const hasPort = [...city.ownedTiles].some(ti => tiles[ti].improvement === 'port');
+    const globalBuiltWonders = new Set(cities.flatMap(c => (c.buildings || []).filter(b => CITY_BUILDING_DEFS[b]?.wonder)));
+    const allUnitTypes = ['settler','worker','scout','swordsman','crossbowman','cavalry','musketeer','rifleman','grenadier','hussar','dragoon','field_gun','cannon','mortar','veteran_scout','veteran_worker','general'];
+    if (hasPort) allUnitTypes.push('frigate','galleon','man_of_war');
+
+    inner += `<div style="border:1px solid #3a2e18;border-radius:7px;padding:10px 12px;margin:8px 0;">`;
+    inner += `<div style="color:#e0d0a0;font-weight:bold;font-size:13px;margin-bottom:7px;">🏙 ${city.name}</div>`;
+    inner += `<div style="display:flex;flex-wrap:wrap;gap:4px;">`;
+
+    for (const type of allUnitTypes) {
+      const techReq = unitRequiresTech(type);
+      if (techReq && !nationHasTech(nId, techReq)) continue;
+      const def = UNIT_DEFS[type];
+      if (!def) continue;
+      const costs = PRODUCTION_COSTS[type];
+      const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
+      const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
+      inner += `<button onclick="window._idleCityPick('${city.name}','${type}')" title="${costTip}" `;
+      inner += `style="background:#241900;border:1px solid ${canAfford?'#4a3810':'#2a2010'};border-radius:4px;color:${canAfford?'#e0d0a0':'#5a5040'};padding:3px 8px;cursor:pointer;font-size:11px;">`;
+      inner += `${def.icon} ${type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</button>`;
+    }
+
+    const availBldgs = Object.entries(CITY_BUILDING_DEFS).filter(([key, bld]) => !bld.wonder && !cityBuildings.includes(key));
+    for (const [key, bld] of availBldgs) {
+      const costs = PRODUCTION_COSTS[key];
+      const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
+      const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
+      inner += `<button onclick="window._idleCityPick('${city.name}','${key}')" title="${costTip}" `;
+      inner += `style="background:#241900;border:1px solid ${canAfford?'#4a3810':'#2a2010'};border-radius:4px;color:${canAfford?'#e0d0a0':'#5a5040'};padding:3px 8px;cursor:pointer;font-size:11px;">`;
+      inner += `${bld.icon} ${bld.name}</button>`;
+    }
+
+    inner += `<button onclick="window._openCityProd('${city.name}')" style="background:#102010;border:1px solid #2a5020;border-radius:4px;color:#7ab870;padding:3px 8px;cursor:pointer;font-size:11px;">+ More</button>`;
+    inner += `</div></div>`;
+  }
+
+  inner += `<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">`;
+  inner += `<button onclick="window._closeIdlePopup()" style="background:#1a1a1a;border:1px solid #444;color:#777;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;">Dismiss</button>`;
+  inner += `</div></div>`;
+
+  overlay.innerHTML = inner;
+  document.body.appendChild(overlay);
+}
+
+window._closeIdlePopup = function() {
+  document.getElementById('idleCitiesPopup')?.remove();
+  const n = nations[playerNation];
+  if (n && !n.currentResearch) showNoResearchPopup();
+};
+
+window._idleCityPick = function(cityName, type) {
+  const city = cities.find(c => c.name === cityName && c.nationId === playerNation);
+  if (!city) return;
+  const bld = CITY_BUILDING_DEFS[type];
+  if (bld && !bld.wonder && (city.buildings||[]).includes(type)) { showToast(`${bld.name} already built here.`); return; }
+  if (bld && bld.wonder && cities.some(c => (c.buildings||[]).includes(type))) { showToast(`${bld.name} already built.`); return; }
+  city.producing = type; city.productionProgress = 0;
+  showToast(`${city.name}: producing ${getProductionName(type)}`);
+  document.getElementById('idleCitiesPopup')?.remove();
+  const remaining = cities.filter(c => c.nationId === playerNation && !c.ruined && !c.producing && !(c.productionQueue?.length));
+  if (remaining.length > 0) showIdleCitiesPopup(remaining);
+  else { const n = nations[playerNation]; if (n && !n.currentResearch) showNoResearchPopup(); }
+  updateUI();
+};
+
+window._openCityProd = function(cityName) {
+  const city = cities.find(c => c.name === cityName && c.nationId === playerNation);
+  if (!city) return;
+  document.getElementById('idleCitiesPopup')?.remove();
+  selectedCity = city; selectedUnit = null;
+  showCityPanel(city);
+};
 
 function showFirstContact(nation) {
   logEvent(`Discovered ${nation.name}!`);
@@ -6185,6 +6351,8 @@ function finishEndTurn() {
   updateUI(); render();
   // Trigger events every 4 turns starting turn 4 (after UI update so modal appears on top)
   if (turnNumber > 3 && turnNumber % 4 === 0) triggerEvent();
+  // Show reminders for idle cities / no research (delay so they appear after event modal if both fire)
+  setTimeout(checkEndTurnReminders, 200);
 }
 
 // ====================
@@ -10003,6 +10171,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
     if (eventModalOpen) return; // Can't ESC out of events, must choose
+    if (document.getElementById('noResearchPopup')) { document.getElementById('noResearchPopup').remove(); return; }
+    if (document.getElementById('idleCitiesPopup')) { window._closeIdlePopup(); return; }
     if (escMenuOpen) closeEscMenu();
     else if (moveMode || buyTileMode || workerBuyMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; workerBuyMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
@@ -10784,6 +10954,7 @@ function loadGame(slot) {
     startAutoSaveTimer();
     render(); updateUI();
     showUpdateLogPopup();
+    setTimeout(checkEndTurnReminders, 800);
   }
 }
 
@@ -11067,6 +11238,7 @@ function generateAndPlay(pName, pColor, opponents) {
   showToast(`You are ${pName}. Found your empire!`);
   showUpdateLogPopup();
   startTutorial();
+  setTimeout(checkEndTurnReminders, 1200);
 }
 
 window.addEventListener('resize', () => {

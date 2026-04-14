@@ -31,6 +31,11 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.7 — 2026-04-13
+- **Feature**: Idle city popup — appears at end of turn for any city not producing; click a unit/building to assign production, or open the full city panel
+- **Feature**: No research popup — appears when no tech is being researched; browse available techs by section with cost and turn estimate, or open the full tech tree
+- Both reminders chain (idle cities first, then research), dismiss with ESC or "Later", and reappear next turn if still unresolved
+
 ### Beta 3.6 — 2026-04-13
 - **Feature**: New cities start with a free worker unit — no longer stranded with a bare capital
 - **Feature**: Orders exhausted popup — a centred overlay appears when you use your last order, prompting you to end your turn
