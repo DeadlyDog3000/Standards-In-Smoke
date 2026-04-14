@@ -31,6 +31,10 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.8 — 2026-04-14
+- **Feature**: All 11 tile improvements now render as pixel art sprites instead of emoji icons: Farm, Market, Mine, Quarry, Steel Mill, Urban, Lumbermill, Barn, Port, Pasture, Science Lab, Treasury
+- **Fix**: Grass tile variants updated — plains now use Grass and Grass_Plants sprites
+
 ### Beta 3.7 — 2026-04-13
 - **Feature**: Idle city popup — appears at end of turn for any city not producing; click a unit/building to assign production, or open the full city panel
 - **Feature**: No research popup — appears when no tech is being researched; browse available techs by section with cost and turn estimate, or open the full tech tree
