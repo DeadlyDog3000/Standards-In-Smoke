@@ -7563,7 +7563,7 @@ function render() {
         if (sx < -w * 2 || sy < -ch * 2 || sx > canvas.width + w || sy > canvas.height + ch) continue;
         if (!t.revealed.has(pId)) continue;
 
-        const img = hexImages[t.spriteKey];
+        const img = hexImages[t.spriteKey] || hexImages['Grass'];
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.drawImage(img, sx, sy, drawW, drawH);
         }
