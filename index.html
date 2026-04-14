@@ -7567,6 +7567,15 @@ function render() {
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.drawImage(img, sx, sy, drawW, drawH);
         }
+        // Draw improvement sprites here in Pass 1 to preserve z-order overlap
+        if (t.improvement && VIEW_TILE >= 16) {
+          const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
+          const impKey = impSpriteMap[t.improvement] || t.improvement;
+          const impImg = hexImages[impKey];
+          if (impImg && impImg.complete && impImg.naturalWidth > 0) {
+            ctx.drawImage(impImg, sx, sy, drawW, drawH);
+          }
+        }
         if (t.type === 4 && VIEW_TILE >= 12) {
           drawVillageOverlay(ctx, sx, sy, drawW, drawH);
         }
@@ -7618,13 +7627,10 @@ function render() {
 
     if (t.improvement && VIEW_TILE >= 16) {
       const imp = IMPROVEMENT_DEFS[t.improvement];
-      if (t.improvement === 'farm' || t.improvement === 'market' || t.improvement === 'mine' || t.improvement === 'quarry' || t.improvement === 'steel_mill' || t.improvement === 'urban' || t.improvement === 'lumbermill' || t.improvement === 'barn' || t.improvement === 'port' || t.improvement === 'pasture' || t.improvement === 'science_lab' || t.improvement === 'treasury') {
-        const spriteKey = t.improvement === 'steel_mill' ? 'factory' : t.improvement === 'lumbermill' ? 'lumber_mill' : t.improvement;
-        const sprite = hexImages[spriteKey];
-        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-          ctx.drawImage(sprite, sx, fy - facePad, drawW, drawH);
-        }
-      } else {
+      const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
+      const impKey = impSpriteMap[t.improvement] || t.improvement;
+      if (!hexImages[impKey] || !hexImages[impKey].complete || !hexImages[impKey].naturalWidth) {
+        // Fallback emoji for improvements without a sprite
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff';
