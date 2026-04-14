@@ -31,6 +31,10 @@ Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites 
 
 ## Changelog
 
+### Beta 3.9 — 2026-04-14
+- **Balance**: Unit production costs and building costs now scale with city count — each additional city raises all production and event resource costs by 20% (2 cities = 1.2×, 3 = 1.4×, etc.), discouraging pure city-spam and resource hoarding
+- **Balance**: Event gold/resource costs follow the same scaling — paying for events gets more expensive as your empire grows
+
 ### Beta 3.8 — 2026-04-14
 - **Feature**: All 11 tile improvements now render as pixel art sprites instead of emoji icons: Farm, Market, Mine, Quarry, Steel Mill, Urban, Lumbermill, Barn, Port, Pasture, Science Lab, Treasury
 - **Fix**: Grass tile variants updated — plains now use Grass and Grass_Plants sprites
