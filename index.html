@@ -58,13 +58,47 @@
       position: fixed; top: 0; left: 0; right: 0; height: 36px; z-index: 30;
       background: rgba(30, 25, 18, 0.92); border-bottom: 1px solid rgba(160, 140, 100, 0.3);
       display: flex; align-items: center; padding: 0 10px; gap: 14px; font-size: 13px;
-      color: #e8dcc8;
+      color: #e8dcc8; overflow: hidden;
     }
-    .res { display: flex; align-items: center; gap: 3px; position: relative; }
+    .res { display: flex; align-items: center; gap: 3px; position: relative; flex-shrink: 0; }
     .res-icon { width: 13px; height: 13px; border-radius: 2px; display: inline-block; }
+    .res-label { white-space: nowrap; }
     .res-val { font-weight: bold; min-width: 28px; }
     .res-rate { font-size: 10px; color: #8a9a6a; }
-    #topbar .spacer { flex: 1; }
+    #topbar .spacer { flex: 1; min-width: 4px; }
+    .top-btn .btn-full { display: inline; }
+    .top-btn .btn-short { display: none; }
+
+    /* Compact: hide resource labels, keep icon+value — triggers at ~1050px */
+    @media (max-width: 1050px) {
+      #topbar { gap: 8px; }
+      .res-label { display: none; }
+      .res-rate { display: none; }
+      .top-btn { padding: 4px 8px; font-size: 12px; }
+    }
+
+    /* Narrow: two-row topbar — triggers at ~780px */
+    @media (max-width: 780px) {
+      #topbar {
+        height: auto; flex-wrap: wrap; gap: 4px 8px;
+        padding: 4px 8px 4px; align-items: center;
+      }
+      #topbar .spacer { display: none; }
+      .res-val { min-width: 20px; }
+      /* Push buttons to their own row */
+      .top-btn { order: 10; }
+      #endTurnBtn { order: 11; }
+    }
+
+    /* Very narrow: abbreviate button labels — triggers at ~520px */
+    @media (max-width: 520px) {
+      .top-btn .btn-full { display: none; }
+      .top-btn .btn-short { display: inline; }
+      .top-btn { padding: 4px 6px; font-size: 11px; }
+      .res-icon { width: 10px; height: 10px; }
+      .res-val { min-width: 16px; font-size: 11px; }
+      #topbar { gap: 3px 6px; font-size: 11px; }
+    }
     .top-btn {
       padding: 4px 12px; font-size: 12px;
       background: rgba(220, 210, 190, 0.12); color: #fff;
@@ -106,7 +140,7 @@
 
     /* Kingdoms Sidebar */
     #kingdoms {
-      display: none; position: fixed; left: 10px; top: 46px; width: 220px; max-height: 60vh;
+      display: none; position: fixed; left: 10px; top: 40px; width: 220px; max-height: 60vh;
       overflow-y: auto; background: rgba(30, 25, 18, 0.93); border: 1px solid rgba(160, 140, 100, 0.3);
       border-radius: 6px; padding: 14px; z-index: 25; font-size: 13px; color: #e8dcc8;
     }
@@ -826,30 +860,30 @@
   <canvas id="map"></canvas>
   <canvas id="minimap" width="160" height="100"></canvas>
   <div id="topbar">
-    <div class="res"><span class="res-icon" style="background:#d4a856"></span><span>Gold:</span><span class="res-val" id="resGold">0</span><span class="res-rate" id="rateGold"></span></div>
-    <div class="res"><span class="res-icon" style="background:#8bc34a"></span><span>Food:</span><span class="res-val" id="resFood">0</span><span class="res-rate" id="rateFood"></span></div>
-    <div class="res"><span class="res-icon" style="background:#8d6e3f"></span><span>Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
-    <div class="res"><span class="res-icon" style="background:#9e9e9e"></span><span>Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
-    <div class="res"><span class="res-icon" style="background:#607d8b"></span><span>Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
-    <div class="res"><span class="res-icon" style="background:#3a3a3a"></span><span>Gunpowder:</span><span class="res-val" id="resGunpowder">0</span><span class="res-rate" id="rateGunpowder"></span></div>
-    <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span>Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
+    <div class="res"><span class="res-icon" style="background:#d4a856"></span><span class="res-label">Gold:</span><span class="res-val" id="resGold">0</span><span class="res-rate" id="rateGold"></span></div>
+    <div class="res"><span class="res-icon" style="background:#8bc34a"></span><span class="res-label">Food:</span><span class="res-val" id="resFood">0</span><span class="res-rate" id="rateFood"></span></div>
+    <div class="res"><span class="res-icon" style="background:#8d6e3f"></span><span class="res-label">Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
+    <div class="res"><span class="res-icon" style="background:#9e9e9e"></span><span class="res-label">Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
+    <div class="res"><span class="res-icon" style="background:#607d8b"></span><span class="res-label">Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
+    <div class="res"><span class="res-icon" style="background:#3a3a3a"></span><span class="res-label">Gunpowder:</span><span class="res-val" id="resGunpowder">0</span><span class="res-rate" id="rateGunpowder"></span></div>
+    <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span class="res-label">Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
     <div class="spacer"></div>
-    <div class="res"><span style="color:#d4a856">⚜</span><span>Legitimacy:</span><span class="res-val" id="resLegitimacy">50</span></div>
-    <div class="res"><span>Orders:</span><span class="res-val" id="resOrders">0</span></div>
-    <div class="res" style="margin-left:6px"><span style="color:#b8a070">Turn</span><span class="res-val" id="turnCounter">1</span></div>
-    <div class="res"><span style="color:#d4a856">Score:</span><span class="res-val" id="playerScore">0</span></div>
+    <div class="res"><span style="color:#d4a856">⚜</span><span class="res-label">Legit:</span><span class="res-val" id="resLegitimacy">50</span></div>
+    <div class="res"><span class="res-label">Orders:</span><span class="res-val" id="resOrders">0</span></div>
+    <div class="res"><span class="res-label" style="color:#b8a070">Turn</span><span class="res-val" id="turnCounter">1</span></div>
+    <div class="res"><span class="res-label" style="color:#d4a856">Score:</span><span class="res-val" id="playerScore">0</span></div>
     <div class="res" id="seasonIndicator" style="color:#8ac;font-size:12px;"></div>
-    <button class="top-btn" onclick="showTechTree()">Tech Tree</button>
-    <button class="top-btn" onclick="toggleKingdoms()">Kingdoms</button>
+    <button class="top-btn" onclick="showTechTree()"><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
+    <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
-    <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()">End Turn</button>
+    <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
   <div id="turnInfo">Turn 1</div>
   <div id="zoomInfo"></div>
   <div id="panel"></div>
   <div id="kingdoms"></div>
-  <div id="courtPanel" style="display:none;position:fixed;top:60px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
+  <div id="courtPanel" style="display:none;position:fixed;top:40px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
   <div id="labels"></div>
   <div id="toast"></div>
   <div id="tileTooltip"></div>
@@ -11036,6 +11070,7 @@ function loadGame(slot) {
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
   viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  setTimeout(updateTopbarOffset, 50);
   if (deserializeGame(data)) {
     // Migration: give families a noble head character if missing (old saves)
     for (const f of families) {
@@ -11283,6 +11318,7 @@ function startGame(cols, rows, pName, pColor, opponents) {
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
   viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  setTimeout(updateTopbarOffset, 50);
   generateAndPlay(pName, pColor, opponents);
   startMusic();
   startAutoSaveTimer();
@@ -11346,13 +11382,26 @@ function generateAndPlay(pName, pColor, opponents) {
   setTimeout(checkEndTurnReminders, 1200);
 }
 
+function updateTopbarOffset() {
+  const tbH = document.getElementById('topbar').offsetHeight;
+  const kingdoms = document.getElementById('kingdoms');
+  const court = document.getElementById('courtPanel');
+  const turnInfo = document.getElementById('turnInfo');
+  if (kingdoms) kingdoms.style.top = (tbH + 4) + 'px';
+  if (court) court.style.top = (tbH + 4) + 'px';
+  if (turnInfo) turnInfo.style.top = (tbH + 2) + 'px';
+}
+
 window.addEventListener('resize', () => {
   if (!MAP_COLS) return;
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
   viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
   viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  updateTopbarOffset();
   render();
 });
+// Run once on load too
+setTimeout(updateTopbarOffset, 100);
 
 // Init save slots on load
 refreshSaveSlots();
