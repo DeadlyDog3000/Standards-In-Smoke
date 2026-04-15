@@ -1802,7 +1802,7 @@ function getDifficultyModifiers() {
 const HEX_IMG_W = 32, HEX_IMG_H = 48; // native sprite size
 const hexImages = {};
 const HEX_TILE_FILES = [
-  'Grass_Pine','Grass_Plants','Grass_Trees',
+  'Grass','Grass_Pine','Grass_Plants','Grass_Trees',
   'farm','market','mine','quarry','factory','urban','lumber_mill','barn','port','pasture','science_lab','treasury',
   'Water','Water_Duck','Water_Lilypads',
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
@@ -1836,7 +1836,7 @@ for (const name of HEX_TILE_FILES) {
 // Map tile types to hex sprite names (arrays = random variant per tile)
 const TILE_SPRITES = {
   0: ['Water'],                                            // ocean
-  1: ['Grass_Plants'],                                     // plains
+  1: ['Grass', 'Grass_Plants'],                             // plains
   2: ['Snow', 'Snow_Patch', 'Snow_Plants'],               // mountain
   3: ['Dirt', 'Dirt_Sprouts'],                             // swamp
   4: ['Grass_Plants'],                                     // city (drawn with overlay)
