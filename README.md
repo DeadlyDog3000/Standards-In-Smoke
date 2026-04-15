@@ -9,7 +9,7 @@ Open `index.html` in a browser. No build step or server required.
 - **Pan**: Click and drag, or WASD / arrow keys
 - **Zoom**: Mouse wheel
 - **Select**: Click on units or cities
-- **Move units**: Select a unit, click the Move button, then click a destination
+- **Move units**: Select a unit, then right-click a destination tile
 - **Found cities**: Move a Settler unit and use the Found City action
 - **Build improvements**: Use a Worker unit on owned tiles
 - **Buy tiles**: Expand city borders by purchasing adjacent tiles
@@ -30,6 +30,15 @@ Open `index.html` in a browser. No build step or server required.
 Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites from a flat-top isometric tile pack.
 
 ## Changelog
+
+### Beta 4.0 — 2026-04-15
+- **Feature**: Right-click to move units — select a unit then right-click any tile to move there instantly; right-click an enemy to attack; out-of-range right-click sets a go-to order; cursor turns to crosshair when a unit with moves is selected
+- **Feature**: Responsive topbar — collapses resource labels at narrow widths, wraps to two rows on tablet-sized windows, abbreviates button text on small screens; panels adjust position dynamically
+- **Feature**: Screenshot export — 📷 button in the topbar saves the current map view as a PNG
+- **Balance**: Production and building costs scale with city count — each additional city raises all costs by 20% (2 cities = 1.2×, 3 = 1.4×, etc.); event resource costs follow the same scaling
+- **Balance**: Melee (non-ranged) units must be adjacent to an enemy to attack
+- **Fix**: Pastures no longer require a herd tile — buildable on any valid terrain with Animal Husbandry
+- **Feature**: Unit sprites — musketeer, swordsman, crossbowman, scouts, workers, cavalry line all render as pixel art sprites clipped to their unit circle
 
 ### Beta 3.9 — 2026-04-14
 - **Balance**: Unit production costs and building costs now scale with city count — each additional city raises all production and event resource costs by 20% (2 cities = 1.2×, 3 = 1.4×, etc.), discouraging pure city-spam and resource hoarding
