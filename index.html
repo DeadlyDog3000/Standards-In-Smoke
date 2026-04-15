@@ -842,6 +842,7 @@
     <button class="top-btn" onclick="showTechTree()">Tech Tree</button>
     <button class="top-btn" onclick="toggleKingdoms()">Kingdoms</button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
+    <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()">End Turn</button>
   </div>
   <div id="turnInfo">Turn 1</div>
@@ -10744,6 +10745,15 @@ window.appeaseFamilyOpinion = function(familyId) {
   renderCourtPanel();
   updateUI();
 };
+
+function exportScreenshot() {
+  render();
+  const link = document.createElement('a');
+  link.download = `standards-in-smoke-turn-${turn}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+window.exportScreenshot = exportScreenshot;
 
 window.setAmmo = function(ammo) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.artillery) return;
