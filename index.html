@@ -889,6 +889,7 @@
     <button class="top-btn" onclick="showTechTree()"><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
     <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
+    <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
@@ -1896,6 +1897,8 @@ let cities = [];
 let discoveredNations = new Set(); // nation IDs the player has encountered
 let selectedUnit = null, selectedCity = null;
 let moveMode = false, buyTileMode = false, gotoMode = false, rangedMode = false, workerBuyMode = false;
+let planningMode = false;
+let tileAnnotations = {}; // tile index → { color, label }
 let animatingUnits = [], animationBlocking = false, animBlockStart = 0;
 let reachableTiles = new Set();
 let turnNumber = 1;
@@ -2842,6 +2845,7 @@ const TECHS = {
   // ECONOMY
   banking:           { name: 'Banking', section: 'production', cost: 60, prereqs: ['animal_husbandry'], unlocks: ['treasury'], desc: 'Unlock treasury improvement. +1 gold per market.' },
   medicine:          { name: 'Medicine', section: 'growth', cost: 70, prereqs: ['engineering'], unlocks: [], desc: '+15% population growth in all cities. Units heal +1 HP/turn in cities.' },
+  cartography:       { name: 'Cartography', section: 'growth', cost: 60, prereqs: [], unlocks: [], desc: 'Unlock planning mode — highlight and label map tiles to organise your strategy. Press P to toggle.' },
 };
 
 function nationHasTech(nationId, techKey) {
@@ -7880,6 +7884,42 @@ function render() {
     ctx.fill();
   }
 
+  // Planning mode annotations
+  for (const [idxStr, ann] of Object.entries(tileAnnotations)) {
+    const idx = +idxStr;
+    const rx = idx % MAP_COLS, ry = Math.floor(idx / MAP_COLS);
+    if (!tiles[idx]?.revealed.has(pId)) continue;
+    const pos = hexScreenPos(rx, ry);
+    if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    // Hex fill
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.fillStyle = ann.color;
+    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
+    ctx.fill();
+    ctx.restore();
+    // Border
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = ann.color;
+    ctx.lineWidth = Math.max(1.5, w * 0.06);
+    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
+    ctx.stroke();
+    ctx.restore();
+    // Label
+    if (ann.label) {
+      const lx = pos.x + w / 2, ly = pos.y + facePad + faceH / 2;
+      ctx.save();
+      ctx.font = `bold ${Math.max(8, w * 0.3)}px system-ui`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 3;
+      ctx.strokeText(ann.label, lx, ly);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(ann.label, lx, ly);
+      ctx.restore();
+    }
+  }
+
   // Path preview line when hovering in move mode
   if (moveMode && selectedUnit && hoveredMX >= 0 && hoveredMY >= 0 && reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX)) {
     const previewPath = bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId);
@@ -8287,6 +8327,13 @@ function updateUI() {
   const se = SEASON_EFFECTS[currentSeason];
   const seasonEl = document.getElementById('seasonIndicator');
   if (seasonEl) seasonEl.innerHTML = `${se.icon} ${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} ${getCurrentYear()}`;
+  // Show planning button once cartography is researched
+  const planBtn = document.getElementById('planBtn');
+  if (planBtn) {
+    planBtn.style.display = nationHasTech(playerNation, 'cartography') ? '' : 'none';
+    planBtn.style.background = planningMode ? 'rgba(100,180,255,0.25)' : '';
+    planBtn.style.borderColor = planningMode ? 'rgba(100,180,255,0.7)' : '';
+  }
   // Pulse end-turn button when no units have moves left
   const btn = document.getElementById('endTurnBtn');
   const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && !u.gotoX && !u.building && !u.fortified);
@@ -9924,6 +9971,14 @@ canvas.addEventListener('click', (e) => {
   if (mx < 0 || mx >= MAP_COLS || my < 0 || my >= MAP_ROWS) return;
   const ti = my * MAP_COLS + mx;
 
+  // Planning mode — annotate tile
+  if (planningMode) {
+    if (tiles[ti].revealed.has(playerNation)) {
+      openPlanningPopup(ti, e.clientX, e.clientY);
+    }
+    return;
+  }
+
   if (buyTileMode && selectedCity) {
     if (reachableTiles.has(ti)) {
       buyTile(selectedCity, mx, my);
@@ -10313,6 +10368,7 @@ document.addEventListener('keydown', (e) => {
     if (document.getElementById('noResearchPopup')) { document.getElementById('noResearchPopup').remove(); return; }
     if (document.getElementById('idleCitiesPopup')) { window._closeIdlePopup(); return; }
     if (escMenuOpen) closeEscMenu();
+    else if (planningMode) { planningMode = false; closePlanningPopup(); updateUI(); render(); }
     else if (moveMode || buyTileMode || workerBuyMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; workerBuyMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
     return;
@@ -10331,6 +10387,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'w' && selectedUnit && selectedUnit.nationId === playerNation && (selectedUnit.fortified || selectedUnit.building)) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'x' && selectedUnit && selectedUnit.nationId === playerNation) { toggleAutoExplore(); e.preventDefault(); }
+  if (e.key === 'p') { togglePlanningMode(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   // N: cycle to next unit with moves remaining
   if (e.key === 'n') { cycleToNextUnit(); e.preventDefault(); }
@@ -10567,6 +10624,84 @@ function doAutoExploreStep(unit) {
     if (unit.nationId === playerNation) showToast('Nothing left to explore!');
   }
 }
+
+// ========================
+// PLANNING MODE
+// ========================
+window.togglePlanningMode = function() {
+  if (!nationHasTech(playerNation, 'cartography')) { showToast('Research Cartography to use planning mode.'); return; }
+  planningMode = !planningMode;
+  if (planningMode) {
+    moveMode = false; buyTileMode = false; gotoMode = false; rangedMode = false; workerBuyMode = false;
+    reachableTiles.clear();
+    showToast('Planning mode ON — click tiles to annotate. ESC to exit.');
+  } else {
+    closePlanningPopup();
+    showToast('Planning mode OFF');
+  }
+  updateUI(); render();
+};
+
+window.closePlanningPopup = function() {
+  const el = document.getElementById('planningPopup');
+  if (el) el.remove();
+};
+function closePlanningPopup() { window.closePlanningPopup(); }
+
+function openPlanningPopup(tileIdx, screenX, screenY) {
+  closePlanningPopup();
+  const ann = tileAnnotations[tileIdx] || { color: '#ffff00', label: '' };
+  const colors = ['#ff4444','#ff9900','#ffff00','#44ff44','#44aaff','#cc66ff','#ffffff'];
+  const swatches = colors.map(c => {
+    const sel = ann.color === c ? 'outline:2px solid #fff;outline-offset:2px;' : '';
+    return `<span onclick="window._planPickColor(${tileIdx},'${c}')" style="display:inline-block;width:18px;height:18px;background:${c};border-radius:3px;cursor:pointer;margin:1px;${sel}"></span>`;
+  }).join('');
+  const popup = document.createElement('div');
+  popup.id = 'planningPopup';
+  popup.style.cssText = `position:fixed;z-index:500;background:rgba(20,16,10,0.97);border:1px solid rgba(180,140,60,0.5);border-radius:6px;padding:10px 12px;color:#e0d0b0;font-size:13px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,0.6);`;
+  popup.style.left = Math.min(screenX, window.innerWidth - 200) + 'px';
+  popup.style.top = Math.min(screenY - 10, window.innerHeight - 140) + 'px';
+  popup.innerHTML = `
+    <div style="margin-bottom:6px;font-weight:bold;color:#c8b060;">Annotate Tile</div>
+    <div style="margin-bottom:6px;">${swatches}</div>
+    <input id="planLabelInput" type="text" maxlength="20" placeholder="Label (optional)" value="${ann.label || ''}"
+      style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(180,140,60,0.4);border-radius:4px;color:#e0d0b0;padding:4px 6px;font-size:13px;outline:none;"
+      oninput="window._planUpdateLabel(${tileIdx},this.value)"
+      onkeydown="if(event.key==='Enter'||event.key==='Escape'){event.stopPropagation();closePlanningPopup();render();}"
+    />
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <button onclick="window._planClearAnnotation(${tileIdx})" style="flex:1;background:rgba(180,60,40,0.3);border:1px solid rgba(200,80,60,0.4);border-radius:4px;color:#e0d0b0;padding:3px;cursor:pointer;font-size:12px;">Clear</button>
+      <button onclick="closePlanningPopup();render();" style="flex:1;background:rgba(100,140,60,0.3);border:1px solid rgba(120,160,80,0.4);border-radius:4px;color:#e0d0b0;padding:3px;cursor:pointer;font-size:12px;">Done</button>
+    </div>`;
+  document.body.appendChild(popup);
+  setTimeout(() => document.getElementById('planLabelInput')?.focus(), 10);
+  window._planTileIdx = tileIdx;
+  window._planPopupColor = ann.color;
+}
+
+window._planPickColor = function(tileIdx, color) {
+  const ann = tileAnnotations[tileIdx] || {};
+  ann.color = color;
+  ann.label = ann.label || '';
+  tileAnnotations[tileIdx] = ann;
+  window._planPopupColor = color;
+  // Refresh swatches
+  openPlanningPopup(tileIdx, parseInt(document.getElementById('planningPopup').style.left), parseInt(document.getElementById('planningPopup').style.top));
+  render();
+};
+
+window._planUpdateLabel = function(tileIdx, value) {
+  if (!tileAnnotations[tileIdx]) tileAnnotations[tileIdx] = { color: window._planPopupColor || '#ffff00', label: '' };
+  tileAnnotations[tileIdx].label = value;
+  if (!value && !tileAnnotations[tileIdx].color) delete tileAnnotations[tileIdx];
+  render();
+};
+
+window._planClearAnnotation = function(tileIdx) {
+  delete tileAnnotations[tileIdx];
+  closePlanningPopup();
+  render();
+};
 
 window.enterMoveMode = function() {
   if (!selectedUnit || selectedUnit.movesLeft <= 0) return;
@@ -10965,6 +11100,7 @@ function serializeGame() {
     barbSpawnTurn, barbSpawnChance, barbMaxUnits, barbRespawnTurns, barbRaidRange, barbRaiderInterval, barbCampSpacing,
     gameDifficulty, agreements: sAgreements,
     currentSeason, characters, nextCharId, families, nextFamilyId,
+    tileAnnotations,
   });
 }
 
@@ -11058,6 +11194,8 @@ function deserializeGame(json) {
       if (!families.some(f => f.nationId === i)) initNationFamilies(i);
     }
   }
+  tileAnnotations = d.tileAnnotations || {};
+  planningMode = false;
   selectedUnit = null; selectedCity = null;
   moveMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   ordersRemaining = getMaxOrders(playerNation);
