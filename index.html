@@ -586,10 +586,6 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.0</b></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">Controls</b><br>
-        - Right-click to move units &mdash; select a unit then right-click any tile to move there; right-click an enemy to attack; out-of-range right-click sets a go-to order<br>
-        - Cursor turns to a crosshair when a unit with moves is selected<br>
-        <br>
         <b style="color:#b8a070;">UI</b><br>
         - Responsive topbar &mdash; collapses labels at narrow widths, wraps to two rows on small windows, abbreviates button text on very small screens<br>
         - Screenshot export &mdash; 📷 button saves the current map view as a PNG<br>
@@ -960,10 +956,6 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.0</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">Controls</b><br>
-          - Right-click to move units &mdash; select a unit then right-click any tile to move there; right-click an enemy to attack; out-of-range right-click sets a go-to order<br>
-          - Cursor turns to a crosshair when a unit with moves is selected<br>
-          <br>
           <b style="color:#b8a070;">UI</b><br>
           - Responsive topbar &mdash; collapses labels at narrow widths, wraps to two rows on small windows, abbreviates button text on very small screens<br>
           - Screenshot export &mdash; 📷 button saves the current map view as a PNG<br>
@@ -8311,6 +8303,7 @@ function cycleToNextUnit() {
   selectedUnit = next; selectedCity = null;
   moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   panCameraTo(next.x, next.y);
+  enterMoveMode();
   showUnitPanel(next); render();
   return true;
 }
@@ -9824,12 +9817,6 @@ canvas.addEventListener('mousemove', (e) => {
     else if (!hu && !hc) { hoveredUnit = null; hoveredCity = null; }
   }
   updateTileTooltip(mx, my, e.clientX, e.clientY);
-  if (!isDragging) {
-    const ti2 = my * MAP_COLS + mx;
-    if (moveMode && reachableTiles.has(ti2)) canvas.style.cursor = 'crosshair';
-    else if (selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.movesLeft > 0 && mx >= 0 && my >= 0) canvas.style.cursor = 'crosshair';
-    else canvas.style.cursor = 'default';
-  }
   render();
 });
 
@@ -10099,7 +10086,13 @@ canvas.addEventListener('click', (e) => {
     playClick();
     selectedUnit = clickedUnit; selectedCity = null;
     buyTileMode = false; gotoMode = false; rangedMode = false; workerBuyMode = false;
-    moveMode = false; reachableTiles.clear();
+    // Auto-enter move mode when clicking a unit with moves left
+    if (clickedUnit.movesLeft > 0) {
+      moveMode = false; reachableTiles.clear();
+      enterMoveMode();
+    } else {
+      moveMode = false; reachableTiles.clear();
+    }
     showUnitPanel(clickedUnit); render(); return;
   }
 
@@ -10114,100 +10107,6 @@ canvas.addEventListener('click', (e) => {
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
   hidePanel(); render();
-});
-
-// Right-click to move/attack selected unit
-canvas.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
-  if (!selectedUnit || selectedUnit.nationId !== playerNation) return;
-  if (animationBlocking || eventModalOpen) return;
-  if (selectedUnit.movesLeft <= 0) { showToast('No moves left.'); return; }
-  if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
-  if (selectedUnit.building) { showToast('Unit is building. Cancel build first.'); return; }
-
-  const colS = hexColStep(), cellH = hexCellH();
-  const worldPx = e.clientX + camX * colS;
-  const worldPy = e.clientY + camY * cellH;
-  const hex = pixelToHex(worldPx, worldPy);
-  const mx = hex.col, my = hex.row;
-  if (mx < 0 || mx >= MAP_COLS || my < 0 || my >= MAP_ROWS) return;
-  const ti = my * MAP_COLS + mx;
-
-  // Right-click on own tile — do nothing
-  if (mx === selectedUnit.x && my === selectedUnit.y) return;
-
-  // Right-click enemy unit — attack if in range
-  const target = units.find(u => u.x === mx && u.y === my && u.nationId !== playerNation);
-  if (target && nations[playerNation].relations[target.nationId] === 'war') {
-    const def = UNIT_DEFS[selectedUnit.type];
-    if (def?.ranged) {
-      const rangeTiles = getHexesInRange(selectedUnit.x, selectedUnit.y, tiles[selectedUnit.y * MAP_COLS + selectedUnit.x].type === 7 ? 3 : 2);
-      if (rangeTiles.some(rt => rt.x === mx && rt.y === my)) {
-        if (!tryActivateUnit(selectedUnit)) return;
-        moveMode = false; reachableTiles.clear();
-        doRangedAttack(mx, my); return;
-      }
-    }
-    if (def?.combat && canAttack(selectedUnit, mx, my)) {
-      // Enter move mode to enable the attack path
-      moveMode = false; reachableTiles.clear();
-      enterMoveMode();
-      if (reachableTiles.has(ti)) {
-        if (!tryActivateUnit(selectedUnit)) { moveMode = false; reachableTiles.clear(); return; }
-        doAttack(selectedUnit, mx, my);
-        moveMode = false; reachableTiles.clear();
-        updateUI(); render();
-      } else {
-        moveMode = false; reachableTiles.clear();
-        showToast('Target out of range.');
-      }
-      return;
-    }
-  }
-
-  // Right-click empty/friendly tile — move there
-  const isNaval = UNIT_DEFS[selectedUnit.type]?.naval;
-  const tileType = tiles[ti].type;
-  if (isNaval && tileType !== 0) { showToast('Ships can only move to water.'); return; }
-  if (!isNaval && tileType === 0) { showToast('Cannot move to water.'); return; }
-
-  moveMode = false; reachableTiles.clear();
-  enterMoveMode();
-  if (reachableTiles.has(ti)) {
-    if (!tryActivateUnit(selectedUnit)) { moveMode = false; reachableTiles.clear(); return; }
-    const animPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
-    const dist = animPath ? animPath.length : bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
-    const movedUnit = selectedUnit;
-    const origX = selectedUnit.x, origY = selectedUnit.y;
-    delete selectedUnit.gotoX; delete selectedUnit.gotoY;
-    selectedUnit.x = mx; selectedUnit.y = my;
-    selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
-    revealAround(mx, my, getUnitVision(selectedUnit), selectedUnit.nationId);
-    const tileOwner = tiles[ti].owner;
-    if (tileOwner >= 0 && tileOwner !== selectedUnit.nationId) changeLoyalty(tileOwner, selectedUnit.nationId, -5);
-    moveMode = false; reachableTiles.clear();
-    if (animPath && animPath.length > 0) {
-      startUnitAnimation(movedUnit, animPath, () => {
-        if (movedUnit && units.includes(movedUnit)) {
-          if (movedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
-          selectedUnit = movedUnit; showUnitPanel(movedUnit);
-        } else { cycleToNextUnit(); }
-        updateUI(); render();
-      }, origX, origY);
-      updateUI(); render();
-    } else {
-      if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); }
-      else showUnitPanel(selectedUnit);
-      updateUI(); render();
-    }
-  } else {
-    // Out of range — set as goto destination
-    moveMode = false; reachableTiles.clear();
-    if (!tryActivateUnit(selectedUnit)) return;
-    selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
-    showToast(`Go-to order set for ${UNIT_DEFS[selectedUnit.type].icon}`);
-    showUnitPanel(selectedUnit); render();
-  }
 });
 
 // Minimap click to jump camera
