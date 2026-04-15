@@ -7685,7 +7685,7 @@ function render() {
         }
         // Draw improvement sprites here in Pass 1 to preserve z-order overlap
         if (t.improvement && VIEW_TILE >= 16) {
-          const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
+          const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill', treasury: 'Grass_Plants' };
           const impKey = impSpriteMap[t.improvement] || t.improvement;
           const impImg = hexImages[impKey];
           if (impImg && impImg.complete && impImg.naturalWidth > 0) {
