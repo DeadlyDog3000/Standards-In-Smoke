@@ -2713,7 +2713,7 @@ const IMPROVEMENT_DEFS = {
   quarry:      { name: 'Quarry', icon: '\uD83E\uDEA8', yields: { stone: 2 }, cost: { wood: 5 }, validOn: [1, 2, 7], buildTurns: 2 },
   steel_mill:  { name: 'Steel Mill', icon: '\uD83C\uDFED', yields: { steel: 5 }, cost: { stone: 20, steel: 25 }, validOn: [1, 5], buildTurns: 5 },
   urban:       { name: 'Urban', icon: '\uD83C\uDFE0', yields: { gold: 2 }, cost: { wood: 10, stone: 5 }, validOn: [1, 5], buildTurns: 3 },
-  pasture:     { name: 'Pasture', icon: '🐄', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [1, 6, 7], requiresAnimal: true, tech: 'animal_husbandry', buildTurns: 2 },
+  pasture:     { name: 'Pasture', icon: '🐄', yields: { food: 2, gold: 1 }, cost: { wood: 10 }, validOn: [1, 6, 7], tech: 'animal_husbandry', buildTurns: 2 },
   barn:        { name: 'Barn', icon: '\uD83C\uDFDA', yields: { food: 4 }, cost: { wood: 15, stone: 10 }, validOn: [1, 5], tech: 'agriculture', buildTurns: 4 },
   lumbermill:  { name: 'Lumbermill', icon: '\uD83E\uDE93', yields: { wood: 3 }, cost: { stone: 10, gold: 10 }, validOn: [5], tech: 'lumbermill', buildTurns: 3 },
   science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 4 }, cost: { stone: 15, gold: 20 }, validOn: [1, 5], buildTurns: 4 },
@@ -4368,7 +4368,13 @@ function canAttack(attacker, tx, ty) {
   if (attacker.movesLeft < attacker.maxMoves && !canSkirmish && !swordCharge) return false;
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
-  return nations[attacker.nationId].relations[target.nationId] === 'war';
+  if (nations[attacker.nationId].relations[target.nationId] !== 'war') return false;
+  // Non-ranged units must be adjacent to attack
+  if (!def.ranged) {
+    const neighbors = hexNeighbors(attacker.x, attacker.y);
+    if (!neighbors.some(nb => nb.col === tx && nb.row === ty)) return false;
+  }
+  return true;
 }
 
 function doAttack(attacker, tx, ty) {
