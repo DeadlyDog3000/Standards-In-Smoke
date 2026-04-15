@@ -584,6 +584,23 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Controls</b><br>
+        - Right-click to move units &mdash; select a unit then right-click any tile to move there; right-click an enemy to attack; out-of-range right-click sets a go-to order<br>
+        - Cursor turns to a crosshair when a unit with moves is selected<br>
+        <br>
+        <b style="color:#b8a070;">UI</b><br>
+        - Responsive topbar &mdash; collapses labels at narrow widths, wraps to two rows on small windows, abbreviates button text on very small screens<br>
+        - Screenshot export &mdash; 📷 button saves the current map view as a PNG<br>
+        - Unit sprites &mdash; musketeer, swordsman, crossbowman, scouts, workers, and cavalry line now render as pixel art sprites<br>
+        <br>
+        <b style="color:#b8a070;">Balance</b><br>
+        - Production and building costs scale with city count: each additional city raises all costs by 20%<br>
+        - Event resource costs follow the same city-count scaling<br>
+        - Melee (non-ranged) units must be adjacent to an enemy to attack<br>
+        - Pastures no longer require a herd tile &mdash; buildable on any valid terrain with Animal Husbandry<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Tile Sprites for Improvements</b><br>
@@ -940,6 +957,23 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.0</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Controls</b><br>
+          - Right-click to move units &mdash; select a unit then right-click any tile to move there; right-click an enemy to attack; out-of-range right-click sets a go-to order<br>
+          - Cursor turns to a crosshair when a unit with moves is selected<br>
+          <br>
+          <b style="color:#b8a070;">UI</b><br>
+          - Responsive topbar &mdash; collapses labels at narrow widths, wraps to two rows on small windows, abbreviates button text on very small screens<br>
+          - Screenshot export &mdash; 📷 button saves the current map view as a PNG<br>
+          - Unit sprites &mdash; musketeer, swordsman, crossbowman, scouts, workers, and cavalry line now render as pixel art sprites<br>
+          <br>
+          <b style="color:#b8a070;">Balance</b><br>
+          - Production and building costs scale with city count: each additional city raises all costs by 20%<br>
+          - Event resource costs follow the same city-count scaling<br>
+          - Melee (non-ranged) units must be adjacent to an enemy to attack<br>
+          - Pastures no longer require a herd tile &mdash; buildable on any valid terrain with Animal Husbandry<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 3.5</b></div>
         <div style="margin-bottom:12px;">
@@ -9419,7 +9453,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-2.6';
+const CURRENT_VERSION = 'beta-4.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
