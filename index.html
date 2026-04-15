@@ -1899,6 +1899,10 @@ let selectedUnit = null, selectedCity = null;
 let moveMode = false, buyTileMode = false, gotoMode = false, rangedMode = false, workerBuyMode = false;
 let planningMode = false;
 let tileAnnotations = {}; // tile index → { color, label }
+let planOrders = new Map(); // unit ref → {destX, destY, isAttack}
+let planSelectUnit = null;
+let planReachable = new Set();
+let planThreatTiles = new Set();
 let animatingUnits = [], animationBlocking = false, animBlockStart = 0;
 let reachableTiles = new Set();
 let turnNumber = 1;
@@ -7920,6 +7924,92 @@ function render() {
     }
   }
 
+  // Planning mode: enemy threat range overlay (red) when hovering an enemy unit
+  if (planningMode && planThreatTiles.size > 0) {
+    for (const key of planThreatTiles) {
+      const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
+      if (!tiles[key]?.revealed.has(pId)) continue;
+      const pos = hexScreenPos(rx, ry);
+      if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+      ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#ff4444';
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
+    }
+  }
+
+  // Planning mode: reachable tiles for the unit being given an order (green-teal)
+  if (planningMode && planSelectUnit && planReachable.size > 0) {
+    for (const key of planReachable) {
+      const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
+      if (!tiles[key]?.revealed.has(pId)) continue;
+      const pos = hexScreenPos(rx, ry);
+      if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+      ctx.save(); ctx.globalAlpha = 0.3; ctx.fillStyle = '#44ffaa';
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
+    }
+    // Ring around the selected unit
+    const selPos = hexScreenPos(planSelectUnit.x, planSelectUnit.y);
+    ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = '#44ffaa';
+    ctx.lineWidth = Math.max(2, w * 0.07);
+    drawHexPath(ctx, selPos.x, selPos.y + facePad, w, faceH); ctx.stroke(); ctx.restore();
+  }
+
+  // Planning mode: order arrows (blue = move, red = attack)
+  if (planningMode && planOrders.size > 0) {
+    for (const [unit, order] of planOrders) {
+      if (!units.includes(unit)) continue;
+      const fromPos = hexScreenPos(unit.x, unit.y);
+      const toPos = hexScreenPos(order.destX, order.destY);
+      const color = order.isAttack ? 'rgba(255,90,60,0.9)' : 'rgba(80,200,255,0.9)';
+      const fx = fromPos.x + w / 2, fy2 = fromPos.y + facePad + faceH / 2;
+      const tx2 = toPos.x + w / 2, ty3 = toPos.y + facePad + faceH / 2;
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(2.5, w * 0.08); ctx.setLineDash([6, 3]);
+      ctx.beginPath(); ctx.moveTo(fx, fy2); ctx.lineTo(tx2, ty3); ctx.stroke();
+      ctx.setLineDash([]);
+      // Arrowhead
+      const ang = Math.atan2(ty3 - fy2, tx2 - fx), aw = Math.max(7, w * 0.22);
+      ctx.beginPath();
+      ctx.moveTo(tx2, ty3);
+      ctx.lineTo(tx2 - aw * Math.cos(ang - 0.42), ty3 - aw * Math.sin(ang - 0.42));
+      ctx.lineTo(tx2 - aw * Math.cos(ang + 0.42), ty3 - aw * Math.sin(ang + 0.42));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Planning mode: combat preview panel when hovering attack target during order assignment
+  if (planningMode && planSelectUnit && hoveredMX >= 0 && hoveredMY >= 0 && UNIT_DEFS[planSelectUnit.type]?.combat) {
+    const hi = hoveredMY * MAP_COLS + hoveredMX;
+    if (planReachable.has(hi)) {
+      const hovEnemy = units.find(u => u.x === hoveredMX && u.y === hoveredMY && u.nationId !== playerNation && nations[playerNation].relations[u.nationId] === 'war');
+      if (hovEnemy) {
+        const est = estimateCombat(planSelectUnit, hoveredMX, hoveredMY);
+        if (est) {
+          const willKill = (hovEnemy.hp - est.estDmg) <= 0;
+          const l1 = `Strike: ~${est.estDmg} dmg${willKill ? ' — KILL' : ''}`;
+          const l2 = est.estRetaliation > 0 ? `Retaliation: ~${est.estRetaliation} dmg` : 'No retaliation';
+          const pos = hexScreenPos(hoveredMX, hoveredMY);
+          ctx.save();
+          ctx.font = `bold ${Math.max(10, w * 0.29)}px system-ui`;
+          const tw2 = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + 16;
+          const bx = Math.min(Math.max(pos.x + w / 2 - tw2 / 2, 4), canvas.width - tw2 - 4);
+          const by2 = Math.max(pos.y + facePad - 54, 4);
+          ctx.fillStyle = 'rgba(20,16,10,0.93)';
+          ctx.fillRect(bx, by2, tw2, 46);
+          ctx.strokeStyle = willKill ? 'rgba(255,100,70,0.7)' : 'rgba(180,140,60,0.5)';
+          ctx.lineWidth = 1; ctx.strokeRect(bx, by2, tw2, 46);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+          ctx.fillStyle = willKill ? '#ff8866' : '#e0d0b0';
+          ctx.fillText(l1, bx + 8, by2 + 7);
+          ctx.fillStyle = '#8abedc';
+          ctx.fillText(l2, bx + 8, by2 + 27);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
   // Path preview line when hovering in move mode
   if (moveMode && selectedUnit && hoveredMX >= 0 && hoveredMY >= 0 && reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX)) {
     const previewPath = bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId);
@@ -8331,8 +8421,12 @@ function updateUI() {
   const planBtn = document.getElementById('planBtn');
   if (planBtn) {
     planBtn.style.display = nationHasTech(playerNation, 'cartography') ? '' : 'none';
-    planBtn.style.background = planningMode ? 'rgba(100,180,255,0.25)' : '';
-    planBtn.style.borderColor = planningMode ? 'rgba(100,180,255,0.7)' : '';
+    const hasOrders = planOrders.size > 0;
+    planBtn.style.background = planningMode ? 'rgba(100,180,255,0.25)' : (hasOrders ? 'rgba(80,200,120,0.18)' : '');
+    planBtn.style.borderColor = planningMode ? 'rgba(100,180,255,0.7)' : (hasOrders ? 'rgba(80,200,120,0.6)' : '');
+    const label = hasOrders ? `Plan (${planOrders.size})` : 'Plan';
+    planBtn.querySelector('.btn-full').textContent = label;
+    planBtn.querySelector('.btn-short').textContent = label;
   }
   // Pulse end-turn button when no units have moves left
   const btn = document.getElementById('endTurnBtn');
@@ -9856,6 +9950,29 @@ canvas.addEventListener('mousemove', (e) => {
   const mx = hex.col, my = hex.row;
   if (mx !== hoveredMX || my !== hoveredMY) {
     hoveredMX = mx; hoveredMY = my;
+    // Planning mode threat overlay: hovering enemy unit shows its reach as red tiles
+    if (planningMode && !planSelectUnit) {
+      const eu = units.find(u => u.x === mx && u.y === my && u.nationId !== playerNation && u.movesLeft > 0);
+      planThreatTiles.clear();
+      if (eu) {
+        const eStart = eu.y * MAP_COLS + eu.x;
+        const eVis = new Map([[eStart, 0]]);
+        const eQ = [{ key: eStart, dist: 0 }];
+        while (eQ.length) {
+          const { key, dist } = eQ.shift();
+          planThreatTiles.add(key);
+          const cx2 = key % MAP_COLS, cy2 = Math.floor(key / MAP_COLS);
+          for (const nb of hexNeighbors(cx2, cy2)) {
+            if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+            const nk2 = nb.row * MAP_COLS + nb.col;
+            if (!unitCanTraverse(eu.type, tiles[nk2]?.type, eu.nationId, nb.col, nb.row)) continue;
+            const mc2 = getMoveCost(cx2, cy2, nb.col, nb.row, eu.type);
+            const nd2 = dist + mc2;
+            if (nd2 <= eu.movesLeft && !eVis.has(nk2)) { eVis.set(nk2, nd2); eQ.push({ key: nk2, dist: nd2 }); }
+          }
+        }
+      }
+    }
     // Check if hovering over a new unit or city
     const hu = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
     const hc = !hu && cities.find(c => c.x === mx && c.y === my && c.nationId === playerNation);
@@ -9971,11 +10088,46 @@ canvas.addEventListener('click', (e) => {
   if (mx < 0 || mx >= MAP_COLS || my < 0 || my >= MAP_ROWS) return;
   const ti = my * MAP_COLS + mx;
 
-  // Planning mode — annotate tile
+  // Planning mode — order queuing + tile annotation
   if (planningMode) {
-    if (tiles[ti].revealed.has(playerNation)) {
-      openPlanningPopup(ti, e.clientX, e.clientY);
+    if (!tiles[ti].revealed.has(playerNation)) return;
+    const ownUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u.movesLeft > 0);
+    if (planSelectUnit) {
+      // Currently assigning an order — interpret this click
+      const atWar = (nid) => nations[playerNation].relations[nid] === 'war';
+      const enemyUnit = units.find(u => u.x === mx && u.y === my && u.nationId !== playerNation && atWar(u.nationId));
+      if (enemyUnit && planReachable.has(ti) && UNIT_DEFS[planSelectUnit.type]?.combat) {
+        planOrders.set(planSelectUnit, { destX: mx, destY: my, isAttack: true });
+        planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+        const n = planOrders.size;
+        showToast(`Attack order queued (${n} total) — press P to execute`);
+        closePlanningPopup(); render(); updateUI(); return;
+      } else if (planReachable.has(ti) && !units.some(u => u.x === mx && u.y === my && u.nationId === playerNation)) {
+        planOrders.set(planSelectUnit, { destX: mx, destY: my, isAttack: false });
+        planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+        const n = planOrders.size;
+        showToast(`Move order queued (${n} total) — press P to execute`);
+        closePlanningPopup(); render(); updateUI(); return;
+      } else if (ownUnit && ownUnit !== planSelectUnit) {
+        // Switch to a different unit
+        planSelectUnit = ownUnit; planReachable.clear();
+        computePlanReachable(ownUnit); planThreatTiles.clear();
+        closePlanningPopup(); render(); return;
+      } else {
+        // Cancel selection (clicked empty/unreachable tile)
+        planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+        closePlanningPopup(); render(); updateUI(); return;
+      }
     }
+    if (ownUnit) {
+      // Select this unit for order assignment (existing order shown but replaced on new assignment)
+      planSelectUnit = ownUnit;
+      computePlanReachable(ownUnit);
+      planThreatTiles.clear(); closePlanningPopup();
+      render(); return;
+    }
+    // No unit here — open tile annotation popup
+    openPlanningPopup(ti, e.clientX, e.clientY);
     return;
   }
 
@@ -10368,7 +10520,8 @@ document.addEventListener('keydown', (e) => {
     if (document.getElementById('noResearchPopup')) { document.getElementById('noResearchPopup').remove(); return; }
     if (document.getElementById('idleCitiesPopup')) { window._closeIdlePopup(); return; }
     if (escMenuOpen) closeEscMenu();
-    else if (planningMode) { planningMode = false; closePlanningPopup(); updateUI(); render(); }
+    else if (planSelectUnit) { planSelectUnit = null; planReachable.clear(); planThreatTiles.clear(); render(); return; }
+    else if (planningMode) { planningMode = false; const hadOrders = planOrders.size > 0; planOrders.clear(); planSelectUnit = null; planReachable.clear(); planThreatTiles.clear(); closePlanningPopup(); if (hadOrders) showToast('Orders discarded.'); updateUI(); render(); }
     else if (moveMode || buyTileMode || workerBuyMode || gotoMode || rangedMode) { moveMode = false; buyTileMode = false; workerBuyMode = false; gotoMode = false; rangedMode = false; reachableTiles.clear(); render(); }
     else openEscMenu();
     return;
@@ -10628,16 +10781,84 @@ function doAutoExploreStep(unit) {
 // ========================
 // PLANNING MODE
 // ========================
+
+function computePlanReachable(unit) {
+  planReachable.clear();
+  const start = unit.y * MAP_COLS + unit.x;
+  const visited = new Map([[start, 0]]);
+  const queue = [{ key: start, dist: 0 }];
+  while (queue.length > 0) {
+    const { key, dist } = queue.shift();
+    const cx = key % MAP_COLS, cy = Math.floor(key / MAP_COLS);
+    for (const nb of hexNeighbors(cx, cy)) {
+      const nx = nb.col, ny = nb.row;
+      if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
+      const nk = ny * MAP_COLS + nx;
+      if (!unitCanTraverse(unit.type, tiles[nk].type, unit.nationId, nx, ny)) continue;
+      if (units.some(o => o.x === nx && o.y === ny && o !== unit && o.nationId === unit.nationId)) continue;
+      const mc = getMoveCost(cx, cy, nx, ny, unit.type);
+      const nd = dist + mc;
+      if (nd > unit.movesLeft) continue;
+      if (visited.has(nk) && visited.get(nk) <= nd) continue;
+      visited.set(nk, nd);
+      planReachable.add(nk);
+      queue.push({ key: nk, dist: nd });
+    }
+  }
+  // For combat units, also include adjacent/in-range enemy tiles as attack targets
+  if (UNIT_DEFS[unit.type]?.combat) {
+    for (const enemy of units) {
+      if (enemy.nationId === unit.nationId) continue;
+      if (nations[unit.nationId].relations[enemy.nationId] !== 'war') continue;
+      const dist = Math.abs(enemy.x - unit.x) + Math.abs(enemy.y - unit.y);
+      if (dist <= unit.movesLeft) planReachable.add(enemy.y * MAP_COLS + enemy.x);
+    }
+  }
+}
+
+function executePlanOrders() {
+  if (planOrders.size === 0) return;
+  let executed = 0;
+  for (const [unit, order] of planOrders) {
+    if (!units.includes(unit)) continue;
+    if (order.isAttack) {
+      if (canAttack(unit, order.destX, order.destY)) {
+        if (!tryActivateUnit(unit)) continue;
+        doAttack(unit, order.destX, order.destY);
+        executed++;
+      }
+    } else {
+      const path = bfsPath(unit.x, unit.y, order.destX, order.destY, unit.type, unit.nationId);
+      if (path && path.length > 0) {
+        if (!tryActivateUnit(unit)) continue;
+        for (let i = 0; i < path.length && unit.movesLeft > 0; i++) {
+          const step = path[i];
+          if (units.some(o => o.x === step.x && o.y === step.y && o !== unit)) break;
+          const mc = getMoveCost(unit.x, unit.y, step.x, step.y, unit.type);
+          if (mc > unit.movesLeft) break;
+          unit.x = step.x; unit.y = step.y; unit.movesLeft -= mc;
+          revealAround(unit.x, unit.y, getUnitVision(unit), unit.nationId);
+        }
+        executed++;
+      }
+    }
+  }
+  planOrders.clear();
+  planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+  if (executed > 0) showToast(`${executed} order${executed > 1 ? 's' : ''} executed`);
+}
+
 window.togglePlanningMode = function() {
   if (!nationHasTech(playerNation, 'cartography')) { showToast('Research Cartography to use planning mode.'); return; }
   planningMode = !planningMode;
   if (planningMode) {
     moveMode = false; buyTileMode = false; gotoMode = false; rangedMode = false; workerBuyMode = false;
-    reachableTiles.clear();
-    showToast('Planning mode ON — click tiles to annotate. ESC to exit.');
+    reachableTiles.clear(); planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+    showToast('Planning mode — click units to queue orders, tiles to annotate. P = execute & exit, ESC = discard & exit.');
   } else {
+    executePlanOrders();
     closePlanningPopup();
-    showToast('Planning mode OFF');
+    planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
   }
   updateUI(); render();
 };
