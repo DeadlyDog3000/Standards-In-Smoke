@@ -11213,9 +11213,16 @@ function loadGame(slot) {
         f.headId = head.id;
       }
     }
-    // Fix corrupted spriteKeys from period when lumber_mill.png == Grass_Pine.png
+    // Fix corrupted spriteKeys (e.g. lumber_mill == Grass_Pine era, or improvement sprites on terrain tiles)
+    const TERRAIN_SPRITES = new Set([
+      'Grass','Grass_Pine','Grass_Plants','Grass_Trees',
+      'Water','Water_Duck','Water_Lilypads',
+      'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
+      'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
+      'FrosenWater','FrosenWater_Lilypads',
+    ]);
     for (const t of tiles) {
-      if (!hexImages[t.spriteKey]) {
+      if (!hexImages[t.spriteKey] || !TERRAIN_SPRITES.has(t.spriteKey)) {
         const fallback = TILE_SPRITES[t.type];
         t.spriteKey = fallback ? fallback[0] : 'Grass_Plants';
       }
