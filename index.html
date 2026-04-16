@@ -569,6 +569,10 @@
         <span style="font-size:15px;color:#c8b89a;">Music</span>
         <button class="menu-btn" id="menuMusicToggle" onclick="toggleMusic();this.textContent=musicEnabled?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:15px;color:#c8b89a;">Auto Next Unit</span>
+        <button class="menu-btn" id="menuAutoNextUnitToggle" onclick="toggleAutoNextUnit();this.textContent=autoNextUnit?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
+      </div>
     </div>
     <div style="background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;">
       <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:15px;margin-bottom:12px;">Saved Games</div>
@@ -912,7 +916,7 @@
     <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
-    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit()" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
+    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
@@ -1521,6 +1525,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;">Music</span>
         <button class="esc-btn" id="musicToggleBtn" onclick="toggleMusic()" style="width:auto;margin:0;padding:6px 18px;">On</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:15px;">Auto Next Unit</span>
+        <button class="esc-btn" id="autoNextUnitBtn" onclick="toggleAutoNextUnit()" style="width:auto;margin:0;padding:6px 18px;">On</button>
       </div>
       <button class="esc-btn" onclick="hideOptionsPanel()">Back</button>
     </div>
@@ -2541,6 +2549,7 @@ async function replayBattleEvents() {
 let escMenuOpen = false;
 // pendingMapCols/pendingMapRows removed - map size now selected via dropdown in setup
 let musicEnabled = true;
+let autoNextUnit = true;
 let gameDifficulty = 'normal';
 const MUSIC_TRACKS = [
   'Mozart-Serenade-in-G-major(chosic.com).mp3',
@@ -8552,7 +8561,8 @@ function updateUI() {
 
 function hidePanel() { document.getElementById('panel').style.display = 'none'; stopSelectionFlash(); }
 
-function cycleToNextUnit() {
+function cycleToNextUnit(force = false) {
+  if (!force && !autoNextUnit) return;
   const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building && !u.fortified);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
@@ -9737,6 +9747,14 @@ function showOptionsPanel() {
   document.getElementById('escMain').style.display = 'none';
   document.getElementById('escOptions').style.display = 'block';
   document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
+  document.getElementById('autoNextUnitBtn').textContent = autoNextUnit ? 'On' : 'Off';
+}
+function toggleAutoNextUnit() {
+  autoNextUnit = !autoNextUnit;
+  const escBtn = document.getElementById('autoNextUnitBtn');
+  if (escBtn) escBtn.textContent = autoNextUnit ? 'On' : 'Off';
+  const menuBtn = document.getElementById('menuAutoNextUnitToggle');
+  if (menuBtn) menuBtn.textContent = autoNextUnit ? 'On' : 'Off';
 }
 function hideOptionsPanel() {
   document.getElementById('escOptions').style.display = 'none';
@@ -9987,6 +10005,7 @@ window.showUpdateLog = showUpdateLog;
 window.hideUpdateLog = hideUpdateLog;
 window.hideOptionsPanel = hideOptionsPanel;
 window.toggleMusic = toggleMusic;
+window.toggleAutoNextUnit = toggleAutoNextUnit;
 
 // ====================
 // TILE TOOLTIP
@@ -10710,7 +10729,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
   if (escMenuOpen || eventModalOpen) return;
   // Hotkeys (WASD handled by interval)
-  if (e.key === 'q') { cycleToNextUnit(); e.preventDefault(); return; }
+  if (e.key === 'q') { cycleToNextUnit(true); e.preventDefault(); return; }
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
@@ -10721,7 +10740,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p') { togglePlanningMode(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   // N: cycle to next unit with moves remaining
-  if (e.key === 'n') { cycleToNextUnit(); e.preventDefault(); }
+  if (e.key === 'n') { cycleToNextUnit(true); e.preventDefault(); }
   // C: center camera on selected unit or city
   if (e.key === 'c') {
     const target = selectedUnit || selectedCity;
