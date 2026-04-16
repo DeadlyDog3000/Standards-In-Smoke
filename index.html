@@ -1978,6 +1978,15 @@ let nations = [];
 let playerNation = 0;
 let units = [];
 function removeUnit(u) { const idx = units.indexOf(u); if (idx >= 0) units.splice(idx, 1); }
+function purgeDeadUnits() {
+  for (let i = units.length - 1; i >= 0; i--) {
+    const u = units[i];
+    if (u.hp == null || isNaN(u.hp) || u.hp <= 0) {
+      spawnDeathParticles(u.x, u.y, nations[u.nationId]?.color || '#888');
+      units.splice(i, 1);
+    }
+  }
+}
 let cities = [];
 let discoveredNations = new Set(); // nation IDs the player has encountered
 let selectedUnit = null, selectedCity = null;
@@ -6571,6 +6580,8 @@ function finishEndTurn() {
     if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
     tickResearch(i);
   }
+  // Remove any units with corrupt/null HP before new turn begins
+  purgeDeadUnits();
   // Reset orders for player
   ordersRemaining = getMaxOrders(playerNation);
   activatedUnits = new Set();
@@ -11749,6 +11760,7 @@ function loadGame(slot) {
         t.spriteKey = fallback ? fallback[0] : 'Grass_Plants';
       }
     }
+    purgeDeadUnits();
     hidePanel();
     document.getElementById('kingdoms').style.display = 'none';
     showToast('Game loaded!');
