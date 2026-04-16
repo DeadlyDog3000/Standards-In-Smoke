@@ -10202,7 +10202,7 @@ canvas.addEventListener('click', (e) => {
   // Planning mode — order queuing + tile annotation
   if (planningMode) {
     if (!tiles[ti].revealed.has(playerNation)) return;
-    const ownUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u.movesLeft > 0);
+    const ownUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
     if (planSelectUnit) {
       // Currently assigning an order — interpret this click
       const atWar = (nid) => nations[playerNation].relations[nid] === 'war';
@@ -10231,7 +10231,7 @@ canvas.addEventListener('click', (e) => {
       }
     }
     if (ownUnit) {
-      // Select this unit for order assignment (existing order shown but replaced on new assignment)
+      // Select this unit for order assignment
       planSelectUnit = ownUnit;
       computePlanReachable(ownUnit);
       planThreatTiles.clear(); closePlanningPopup();
@@ -10895,6 +10895,8 @@ function doAutoExploreStep(unit) {
 
 function computePlanReachable(unit) {
   planReachable.clear();
+  // Use maxMoves for preview when out of moves (order will carry over to next turn)
+  const budget = unit.movesLeft > 0 ? unit.movesLeft : (unit.maxMoves || UNIT_DEFS[unit.type]?.moves || 3);
   const start = unit.y * MAP_COLS + unit.x;
   const visited = new Map([[start, 0]]);
   const queue = [{ key: start, dist: 0 }];
@@ -10909,7 +10911,7 @@ function computePlanReachable(unit) {
       if (units.some(o => o.x === nx && o.y === ny && o !== unit && o.nationId === unit.nationId)) continue;
       const mc = getMoveCost(cx, cy, nx, ny, unit.type);
       const nd = dist + mc;
-      if (nd > unit.movesLeft) continue;
+      if (nd > budget) continue;
       if (visited.has(nk) && visited.get(nk) <= nd) continue;
       visited.set(nk, nd);
       planReachable.add(nk);
@@ -10922,7 +10924,7 @@ function computePlanReachable(unit) {
       if (enemy.nationId === unit.nationId) continue;
       if (nations[unit.nationId].relations[enemy.nationId] !== 'war') continue;
       const dist = Math.abs(enemy.x - unit.x) + Math.abs(enemy.y - unit.y);
-      if (dist <= unit.movesLeft) planReachable.add(enemy.y * MAP_COLS + enemy.x);
+      if (dist <= budget) planReachable.add(enemy.y * MAP_COLS + enemy.x);
     }
   }
 }
@@ -10930,33 +10932,61 @@ function computePlanReachable(unit) {
 function executePlanOrders() {
   if (planOrders.size === 0) return;
   let executed = 0;
-  for (const [unit, order] of planOrders) {
-    if (!units.includes(unit)) continue;
+  const orderList = [...planOrders];
+  planOrders.clear();
+  planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
+
+  // Execute all orders sequentially, chaining animations one after another
+  function runNext(idx) {
+    if (idx >= orderList.length) {
+      if (executed > 0) showToast(`${executed} order${executed > 1 ? 's' : ''} executed`);
+      updateUI(); render();
+      return;
+    }
+    const [unit, order] = orderList[idx];
+    if (!units.includes(unit)) { runNext(idx + 1); return; }
+
     if (order.isAttack) {
-      if (canAttack(unit, order.destX, order.destY)) {
-        if (!tryActivateUnit(unit)) continue;
-        doAttack(unit, order.destX, order.destY);
-        executed++;
+      if (unit.movesLeft > 0 && canAttack(unit, order.destX, order.destY)) {
+        if (tryActivateUnit(unit)) { doAttack(unit, order.destX, order.destY); executed++; }
       }
+      runNext(idx + 1);
     } else {
-      const path = bfsPath(unit.x, unit.y, order.destX, order.destY, unit.type, unit.nationId);
-      if (path && path.length > 0) {
-        if (!tryActivateUnit(unit)) continue;
-        for (let i = 0; i < path.length && unit.movesLeft > 0; i++) {
-          const step = path[i];
-          if (units.some(o => o.x === step.x && o.y === step.y && o !== unit)) break;
-          const mc = getMoveCost(unit.x, unit.y, step.x, step.y, unit.type);
-          if (mc > unit.movesLeft) break;
-          unit.x = step.x; unit.y = step.y; unit.movesLeft -= mc;
-          revealAround(unit.x, unit.y, getUnitVision(unit), unit.nationId);
-        }
+      // Move order — if unit has moves, animate. If not, set as go-to for next turn.
+      if (unit.movesLeft <= 0) {
+        unit.gotoX = order.destX; unit.gotoY = order.destY;
         executed++;
+        runNext(idx + 1);
+        return;
+      }
+      const path = bfsPath(unit.x, unit.y, order.destX, order.destY, unit.type, unit.nationId);
+      if (!path || path.length === 0) { runNext(idx + 1); return; }
+      if (!tryActivateUnit(unit)) { runNext(idx + 1); return; }
+      const origX = unit.x, origY = unit.y;
+      const animSteps = [];
+      for (let i = 0; i < path.length && unit.movesLeft > 0; i++) {
+        const step = path[i];
+        if (units.some(o => o.x === step.x && o.y === step.y && o !== unit)) break;
+        const mc = getMoveCost(unit.x, unit.y, step.x, step.y, unit.type);
+        if (mc > unit.movesLeft) break;
+        unit.x = step.x; unit.y = step.y; unit.movesLeft -= mc;
+        revealAround(unit.x, unit.y, getUnitVision(unit), unit.nationId);
+        animSteps.push({ x: step.x, y: step.y });
+      }
+      // If couldn't reach in one turn, set go-to for remainder
+      if (unit.x !== order.destX || unit.y !== order.destY) {
+        unit.gotoX = order.destX; unit.gotoY = order.destY;
+      }
+      executed++;
+      if (animSteps.length > 0) {
+        panCameraTo(unit.x, unit.y);
+        startUnitAnimation(unit, animSteps, () => { runNext(idx + 1); }, origX, origY);
+      } else {
+        runNext(idx + 1);
       }
     }
   }
-  planOrders.clear();
-  planSelectUnit = null; planReachable.clear(); planThreatTiles.clear();
-  if (executed > 0) showToast(`${executed} order${executed > 1 ? 's' : ''} executed`);
+  runNext(0);
 }
 
 window.togglePlanningMode = function() {
