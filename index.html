@@ -9018,6 +9018,14 @@ function renderKingdoms() {
         } else {
           html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'barb_help')">Request Barbarian Help</button> `;
         }
+        // Mapping Agreement
+        if (hasAgreement(playerNation, n.id, 'mapping')) {
+          html += `<span style="color:#6a6;">Mapping Agreement</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'mapping')">Cancel</button><br>`;
+        } else {
+          const loy = getLoyalty(n.id, playerNation);
+          const canMap = loy >= 20;
+          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestMappingAgreement(${n.id})" ${!canMap ? 'disabled title="Relations too poor"' : 'title="Mutual border reveal — 30 gold"'}>Mapping Agreement <span style="color:#d4a856;font-size:9px;">(30g)</span></button><br>`;
+        }
         // Resource Trade — expandable panel
         html += `<br><button class="diplo-btn" style="font-size:10px;margin-top:4px;" onclick="toggleTradePanel(${n.id})">Trade Resources</button>`;
         html += `<div id="tradePanel_${n.id}" style="display:none;margin-top:6px;background:rgba(20,16,10,0.6);border:1px solid rgba(160,140,100,0.25);border-radius:4px;padding:8px;">`;
@@ -9043,6 +9051,10 @@ function renderKingdoms() {
           html += `</div>`;
         }
       }
+      // Infiltrate — always available (at war or poor relations)
+      html += `<div style="margin-top:4px;margin-left:20px;font-size:11px;">`;
+      html += `<button class="diplo-btn" style="font-size:10px;background:rgba(80,30,30,0.5);border-color:rgba(180,80,60,0.6);" onclick="infiltrateNation(${n.id})" title="Send spies to reveal their borders — 50 gold. 25% chance of discovery.">Infiltrate <span style="color:#d4a856;font-size:9px;">(50g)</span></button>`;
+      html += `</div>`;
     }
     html += `</div>`;
   }
@@ -9172,6 +9184,50 @@ function rejectRequest(nationId, type) {
   showToast(`Rejected ${type.replace(/_/g, ' ')} request from ${nations[nationId].name}.`);
   renderKingdoms();
 }
+// Reveal all owned tiles of a nation to another nation
+function revealNationBorders(revealedNationId, toNationId) {
+  for (let i = 0; i < tiles.length; i++) {
+    if (tiles[i].owner === revealedNationId) tiles[i].revealed.add(toNationId);
+  }
+  for (const c of cities) {
+    if (c.nationId === revealedNationId) tiles[c.y * MAP_COLS + c.x].revealed.add(toNationId);
+  }
+  if (toNationId === playerNation) { visionDirty = true; minimapDirty = true; }
+}
+
+// Mapping Agreement: mutual border reveal, requires decent relations
+function requestMappingAgreement(nationId) {
+  const loy = getLoyalty(nationId, playerNation);
+  if (loy < 20) { showToast(`${nations[nationId].name} refuses — relations too poor for a mapping agreement.`); return; }
+  const cost = 30;
+  if (nations[playerNation].gold < cost) { showToast(`Not enough gold (need ${cost}g).`); return; }
+  if (hasAgreement(playerNation, nationId, 'mapping')) { showToast(`Mapping agreement already active with ${nations[nationId].name}.`); return; }
+  nations[playerNation].gold -= cost;
+  addAgreement(playerNation, nationId, 'mapping');
+  // Both sides reveal borders to each other
+  revealNationBorders(nationId, playerNation);
+  revealNationBorders(playerNation, nationId);
+  changeLoyalty(nationId, playerNation, 5);
+  showToast(`Mapping agreement with ${nations[nationId].name}. Their borders revealed!`);
+  render(); renderKingdoms();
+}
+
+// Infiltrate: covert unilateral border reveal, for poor relations
+function infiltrateNation(nationId) {
+  const cost = 50;
+  if (nations[playerNation].gold < cost) { showToast(`Not enough gold (need ${cost}g).`); return; }
+  nations[playerNation].gold -= cost;
+  revealNationBorders(nationId, playerNation);
+  // 25% chance of discovery — loyalty hit
+  if (Math.random() < 0.25) {
+    changeLoyalty(nationId, playerNation, -15);
+    showToast(`Spies infiltrated ${nations[nationId].name} — their borders revealed. They suspect something.`);
+  } else {
+    showToast(`Spies infiltrated ${nations[nationId].name} — their borders revealed.`);
+  }
+  render(); renderKingdoms();
+}
+
 window.requestAgreement = requestAgreement;
 window.cancelAgreement = cancelAgreement;
 window.requestTrade = requestTrade;
@@ -9181,6 +9237,8 @@ window.rejectRequest = rejectRequest;
 window.acceptPeace = acceptPeace;
 window.rejectPeace = rejectPeace;
 window.sendGift = sendGift;
+window.requestMappingAgreement = requestMappingAgreement;
+window.infiltrateNation = infiltrateNation;
 
 // ====================
 // TECH TREE UI
