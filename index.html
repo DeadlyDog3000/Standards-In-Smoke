@@ -4011,6 +4011,7 @@ function foundCity(unit, cityName) {
   // Mark city site as settled
   const site = getCitySite(unit.x, unit.y);
   if (site) site.settled = true;
+  invalidateRenderLookups();
   // Destroy barbarian camp if settling on one
   const camp = getBarbarianCamp(unit.x, unit.y);
   if (camp) {
@@ -4446,12 +4447,13 @@ function canAttack(attacker, tx, ty) {
   if (!def.combat) return false;
   // Artillery reload check
   if (def.artillery && attacker.reloadTurns > 0) return false;
-  // Attacks require full moves — unit cannot move and attack in the same turn
-  // Dragoons can attack after moving (Skirmish ability)
-  const canSkirmish = attacker.type === 'dragoon' && attacker.movesLeft > 0;
-  // Swordsmen can move and attack unless in square (defensive) formation
-  const swordCharge = attacker.type === 'swordsman' && attacker.movesLeft > 0 && attacker.formation !== 'square';
-  if (attacker.movesLeft < attacker.maxMoves && !canSkirmish && !swordCharge) return false;
+  // Ranged units must have full moves to attack (can't move and shoot)
+  // Melee units can move then attack as long as they still have moves remaining
+  if (def.ranged) {
+    if (attacker.movesLeft < attacker.maxMoves) return false;
+  } else {
+    if (attacker.movesLeft <= 0) return false;
+  }
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
   if (nations[attacker.nationId].relations[target.nationId] !== 'war') return false;
@@ -4935,9 +4937,10 @@ function spawnBarbarianCamp() {
     }
     const camp = { x: rx, y: ry, nationId: barbNationId, destroyed: false, destroyedTurn: 0 };
     barbarianCamps.push(camp);
-    // Spawn 2 barbarian axemen near camp
+    invalidateRenderLookups();
+    // Spawn 2 barbarian axemen near camp (skipOccupied prevents stacking)
     spawnUnit('barbarian_axeman', barbNationId, rx, ry);
-    const lp = findLandNear(rx + (Math.random() > 0.5 ? 1 : -1), ry + (Math.random() > 0.5 ? 1 : -1), 3);
+    const lp = findLandNear(rx + (Math.random() > 0.5 ? 1 : -1), ry + (Math.random() > 0.5 ? 1 : -1), 5, true);
     spawnUnit('barbarian_axeman', barbNationId, lp.x, lp.y);
     return camp;
   }
@@ -4976,7 +4979,7 @@ function tickBarbarianCamps() {
           }
           camp.nationId = barbNationId;
           spawnUnit('barbarian_axeman', barbNationId, camp.x, camp.y);
-          const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 3);
+          const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 5, true);
           spawnUnit('barbarian_axeman', barbNationId, lp.x, lp.y);
           if (tiles[ti].revealed.has(playerNation)) showToast(`⚠️ A barbarian camp has respawned at (${camp.x}, ${camp.y})!`);
         }
@@ -5016,10 +5019,8 @@ function tickBarbarianCamps() {
       if (turnNumber % barbRaiderInterval === 0 && campUnits.length < barbMaxUnits) {
         const spawnCount = turnNumber >= 30 ? 2 : 1; // spawn 2 at a time later
         for (let si = 0; si < spawnCount && campUnits.length + si < barbMaxUnits; si++) {
-          const lp = findLandNear(camp.x + Math.floor(Math.random() * 3) - 1, camp.y + Math.floor(Math.random() * 3) - 1, 3);
-          if (!units.some(u => u.x === lp.x && u.y === lp.y)) {
-            spawnUnit(barbType, camp.nationId, lp.x, lp.y);
-          }
+          const lp = findLandNear(camp.x + Math.floor(Math.random() * 3) - 1, camp.y + Math.floor(Math.random() * 3) - 1, 5, true);
+          spawnUnit(barbType, camp.nationId, lp.x, lp.y);
         }
       }
     }
@@ -5143,6 +5144,7 @@ function pillageTile(tileIndex, unit) {
   const impName = IMPROVEMENT_DEFS[t.improvement] ? IMPROVEMENT_DEFS[t.improvement].name : t.improvement;
   pillaged.push({ tileIndex, originalImprovement: t.improvement, turnPillaged: turnNumber });
   t.improvement = null;
+  invalidateRenderLookups();
   if (t.owner === playerNation) {
     const tx = tileIndex % MAP_COLS, ty = Math.floor(tileIndex / MAP_COLS);
     showToast(`Barbarians pillaged your ${impName} at (${tx},${ty})! Send a worker within 2 turns to repair!`);
@@ -5175,6 +5177,7 @@ function repairTile(unit) {
   const p = pillaged[pIdx];
   tiles[ti].improvement = p.originalImprovement;
   pillaged.splice(pIdx, 1);
+  invalidateRenderLookups();
   unit.movesLeft = 0;
   if (unit.nationId === playerNation) showToast(`Repaired ${IMPROVEMENT_DEFS[p.originalImprovement]?.name || p.originalImprovement}!`);
 }
@@ -7678,6 +7681,23 @@ function hexScreenPos(col, row) {
   return { x: worldX - camX * cs, y: worldY - camY * ch };
 }
 
+// O(1) lookup maps for render hot-path — rebuilt only when underlying arrays change
+let _citySiteMap = null;   // tileIndex → citySite object (unsettled only)
+let _campMap = null;        // tileIndex → barbarianCamp object
+let _pillagedMap = null;    // tileIndex → pillaged object
+let _renderLookupDirty = true;
+function invalidateRenderLookups() { _renderLookupDirty = true; }
+function ensureRenderLookups() {
+  if (!_renderLookupDirty) return;
+  _citySiteMap = new Map();
+  for (const s of citySites) { if (!s.settled) _citySiteMap.set(s.y * MAP_COLS + s.x, s); }
+  _campMap = new Map();
+  for (const b of barbarianCamps) _campMap.set(b.y * MAP_COLS + b.x, b);
+  _pillagedMap = new Map();
+  for (const p of pillaged) _pillagedMap.set(p.tileIndex, p);
+  _renderLookupDirty = false;
+}
+
 // Compute currently visible tiles for fog of war
 let currentVisionSet = null;
 let visionDirty = true; // Flag to recompute vision only when needed
@@ -7729,6 +7749,7 @@ function render() {
   const shake = getShakeOffset();
   if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
   if (visionDirty) { currentVisionSet = computeCurrentVision(); visionDirty = false; }
+  ensureRenderLookups();
   const pId = playerNation;
 
   // Sprite draw dimensions: native is 32x48 (ratio 1:1.5)
@@ -7740,21 +7761,25 @@ function render() {
   // This is taller than ch (the row step) because rows overlap for the isometric cliff effect
   const faceH = Math.round(w * Math.sqrt(3) / 2);
 
+  // Pre-compute per-column screen-x offsets to avoid redundant multiply inside tile loops
   const startRow = Math.max(0, Math.floor(camY) - 1);
   const endRow = Math.min(MAP_ROWS, Math.floor(camY) + viewRows + 2);
   const startCol = Math.max(0, Math.floor(camX) - 1);
   const endCol = Math.min(MAP_COLS, Math.floor(camX) + viewCols + 2);
+  const camXcs = camX * cs, camYch = camY * ch;
+  const halfCh = Math.round(ch / 2);
 
   // --- Pass 1: Draw all sprites in correct z-order ---
   // Even columns first (higher/behind), then odd columns (lower/in front)
   for (let my = startRow; my < endRow; my++) {
+    const baseWorldY = my * ch - camYch;
     for (let pass = 0; pass <= 1; pass++) {
       for (let mx = startCol; mx < endCol; mx++) {
         if (mx % 2 !== pass) continue;
         const i = my * MAP_COLS + mx;
         const t = tiles[i];
-        const pos = hexScreenPos(mx, my);
-        const sx = pos.x, sy = pos.y;
+        const sx = mx * cs - camXcs;
+        const sy = baseWorldY + (mx & 1) * halfCh;
         if (sx < -w * 2 || sy < -ch * 2 || sx > canvas.width + w || sy > canvas.height + ch) continue;
         if (!t.revealed.has(pId)) continue;
 
@@ -7782,41 +7807,48 @@ function render() {
           ctx.fillRect(sx + drawW * 0.2, sy + drawH * 0.55, drawW * 0.6, drawH * 0.12);
           ctx.restore();
         }
-        if (t.owner >= 0 && t.owner !== pId) discoverNation(t.owner);
       }
     }
   }
 
   // --- Fog of war: dim revealed-but-not-visible tiles ---
+  // Inline neighbor offsets to avoid allocating 6 objects per tile per frame
+  const evenNbr = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]];
+  const oddNbr  = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
   if (currentVisionSet) {
-    for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
-      const i = my * MAP_COLS + mx;
-      const t = tiles[i];
-      if (!t.revealed.has(pId)) continue;
-      if (currentVisionSet.has(i)) continue; // Currently visible — no fog
-      const pos = hexScreenPos(mx, my);
-      const fy = pos.y + facePad;
-      if (pos.x < -w * 2 || fy < -ch * 2 || pos.x > canvas.width + w || fy > canvas.height + ch) continue;
-      // Check if this tile is at the edge of vision (adjacent to a visible tile)
-      const nbs = hexNeighbors(mx, my);
-      const isEdge = nbs.some(nb => {
-        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) return false;
-        return currentVisionSet.has(nb.row * MAP_COLS + nb.col);
-      });
-      // Softer fog at vision edge, darker further away
-      ctx.fillStyle = isEdge ? 'rgba(10, 8, 5, 0.3)' : 'rgba(10, 8, 5, 0.5)';
-      drawHexPath(ctx, pos.x, fy, w, faceH);
-      ctx.fill();
+    for (let my = startRow; my < endRow; my++) {
+      const baseWorldY = my * ch - camYch;
+      for (let mx = startCol; mx < endCol; mx++) {
+        const i = my * MAP_COLS + mx;
+        const t = tiles[i];
+        if (!t.revealed.has(pId)) continue;
+        if (currentVisionSet.has(i)) continue;
+        const sx = mx * cs - camXcs;
+        const fy = baseWorldY + (mx & 1) * halfCh + facePad;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > canvas.width + w || fy > canvas.height + ch) continue;
+        // Check edge of vision — inline neighbor math, no allocation
+        const dirs = (mx & 1) ? oddNbr : evenNbr;
+        let isEdge = false;
+        for (let d = 0; d < 6; d++) {
+          const nc = mx + dirs[d][0], nr = my + dirs[d][1];
+          if (nc >= 0 && nc < MAP_COLS && nr >= 0 && nr < MAP_ROWS && currentVisionSet.has(nr * MAP_COLS + nc)) { isEdge = true; break; }
+        }
+        ctx.fillStyle = isEdge ? 'rgba(10, 8, 5, 0.3)' : 'rgba(10, 8, 5, 0.5)';
+        drawHexPath(ctx, sx, fy, w, faceH);
+        ctx.fill();
+      }
     }
   }
 
   // --- Pass 2: Draw all borders and icons on top of all sprites ---
   // Offset by facePad to align with hex face position in sprite
-  for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
+  for (let my = startRow; my < endRow; my++) {
+    const baseWorldY = my * ch - camYch;
+    for (let mx = startCol; mx < endCol; mx++) {
     const i = my * MAP_COLS + mx;
     const t = tiles[i];
-    const pos = hexScreenPos(mx, my);
-    const sx = pos.x, fy = pos.y + facePad; // fy = face y position (shifted down to match sprite face)
+    const sx = mx * cs - camXcs;
+    const fy = baseWorldY + (mx & 1) * halfCh + facePad; // face y position
     if (sx < -w * 2 || fy < -ch * 2 || sx > canvas.width + w || fy > canvas.height + ch) continue;
     if (!t.revealed.has(pId)) continue;
 
@@ -7847,7 +7879,7 @@ function render() {
       const myCity = tcMap.get(i);
       const isContested = myCity && myCity.contested;
       const nationColor = nations[t.owner].color;
-      const neighbors = hexNeighbors(mx, my);
+      const dirs = (mx & 1) ? oddNbr : evenNbr;
       const edgeMap = [0, 3, 1, 2, 5, 4];
       // Territory fill: soft colored tint on owned tiles
       ctx.fillStyle = nationColor;
@@ -7855,13 +7887,12 @@ function render() {
       drawHexPath(ctx, sx, fy, w, faceH);
       ctx.fill();
       ctx.globalAlpha = 1.0;
-      // Collect outer border edges and draw inter-city dividers
+      // Collect outer border edges and draw inter-city dividers (inline neighbor math)
       const borderEdges = [];
       for (let ni = 0; ni < 6; ni++) {
-        const nb = neighbors[ni];
-        const nIdx = nb.row * MAP_COLS + nb.col;
-        const neighborOwner = (nb.col >= 0 && nb.col < MAP_COLS && nb.row >= 0 && nb.row < MAP_ROWS)
-          ? tiles[nIdx].owner : -1;
+        const nc = mx + dirs[ni][0], nr = my + dirs[ni][1];
+        const nIdx = nr * MAP_COLS + nc;
+        const neighborOwner = (nc >= 0 && nc < MAP_COLS && nr >= 0 && nr < MAP_ROWS) ? tiles[nIdx].owner : -1;
         if (neighborOwner !== t.owner) {
           borderEdges.push(edgeMap[ni]);
         } else if (myCity) {
@@ -7892,7 +7923,7 @@ function render() {
 
     // Draw city site marker
     if (VIEW_TILE >= 12) {
-      const site = citySites.find(s => s.x === mx && s.y === my && !s.settled);
+      const site = _citySiteMap && _citySiteMap.get(i);
       if (site) {
         ctx.fillStyle = 'rgba(80, 180, 80, 0.3)';
         drawHexPath(ctx, sx, fy, w, faceH);
@@ -7908,7 +7939,7 @@ function render() {
 
     // Draw barbarian camp marker
     if (VIEW_TILE >= 12) {
-      const camp = barbarianCamps.find(b => b.x === mx && b.y === my);
+      const camp = _campMap && _campMap.get(i);
       if (camp) {
         if (!camp.destroyed) {
           ctx.fillStyle = 'rgba(180, 50, 30, 0.35)';
@@ -7942,7 +7973,7 @@ function render() {
 
     // Draw pillaged indicator
     if (VIEW_TILE >= 16) {
-      const pil = pillaged.find(p => p.tileIndex === i);
+      const pil = _pillagedMap && _pillagedMap.get(i);
       if (pil) {
         const turnsLeft = Math.max(0, 2 - (turnNumber - pil.turnPillaged));
         ctx.fillStyle = 'rgba(200, 50, 0, 0.4)';
@@ -7954,7 +7985,8 @@ function render() {
         ctx.fillText(`\uD83D\uDEE0\uFE0F${turnsLeft}`, sx + w / 2, fy + faceH / 2);
       }
     }
-  }
+  } // end mx loop
+  } // end my loop
 
   // Reachable tiles overlay
   if (moveMode || buyTileMode || workerBuyMode) for (const key of reachableTiles) {
@@ -8316,10 +8348,12 @@ function render() {
 
   updateCityLabels();
   renderMinimap();
-  updateAmbientBirds();
-  updateAmbientTown();
-  document.getElementById('turnInfo').textContent = 'Turn ' + turnNumber;
-  document.getElementById('zoomInfo').textContent = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+  // Throttle ambient sound checks — no need to scan tiles every frame
+  if (!render._ambientTick) render._ambientTick = 0;
+  if (++render._ambientTick % 5 === 0) { updateAmbientBirds(); updateAmbientTown(); }
+  const turnStr = 'Turn ' + turnNumber, zoomStr = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+  const ti = document.getElementById('turnInfo'); if (ti.textContent !== turnStr) ti.textContent = turnStr;
+  const zi = document.getElementById('zoomInfo'); if (zi.textContent !== zoomStr) zi.textContent = zoomStr;
 
   // Reset screen shake transform
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -8380,8 +8414,10 @@ function invalidateMinimap() { minimapDirty = true; }
 function renderMinimap() {
   if (!MAP_COLS) return;
   const mw = 160, mh = Math.round(mw * MAP_ROWS / MAP_COLS * 0.85);
-  minimapCanvas.width = mw; minimapCanvas.height = mh;
-  minimapCanvas.style.width = mw + 'px'; minimapCanvas.style.height = mh + 'px';
+  if (minimapCanvas.width !== mw || minimapCanvas.height !== mh) {
+    minimapCanvas.width = mw; minimapCanvas.height = mh;
+    minimapCanvas.style.width = mw + 'px'; minimapCanvas.style.height = mh + 'px';
+  }
 
   const scaleX = mw / MAP_COLS, scaleY = mh / MAP_ROWS;
 
@@ -11686,15 +11722,19 @@ window.deleteSave = deleteSave;
 // ====================
 // GAME START
 // ====================
-function findLandNear(cx, cy, radius) {
+function findLandNear(cx, cy, radius, skipOccupied = false) {
   for (let r = 0; r <= radius; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (Math.abs(dx) + Math.abs(dy) > r) continue;
     const tx = cx + dx, ty = cy + dy;
     if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
     const t = tiles[ty * MAP_COLS + tx].type;
-    if (t === 1 || t === 3 || t === 5 || t === 6) return { x: tx, y: ty };
+    if (t !== 1 && t !== 3 && t !== 5 && t !== 6) continue;
+    if (skipOccupied && units.some(u => u.x === tx && u.y === ty)) continue;
+    return { x: tx, y: ty };
   }
-  for (let i = 0; i < tiles.length; i++) if (tiles[i].type === 1) return { x: i % MAP_COLS, y: Math.floor(i / MAP_COLS) };
+  for (let i = 0; i < tiles.length; i++) {
+    if (tiles[i].type === 1 && (!skipOccupied || !units.some(u => u.x === i % MAP_COLS && u.y === Math.floor(i / MAP_COLS)))) return { x: i % MAP_COLS, y: Math.floor(i / MAP_COLS) };
+  }
   return { x: cx, y: cy };
 }
 
