@@ -2906,10 +2906,11 @@ function nationCanResearch(nationId, techKey) {
   if (nationHasTech(nationId, techKey)) return false;
   for (const p of tech.prereqs) { if (!nationHasTech(nationId, p)) return false; }
   if (tech.needsResource) {
-    const resType = tech.needsResource === 'horses' ? 6 : -1; // herd=6
-    if (resType >= 0) {
-      const hasTile = tiles.some((t, i) => t.owner === nationId && t.type === resType);
-      if (!hasTile) return false;
+    if (tech.needsResource === 'horses') {
+      // Horses come from pastures (on any valid tile) or raw herd tiles (type 6)
+      const hasPasture = tiles.some(t => t.owner === nationId && t.improvement === 'pasture');
+      const hasHerd = tiles.some(t => t.owner === nationId && t.type === 6);
+      if (!hasPasture && !hasHerd) return false;
     }
   }
   return true; // no longer requires having all science upfront
@@ -9565,7 +9566,9 @@ function _buildTechTreeOverlay() {
         if (!nationCanResearch(playerNation, key)) {
           const t = TECHS[key];
           const missing = t.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', ');
-          showToast(missing ? `Requires: ${missing}` : `Cannot research ${t.name} yet.`);
+          if (missing) { showToast(`Requires: ${missing}`); return; }
+          if (t.needsResource === 'horses') { showToast(`Requires a pasture or herd tile to research ${t.name}.`); return; }
+          showToast(`Cannot research ${t.name} yet.`);
           return;
         }
         window.doResearch(key);
