@@ -584,6 +584,18 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Diplomacy</b><br>
+        - Mapping Agreement: spend 30 gold to mutually reveal both nations&apos; borders (requires Cautious+ relations)<br>
+        - Infiltrate: spend 50 gold to covertly reveal an enemy&apos;s borders &mdash; 25% chance of discovery and loyalty loss<br>
+        <br>
+        <b style="color:#b8a070;">Fixes</b><br>
+        - Fixed black screen flash during camera pan caused by accumulated canvas transform<br>
+        - Rush produce no longer charges unit resource costs on top of the gold fee<br>
+        - Unit upgrade now works anywhere within a city&apos;s borders, not just on the city tile<br>
+        - Upgrade button now shows the correct unit name (e.g. Musketeer instead of Gunpowder Infantry)<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Planning Mode (Cartography tech)</b><br>
@@ -964,6 +976,18 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.2</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Diplomacy</b><br>
+          - Mapping Agreement: spend 30 gold to mutually reveal both nations&apos; borders (requires Cautious+ relations)<br>
+          - Infiltrate: spend 50 gold to covertly reveal an enemy&apos;s borders &mdash; 25% chance of discovery and loyalty loss<br>
+          <br>
+          <b style="color:#b8a070;">Fixes</b><br>
+          - Fixed black screen flash during camera pan caused by accumulated canvas transform<br>
+          - Rush produce no longer charges unit resource costs on top of the gold fee<br>
+          - Unit upgrade now works anywhere within a city&apos;s borders, not just on the city tile<br>
+          - Upgrade button now shows the correct unit name (e.g. Musketeer instead of Gunpowder Infantry)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.1</b></div>
         <div style="margin-bottom:12px;">
@@ -9674,7 +9698,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-4.1';
+const CURRENT_VERSION = 'beta-4.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
