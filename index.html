@@ -5620,38 +5620,61 @@ function aiTurn(nationId) {
     if (u.type === 'settler' && u.movesLeft > 0) {
       if (canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u, getNextHistoricalCityName(u.nationId));
       else {
-        // Move toward best city site (evaluated by quality, not just distance)
+        // Score a candidate location for founding
+        function scoreSettleSite(sx, sy) {
+          let quality = 0;
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+            const tx = sx + dx, ty = sy + dy;
+            if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+            const tt = tiles[ty * MAP_COLS + tx].type;
+            if (tt === 1) quality += 2;
+            if (tt === 5) quality += 2;
+            if (tt === 6) quality += 3;
+            if (tt === 2) quality += 1;
+            if (tt === 0) quality -= 1;
+          }
+          let minCityDist = Infinity;
+          for (const c of aiCities) {
+            const cd = Math.abs(c.x - sx) + Math.abs(c.y - sy);
+            if (cd < minCityDist) minCityDist = cd;
+          }
+          // Also penalise proximity to ANY city (not just own)
+          for (const c of cities) {
+            const cd = Math.abs(c.x - sx) + Math.abs(c.y - sy);
+            if (cd < 5) return -999; // too close to any city
+          }
+          if (minCityDist < 6) quality -= 15;
+          else if (minCityDist < 10) quality += 5;
+          else quality += 2;
+          return quality;
+        }
+
         let bestTarget = null, bestScore = -Infinity;
+        // Score all designated city sites
         for (const s of citySites) {
           if (s.settled) continue;
           const d = Math.abs(s.x - u.x) + Math.abs(s.y - u.y);
-          if (d > 40) continue; // too far to consider
-          // Score: evaluate surrounding terrain quality
-          let quality = 0;
-          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
-            const tx = s.x + dx, ty = s.y + dy;
-            if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
-            const tt = tiles[ty * MAP_COLS + tx].type;
-            if (tt === 1) quality += 2;       // plains - farmable
-            if (tt === 5) quality += 2;       // forest - wood
-            if (tt === 6) quality += 3;       // herd - food
-            if (tt === 2) quality += 1;       // mountain - mining
-            if (tt === 0) quality -= 1;       // ocean - unusable (but coastal is ok)
-          }
-          // Bonus for distance from own cities (spread out)
-          let minCityDist = Infinity;
-          for (const c of aiCities) {
-            const cd = Math.abs(c.x - s.x) + Math.abs(c.y - s.y);
-            if (cd < minCityDist) minCityDist = cd;
-          }
-          if (minCityDist < 6) quality -= 15;     // too close to existing city
-          else if (minCityDist < 10) quality += 5; // good spread
-          else quality += 2;                        // decent spread
-          // Penalty for distance to travel
-          quality -= d * 0.5;
-          if (quality > bestScore) { bestScore = quality; bestTarget = s; }
+          if (d > 40) continue;
+          const q = scoreSettleSite(s.x, s.y) - d * 0.5;
+          if (q > bestScore) { bestScore = q; bestTarget = s; }
         }
-        // Also consider barbarian camps as fallback
+        // If no good site found, also consider settling on the current tile or nearby open land
+        if (bestScore < 0) {
+          // Sample nearby revealed tiles as potential settle spots
+          for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+            const tx = u.x + dx, ty = u.y + dy;
+            if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
+            const t = tiles[ty * MAP_COLS + tx];
+            if (t.type === 0 || t.type === 4) continue; // ocean/village
+            if (t.owner >= 0) continue; // already claimed
+            const result = canFoundCity(tx, ty, u.nationId);
+            if (!result.ok) continue;
+            const d = Math.abs(tx - u.x) + Math.abs(ty - u.y);
+            const q = scoreSettleSite(tx, ty) - d * 0.4;
+            if (q > bestScore) { bestScore = q; bestTarget = { x: tx, y: ty }; }
+          }
+        }
+        // Barbarian camps as last resort
         if (!bestTarget) {
           let bestDist = Infinity;
           for (const b of barbarianCamps) {
@@ -6045,11 +6068,14 @@ function aiTurn(nationId) {
           c.producing = 'royal_arsenal';
         } else {
           const availSites = citySites.filter(s => !s.settled).length + barbarianCamps.filter(b => !b.destroyed).length;
-          const maxCities = Math.max(3, Math.min(availSites, 2 + combatCount));
+          // City cap scales with turn number and combat strength — let AI grow meaningfully
+          const maxCities = Math.min(availSites + aiCities.length, Math.max(4, Math.floor(turnNumber / 15) + 2 + Math.floor(combatCount / 3)));
+          const existingSettlers = units.filter(u => u.nationId === nationId && u.type === 'settler').length;
           const roll = Math.random();
           // Build more workers if economy needs it
           if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
-          else if (aiCities.length < maxCities && n.food >= 50 && roll < 0.2) c.producing = 'settler';
+          // Actively expand: build settler if under city cap, have food, and don't already have one en route
+          else if (aiCities.length < maxCities && existingSettlers === 0 && n.food >= 50 && roll < 0.55) c.producing = 'settler';
           else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
           else c.producing = bestCombat; // default: keep building army
         }
