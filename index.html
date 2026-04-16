@@ -2632,10 +2632,10 @@ function updateAmbientBirds() {
   let forestVisible = false;
   if (VIEW_TILE >= 28) {
     const cs = hexColStep(), ch = hexCellH();
-    const startRow = Math.max(0, camY);
-    const endRow = Math.min(MAP_ROWS, camY + Math.ceil(canvas.height / ch) + 2);
-    const startCol = Math.max(0, camX);
-    const endCol = Math.min(MAP_COLS, camX + Math.ceil(canvas.width / cs) + 2);
+    const startRow = Math.max(0, Math.floor(camY));
+    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(canvas.height / ch) + 2);
+    const startCol = Math.max(0, Math.floor(camX));
+    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(canvas.width / cs) + 2);
     for (let my = startRow; my < endRow && !forestVisible; my++) {
       for (let mx = startCol; mx < endCol; mx++) {
         if (tiles[my * MAP_COLS + mx].type === 5) { forestVisible = true; break; }
@@ -2668,10 +2668,10 @@ function updateAmbientTown() {
   let townVisible = false;
   if (VIEW_TILE >= 28) {
     const cs = hexColStep(), ch = hexCellH();
-    const startRow = Math.max(0, camY);
-    const endRow = Math.min(MAP_ROWS, camY + Math.ceil(canvas.height / ch) + 2);
-    const startCol = Math.max(0, camX);
-    const endCol = Math.min(MAP_COLS, camX + Math.ceil(canvas.width / cs) + 2);
+    const startRow = Math.max(0, Math.floor(camY));
+    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(canvas.height / ch) + 2);
+    const startCol = Math.max(0, Math.floor(camX));
+    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(canvas.width / cs) + 2);
     for (let my = startRow; my < endRow && !townVisible; my++) {
       for (let mx = startCol; mx < endCol; mx++) {
         const t = tiles[my * MAP_COLS + mx];
@@ -4204,16 +4204,22 @@ window.rushProduce = function() {
   if (n.gold < cost) { showToast('Not enough gold!'); return; }
   n.gold -= cost;
   // Complete production immediately
-  const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
-  let canAfford = true;
-  for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
-  if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
-  for (const k in costs) n[k] -= costs[k];
-  if (CITY_BUILDING_DEFS[selectedCity.producing]) {
+  // Buildings consume materials at completion (same as tickProduction).
+  // Units do NOT deduct PRODUCTION_COSTS — time is their cost, just like normal production.
+  const isBuilding = !!CITY_BUILDING_DEFS[selectedCity.producing];
+  if (isBuilding) {
+    const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
+    let canAfford = true;
+    for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
+    if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
+    for (const k in costs) n[k] -= costs[k];
+  }
+  if (isBuilding) {
     const bld = CITY_BUILDING_DEFS[selectedCity.producing];
+    const bldCosts = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
     // Wonder uniqueness check: refund if already built
     if (bld.wonder && cities.some(c => (c.buildings || []).includes(selectedCity.producing))) {
-      for (const k in costs) n[k] += costs[k];
+      for (const k in bldCosts) n[k] += bldCosts[k];
       n.gold += cost;
       showToast(`${bld.name} was already built by another nation!`);
       selectedCity.producing = null; selectedCity.productionProgress = 0;
@@ -7661,6 +7667,7 @@ function getTileCityMap() {
   return _tileCityMap;
 }
 function render() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(canvas.width / cs) + 3;
   viewRows = Math.ceil(canvas.height / ch) + 3;
@@ -8535,14 +8542,16 @@ function showUnitPanel(unit) {
     const hastech = nationHasTech(playerNation, upg.tech);
     const n = nations[playerNation];
     const canAfford = hastech && Object.entries(upg.cost).every(([r, amt]) => (n[r] || 0) >= amt);
-    const inCity = cities.some(c => c.x === unit.x && c.y === unit.y && c.nationId === playerNation);
+    const unitTi = unit.y * MAP_COLS + unit.x;
+    const inCityBorders = cities.some(c => c.nationId === playerNation && (c.ownedTiles || new Set()).has(unitTi));
     const toDef = UNIT_DEFS[upg.to];
     const techName = TECHS[upg.tech] ? TECHS[upg.tech].name : upg.tech;
     const costStr = Object.entries(upg.cost).map(([r, amt]) => `${amt} ${r}`).join(', ');
-    const canUpgrade = hastech && inCity && canAfford;
-    html += `<button class="p-btn" onclick="upgradeUnit()" ${!canUpgrade ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${toDef.desc.split('.')[0]} <span class="cost">${costStr}</span></button>`;
+    const canUpgrade = hastech && inCityBorders && canAfford;
+    const upgradeToName = upg.to.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    html += `<button class="p-btn" onclick="upgradeUnit()" ${!canUpgrade ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${upgradeToName} <span class="cost">${costStr}</span></button>`;
     if (!hastech) html += `<p style="font-size:10px;color:#a66">Requires ${techName} research.</p>`;
-    else if (!inCity) html += `<p style="font-size:10px;color:#a86">Move to a city to upgrade.</p>`;
+    else if (!inCityBorders) html += `<p style="font-size:10px;color:#a86">Must be within a city&apos;s borders to upgrade.</p>`;
     else if (!canAfford) html += `<p style="font-size:10px;color:#a66">Not enough resources.</p>`;
   }
   if (unit.type === 'settler') {
@@ -11244,8 +11253,9 @@ window.upgradeUnit = function() {
   const upg = UNIT_UPGRADES[selectedUnit.type];
   if (!upg) return;
   if (!nationHasTech(playerNation, upg.tech)) { showToast('Missing required technology.'); return; }
-  if (!cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === playerNation)) {
-    showToast('Must be in a city to upgrade.'); return;
+  const upgTi = selectedUnit.y * MAP_COLS + selectedUnit.x;
+  if (!cities.some(c => c.nationId === playerNation && (c.ownedTiles || new Set()).has(upgTi))) {
+    showToast('Must be within a city\'s borders to upgrade.'); return;
   }
   const n = nations[playerNation];
   for (const [r, amt] of Object.entries(upg.cost)) {
