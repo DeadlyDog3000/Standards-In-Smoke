@@ -4476,13 +4476,8 @@ function canAttack(attacker, tx, ty) {
   if (!def.combat) return false;
   // Artillery reload check
   if (def.artillery && attacker.reloadTurns > 0) return false;
-  // Ranged units must have full moves to attack (can't move and shoot)
-  // Melee units can move then attack as long as they still have moves remaining
-  if (def.ranged) {
-    if (attacker.movesLeft < attacker.maxMoves) return false;
-  } else {
-    if (attacker.movesLeft <= 0) return false;
-  }
+  // All units need at least 1 move remaining to attack
+  if (attacker.movesLeft <= 0) return false;
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
   if (nations[attacker.nationId].relations[target.nationId] !== 'war') return false;
