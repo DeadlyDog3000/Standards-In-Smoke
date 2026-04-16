@@ -3006,8 +3006,8 @@ function tickResearch(nationId) {
   if (!tech) { n.currentResearch = null; return; }
   // Check prereqs still valid
   if (nationHasTech(nationId, n.currentResearch)) { n.currentResearch = null; return; }
-  // Add science per turn to research progress
-  const sciPerTurn = getTotalYields(nationId).science || 0;
+  // Add science per turn to research progress (minimum 1 so research always advances)
+  const sciPerTurn = Math.max(1, getTotalYields(nationId).science || 0);
   n.researchProgress = (n.researchProgress || 0) + sciPerTurn;
   if (n.researchProgress >= tech.cost) {
     researchTech(nationId, n.currentResearch);
@@ -6172,26 +6172,67 @@ function aiTurn(nationId) {
     const diffMod = getDifficultyModifiers();
     for (const k in y) n[k] = (n[k] || 0) + y[k] * diffMod.aiResourceMult;
   }
-  // Strategic AI tech selection (pick research target if none set)
+  // Strategic AI tech selection — pick a new target whenever current is done or missing
   n.science = n.science || 0;
   if (!n.currentResearch || nationHasTech(nationId, n.currentResearch)) {
-    let bestTech = null, bestPriority = -1;
+    // Categorise available techs with context-aware scoring
+    const hasCav = tiles.some(t => t.owner === nationId && (t.improvement === 'pasture' || t.type === 6));
+    const aiArmySize = combatUnits.length;
+    const numCities = aiCities.length;
+
+    // Build a prioritised wishlist of techs the AI should research
+    const TECH_PRIORITY = {
+      // Tier 1: core early unlocks — always research first
+      animal_husbandry: 30,
+      lumbermill:        25,
+      crossbow:          28,
+      advanced_scouting: 18,
+      engineering:       22,
+      // Tier 2: economic backbone
+      agriculture:       20,
+      banking:           20,
+      factory_tech:      18,
+      medicine:          16,
+      // Tier 3: military expansion
+      cavalry_tactics:   hasCav ? 26 : 5,
+      military_leadership: aiArmySize >= 4 ? 22 : 10,
+      gunpowder_tech:    20,
+      siege_warfare:     16,
+      // Tier 4: advanced military
+      bayonet_drill:     15,
+      rifling:           15,
+      hussar_tactics:    hasCav ? 14 : 4,
+      dragoon_tactics:   hasCav ? 12 : 4,
+      lancer_tactics:    hasCav ? 12 : 3,
+      heavy_cavalry_tactics: hasCav ? 10 : 2,
+      advanced_siege:    12,
+      field_artillery:   12,
+      // Naval: lower priority unless coastal nation
+      navigation:        numCities >= 2 ? 10 : 5,
+      shipbuilding:      8,
+      naval_gunnery:     6,
+      // Situational
+      cartography:       8,
+    };
+
+    let bestTech = null, bestPriority = -Infinity;
     for (const tKey in TECHS) {
       if (!nationCanResearch(nationId, tKey)) continue;
-      const tech = TECHS[tKey];
-      let priority = 0;
-      // Military tech is always valuable — stronger army is always useful
-      if (tech.section === 'military') priority += 8;
-      if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u]?.combat)) priority += 6;
-      if (atWar || threatLevel > 0) {
-        // Extra urgency for military during war
-        if (tech.section === 'military') priority += 5;
+      let priority = TECH_PRIORITY[tKey] ?? 8;
+
+      // Wartime urgency: boost military tech
+      if ((atWar || threatLevel > 0) && TECHS[tKey].section === 'military') priority += 10;
+
+      // Boost techs that unlock something we don't yet have
+      if (TECHS[tKey].unlocks) {
+        for (const unlock of TECHS[tKey].unlocks) {
+          if (UNIT_DEFS[unlock]?.combat && !units.some(eu => eu.type === unlock && eu.nationId === nationId)) priority += 5;
+        }
       }
-      // Production and growth still matter for development
-      if (tech.section === 'production') priority += 5;
-      if (tech.section === 'growth') priority += 4;
-      priority += Math.max(0, 10 - tech.cost / 15);
-      if (tech.unlocks && tech.unlocks.some(u => UNIT_DEFS[u] && !units.some(eu => eu.type === u && eu.nationId === nationId))) priority += 3;
+
+      // Small random factor to prevent all AIs picking identical paths
+      priority += Math.random() * 4;
+
       if (priority > bestPriority) { bestPriority = priority; bestTech = tKey; }
     }
     if (bestTech) setResearchTarget(nationId, bestTech);
@@ -10438,7 +10479,8 @@ canvas.addEventListener('click', (e) => {
     const isNaval = UNIT_DEFS[selectedUnit.type].naval;
     const tileOk = isNaval ? tiles[ti].type === 0 : tiles[ti].type !== 0;
     if (tileOk) {
-      if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) { gotoMode = false; render(); return; }
+      // Only spend an order if the unit still has moves (setting a future order is free)
+      if (selectedUnit.movesLeft > 0 && selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) { gotoMode = false; render(); return; }
       selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
       gotoMode = false;
       // Immediately move toward destination with animation
