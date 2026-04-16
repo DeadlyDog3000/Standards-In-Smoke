@@ -10875,7 +10875,7 @@ window.doRangedAttack = function(tx, ty) {
     if (tgtInCity) rAmmoMult *= 0.5;
   }
   // Difficulty scaling
-  const rDiffMult = selectedUnit.nationId === playerNation ? getDifficultyModifiers().atkDiffMult : getDifficultyModifiers().aiCombatMult;
+  const rDiffMult = selectedUnit.nationId !== playerNation ? getDifficultyModifiers().aiCombatMult : 1.0;
   target.hp -= Math.round((atkPower + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * rHpRatio) * rTerrainBonus * rFortBonus * rSiegeBonus * rFlankBonus * rFormDef * rCmdDef * rAmmoMult * rDiffMult);
   const rDmgDealt = rTargetHpBefore - target.hp;
   const rTargetDied = target.hp <= 0;
