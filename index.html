@@ -5998,6 +5998,32 @@ function aiTurn(nationId) {
             const dist = Math.abs(u.x - undefCity.x) + Math.abs(u.y - undefCity.y);
             if (dist > 1) { moveAIToward(u, undefCity.x, undefCity.y, u.movesLeft); continue; }
           }
+          // Barbarian assist: if friendly with player, hunt nearby barbarians threatening player cities/units
+          const friendlyWithPlayer = n.relations[playerNation] !== 'war';
+          if (friendlyWithPlayer) {
+            let barbTarget = null, barbDist = Infinity;
+            for (const barbUnit of units) {
+              if (!isBarbarianNation(barbUnit.nationId)) continue;
+              const d = Math.abs(barbUnit.x - u.x) + Math.abs(barbUnit.y - u.y);
+              if (d > 12) continue; // only hunt nearby barbarians
+              // Prefer barbarians near player cities or player units
+              const nearPlayerCity = cities.some(c => c.nationId === playerNation && Math.abs(c.x - barbUnit.x) + Math.abs(c.y - barbUnit.y) <= 8);
+              const nearPlayerUnit = units.some(pu => pu.nationId === playerNation && Math.abs(pu.x - barbUnit.x) + Math.abs(pu.y - barbUnit.y) <= 6);
+              if (nearPlayerCity || nearPlayerUnit) {
+                if (d < barbDist) { barbDist = d; barbTarget = barbUnit; }
+              }
+            }
+            if (barbTarget) {
+              // Attack if adjacent, otherwise move toward
+              const isAdj = hexNeighbors(u.x, u.y).some(nb => nb.col === barbTarget.x && nb.row === barbTarget.y);
+              if (isAdj && canAttack(u, barbTarget.x, barbTarget.y)) {
+                doAttack(u, barbTarget.x, barbTarget.y);
+              } else {
+                moveAIToward(u, barbTarget.x, barbTarget.y, u.movesLeft);
+              }
+              continue;
+            }
+          }
         }
         // === SMART AI: High ground preference — when moving, prefer hills/forests/mountains ===
         // Move toward nearest enemy city (or garrison if threatened)
