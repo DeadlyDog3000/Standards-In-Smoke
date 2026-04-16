@@ -912,6 +912,7 @@
     <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
+    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit()" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
@@ -10673,6 +10674,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
   if (escMenuOpen || eventModalOpen) return;
   // Hotkeys (WASD handled by interval)
+  if (e.key === 'q') { cycleToNextUnit(); e.preventDefault(); return; }
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
