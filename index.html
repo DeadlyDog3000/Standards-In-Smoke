@@ -3081,10 +3081,27 @@ function removeAgreement(nationA, nationB, type) {
   if (agreements[nationA] && agreements[nationA][nationB]) agreements[nationA][nationB].delete(type);
   if (agreements[nationB] && agreements[nationB][nationA]) agreements[nationB][nationA].delete(type);
 }
-function canEnterTerritory(nationId, tileOwner) {
-  if (tileOwner < 0 || tileOwner === nationId) return true;
-  if (nations[tileOwner] && nations[tileOwner].isBarbarian) return true;
+function canEnterTerritory(nationId, tileOwner, tx, ty) {
+  if (tileOwner === nationId) return true;
   if (nations[nationId] && nations[nationId].isBarbarian) return true;
+  // For unowned tiles, check if within 3 hex of any non-barbarian city (cultural zone)
+  if (tileOwner < 0) {
+    if (tx !== undefined && ty !== undefined) {
+      for (const city of cities) {
+        if (city.nationId === nationId) continue;
+        if (nations[city.nationId] && nations[city.nationId].isBarbarian) continue;
+        const d = Math.abs(city.x - tx) + Math.abs(city.y - ty);
+        if (d <= 3) {
+          // Tile is within cultural zone of another nation's city
+          if (nations[nationId] && nations[nationId].relations[city.nationId] === 'war') return true;
+          if (hasAgreement(nationId, city.nationId, 'open_borders')) return true;
+          return false;
+        }
+      }
+    }
+    return true; // truly neutral tile
+  }
+  if (nations[tileOwner] && nations[tileOwner].isBarbarian) return true;
   // At war — can always enter
   if (nations[nationId] && nations[nationId].relations[tileOwner] === 'war') return true;
   // Open borders agreement
@@ -3097,7 +3114,7 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   // Border check: can this nation enter the destination tile's territory?
   if (nx !== undefined && ny !== undefined && nationId !== undefined) {
     const tileOwner = tiles[ny * MAP_COLS + nx].owner;
-    if (!canEnterTerritory(nationId, tileOwner)) return false;
+    if (!canEnterTerritory(nationId, tileOwner, nx, ny)) return false;
   }
   if (tileType !== 0) return true; // all land units can walk on land
   // Ocean tile — check if unit can cross water
@@ -7997,12 +8014,17 @@ function render() {
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
       }
-    } else if (t.animal && !t.improvement && VIEW_TILE >= 14) {
+    }
+    // Animal indicator: small corner badge (not a full overlay)
+    if (t.animal && !t.improvement && VIEW_TILE >= 14) {
       const ad = ANIMAL_DATA[t.animal];
       if (ad) {
-        ctx.font = `${Math.max(10, w * 0.42)}px system-ui`;
+        const badgeSize = Math.max(8, w * 0.28);
+        const bx = sx + w * 0.72;
+        const by = fy + ch * 0.18;
+        ctx.font = `${badgeSize}px system-ui`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(ad.icon, sx + w / 2, fy + ch * 0.48);
+        ctx.fillText(ad.icon, bx, by);
       }
     }
 
@@ -9362,6 +9384,25 @@ function cancelAgreement(nationId, type) {
   removeAgreement(playerNation, nationId, type);
   changeLoyalty(nationId, playerNation, -5);
   showToast(`${type.replace(/_/g, ' ')} cancelled with ${nations[nationId].name}.`);
+  // Expel units of the cancelled nation if they're now in blocked territory
+  if (type === 'open_borders') {
+    let expelled = 0;
+    for (const u of units) {
+      if (u.nationId !== nationId) continue;
+      const tileOwner = tiles[u.y * MAP_COLS + u.x].owner;
+      if (canEnterTerritory(nationId, tileOwner, u.x, u.y)) continue; // still allowed here
+      // Push to nearest accessible neighbor
+      for (const nb of hexNeighbors(u.x, u.y)) {
+        const nx2 = nb.col, ny2 = nb.row;
+        if (nx2 < 0 || nx2 >= MAP_COLS || ny2 < 0 || ny2 >= MAP_ROWS) continue;
+        const nbOwner = tiles[ny2 * MAP_COLS + nx2].owner;
+        if (canEnterTerritory(nationId, nbOwner, nx2, ny2) && !units.some(o => o.x === nx2 && o.y === ny2 && o !== u)) {
+          u.x = nx2; u.y = ny2; expelled++; break;
+        }
+      }
+    }
+    if (expelled > 0) showToast(`${expelled} ${nations[nationId].name} unit${expelled > 1 ? 's' : ''} expelled from your territory.`);
+  }
   renderKingdoms();
 }
 function requestTrade(nationId, resource) {
