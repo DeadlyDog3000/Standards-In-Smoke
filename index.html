@@ -588,6 +588,17 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Diplomacy &amp; AI</b><br>
+        - AI nations can now refuse diplomatic requests based on ruler personality and context<br>
+        - Cruel, martial, and reckless rulers are more likely to decline; diplomatic rulers are easier<br>
+        - Nations at war refuse open borders and mapping agreements more often<br>
+        - Powerful nations are less receptive when you approach from a position of weakness<br>
+        - AI nations now seek war alliances with loyal AI allies when at war<br>
+        - AI seeks peace when severely outmatched, not just when loyalty recovers<br>
+        - AI prioritises weakly defended enemy cities over just the closest one<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Diplomacy &amp; AI</b><br>
@@ -1015,6 +1026,17 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.7</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Diplomacy &amp; AI</b><br>
+          - AI nations can now refuse diplomatic requests based on ruler personality and context<br>
+          - Cruel, martial, and reckless rulers are more likely to decline; diplomatic rulers are easier<br>
+          - Nations at war refuse open borders and mapping agreements more often<br>
+          - Powerful nations are less receptive when you approach from a position of weakness<br>
+          - AI nations now seek war alliances with loyal AI allies when at war<br>
+          - AI seeks peace when severely outmatched, not just when loyalty recovers<br>
+          - AI prioritises weakly defended enemy cities over just the closest one<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.6</b></div>
         <div style="margin-bottom:12px;">
@@ -5647,19 +5669,45 @@ function aiTurn(nationId) {
         if (otherId === playerNation) showWarDeclaration(n);
       }
     }
-    // Peace seeking — only if loyalty recovers above 0
-    if (n.relations[otherId] === 'war' && updatedLoy > 0) {
-      if (otherId === playerNation) {
-        if (!n.wantsPeace) n.wantsPeace = {};
-        if (!n.wantsPeace[otherId]) {
-          n.wantsPeace[otherId] = true;
-          showToast(`${n.name} seeks peace. Open Kingdoms to respond.`);
+    // Peace seeking — when loyalty recovers OR when severely outmatched
+    if (n.relations[otherId] === 'war') {
+      const ourCityCount = (citiesByNation.get(nationId) || []).length;
+      const theirCityCount = (citiesByNation.get(otherId) || []).length;
+      const ourMilCount = (militaryByNation.get(nationId) || []).length;
+      const theirMilCount = (militaryByNation.get(otherId) || []).length;
+      const severelyOutmatched = (theirMilCount > ourMilCount * 2.5 && theirMilCount >= 4) || (ourCityCount === 0);
+      if (updatedLoy > 0 || severelyOutmatched) {
+        if (otherId === playerNation) {
+          if (!n.wantsPeace) n.wantsPeace = {};
+          if (!n.wantsPeace[otherId]) {
+            n.wantsPeace[otherId] = true;
+            showToast(`${n.name} seeks peace. Open Kingdoms to respond.`);
+          }
+        } else {
+          const otherLoy = getLoyalty(otherId, nationId);
+          if (otherLoy > 0 || severelyOutmatched) {
+            n.relations[otherId] = 'peace';
+            nations[otherId].relations[nationId] = 'peace';
+          }
         }
-      } else {
-        const otherLoy = getLoyalty(otherId, nationId);
-        if (otherLoy > 0) {
-          n.relations[otherId] = 'peace';
-          nations[otherId].relations[nationId] = 'peace';
+      }
+    }
+  }
+
+  // AI war alliances: when at war, seek war_help from loyal AI friends
+  if (atWar) {
+    for (let allyId = 0; allyId < nations.length; allyId++) {
+      if (allyId === nationId || allyId === playerNation || nations[allyId].eliminated || nations[allyId].isBarbarian) continue;
+      if (n.relations[allyId] !== 'peace') continue;
+      if (hasAgreement(nationId, allyId, 'war_help')) continue;
+      if (getLoyalty(nationId, allyId) < 60) continue;
+      // Ask for war_help — ally joins our wars
+      addAgreement(nationId, allyId, 'war_help');
+      for (let eid = 0; eid < nations.length; eid++) {
+        if (eid === nationId || eid === allyId || nations[eid].eliminated) continue;
+        if (n.relations[eid] === 'war') {
+          nations[allyId].relations[eid] = 'war';
+          nations[eid].relations[allyId] = 'war';
         }
       }
     }
@@ -6095,12 +6143,16 @@ function aiTurn(nationId) {
           if (nearestThreat) { moveAITowardHighGround(u, nearestThreat.x, nearestThreat.y, u.movesLeft); }
           else moveAIUnitMultiple(u, u.movesLeft);
         } else {
-          let target = null, bestDist = Infinity;
+          // Target enemy cities: prefer weakly defended and closer ones
+          let target = null, bestScore = -Infinity;
           for (const c of cities) {
             if (c.nationId === nationId) continue;
             if (n.relations[c.nationId] !== 'war') continue;
-            const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
-            if (d < bestDist) { bestDist = d; target = c; }
+            const dist = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
+            const defenders = units.filter(eu => eu.nationId === c.nationId && UNIT_DEFS[eu.type]?.combat && Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y) <= 2).length;
+            // Higher score = better target: close + few defenders
+            const score = 100 - dist - defenders * 8;
+            if (score > bestScore) { bestScore = score; target = c; }
           }
           if (target) moveAITowardHighGround(u, target.x, target.y, u.movesLeft);
           else moveAIUnitMultiple(u, u.movesLeft);
@@ -9388,6 +9440,30 @@ function requestAgreement(nationId, type) {
     showToast(`${nations[nationId].name} refuses — relations too poor (need ${getLoyaltyLabel(thresholds[type])}+).`);
     return;
   }
+  // Personality and context-based refusal even above threshold
+  const n = nations[nationId];
+  const rulerTraits = n.ruler ? (n.ruler.traits || []) : [];
+  const theyAreAtWar = Object.values(n.relations).some(r => r === 'war');
+  const ourMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
+  const theirMil = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
+  let refuseChance = 0.10;
+  if (rulerTraits.includes('diplomatic')) refuseChance -= 0.08;
+  if (rulerTraits.includes('martial') || rulerTraits.includes('cruel') || rulerTraits.includes('reckless')) refuseChance += 0.18;
+  if (theyAreAtWar && type === 'open_borders') refuseChance += 0.35;
+  if (theyAreAtWar && type === 'war_help') refuseChance += 0.25; // risky to add another enemy
+  if (theirMil > ourMil * 2 && type !== 'barb_help') refuseChance += 0.20; // powerful nations are prideful
+  if (loy >= 80) refuseChance = Math.max(0, refuseChance - 0.12);
+  if (Math.random() < refuseChance) {
+    const flavor = rulerTraits.includes('cruel') ? `${n.name}'s ruler dismisses your envoy with contempt.`
+      : rulerTraits.includes('martial') ? `${n.name} sees no strategic value in the proposal.`
+      : theyAreAtWar && type === 'open_borders' ? `${n.name} cannot open their borders during wartime.`
+      : theyAreAtWar && type === 'war_help' ? `${n.name} refuses to take on another enemy right now.`
+      : `${n.name} declines your proposal at this time.`;
+    showToast(flavor);
+    changeLoyalty(nationId, playerNation, -2);
+    renderKingdoms();
+    return;
+  }
   // War help: they also declare war on your enemies
   if (type === 'war_help') {
     const enemies = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian);
@@ -9485,6 +9561,24 @@ function requestMappingAgreement(nationId) {
   const cost = 30;
   if (nations[playerNation].gold < cost) { showToast(`Not enough gold (need ${cost}g).`); return; }
   if (hasAgreement(playerNation, nationId, 'mapping')) { showToast(`Mapping agreement already active with ${nations[nationId].name}.`); return; }
+  // Personality-based refusal
+  const nm = nations[nationId];
+  const rulerTraitsM = nm.ruler ? (nm.ruler.traits || []) : [];
+  let mapRefuseChance = 0.12;
+  if (rulerTraitsM.includes('diplomatic')) mapRefuseChance -= 0.08;
+  if (rulerTraitsM.includes('cruel') || rulerTraitsM.includes('reckless')) mapRefuseChance += 0.15;
+  const theyAtWarM = Object.values(nm.relations).some(r => r === 'war');
+  if (theyAtWarM) mapRefuseChance += 0.25;
+  if (loy >= 70) mapRefuseChance = Math.max(0, mapRefuseChance - 0.10);
+  if (Math.random() < mapRefuseChance) {
+    const msg = theyAtWarM ? `${nm.name} won't share maps while at war.`
+      : rulerTraitsM.includes('cruel') ? `${nm.name} refuses to share anything with you.`
+      : `${nm.name} declines the mapping proposal.`;
+    showToast(msg);
+    changeLoyalty(nationId, playerNation, -1);
+    renderKingdoms();
+    return;
+  }
   nations[playerNation].gold -= cost;
   addAgreement(playerNation, nationId, 'mapping');
   // Both sides reveal borders to each other
@@ -9973,7 +10067,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-4.6';
+const CURRENT_VERSION = 'beta-4.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
