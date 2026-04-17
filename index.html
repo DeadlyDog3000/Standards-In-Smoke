@@ -5645,7 +5645,6 @@ function aiTurn(nationId) {
         const otherLoy = getLoyalty(otherId, nationId);
         if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
         if (otherId === playerNation) showWarDeclaration(n);
-        else showToast(`${n.name} has declared war on ${nations[otherId].name}!`);
       }
     }
     // Peace seeking — only if loyalty recovers above 0
@@ -9491,8 +9490,14 @@ function requestMappingAgreement(nationId) {
   // Both sides reveal borders to each other
   revealNationBorders(nationId, playerNation);
   revealNationBorders(playerNation, nationId);
+  // Also reveal vision around all of the AI nation's cities
+  for (const c of cities) {
+    if (c.nationId !== nationId) continue;
+    const cr = CITY_VISION_BASE + Math.min(CITY_VISION_MAX_BONUS, Math.floor((c.population || 1) / 3));
+    revealAround(c.x, c.y, cr, playerNation);
+  }
   changeLoyalty(nationId, playerNation, 5);
-  showToast(`Mapping agreement with ${nations[nationId].name}. Their borders revealed!`);
+  showToast(`Mapping agreement with ${nations[nationId].name}. Their territory revealed!`);
   render(); renderKingdoms();
 }
 
