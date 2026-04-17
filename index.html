@@ -588,6 +588,15 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Diplomacy &amp; AI</b><br>
+        - AI nations now declare war on each other, not just the player<br>
+        - Wars between AI nations are announced with a toast notification<br>
+        - Animals show as small corner badges instead of large overlays on tiles<br>
+        - Foreign units can no longer enter your borders without an open borders agreement<br>
+        - Cancelling open borders now expels enemy units from your territory<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">AI</b><br>
@@ -1006,6 +1015,15 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.6</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Diplomacy &amp; AI</b><br>
+          - AI nations now declare war on each other, not just the player<br>
+          - Wars between AI nations are announced with a toast notification<br>
+          - Animals show as small corner badges instead of large overlays on tiles<br>
+          - Foreign units can no longer enter your borders without an open borders agreement<br>
+          - Cancelling open borders now expels enemy units from your territory<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.5</b></div>
         <div style="margin-bottom:12px;">
@@ -5613,7 +5631,10 @@ function aiTurn(nationId) {
     if (updatedLoy <= -60 && n.relations[otherId] !== 'war') {
       const aiArmySize = (militaryByNation.get(nationId) || []).length;
       const aiCityCount = aiCitiesAll.length;
-      const minArmyForWar = Math.max(4, aiCityCount * 3);
+      // AI-vs-AI wars need a smaller army; AI-vs-player requires a larger buildup
+      const minArmyForWar = otherId === playerNation
+        ? Math.max(4, aiCityCount * 3)
+        : Math.max(2, aiCityCount);
       // If army is strong enough, or loyalty is extremely low (can't hold back)
       if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
         n.relations[otherId] = 'war';
@@ -5624,6 +5645,7 @@ function aiTurn(nationId) {
         const otherLoy = getLoyalty(otherId, nationId);
         if (otherLoy > -60) nations[otherId].loyalty[nationId] = -60;
         if (otherId === playerNation) showWarDeclaration(n);
+        else showToast(`${n.name} has declared war on ${nations[otherId].name}!`);
       }
     }
     // Peace seeking — only if loyalty recovers above 0
@@ -9946,7 +9968,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-4.2';
+const CURRENT_VERSION = 'beta-4.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
