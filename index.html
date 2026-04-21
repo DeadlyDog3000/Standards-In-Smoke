@@ -4191,6 +4191,10 @@ function tickProduction(city) {
           }
         }
       } else {
+        let canAffordUnit = true;
+        for (const k in costs) if ((n[k] || 0) < costs[k]) { canAffordUnit = false; break; }
+        if (!canAffordUnit) return;
+        for (const k in costs) n[k] -= costs[k];
         const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
         let sx = city.x, sy = city.y, foundTile = false;
         for (const nb of hexNeighbors(city.x, city.y)) {
@@ -4291,7 +4295,7 @@ function getImprovementCost(impKey, nationId) {
   for (const k in imp.cost) cost[k] = imp.cost[k];
   if (imp.scalingCost) {
     const count = tiles.filter(t => t.owner === nationId && t.improvement === impKey).length;
-    for (const k in cost) cost[k] = Math.round(cost[k] * Math.pow(6, count));
+    for (const k in cost) cost[k] = Math.round(cost[k] * Math.pow(2, count));
   }
   return cost;
 }
@@ -4559,7 +4563,7 @@ function doAttack(attacker, tx, ty) {
 
   if (tgtDef.combat) {
     const tgtMaxHp = getEffectiveMaxHp(target);
-    const tgtHpRatio = target.hp > 0 ? target.hp / tgtMaxHp : 0;
+    const tgtHpRatio = defenderHpBefore > 0 ? defenderHpBefore / tgtMaxHp : 0;
     attacker.hp -= Math.round(((getEffectiveAtk(target)) * 0.5 + Math.floor(Math.random() * 2)) * (0.5 + 0.5 * tgtHpRatio) * defDiffMult);
   }
 
@@ -5466,12 +5470,13 @@ function aiTurn(nationId) {
     const updatedLoy = getLoyalty(nationId, otherId);
     if (otherId === playerNation && n.relations[otherId] !== 'war') {
       if (!n._warWarned) n._warWarned = {};
-      if (updatedLoy <= -40 && !n._warWarned.hostile) {
-        showToast(`${n.name} grows hostile! (${getLoyaltyLabel(updatedLoy)})`);
-        n._warWarned.hostile = true;
-      } else if (updatedLoy <= -55 && !n._warWarned.imminent) {
+      if (updatedLoy <= -55 && !n._warWarned.imminent) {
         showToast(`War with ${n.name} is imminent!`);
         n._warWarned.imminent = true;
+        n._warWarned.hostile = true;
+      } else if (updatedLoy <= -40 && !n._warWarned.hostile) {
+        showToast(`${n.name} grows hostile! (${getLoyaltyLabel(updatedLoy)})`);
+        n._warWarned.hostile = true;
       }
       if (updatedLoy > -20) n._warWarned = {}; // reset if relations improve
     }
@@ -5520,6 +5525,7 @@ function aiTurn(nationId) {
     }
   }
 
+  const atWar = Object.entries(n.relations).some(([id, r]) => r === 'war' && !nations[id]?.isBarbarian);
   if (atWar) {
     for (let allyId = 0; allyId < nations.length; allyId++) {
       if (allyId === nationId || allyId === playerNation || nations[allyId].eliminated || nations[allyId].isBarbarian) continue;
@@ -5529,7 +5535,7 @@ function aiTurn(nationId) {
 
       addAgreement(nationId, allyId, 'war_help');
       for (let eid = 0; eid < nations.length; eid++) {
-        if (eid === nationId || eid === allyId || nations[eid].eliminated) continue;
+        if (eid === nationId || eid === allyId || nations[eid].eliminated || nations[eid].isBarbarian) continue;
         if (n.relations[eid] === 'war') {
           nations[allyId].relations[eid] = 'war';
           nations[eid].relations[allyId] = 'war';
@@ -5554,7 +5560,6 @@ function aiTurn(nationId) {
   }
 
   const aiCities = citiesByNation.get(nationId) || [];
-  const atWar = Object.entries(n.relations).some(([id, r]) => r === 'war' && !nations[id]?.isBarbarian);
   const combatUnits = militaryByNation.get(nationId) || [];
 
   let threatLevel = 0;
@@ -6356,17 +6361,14 @@ function triggerFamilyRebellion(family) {
 
   const severity = family.opinion < 5 ? 5 : family.opinion < 10 ? 4 : family.opinion < 18 ? 3 : 2;
 
-  let rebelId = nations.findIndex(rn => rn.isBarbarian && !rn.eliminated);
-  if (rebelId < 0) {
-    rebelId = createNation('Barbarians', '#8b0000', false);
-    nations[rebelId].name = `${family.name} Rebels`;
-    nations[rebelId].isBarbarian = true;
-    nations[rebelId].eliminated = false;
-    for (let i = 0; i < nations.length; i++) {
-      if (i === rebelId) continue;
-      nations[i].relations[rebelId] = 'war';
-      nations[rebelId].relations[i] = 'war';
-    }
+  const rebelId = createNation('Rebels', '#8b0000', false);
+  nations[rebelId].name = `${family.name} Rebels`;
+  nations[rebelId].isBarbarian = true;
+  nations[rebelId].eliminated = false;
+  for (let i = 0; i < nations.length; i++) {
+    if (i === rebelId) continue;
+    nations[i].relations[rebelId] = 'war';
+    nations[rebelId].relations[i] = 'war';
   }
   const neighbors = hexNeighbors(spawnCity.x, spawnCity.y);
   let spawned = 0;
@@ -9164,7 +9166,8 @@ function requestAgreement(nationId, type) {
   }
 
   const n = nations[nationId];
-  const rulerTraits = n.ruler ? (n.ruler.traits || []) : [];
+  const ruler = getNationRuler(nationId);
+  const rulerTraits = ruler ? (ruler.traits || []) : [];
   const theyAreAtWar = Object.values(n.relations).some(r => r === 'war');
   const ourMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
   const theirMil = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
@@ -9284,7 +9287,8 @@ function requestMappingAgreement(nationId) {
   if (hasAgreement(playerNation, nationId, 'mapping')) { showToast(`Mapping agreement already active with ${nations[nationId].name}.`); return; }
 
   const nm = nations[nationId];
-  const rulerTraitsM = nm.ruler ? (nm.ruler.traits || []) : [];
+  const rulerM = getNationRuler(nationId);
+  const rulerTraitsM = rulerM ? (rulerM.traits || []) : [];
   let mapRefuseChance = 0.12;
   if (rulerTraitsM.includes('diplomatic')) mapRefuseChance -= 0.08;
   if (rulerTraitsM.includes('cruel') || rulerTraitsM.includes('reckless')) mapRefuseChance += 0.15;
@@ -10774,7 +10778,8 @@ setInterval(() => {
 }, 50);
 
 window.enterRangedMode = function() {
-  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || selectedUnit.movesLeft <= 0) return;
+  const canRanged = selectedUnit && (selectedUnit.movesLeft >= selectedUnit.maxMoves || (selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0));
+  if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || !canRanged) return;
 
   if (UNIT_DEFS[selectedUnit.type].artillery && selectedUnit.reloadTurns > 0) return;
   rangedMode = true; moveMode = false; gotoMode = false; buyTileMode = false; workerBuyMode = false;
@@ -10907,9 +10912,8 @@ function findNearestUnexplored(unit) {
       if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
       const nk = nb.row * MAP_COLS + nb.col;
       if (!tiles[nk].revealed.has(nId) && d + 1 < bestDist) {
-
-        bestTarget = { x, y };
-        bestDist = d;
+        bestTarget = { x: nb.col, y: nb.row };
+        bestDist = d + 1;
       }
     }
 
@@ -11186,8 +11190,7 @@ window.doHunt = function() {
   addFloatingText(selectedUnit.x, selectedUnit.y, ad.icon, '#fc8', 1800, 16);
   t.animal = null;
   selectedUnit.movesLeft = 0;
-  if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
-  showUnitPanel(selectedUnit); updateUI(); render();
+  cycleToNextUnit(); updateUI();
 };
 
 window.doRepair = function() {
