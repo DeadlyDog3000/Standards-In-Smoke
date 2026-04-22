@@ -2071,6 +2071,7 @@ function tickWinterAttrition() {
   for (const u of [...units]) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
     if (UNIT_DEFS[u.type]?.naval) continue;
+    if (nations[u.nationId]?.isBarbarian) continue;
     const inCity = cities.some(c => c.x === u.x && c.y === u.y && c.nationId === u.nationId);
     const ti = u.y * MAP_COLS + u.x;
     const inOwnTerritory = tiles[ti].owner === u.nationId;
@@ -2321,6 +2322,7 @@ function triggerElection(nationId) {
 
 function completeElection(nationId, winner, candidates) {
   winner.role = 'ruler';
+  nations[nationId].rulerId = winner.id;
 
   const spouseGender = winner.gender === 'male' ? 'female' : 'male';
   const spouse = createCharacter(nationId, 'spouse', spouseGender);
@@ -4161,13 +4163,15 @@ function getProductionTurns(city) {
   if (!city.producing) return 0;
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
-  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
+  const rb = getRulerBonuses(city.nationId);
+  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (rb.prodBonus || 0));
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
 function tickProduction(city) {
   if (!city.producing) return;
-  city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city);
+  const prodRb = getRulerBonuses(city.nationId);
+  city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0));
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
@@ -6369,7 +6373,7 @@ function tickFamilyOpinions() {
 
     family.opinion = Math.max(0, Math.min(100, family.opinion));
 
-    if (family.opinion >= 80) n.legitimacy = Math.min(100, (n.legitimacy || 50) + 2);
+    if (family.opinion >= 80) n._legFamilyBonus = (n._legFamilyBonus || 0) + 2;
 
     if (family.opinion < 25) {
       const chance = family.opinion < 5 ? 0.3 : family.opinion < 12 ? 0.15 : 0.05;
@@ -6378,6 +6382,14 @@ function tickFamilyOpinions() {
 
         family.opinion = Math.min(family.opinion + 10, 30);
       }
+    }
+  }
+
+  for (const n of nations) {
+    if (!n || n.eliminated || n.isBarbarian || n.isTribe) continue;
+    if (n._legFamilyBonus) {
+      n.legitimacy = Math.min(100, (n.legitimacy || 50) + Math.min(2, n._legFamilyBonus));
+      n._legFamilyBonus = 0;
     }
   }
 }
