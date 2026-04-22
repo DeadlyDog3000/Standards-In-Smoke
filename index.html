@@ -2070,6 +2070,7 @@ function tickWinterAttrition() {
   if (currentSeason !== 'winter') return;
   for (const u of [...units]) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
+    if (UNIT_DEFS[u.type]?.naval) continue;
     const inCity = cities.some(c => c.x === u.x && c.y === u.y && c.nationId === u.nationId);
     const ti = u.y * MAP_COLS + u.x;
     const inOwnTerritory = tiles[ti].owner === u.nationId;
@@ -2265,6 +2266,7 @@ function characterDeath(character) {
     if (spouse) {
 
       spouse.role = 'ruler';
+      nations[nationId].rulerId = spouse.id;
       if (character.nationId === playerNation) {
         showToast(`${spouse.name} succeeds as ruler.`);
       }
@@ -2274,8 +2276,18 @@ function characterDeath(character) {
       spouse.spouseId = newSpouse.id;
       newSpouse.spouseId = spouse.id;
     } else {
-
-      triggerElection(nationId);
+      const heir = characters.find(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn);
+      if (heir) {
+        heir.role = 'ruler';
+        nations[nationId].rulerId = heir.id;
+        if (nationId === playerNation) showToast(`${heir.name} has ascended as your new ruler.`);
+        const newSpouseGender = heir.gender === 'male' ? 'female' : 'male';
+        const newSpouse = createCharacter(nationId, 'spouse', newSpouseGender);
+        heir.spouseId = newSpouse.id;
+        newSpouse.spouseId = heir.id;
+      } else {
+        triggerElection(nationId);
+      }
     }
   } else if (character.role === 'spouse') {
     if (character.nationId === playerNation) {
@@ -2911,7 +2923,7 @@ const TECHS = {
   crossbow:        { name: 'Crossbow', section: 'military', cost: 40, prereqs: [], unlocks: ['crossbowman'], desc: 'Unlock crossbowman units.' },
   cavalry_tactics: { name: 'Cavalry Tactics', section: 'military', cost: 50, prereqs: [], unlocks: ['cavalry'], needsResource: 'horses', desc: 'Unlock cavalry. Requires horses from pastures.' },
   gunpowder_tech:  { name: 'Gunpowder', section: 'military', cost: 80, prereqs: ['crossbow'], unlocks: ['musketeer'], desc: 'Unlock musketeers. Requires crossbow research.' },
-  siege_warfare:   { name: 'Siege Warfare', section: 'military', cost: 100, prereqs: ['cavalry_tactics'], unlocks: ['cannon'], desc: 'Unlock cannon siege units.' },
+  siege_warfare:   { name: 'Siege Warfare', section: 'military', cost: 100, prereqs: ['crossbow'], unlocks: ['cannon'], desc: 'Unlock cannon siege units.' },
   advanced_siege:  { name: 'Advanced Siege', section: 'military', cost: 120, prereqs: ['siege_warfare','gunpowder_tech'], unlocks: ['mortar'], desc: 'Unlock mortar heavy siege.' },
 
   rifling:         { name: 'Rifling', section: 'military', cost: 100, prereqs: ['gunpowder_tech'], unlocks: ['rifleman'], desc: 'Unlock riflemen. Grooved barrels give deadly accuracy at range.' },
@@ -3000,7 +3012,8 @@ function tickResearch(nationId) {
 
   if (nationHasTech(nationId, n.currentResearch)) { n.currentResearch = null; return; }
 
-  const sciPerTurn = Math.max(1, getTotalYields(nationId).science || 0);
+  let sciPerTurn = Math.max(1, getTotalYields(nationId).science || 0);
+  if (nationHasWonder(nationId, 'great_library')) sciPerTurn = Math.ceil(sciPerTurn * 1.5);
   n.researchProgress = (n.researchProgress || 0) + sciPerTurn;
   if (n.researchProgress >= tech.cost) {
     researchTech(nationId, n.currentResearch);
@@ -3059,17 +3072,18 @@ function canEnterTerritory(nationId, tileOwner, tx, ty) {
 
   if (tileOwner < 0) {
     if (tx !== undefined && ty !== undefined) {
+      let blocked = false;
       for (const city of cities) {
         if (city.nationId === nationId) continue;
         if (nations[city.nationId] && nations[city.nationId].isBarbarian) continue;
         const d = Math.abs(city.x - tx) + Math.abs(city.y - ty);
         if (d <= 3) {
-
           if (nations[nationId] && nations[nationId].relations[city.nationId] === 'war') return true;
           if (hasAgreement(nationId, city.nationId, 'open_borders')) return true;
-          return false;
+          blocked = true;
         }
       }
+      if (blocked) return false;
     }
     return true; // truly neutral tile
   }
@@ -3423,7 +3437,7 @@ function showIdleCitiesPopup(idleCities) {
     const cityBuildings = city.buildings || [];
     const hasPort = [...city.ownedTiles].some(ti => tiles[ti].improvement === 'port');
     const globalBuiltWonders = new Set(cities.flatMap(c => (c.buildings || []).filter(b => CITY_BUILDING_DEFS[b]?.wonder)));
-    const allUnitTypes = ['settler','worker','scout','swordsman','crossbowman','cavalry','musketeer','rifleman','grenadier','hussar','dragoon','field_gun','cannon','mortar','veteran_scout','veteran_worker','general'];
+    const allUnitTypes = ['settler','worker','scout','swordsman','crossbowman','cavalry','musketeer','rifleman','grenadier','hussar','lancer','heavy_cavalry','dragoon','field_gun','cannon','mortar','veteran_scout','veteran_worker','general'];
     if (hasPort) allUnitTypes.push('frigate','galleon','man_of_war');
 
     inner += `<div style="border:1px solid #3a2e18;border-radius:7px;padding:10px 12px;margin:8px 0;">`;
@@ -4204,9 +4218,10 @@ function tickProduction(city) {
           if (isNaval ? tt !== 0 : tt === 0) continue;
           if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; foundTile = true; break; }
         }
-        if (!foundTile && units.some(u => u.x === sx && u.y === sy)) {
-
+        if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
           if (city.nationId === playerNation) showToast(`No room to deploy unit near ${city.name}!`);
+          for (const k in costs) n[k] += costs[k];
+          return;
         } else {
           spawnUnit(city.producing, city.nationId, sx, sy);
           if (city.nationId === playerNation) {
@@ -4306,6 +4321,7 @@ function canBuildImprovement(worker, impKey) {
   const i = worker.y * MAP_COLS + worker.x;
   const t = tiles[i];
   if (t.improvement || t.owner !== worker.nationId) return false;
+  if (units.some(u => u !== worker && u.building && u.x === worker.x && u.y === worker.y)) return false;
   if (!imp.validOn.includes(t.type)) return false;
   if (imp.requiresAnimal && !t.animal) return false;
   if (imp.tech && !nationHasTech(worker.nationId, imp.tech)) return false;
@@ -4741,6 +4757,7 @@ function tickCityCapture() {
             }
 
             cities.splice(cities.indexOf(city), 1);
+            _tileCityMapDirty = true;
             if (!nations[oldOwner].isBarbarian) {
               nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 5);
             }
@@ -4749,11 +4766,18 @@ function tickCityCapture() {
             continue;
           }
 
+          const wasCapital = city.isCapital;
           city.nationId = occupier.nationId;
           city.captureProgress = {};
           city.contested = false;
           city.producing = null; city.productionProgress = 0;
           city.productionQueue = [];
+          if (wasCapital) {
+            city.isCapital = false;
+            const newCap = cities.find(c => c.nationId === oldOwner);
+            if (newCap) newCap.isCapital = true;
+            if (!cities.some(c => c.nationId === occupier.nationId && c.isCapital)) city.isCapital = true;
+          }
 
           for (const ti of city.ownedTiles) {
             if (tiles[ti].owner === oldOwner) tiles[ti].owner = occupier.nationId;
@@ -4761,12 +4785,12 @@ function tickCityCapture() {
           tiles[city.y * MAP_COLS + city.x].owner = occupier.nationId;
 
           for (const u of units) {
-            if (u.nationId === oldOwner) {
-              const ui = u.y * MAP_COLS + u.x;
-              if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
-                u.nationId = occupier.nationId;
-                u.movesLeft = 0;
-              }
+            if (u.nationId !== oldOwner) continue;
+            if (!UNIT_DEFS[u.type]?.combat) continue;
+            const ui = u.y * MAP_COLS + u.x;
+            if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
+              u.nationId = occupier.nationId;
+              u.movesLeft = 0;
             }
           }
 
@@ -4951,14 +4975,13 @@ function tickBarbarianCamps() {
         if (tiles[ti].type !== 4 && tiles[ti].type !== 0) {
           camp.destroyed = false;
 
-          const barbNationId = createNation('Barbarians', '#8b0000', false);
-          nations[barbNationId].isBarbarian = true;
+          let barbNationId = camp.nationId;
+          nations[barbNationId].eliminated = false;
           for (let i = 0; i < nations.length; i++) {
             if (i === barbNationId) continue;
             nations[i].relations[barbNationId] = 'war';
             nations[barbNationId].relations[i] = 'war';
           }
-          camp.nationId = barbNationId;
           spawnUnit('barbarian_axeman', barbNationId, camp.x, camp.y);
           const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 5, true);
           spawnUnit('barbarian_axeman', barbNationId, lp.x, lp.y);
@@ -5172,6 +5195,11 @@ function getScore(nationId) {
 
 function checkElimination() {
   for (const n of nations) {
+    if (n.eliminated || !n.isBarbarian) continue;
+    const hasCamp = barbarianCamps.some(c => c.nationId === n.id && !c.destroyed);
+    if (!hasCamp && !units.some(u => u.nationId === n.id)) n.eliminated = true;
+  }
+  for (const n of nations) {
     if (n.eliminated || n.isPlayer || n.isBarbarian) continue;
     const hasCities = cities.some(c => c.nationId === n.id);
 
@@ -5184,11 +5212,12 @@ function checkElimination() {
     if (!hasCities) {
       n.eliminated = true;
 
-      let conqueror = playerNation;
+      let conqueror = -1;
       for (let i = 0; i < nations.length; i++) {
-        if (i === n.id || nations[i].eliminated) continue;
+        if (i === n.id || nations[i].eliminated || nations[i].isBarbarian) continue;
         if (nations[i].relations[n.id] === 'war') { conqueror = i; break; }
       }
+      if (conqueror < 0) { n.eliminatedBy = -1; continue; }
       n.eliminatedBy = conqueror;
 
       const cn = nations[conqueror];
@@ -5222,7 +5251,7 @@ function checkElimination() {
   if (turnNumber >= 200) {
     let bestId = playerNation, bestScore = getScore(playerNation);
     for (let i = 0; i < nations.length; i++) {
-      if (nations[i].eliminated || nations[i].isBarbarian || nations[i].isPlayer) continue;
+      if (nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe || nations[i].isPlayer) continue;
       const s = getScore(i);
       if (s > bestScore) { bestScore = s; bestId = i; }
     }
@@ -5493,7 +5522,7 @@ function aiTurn(nationId) {
         n.relations[otherId] = 'war';
         nations[otherId].relations[nationId] = 'war';
 
-        for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(nationId, otherId, aType);
+        for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(nationId, otherId, aType);
 
         const otherLoy = getLoyalty(otherId, nationId);
         if (otherLoy > -60) changeLoyalty(otherId, nationId, -60 - otherLoy);
@@ -6361,7 +6390,7 @@ function triggerFamilyRebellion(family) {
 
   const severity = family.opinion < 5 ? 5 : family.opinion < 10 ? 4 : family.opinion < 18 ? 3 : 2;
 
-  const rebelId = createNation('Rebels', '#8b0000', false);
+  const rebelId = createNation('Barbarians', '#8b0000', false);
   nations[rebelId].name = `${family.name} Rebels`;
   nations[rebelId].isBarbarian = true;
   nations[rebelId].eliminated = false;
@@ -6515,22 +6544,22 @@ function finishEndTurn() {
   try { tickCharacterAging(); } catch(e) { console.error('tickCharacterAging error:', e); }
 
   const wasFortified = new Set(units.filter(u => u.fortified));
+  const computedMoves = new Map();
   for (const u of units) {
     let moves = u.maxMoves;
-
     if (u.formation && FORMATIONS[u.formation]) moves += FORMATIONS[u.formation].moveMod;
-
     const cmd = getCommandBonus(u);
     if (cmd.moveBonus) moves += cmd.moveBonus;
-
     if (currentSeason === 'winter') moves += SEASON_EFFECTS.winter.moveMod;
-    u.movesLeft = Math.max(1, moves);
+    moves = Math.max(1, moves);
+    computedMoves.set(u, moves);
+    u.movesLeft = moves;
   }
   processGotoOrders();
 
   for (const u of units) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
-    if (wasFortified.has(u) && u.movesLeft === u.maxMoves) u.fortified = true;
+    if (wasFortified.has(u) && u.movesLeft === computedMoves.get(u)) u.fortified = true;
     else u.fortified = false;
   }
   showTurnBanner(turnNumber);
@@ -7191,7 +7220,7 @@ const EVENTS = [
       { label: 'Sell the surplus abroad', effects: { food: -20, gold: 30 } },
       { label: 'Build additional storage', effects: { wood: -15, stone: -10, food: 10 } }
     ]},
-  { id: 'cathedral_miracle', title: 'Miracle at the Cathedral', condition: () => evtHasBuilding('cathedral'),
+  { id: 'cathedral_miracle', title: 'Miracle at the Cathedral', condition: () => evtHasBuilding('grand_cathedral'),
     text: 'Pilgrims claim a statue in your cathedral is weeping. Thousands flood the city seeking blessings.',
     choices: [
       { label: 'Declare it a divine miracle', effects: { legitimacy: 8, gold: 15 } },
@@ -7311,9 +7340,9 @@ const EVENTS = [
   { id: 'general_falls', title: 'Death of a General', condition: () => evtIsAtWar(),
     text: 'Word arrives that one of your most capable commanders has fallen in battle. His loss is deeply felt.',
     choices: [
-      { label: 'Hold a state funeral', effects: { gold: -15, legitimacy: 4, charDeath: 'heir' } },
-      { label: 'Announce his heroism to inspire the troops', effects: { legitimacy: 5, charDeath: 'heir' } },
-      { label: 'Suppress the news to avoid panic', effects: { legitimacy: -3, charDeath: 'heir' } }
+      { label: 'Hold a state funeral', effects: { gold: -15, legitimacy: 4, charDeath: 'random' } },
+      { label: 'Announce his heroism to inspire the troops', effects: { legitimacy: 5, charDeath: 'random' } },
+      { label: 'Suppress the news to avoid panic', effects: { legitimacy: -3, charDeath: 'random' } }
     ]},
   { id: 'plague_strikes_court', title: 'Plague in the Palace', condition: () => evtHasSpouse(),
     text: 'A fever sweeps through the royal palace. Several courtiers have already succumbed, and your closest kin are not spared.',
@@ -7493,13 +7522,23 @@ function applyEventChoice(eventId, choiceIndex) {
       const capital = cities.find(c => c.nationId === playerNation && c.isCapital);
       if (capital) {
         const workerType = nationHasTech(playerNation, 'engineering') ? 'veteran_worker' : 'worker';
-        spawnUnit(workerType, playerNation, capital.x, capital.y);
+        let wx = capital.x, wy = capital.y;
+        for (const nb of hexNeighbors(capital.x, capital.y)) {
+          if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+          if (tiles[nb.row * MAP_COLS + nb.col].type !== 0 && !units.some(u => u.x === nb.col && u.y === nb.row)) { wx = nb.col; wy = nb.row; break; }
+        }
+        spawnUnit(workerType, playerNation, wx, wy);
         showToast('A new worker has arrived at your capital!');
       }
     } else if (key === 'spawnSwordsman') {
       const capital = cities.find(c => c.nationId === playerNation && c.isCapital) || cities.find(c => c.nationId === playerNation);
       if (capital) {
-        spawnUnit('swordsman', playerNation, capital.x, capital.y);
+        let swx = capital.x, swy = capital.y;
+        for (const nb of hexNeighbors(capital.x, capital.y)) {
+          if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+          if (tiles[nb.row * MAP_COLS + nb.col].type !== 0 && !units.some(u => u.x === nb.col && u.y === nb.row)) { swx = nb.col; swy = nb.row; break; }
+        }
+        spawnUnit('swordsman', playerNation, swx, swy);
         showToast('Mercenary swordsman recruited at your capital!');
       } else {
         showToast('No city available to recruit mercenary!');
@@ -7697,7 +7736,7 @@ function computeCurrentVision() {
   const vis = new Set();
   for (const u of units) {
     if (u.nationId !== playerNation) continue;
-    const r = UNIT_DEFS[u.type]?.vision || 5;
+    const r = getUnitVision(u);
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       if (dx * dx + dy * dy > r * r + r) continue;
       const tx = u.x + dx, ty = u.y + dy;
@@ -8815,7 +8854,7 @@ function showCityTab(tab) {
       html += prodBtn(type);
     }
     html += '<div class="section-title">Military</div>';
-    const militaryUnits = ['swordsman', 'crossbowman', 'cavalry', 'musketeer', 'rifleman', 'grenadier', 'hussar', 'dragoon', 'field_gun', 'cannon', 'mortar'];
+    const militaryUnits = ['swordsman', 'crossbowman', 'cavalry', 'musketeer', 'rifleman', 'grenadier', 'hussar', 'lancer', 'heavy_cavalry', 'dragoon', 'field_gun', 'cannon', 'mortar', 'general'];
     for (const type of militaryUnits) {
       const techReq = unitRequiresTech(type);
       if (techReq && !nationHasTech(nId, techReq)) continue;
@@ -9708,7 +9747,7 @@ function toggleDiplomacy(nationId) {
   pn.relations[nationId] = next; nations[nationId].relations[playerNation] = next;
   if (next === 'war') {
 
-    for (const aType of ['open_borders', 'war_help', 'barb_help']) removeAgreement(playerNation, nationId, aType);
+    for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, nationId, aType);
 
     const theirLoy = getLoyalty(nationId, playerNation);
     if (theirLoy > -60) nations[nationId].loyalty[playerNation] = -60;
@@ -10411,7 +10450,14 @@ canvas.addEventListener('click', (e) => {
         moveMode = false; reachableTiles.clear(); render(); return;
       } else {
         const animPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
-        const dist = animPath ? animPath.length : bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
+        let dist;
+        if (animPath) {
+          let wx = selectedUnit.x, wy = selectedUnit.y, wCost = 0;
+          for (const step of animPath) { wCost += getMoveCost(wx, wy, step.x, step.y, selectedUnit.type); wx = step.x; wy = step.y; }
+          dist = wCost;
+        } else {
+          dist = bfsDist(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit);
+        }
         const movedUnit = selectedUnit;
         const origX = selectedUnit.x, origY = selectedUnit.y;
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
@@ -10761,7 +10807,7 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = false; });
 setInterval(() => {
-  if (!MAP_COLS || escMenuOpen || eventModalOpen) return;
+  if (!MAP_COLS || escMenuOpen || eventModalOpen || techTreeOpen) return;
   let dx = 0, dy = 0;
   if (keysDown['w'] || keysDown['arrowup']) dy = -2;
   if (keysDown['s'] || keysDown['arrowdown']) dy = 2;
@@ -11542,8 +11588,10 @@ function deserializeGame(json) {
 
   const capitalSet = new Set();
   for (const c of cities) {
-    if (!capitalSet.has(c.nationId) && !c.isCapital) { c.isCapital = true; }
     if (c.isCapital) capitalSet.add(c.nationId);
+  }
+  for (const c of cities) {
+    if (!capitalSet.has(c.nationId)) { c.isCapital = true; capitalSet.add(c.nationId); }
   }
   playerNation = d.playerNation;
   turnNumber = d.turnNumber;
