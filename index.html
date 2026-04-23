@@ -5852,8 +5852,13 @@ function aiTurn(nationId) {
           } else {
             awardXP(u, XP_PER_HIT);
 
-            if (UNIT_DEFS[u.type].artillery && UNIT_DEFS[u.type].moraleDmg) {
-              applyMoraleDamage(bestTarget, UNIT_DEFS[u.type].moraleDmg * aiRAmmoMoraleMult, 'artillery');
+            if (UNIT_DEFS[bestTarget.type]?.combat) {
+              if (UNIT_DEFS[u.type].artillery && UNIT_DEFS[u.type].moraleDmg) {
+                applyMoraleDamage(bestTarget, UNIT_DEFS[u.type].moraleDmg * aiRAmmoMoraleMult, 'artillery');
+              } else {
+                const aiRTgtMaxHp = getEffectiveMaxHp(bestTarget);
+                applyMoraleDamage(bestTarget, Math.round(MORALE_COMBAT_LOSS_BASE * (aiRDmg / aiRTgtMaxHp)), 'ranged_hit');
+              }
               checkMoraleBreak(bestTarget, 0);
             }
           }
@@ -6049,7 +6054,7 @@ function aiTurn(nationId) {
 
       let bestCombat = null;
       for (let ci = availCombat.length - 1; ci >= 0; ci--) {
-        const costs = PRODUCTION_COSTS[availCombat[ci]];
+        const costs = getScaledCosts(nationId, PRODUCTION_COSTS[availCombat[ci]]);
         let canAfford = true;
         for (const k in costs) if ((n[k] || 0) < costs[k] * 0.5) { canAfford = false; break; }
         if (canAfford) { bestCombat = availCombat[ci]; break; }
@@ -6442,7 +6447,7 @@ function hitFamilyOpinion(nationId, amount) {
 }
 
 function endTurn() {
-
+  if (document.getElementById('victoryOverlay') || document.getElementById('defeatOverlay')) return;
   if (battleReplayActive) return;
 
   animationBlocking = false; animatingUnits.length = 0; lastAnimTime = 0; stopMarchSound();
@@ -10894,8 +10899,13 @@ window.doRangedAttack = function(tx, ty) {
   const rDmgDealt = rTargetHpBefore - target.hp;
   const rTargetDied = target.hp <= 0;
 
-  if (rAtkDef.artillery && rAtkDef.moraleDmg && !rTargetDied) {
-    applyMoraleDamage(target, rAtkDef.moraleDmg * rAmmoMoraleMult, 'artillery');
+  if (!rTargetDied && UNIT_DEFS[target.type]?.combat) {
+    if (rAtkDef.artillery && rAtkDef.moraleDmg) {
+      applyMoraleDamage(target, rAtkDef.moraleDmg * rAmmoMoraleMult, 'artillery');
+    } else {
+      const rTgtMaxHp = getEffectiveMaxHp(target);
+      applyMoraleDamage(target, Math.round(MORALE_COMBAT_LOSS_BASE * (rDmgDealt / rTgtMaxHp)), 'ranged_hit');
+    }
     checkMoraleBreak(target, 0);
   }
 
@@ -11553,7 +11563,7 @@ function serializeGame() {
     buildings: c.buildings || [],
     productionQueue: c.productionQueue || [],
   }));
-  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; delete sn._legFamilyBonus; return sn; });
+  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._legFamilyBonus; return sn; });
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
