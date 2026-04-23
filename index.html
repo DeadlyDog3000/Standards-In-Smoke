@@ -3027,7 +3027,8 @@ function getResearchTurnsLeft(nationId) {
   if (!n.currentResearch) return 0;
   const tech = TECHS[n.currentResearch];
   if (!tech) return 0;
-  const sciPerTurn = getTotalYields(nationId).science || 0;
+  let sciPerTurn = Math.max(1, getTotalYields(nationId).science || 0);
+  if (nationHasWonder(nationId, 'great_library')) sciPerTurn = Math.ceil(sciPerTurn * 1.5);
   if (sciPerTurn <= 0) return 999;
   const remaining = tech.cost - (n.researchProgress || 0);
   return Math.max(1, Math.ceil(remaining / sciPerTurn));
@@ -5218,7 +5219,7 @@ function checkElimination() {
 
       let conqueror = -1;
       for (let i = 0; i < nations.length; i++) {
-        if (i === n.id || nations[i].eliminated || nations[i].isBarbarian) continue;
+        if (i === n.id || nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe) continue;
         if (nations[i].relations[n.id] === 'war') { conqueror = i; break; }
       }
       if (conqueror < 0) { n.eliminatedBy = -1; continue; }
@@ -6337,6 +6338,8 @@ function tickCityLoyalty() {
     const hasGranary = (city.buildings || []).includes('granary');
     const hasCathedral = nationHasWonder(city.nationId, 'grand_cathedral');
     const hasMedicine = nationHasTech(city.nationId, 'medicine');
+    const maxPop = Math.max(5, getCityJobs(city));
+    if ((city.population || 1) >= maxPop) continue;
     const growthChance = 0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0) + (hasCathedral ? 0.10 : 0) + (hasMedicine ? 0.15 : 0);
     if (Math.random() < growthChance) city.population = (city.population || 1) + 1;
   }
@@ -10626,7 +10629,14 @@ function processGotoOrders() {
     const prevX = u.x, prevY = u.y;
     for (let i = 0; i < path.length && u.movesLeft > 0; i++) {
       const step = path[i];
-      if (units.some(o => o.x === step.x && o.y === step.y && o !== u)) break;
+      const blocker = units.find(o => o.x === step.x && o.y === step.y && o !== u);
+      if (blocker) {
+        const atWarWithBlocker = nations[u.nationId]?.relations[blocker.nationId] === 'war';
+        if (!UNIT_DEFS[u.type]?.combat || !atWarWithBlocker) {
+          delete u.gotoX; delete u.gotoY;
+        }
+        break;
+      }
       const mc = getMoveCost(u.x, u.y, step.x, step.y, u.type);
       if (mc > u.movesLeft) break;
       u.x = step.x; u.y = step.y; u.movesLeft -= mc;
@@ -10758,13 +10768,13 @@ document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
-  if (e.key === 'e') { endTurn(); e.preventDefault(); return; }
+  if (e.key === 'e' && !techTreeOpen) { endTurn(); e.preventDefault(); return; }
   if (escMenuOpen || eventModalOpen) return;
 
   if (e.key === 'q') { cycleToNextUnit(true); e.preventDefault(); return; }
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
-  if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) { enterRangedMode(); e.preventDefault(); }
+  if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.ranged) { enterRangedMode(); e.preventDefault(); }
   if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
   if (e.key === 'w' && selectedUnit && selectedUnit.nationId === playerNation && (selectedUnit.fortified || selectedUnit.building)) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
@@ -11498,7 +11508,7 @@ window.restUnit = function() {
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const maxHp = getEffectiveMaxHp(selectedUnit);
   if (selectedUnit.hp >= maxHp) return;
-  const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y);
+  const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === selectedUnit.nationId);
   const healAmt = inCity ? 5 : 3;
   selectedUnit.hp = Math.min(maxHp, selectedUnit.hp + healAmt);
   selectedUnit.movesLeft = 0;
@@ -11543,7 +11553,7 @@ function serializeGame() {
     buildings: c.buildings || [],
     productionQueue: c.productionQueue || [],
   }));
-  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; return sn; });
+  const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._lastResearch; delete sn._legFamilyBonus; return sn; });
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
