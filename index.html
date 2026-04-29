@@ -9830,7 +9830,10 @@ function toggleDiplomacy(nationId) {
     for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, nationId, aType);
 
     const theirLoy = getLoyalty(nationId, playerNation);
-    if (theirLoy > -60) nations[nationId].loyalty[playerNation] = -60;
+    if (theirLoy > -60) {
+      if (!nations[nationId].loyalty) nations[nationId].loyalty = {};
+      nations[nationId].loyalty[playerNation] = -60;
+    }
     showToast(`War declared on ${nations[nationId].name}!`);
   }
   else {
@@ -11519,8 +11522,9 @@ window.setAmmo = function(ammo) {
 window.setFormation = function(formation) {
   if (!selectedUnit || !FORMATION_UNITS.has(selectedUnit.type)) return;
   if (selectedUnit.movesLeft <= 0) return; // Must have moves to change formation
-  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   if (selectedUnit.formation === formation) return;
+  if (!FORMATIONS[formation]) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   selectedUnit.formation = formation;
 
   selectedUnit.movesLeft--;
@@ -11530,6 +11534,7 @@ window.setFormation = function(formation) {
 
 window.fortifyUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
+  if (selectedUnit.fortified) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
