@@ -11309,6 +11309,7 @@ window.confirmSettle = confirmSettle;
 
 window.doChop = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
+  if (tiles[selectedUnit.y * MAP_COLS + selectedUnit.x].type !== 5) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   chopForest(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
@@ -11317,10 +11318,11 @@ window.doChop = function() {
 
 window.doHunt = function() {
   if (!selectedUnit || selectedUnit.nationId !== playerNation || selectedUnit.movesLeft <= 0) return;
-  if (!tryActivateUnit(selectedUnit)) return;
   const ti = selectedUnit.y * MAP_COLS + selectedUnit.x;
   const t = tiles[ti];
   if (!t.animal || t.improvement || t.owner === playerNation) return;
+  if (!ANIMAL_DATA[t.animal]) return;
+  if (!tryActivateUnit(selectedUnit)) return;
   const ad = ANIMAL_DATA[t.animal];
   if (!ad) return;
   const n = nations[playerNation];
@@ -11335,8 +11337,8 @@ window.doHunt = function() {
 
 window.doRepair = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
-  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   if (!canRepairTile(selectedUnit, selectedUnit.x, selectedUnit.y)) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   repairTile(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
   showUnitPanel(selectedUnit); updateUI(); render();
@@ -11578,9 +11580,9 @@ window.upgradeUnit = function() {
 
 window.restUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
-  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const maxHp = getEffectiveMaxHp(selectedUnit);
   if (selectedUnit.hp >= maxHp) return;
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === selectedUnit.nationId);
   const healAmt = inCity ? 5 : 3;
   selectedUnit.hp = Math.min(maxHp, selectedUnit.hp + healAmt);
