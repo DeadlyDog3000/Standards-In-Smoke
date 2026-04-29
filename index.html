@@ -4100,7 +4100,9 @@ function foundCity(unit, cityName) {
     const tx = unit.x + dx, ty = unit.y + dy;
     if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
     const i = ty * MAP_COLS + tx;
-    if (tiles[i].type !== 0) city.ownedTiles.add(i);
+    if (tiles[i].type === 0) continue;
+    if (tiles[i].owner >= 0 && tiles[i].owner !== unit.nationId) continue;
+    city.ownedTiles.add(i);
   }
   cities.push(city);
   setCityTiles(city);
@@ -11933,7 +11935,9 @@ function spawnTribes(count) {
       const tx = sp.x + dx, ty = sp.y + dy;
       if (tx < 0 || tx >= MAP_COLS || ty < 0 || ty >= MAP_ROWS) continue;
       const ci = ty * MAP_COLS + tx;
-      if (tiles[ci].type !== 0) city.ownedTiles.add(ci);
+      if (tiles[ci].type === 0) continue;
+      if (tiles[ci].owner >= 0 && tiles[ci].owner !== nId) continue;
+      city.ownedTiles.add(ci);
     }
     cities.push(city);
     setCityTiles(city);
