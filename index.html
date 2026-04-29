@@ -4561,7 +4561,7 @@ function doAttack(attacker, tx, ty) {
         spawnDeathParticles(target.x, target.y, nations[target.nationId]?.color || '#888');
         removeUnit(target);
         attacker.movesLeft = 0;
-        if (unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty)) {
+        if (unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty) && !units.some(u => u.x === tx && u.y === ty)) {
           attacker.x = tx; attacker.y = ty;
         }
         return;
@@ -4710,7 +4710,7 @@ function doAttack(attacker, tx, ty) {
     removeUnit(target);
 
     const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
-    if (isAdj && unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty)) {
+    if (isAdj && unitCanTraverse(attacker.type, tiles[ty * MAP_COLS + tx].type, attacker.nationId, tx, ty) && !units.some(u => u.x === tx && u.y === ty)) {
       attacker.x = tx; attacker.y = ty;
     }
   } else {
@@ -5830,7 +5830,8 @@ function aiTurn(nationId) {
       if (UNIT_DEFS[u.type]?.artillery && u.ammo) {
 
         const infantryNearby = units.some(e => e.nationId !== nationId && n.relations[e.nationId] === 'war' && !UNIT_DEFS[e.type]?.naval && Math.abs(e.x - u.x) + Math.abs(e.y - u.y) <= 3);
-        u.ammo = infantryNearby ? 'grapeshot' : 'cannonball';
+        const ammoTypes = UNIT_DEFS[u.type].ammoTypes || ['cannonball'];
+        u.ammo = (infantryNearby && ammoTypes.includes('grapeshot')) ? 'grapeshot' : ammoTypes[0];
       }
 
       const unitIdx = combatUnits.indexOf(u);
@@ -9092,7 +9093,6 @@ window.clearQueue = function() {
 
 function confirmSettle() {
   if (!selectedUnit || selectedUnit.type !== 'settler') return;
-  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const panel = document.getElementById('panel');
   const name = getNextHistoricalCityName(selectedUnit.nationId);
 
@@ -11296,6 +11296,7 @@ window.doSettle = function() {
   if (!selectedUnit || selectedUnit.type !== 'settler') return;
   const check = canFoundCity(selectedUnit.x, selectedUnit.y, selectedUnit.nationId);
   if (!check.ok) { showToast(check.reason); return; }
+  if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const pendingName = selectedUnit._pendingCityName;
   const city = foundCity(selectedUnit);
   if (pendingName) city.name = pendingName;
@@ -11505,6 +11506,7 @@ window.exportScreenshot = exportScreenshot;
 
 window.setAmmo = function(ammo) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.artillery) return;
+  if (!UNIT_DEFS[selectedUnit.type].ammoTypes?.includes(ammo)) return;
   selectedUnit.ammo = ammo;
   showToast(`Ammo set to ${ammo}`);
   showUnitPanel(selectedUnit); render();
