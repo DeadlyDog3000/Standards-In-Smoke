@@ -4202,11 +4202,15 @@ function tickProduction(city) {
 
       if (CITY_BUILDING_DEFS[city.producing]) {
         const bld = CITY_BUILDING_DEFS[city.producing];
+        const wonderTaken = bld.wonder && cities.some(c => (c.buildings || []).includes(city.producing));
+        const dupNonWonder = !bld.wonder && (city.buildings || []).includes(city.producing);
 
-        if (bld.wonder && cities.some(c => (c.buildings || []).includes(city.producing))) {
+        if (wonderTaken || dupNonWonder) {
 
           for (const k in costs) n[k] += costs[k];
-          if (city.nationId === playerNation) showToast(`${bld.name} was already built by another nation!`);
+          if (city.nationId === playerNation) {
+            showToast(wonderTaken ? `${bld.name} was already built by another nation!` : `${bld.name} is already built in ${city.name}!`);
+          }
         } else {
           if (!city.buildings) city.buildings = [];
           city.buildings.push(city.producing);
@@ -4286,10 +4290,12 @@ window.rushProduce = function() {
     const bld = CITY_BUILDING_DEFS[selectedCity.producing];
     const bldCosts = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
 
-    if (bld.wonder && cities.some(c => (c.buildings || []).includes(selectedCity.producing))) {
+    const _wonderTaken = bld.wonder && cities.some(c => (c.buildings || []).includes(selectedCity.producing));
+    const _dupNonWonder = !bld.wonder && (selectedCity.buildings || []).includes(selectedCity.producing);
+    if (_wonderTaken || _dupNonWonder) {
       for (const k in bldCosts) n[k] += bldCosts[k];
       n.gold += cost;
-      showToast(`${bld.name} was already built by another nation!`);
+      showToast(_wonderTaken ? `${bld.name} was already built by another nation!` : `${bld.name} is already built here!`);
       selectedCity.producing = null; selectedCity.productionProgress = 0;
       showCityPanel(selectedCity); updateUI(); render(); return;
     }
@@ -6253,7 +6259,7 @@ function moveAIToward(u, tx, ty, steps) {
       const nx = nb.col, ny = nb.row;
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       if (!unitCanTraverse(u.type, tiles[ny * MAP_COLS + nx].type, u.nationId, nx, ny)) continue;
-      if (units.some(o => o.x === nx && o.y === ny && o.nationId === u.nationId)) continue;
+      if (units.some(o => o.x === nx && o.y === ny)) continue;
       validNeighbors.push(nb);
       const d = Math.abs(tx - nx) + Math.abs(ty - ny);
       if (d < bestDist) { bestDist = d; bestDir = nb; }
@@ -6288,7 +6294,7 @@ function moveAITowardHighGround(u, tx, ty, steps) {
       const nx = nb.col, ny = nb.row;
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       if (!unitCanTraverse(u.type, tiles[ny * MAP_COLS + nx].type, u.nationId, nx, ny)) continue;
-      if (units.some(o => o.x === nx && o.y === ny && o.nationId === u.nationId)) continue;
+      if (units.some(o => o.x === nx && o.y === ny)) continue;
       validNeighbors.push(nb);
       const d = Math.abs(tx - nx) + Math.abs(ty - ny);
       if (d >= baseDist) continue; // must make progress toward target
@@ -9019,6 +9025,9 @@ function setProd(type) {
 
   if (bld && bld.wonder && cities.some(c => (c.buildings || []).includes(type))) {
     showToast(`${bld.name} has already been built.`); return;
+  }
+  if (bld && (selectedCity.producing === type || (selectedCity.productionQueue || []).includes(type))) {
+    showToast(`${bld.name} is already in the production queue.`); return;
   }
   if (!selectedCity.productionQueue) selectedCity.productionQueue = [];
   if (selectedCity.producing) {
