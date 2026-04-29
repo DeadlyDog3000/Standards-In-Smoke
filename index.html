@@ -10085,7 +10085,8 @@ function confirmSetupAndStart() {
   const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
   const [cols, rows] = sizes[mapSize] || sizes.medium;
   gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
-  barbarianDensity = (parseInt(document.getElementById('setupBarbarians').value) || 40) / 100;
+  const _barbDensVal = parseInt(document.getElementById('setupBarbarians').value);
+  barbarianDensity = (Number.isNaN(_barbDensVal) ? 40 : _barbDensVal) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
   barbSpawnChance = (parseInt(document.getElementById('setupBarbSpawnChance').value) || 60) / 100;
   barbMaxUnits = parseInt(document.getElementById('setupBarbMaxUnits').value) || 6;
