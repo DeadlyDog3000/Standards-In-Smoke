@@ -4512,6 +4512,7 @@ function doAttack(attacker, tx, ty) {
   const capturable = ['worker', 'veteran_worker', 'scout', 'veteran_scout'];
   if (atkDef.combat && capturable.includes(target.type)) {
     const oldOwner = target.nationId;
+    if (selectedUnit === target) { selectedUnit = null; moveMode = false; gotoMode = false; rangedMode = false; reachableTiles?.clear?.(); }
     target.nationId = attacker.nationId;
     target.movesLeft = 0;
     changeLoyalty(oldOwner, attacker.nationId, -10);
@@ -4541,6 +4542,7 @@ function doAttack(attacker, tx, ty) {
       } else {
 
         const oldOwner = target.nationId;
+        if (selectedUnit === target) { selectedUnit = null; moveMode = false; gotoMode = false; rangedMode = false; reachableTiles?.clear?.(); }
         target.nationId = attacker.nationId;
         target.movesLeft = 0;
         target.morale = 50; // captured units have low morale
@@ -5243,7 +5245,12 @@ function checkElimination() {
         if (i === n.id || nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe) continue;
         if (nations[i].relations[n.id] === 'war') { conqueror = i; break; }
       }
-      if (conqueror < 0) { n.eliminatedBy = -1; continue; }
+      if (conqueror < 0) {
+        n.eliminatedBy = -1;
+        units.filter(u => u.nationId === n.id).forEach(u => removeUnit(u));
+        showToast(`${n.name} has fallen. Their forces have scattered.`);
+        continue;
+      }
       n.eliminatedBy = conqueror;
 
       const cn = nations[conqueror];
@@ -8585,7 +8592,7 @@ function updateUI() {
   }
 
   const btn = document.getElementById('endTurnBtn');
-  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && !u.gotoX && !u.building && !u.fortified);
+  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified);
   if (!anyMoves) btn.classList.add('end-turn-pulse');
   else btn.classList.remove('end-turn-pulse');
 }
@@ -8594,7 +8601,7 @@ function hidePanel() { document.getElementById('panel').style.display = 'none'; 
 
 function cycleToNextUnit(force = false) {
   if (!force && !autoNextUnit) return;
-  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && !u.gotoX && !u.building && !u.fortified);
+  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && u.gotoX === undefined && !u.building && !u.fortified);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
   selectedUnit = next; selectedCity = null;
