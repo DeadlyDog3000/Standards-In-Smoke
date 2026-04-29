@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Standards In Smoke</title>
-  <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&family=Pinyon+Script&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    @font-face { font-family: 'EB Garamond'; font-style: normal; font-weight: 400 600; font-display: swap; src: url('fonts/EBGaramond.woff2') format('woff2'); }
+    @font-face { font-family: 'Pinyon Script'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/PinyonScript.woff2') format('woff2'); }
+    @font-face { font-family: 'Uncial Antiqua'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/UncialAntiqua.woff2') format('woff2'); }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #14110d; font-family: 'EB Garamond', 'Uncial Antiqua', serif; color: #e8dcc8; -webkit-user-select: none; user-select: none; }
     button, select, input, .menu-btn, .top-btn, .p-btn, .esc-btn { font-family: 'EB Garamond', 'Uncial Antiqua', serif; }
@@ -3960,7 +3962,7 @@ function spawnUnit(type, nationId, x, y) {
   let startXp = 0;
   if (def.combat && nationHasWonder(nationId, 'royal_arsenal')) startXp = 5;
   const morale = MORALE_MAX;
-  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, vision: def.vision, hp, xp: startXp, morale, maxMorale: MORALE_MAX };
+  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, turnStartMoves: def.moves, vision: def.vision, hp, xp: startXp, morale, maxMorale: MORALE_MAX };
 
   if (FORMATION_UNITS.has(type)) u.formation = 'line';
 
@@ -4161,7 +4163,7 @@ function getScaledCosts(nationId, costs) {
 }
 
 function getProductionTurns(city) {
-  if (!city.producing) return 0;
+  if (!city.producing || !PRODUCTION_COSTS[city.producing]) return 0;
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   const rb = getRulerBonuses(city.nationId);
@@ -4171,9 +4173,12 @@ function getProductionTurns(city) {
 
 function tickProduction(city) {
   if (!city.producing) return;
+  if (!PRODUCTION_COSTS[city.producing] && !CITY_BUILDING_DEFS[city.producing]) {
+    city.producing = null; city.productionProgress = 0; return; // unknown type — clear to prevent infinite loop
+  }
   const prodRb = getRulerBonuses(city.nationId);
   city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0));
-  const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
+  const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing] || {});
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
     const n = nations[city.nationId];
@@ -6574,6 +6579,7 @@ function finishEndTurn() {
     moves = Math.max(1, moves);
     computedMoves.set(u, moves);
     u.movesLeft = moves;
+    u.turnStartMoves = moves;
   }
   processGotoOrders();
 
@@ -10385,7 +10391,8 @@ canvas.addEventListener('click', (e) => {
 
   if (rangedMode && selectedUnit) {
     const canAttackAfterMove = selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0;
-    if (selectedUnit.movesLeft < selectedUnit.maxMoves && !canAttackAfterMove) {
+    const startMoves = selectedUnit.turnStartMoves ?? selectedUnit.maxMoves;
+    if (selectedUnit.movesLeft < startMoves && !canAttackAfterMove) {
       showToast('Cannot attack after moving.'); rangedMode = false; render(); return;
     }
     const target = units.find(u => u.x === mx && u.y === my && u.nationId !== selectedUnit.nationId);
@@ -10864,7 +10871,8 @@ window.doRangedAttack = function(tx, ty) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged) return;
 
   const canSkirmish = selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0;
-  if (selectedUnit.movesLeft < selectedUnit.maxMoves && !canSkirmish) { showToast('Cannot attack after moving.'); return; }
+  const _startMoves = selectedUnit.turnStartMoves ?? selectedUnit.maxMoves;
+  if (selectedUnit.movesLeft < _startMoves && !canSkirmish) { showToast('Cannot attack after moving.'); return; }
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== selectedUnit.nationId);
   if (!target) return;
   if (nations[selectedUnit.nationId].relations[target.nationId] !== 'war') return;
@@ -11614,6 +11622,7 @@ function deserializeGame(json) {
     if (FORMATION_UNITS.has(u.type) && !u.formation) u.formation = 'line';
     if (UNIT_DEFS[u.type]?.artillery && !u.ammo) u.ammo = 'cannonball';
     if (u.type === 'general' && !u.traits) u.traits = [Object.keys(GENERAL_TRAITS)[Math.floor(Math.random() * Object.keys(GENERAL_TRAITS).length)]];
+    if (u.turnStartMoves === undefined) u.turnStartMoves = u.movesLeft;
     return u;
   });
   cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0, buildings: c.buildings || [], productionQueue: c.productionQueue || [] }));
