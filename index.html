@@ -1852,7 +1852,7 @@ function getEffectiveAtk(unit, target) {
 
   if (nationHasWonder(unit.nationId, 'war_college')) bonus += 1;
 
-  if (unit.type === 'cavalry' && unit.movesLeft >= unit.maxMoves) bonus += 3;
+  if (unit.type === 'cavalry' && unit.movesLeft >= (unit.turnStartMoves ?? unit.maxMoves)) bonus += 3;
 
   if (unit.type === 'hussar' && target && !UNIT_DEFS[target.type]?.combat) bonus += 2;
 
@@ -2001,13 +2001,21 @@ let camX = 0, camY = 0, viewCols, viewRows;
 let nations = [];
 let playerNation = 0;
 let units = [];
-function removeUnit(u) { const idx = units.indexOf(u); if (idx >= 0) units.splice(idx, 1); }
+function removeUnit(u) {
+  const idx = units.indexOf(u);
+  if (idx >= 0) units.splice(idx, 1);
+  if (selectedUnit === u) {
+    selectedUnit = null;
+    moveMode = false; gotoMode = false; rangedMode = false;
+    if (reachableTiles) reachableTiles.clear();
+  }
+}
 function purgeDeadUnits() {
   for (let i = units.length - 1; i >= 0; i--) {
     const u = units[i];
     if (u.hp == null || isNaN(u.hp) || u.hp <= 0) {
       spawnDeathParticles(u.x, u.y, nations[u.nationId]?.color || '#888');
-      units.splice(i, 1);
+      removeUnit(u);
     }
   }
 }
@@ -4766,7 +4774,9 @@ function tickCityCapture() {
               }
             }
 
-            cities.splice(cities.indexOf(city), 1);
+            const _ci = cities.indexOf(city);
+            if (_ci >= 0) cities.splice(_ci, 1);
+            if (selectedCity === city) selectedCity = null;
             _tileCityMapDirty = true;
             if (!nations[oldOwner].isBarbarian) {
               nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 5);
@@ -4833,11 +4843,11 @@ function tickCityCapture() {
 }
 
 function getLoyalty(fromId, toId) {
-  return nations[fromId].loyalty[toId] || 50;
+  return nations[fromId].loyalty?.[toId] ?? 50;
 }
 function changeLoyalty(fromId, toId, amount) {
   if (!nations[fromId].loyalty) nations[fromId].loyalty = {};
-  nations[fromId].loyalty[toId] = Math.max(-200, Math.min(100, (nations[fromId].loyalty[toId] || 50) + amount));
+  nations[fromId].loyalty[toId] = Math.max(-200, Math.min(100, (nations[fromId].loyalty[toId] ?? 50) + amount));
 }
 function getLoyaltyLabel(val) {
   if (val >= 80) return 'Friendly';
@@ -8734,7 +8744,7 @@ function showUnitPanel(unit) {
     }
   }
   if (UNIT_DEFS[unit.type].ranged && unit.nationId === playerNation) {
-    const canRanged = unit.movesLeft >= unit.maxMoves || (unit.type === 'dragoon' && unit.movesLeft > 0);
+    const canRanged = unit.movesLeft >= (unit.turnStartMoves ?? unit.maxMoves) || (unit.type === 'dragoon' && unit.movesLeft > 0);
 
     if (def.artillery && unit.reloadTurns > 0) {
       html += `<p style="font-size:11px;color:#fa0;margin:2px 0;">Reloading... ${unit.reloadTurns} turn${unit.reloadTurns > 1 ? 's' : ''} remaining</p>`;
@@ -10835,6 +10845,7 @@ document.addEventListener('keydown', (e) => {
 
 const keysDown = {};
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return;
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
   keysDown[e.key.toLowerCase()] = true;
@@ -10858,7 +10869,7 @@ setInterval(() => {
 }, 50);
 
 window.enterRangedMode = function() {
-  const canRanged = selectedUnit && (selectedUnit.movesLeft >= selectedUnit.maxMoves || (selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0));
+  const canRanged = selectedUnit && (selectedUnit.movesLeft >= (selectedUnit.turnStartMoves ?? selectedUnit.maxMoves) || (selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0));
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || !canRanged) return;
 
   if (UNIT_DEFS[selectedUnit.type].artillery && selectedUnit.reloadTurns > 0) return;
