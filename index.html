@@ -590,6 +590,19 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Bug Fixes &amp; Stability</b><br>
+        - Loaded saves now self-heal missing relations/loyalty data, preventing crashes during AI turns and combat<br>
+        - Barbarian density slider set to 0 now actually disables barbarians instead of falling back to 40%<br>
+        - Declaring war no longer crashes on saves that predate the loyalty system<br>
+        - Fortify, formation change, chop, hunt, repair, and rest no longer waste an order when the action is a no-op<br>
+        - Settling a city only consumes an order on confirm, not when opening the name dialog<br>
+        - Mortars no longer fire grapeshot — AI ammo switching now respects each unit's allowed ammo types<br>
+        - Killing an enemy no longer advances the attacker onto an already-occupied tile, preventing unit stacking<br>
+        - Founding a city or spawning a tribe now keeps tile ownership and city ownedTiles in sync<br>
+        - Set Ammo rejects ammo types the unit cannot actually load<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Bug Fixes &amp; Quality</b><br>
@@ -1039,6 +1052,19 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.9</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Bug Fixes &amp; Stability</b><br>
+          - Loaded saves now self-heal missing relations/loyalty data, preventing crashes during AI turns and combat<br>
+          - Barbarian density slider set to 0 now actually disables barbarians instead of falling back to 40%<br>
+          - Declaring war no longer crashes on saves that predate the loyalty system<br>
+          - Fortify, formation change, chop, hunt, repair, and rest no longer waste an order when the action is a no-op<br>
+          - Settling a city only consumes an order on confirm, not when opening the name dialog<br>
+          - Mortars no longer fire grapeshot — AI ammo switching now respects each unit's allowed ammo types<br>
+          - Killing an enemy no longer advances the attacker onto an already-occupied tile, preventing unit stacking<br>
+          - Founding a city or spawning a tribe now keeps tile ownership and city ownedTiles in sync<br>
+          - Set Ammo rejects ammo types the unit cannot actually load<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.8</b></div>
         <div style="margin-bottom:12px;">
@@ -11678,7 +11704,7 @@ function deserializeGame(json) {
 
     tiles = d.tiles.map(t => { const type = t.type === 7 ? 2 : t.type; return { ...t, type, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(type, Math.floor(Math.random() * 997)), hasRiver: false }; });
   }
-  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0 }));
+  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0, relations: n.relations || {}, loyalty: n.loyalty || {} }));
   units = d.units.map(u => {
 
     if (u.morale === undefined) u.morale = MORALE_MAX;
