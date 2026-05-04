@@ -590,6 +590,27 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Bug Fixes, Diplomacy &amp; Hex Math</b><br>
+        - End Turn (E) is now ignored when ESC menu, war declaration, or popups are open, and can no longer double-fire on rapid presses<br>
+        - Combat-range highlight, AI threat detection, and city-spacing now use true hex distance (no more diamond ranges)<br>
+        - Hex neighbor checks no longer leak across map edges<br>
+        - Scouts no longer wander open ocean indefinitely after Shipbuilding<br>
+        - River crossing penalty now applies in both directions<br>
+        - Go-To now refuses unreachable destinations instead of silently consuming a turn<br>
+        - Tribes and barbarians correctly start at war and will fight one another<br>
+        - Multi-war eliminations credit the actual conqueror; eliminated nations' agreements are cleaned up<br>
+        - Peace treaties now include a 10-turn cooldown to stop war/peace flapping<br>
+        - Player-declared wars now drag War Alliance partners into the war<br>
+        - AI disbands cheapest units when bankrupt instead of getting free gold; no longer queues already-built buildings<br>
+        - 3rd caught espionage now provokes an immediate war declaration with explicit warning<br>
+        - Production overflow from rushed or factory builds now carries into the next queued item<br>
+        - End-game score breakdown now matches the displayed total<br>
+        - Settler "Found City" pending name no longer leaks across unit selection; F-shortcut now checks the same conditions as the button<br>
+        - Escape now blurs text inputs instead of closing menus while typing<br>
+        - Renamed cities, ruler/character/family names, and tile annotations are now safely escaped in all panels<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Bug Fixes &amp; Stability</b><br>
@@ -1052,6 +1073,27 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.0</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Bug Fixes, Diplomacy &amp; Hex Math</b><br>
+          - End Turn (E) is now ignored when ESC menu, war declaration, or popups are open, and can no longer double-fire on rapid presses<br>
+          - Combat-range highlight, AI threat detection, and city-spacing now use true hex distance (no more diamond ranges)<br>
+          - Hex neighbor checks no longer leak across map edges<br>
+          - Scouts no longer wander open ocean indefinitely after Shipbuilding<br>
+          - River crossing penalty now applies in both directions<br>
+          - Go-To now refuses unreachable destinations instead of silently consuming a turn<br>
+          - Tribes and barbarians correctly start at war and will fight one another<br>
+          - Multi-war eliminations credit the actual conqueror; eliminated nations' agreements are cleaned up<br>
+          - Peace treaties now include a 10-turn cooldown to stop war/peace flapping<br>
+          - Player-declared wars now drag War Alliance partners into the war<br>
+          - AI disbands cheapest units when bankrupt instead of getting free gold; no longer queues already-built buildings<br>
+          - 3rd caught espionage now provokes an immediate war declaration with explicit warning<br>
+          - Production overflow from rushed or factory builds now carries into the next queued item<br>
+          - End-game score breakdown now matches the displayed total<br>
+          - Settler "Found City" pending name no longer leaks across unit selection; F-shortcut now checks the same conditions as the button<br>
+          - Escape now blurs text inputs instead of closing menus while typing<br>
+          - Renamed cities, ruler/character/family names, and tile annotations are now safely escaped in all panels<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 4.9</b></div>
         <div style="margin-bottom:12px;">
@@ -1781,17 +1823,16 @@ function fleeFromEnemies(unit) {
   for (const e of units) {
     if (e.nationId === unit.nationId || !UNIT_DEFS[e.type]?.combat) continue;
     if (nations[unit.nationId]?.relations?.[e.nationId] !== 'war') continue;
-    const d = Math.abs(e.x - unit.x) + Math.abs(e.y - unit.y);
+    const d = hexDistance(e.x, e.y, unit.x, unit.y);
     if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
   }
   if (!nearestEnemy) return;
 
   let bestHex = null, bestDist = -1;
   for (const nb of hexNeighbors(unit.x, unit.y)) {
-    if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
     if (!unitCanTraverse(unit.type, tiles[nb.row * MAP_COLS + nb.col].type, unit.nationId, nb.col, nb.row)) continue;
     if (units.some(u => u.x === nb.col && u.y === nb.row && u !== unit)) continue;
-    const d = Math.abs(nearestEnemy.x - nb.col) + Math.abs(nearestEnemy.y - nb.row);
+    const d = hexDistance(nearestEnemy.x, nearestEnemy.y, nb.col, nb.row);
     if (d > bestDist) { bestDist = d; bestHex = nb; }
   }
   if (bestHex) {
@@ -2045,7 +2086,25 @@ function hexNeighbors(col, row) {
   const even = [[0,-1], [0,1], [1,-1], [1,0], [-1,-1], [-1,0]];
   const odd  = [[0,-1], [0,1], [1,0], [1,1], [-1,0], [-1,1]];
   const dirs = (col % 2 === 0) ? even : odd;
-  return dirs.map(([dc, dr]) => ({ col: col + dc, row: row + dr }));
+  const out = [];
+  for (const [dc, dr] of dirs) {
+    const c = col + dc, r = row + dr;
+    if (c < 0 || c >= MAP_COLS || r < 0 || r >= MAP_ROWS) continue;
+    out.push({ col: c, row: r });
+  }
+  return out;
+}
+
+function _offsetToCube(col, row) {
+  const x = col;
+  const z = row - ((col - (col & 1)) >> 1);
+  const y = -x - z;
+  return { x, y, z };
+}
+function hexDistance(x1, y1, x2, y2) {
+  const a = _offsetToCube(x1, y1);
+  const b = _offsetToCube(x2, y2);
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.z - b.z));
 }
 
 let tiles = [];
@@ -3141,7 +3200,7 @@ function canEnterTerritory(nationId, tileOwner, tx, ty) {
       for (const city of cities) {
         if (city.nationId === nationId) continue;
         if (nations[city.nationId] && nations[city.nationId].isBarbarian) continue;
-        const d = Math.abs(city.x - tx) + Math.abs(city.y - ty);
+        const d = hexDistance(city.x, city.y, tx, ty);
         if (d <= 3) {
           if (nations[nationId] && nations[nationId].relations[city.nationId] === 'war') return true;
           if (hasAgreement(nationId, city.nationId, 'open_borders')) return true;
@@ -3170,12 +3229,8 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   if (tileType !== 0) return true; // all land units can walk on land
 
   if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
-
-    if (unitType === 'scout' || unitType === 'veteran_scout') return true;
-
     if (nx !== undefined && ny !== undefined) {
       for (const nb of hexNeighbors(nx, ny)) {
-        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
         const pt = tiles[nb.row * MAP_COLS + nb.col];
         if (pt.improvement === 'port' && pt.owner === nationId) return true;
       }
@@ -3401,6 +3456,10 @@ function discoverNation(nationId) {
   }
 }
 
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 let toastTimer = null;
 function showToast(msg, noLog) {
   const el = document.getElementById('toast');
@@ -3505,8 +3564,9 @@ function showIdleCitiesPopup(idleCities) {
     const allUnitTypes = ['settler','worker','scout','swordsman','crossbowman','cavalry','musketeer','rifleman','grenadier','hussar','lancer','heavy_cavalry','dragoon','field_gun','cannon','mortar','veteran_scout','veteran_worker','general'];
     if (hasPort) allUnitTypes.push('frigate','galleon','man_of_war');
 
+    const cityIdx = cities.indexOf(city);
     inner += `<div style="border:1px solid #3a2e18;border-radius:7px;padding:10px 12px;margin:8px 0;">`;
-    inner += `<div style="color:#e0d0a0;font-weight:bold;font-size:13px;margin-bottom:7px;">🏙 ${city.name}</div>`;
+    inner += `<div style="color:#e0d0a0;font-weight:bold;font-size:13px;margin-bottom:7px;">🏙 ${escHtml(city.name)}</div>`;
     inner += `<div style="display:flex;flex-wrap:wrap;gap:4px;">`;
 
     for (const type of allUnitTypes) {
@@ -3517,7 +3577,7 @@ function showIdleCitiesPopup(idleCities) {
       const costs = PRODUCTION_COSTS[type] ? getScaledCosts(nId, PRODUCTION_COSTS[type]) : null;
       const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
       const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
-      inner += `<button onclick="window._idleCityPick('${city.name}','${type}')" title="${costTip}" `;
+      inner += `<button onclick="window._idleCityPick(${cityIdx},'${type}')" title="${escHtml(costTip)}" `;
       inner += `style="background:#241900;border:1px solid ${canAfford?'#4a3810':'#2a2010'};border-radius:4px;color:${canAfford?'#e0d0a0':'#5a5040'};padding:3px 8px;cursor:pointer;font-size:11px;">`;
       inner += `${def.icon} ${type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</button>`;
     }
@@ -3527,12 +3587,12 @@ function showIdleCitiesPopup(idleCities) {
       const costs = PRODUCTION_COSTS[key] ? getScaledCosts(nId, PRODUCTION_COSTS[key]) : null;
       const canAfford = costs ? Object.entries(costs).every(([k,v]) => (n[k]||0) >= v) : true;
       const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
-      inner += `<button onclick="window._idleCityPick('${city.name}','${key}')" title="${costTip}" `;
+      inner += `<button onclick="window._idleCityPick(${cityIdx},'${key}')" title="${escHtml(costTip)}" `;
       inner += `style="background:#241900;border:1px solid ${canAfford?'#4a3810':'#2a2010'};border-radius:4px;color:${canAfford?'#e0d0a0':'#5a5040'};padding:3px 8px;cursor:pointer;font-size:11px;">`;
-      inner += `${bld.icon} ${bld.name}</button>`;
+      inner += `${bld.icon} ${escHtml(bld.name)}</button>`;
     }
 
-    inner += `<button onclick="window._openCityProd('${city.name}')" style="background:#102010;border:1px solid #2a5020;border-radius:4px;color:#7ab870;padding:3px 8px;cursor:pointer;font-size:11px;">+ More</button>`;
+    inner += `<button onclick="window._openCityProd(${cityIdx})" style="background:#102010;border:1px solid #2a5020;border-radius:4px;color:#7ab870;padding:3px 8px;cursor:pointer;font-size:11px;">+ More</button>`;
     inner += `</div></div>`;
   }
 
@@ -3550,9 +3610,9 @@ window._closeIdlePopup = function() {
   if (n && !n.currentResearch) showNoResearchPopup();
 };
 
-window._idleCityPick = function(cityName, type) {
-  const city = cities.find(c => c.name === cityName && c.nationId === playerNation);
-  if (!city) return;
+window._idleCityPick = function(cityIdx, type) {
+  const city = cities[cityIdx];
+  if (!city || city.nationId !== playerNation) return;
   const bld = CITY_BUILDING_DEFS[type];
   if (bld && !bld.wonder && (city.buildings||[]).includes(type)) { showToast(`${bld.name} already built here.`); return; }
   if (bld && bld.wonder && cities.some(c => (c.buildings||[]).includes(type))) { showToast(`${bld.name} already built.`); return; }
@@ -3565,9 +3625,9 @@ window._idleCityPick = function(cityName, type) {
   updateUI();
 };
 
-window._openCityProd = function(cityName) {
-  const city = cities.find(c => c.name === cityName && c.nationId === playerNation);
-  if (!city) return;
+window._openCityProd = function(cityIdx) {
+  const city = cities[cityIdx];
+  if (!city || city.nationId !== playerNation) return;
   document.getElementById('idleCitiesPopup')?.remove();
   selectedCity = city; selectedUnit = null;
   showCityPanel(city);
@@ -3583,7 +3643,7 @@ function showFirstContact(nation) {
       <span style="font-size:32px;">\uD83C\uDFF3\uFE0F</span>
     </div>
     <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:16px;text-shadow:0 0 10px rgba(180,140,60,0.4);">First Contact</div>
-    <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${nation.color}60;">The <span style="color:${nation.color}">${nation.name}</span></div>
+    <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${nation.color}60;">The <span style="color:${nation.color}">${escHtml(nation.name)}</span></div>
     <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
   </div>`;
   document.body.appendChild(overlay);
@@ -3724,7 +3784,7 @@ function showWarDeclaration(nation) {
       <span style="font-size:40px;">\u2694\uFE0F</span>
     </div>
     <h1 style="color:#ff4444;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 0 20px rgba(255,50,30,0.6);margin-bottom:10px;">War Declared!</h1>
-    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${nation.name}</strong> has declared war on your kingdom!</p>
+    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${escHtml(nation.name)}</strong> has declared war on your kingdom!</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
@@ -3997,6 +4057,8 @@ function expandCityBorder(city) {
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   tiles[pick].owner = city.nationId;
   city.ownedTiles.add(pick);
+  _tileCityMapDirty = true;
+  minimapDirty = true;
 }
 
 function buyTile(city, tx, ty) {
@@ -4013,6 +4075,8 @@ function buyTile(city, tx, ty) {
   n.gold -= 25;
   tiles[i].owner = city.nationId;
   city.ownedTiles.add(i);
+  _tileCityMapDirty = true;
+  minimapDirty = true;
   return true;
 }
 
@@ -4138,7 +4202,7 @@ function foundCity(unit, cityName) {
   removeUnit(unit);
   if (selectedUnit === unit) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
 
-  spawnUnit('worker', city.nationId, city.x, city.y);
+  spawnUnit(nationHasTech(city.nationId, 'engineering') ? 'veteran_worker' : 'worker', city.nationId, city.x, city.y);
   return city;
 }
 
@@ -4311,10 +4375,11 @@ function tickProduction(city) {
       }
     }
 
+    const overflow = Math.max(0, city.productionProgress - total);
     const queue = city.productionQueue || [];
     if (queue.length > 0) {
       city.producing = queue.shift();
-      city.productionProgress = 0;
+      city.productionProgress = overflow;
     } else {
       city.producing = null; city.productionProgress = 0;
     }
@@ -4500,12 +4565,14 @@ function getTerrainName(tileType) {
 function getMoveCost(fromX, fromY, toX, toY, unitType) {
   let cost = 1;
   const toTi = toY * MAP_COLS + toX;
+  const fromTi = fromY * MAP_COLS + fromX;
   const toTile = tiles[toTi];
+  const fromTile = tiles[fromTi];
   const terrainName = getTerrainName(toTile.type);
   const effects = TERRAIN_EFFECTS[terrainName];
   if (effects) cost += effects.moveExtra;
 
-  if (toTile.hasRiver && !tiles[fromY * MAP_COLS + fromX].hasRiver) cost += 2;
+  if (toTile.hasRiver !== fromTile.hasRiver) cost += 2;
 
   const def = UNIT_DEFS[unitType];
   if (def && def.siege && (toTile.type === 3 || toTile.type === 7 || toTile.type === 2)) cost += 1;
@@ -4849,6 +4916,9 @@ function tickCityCapture() {
           }
 
           const wasCapital = city.isCapital;
+          if (nations[oldOwner] && !nations[oldOwner].isBarbarian) {
+            nations[oldOwner]._lastCapturedBy = occupier.nationId;
+          }
           city.nationId = occupier.nationId;
           city.captureProgress = {};
           city.contested = false;
@@ -4868,11 +4938,11 @@ function tickCityCapture() {
 
           for (const u of units) {
             if (u.nationId !== oldOwner) continue;
-            if (!UNIT_DEFS[u.type]?.combat) continue;
             const ui = u.y * MAP_COLS + u.x;
             if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
               u.nationId = occupier.nationId;
               u.movesLeft = 0;
+              if (!UNIT_DEFS[u.type]?.combat) u.morale = Math.min(u.morale ?? MORALE_MAX, 50);
             }
           }
 
@@ -5013,9 +5083,15 @@ function spawnBarbarianCamp() {
                      barbarianCamps.some(b => Math.abs(b.x - rx) + Math.abs(b.y - ry) < barbCampSpacing);
     if (tooClose) { attempts++; continue; }
 
-    const barbNationId = createNation('Barbarians', '#8b0000', false);
+    let barbNationId = nations.findIndex(n => n.isBarbarian && n.eliminated && !barbarianCamps.some(b => b.nationId === nations.indexOf(n) && !b.destroyed));
+    if (barbNationId === -1) {
+      barbNationId = createNation('Barbarians', '#8b0000', false);
+    } else {
+      nations[barbNationId].name = 'Barbarians';
+    }
     nations[barbNationId].isBarbarian = true;
     nations[barbNationId].eliminated = false;
+    nations[barbNationId].relations = nations[barbNationId].relations || {};
 
     for (let i = 0; i < nations.length; i++) {
       if (i === barbNationId) continue;
@@ -5140,7 +5216,7 @@ function barbarianAI(nationId) {
     let huntTarget = null, huntDist = Infinity;
     for (const enemy of units) {
       if (enemy.nationId === nationId || isBarbarianNation(enemy.nationId)) continue;
-      const d = Math.abs(enemy.x - u.x) + Math.abs(enemy.y - u.y);
+      const d = hexDistance(enemy.x, enemy.y, u.x, u.y);
       if (d <= 6 && d < huntDist) {
 
         const isPrey = !UNIT_DEFS[enemy.type]?.combat;
@@ -5163,7 +5239,7 @@ function barbarianAI(nationId) {
     let target = null, bestDist = Infinity;
     for (const c of cities) {
       if (isBarbarianNation(c.nationId)) continue;
-      const d = Math.abs(c.x - u.x) + Math.abs(c.y - u.y);
+      const d = hexDistance(c.x, c.y, u.x, u.y);
       if (d < bestDist) { bestDist = d; target = c; }
     }
     if (target && bestDist <= barbRaidRange) {
@@ -5272,7 +5348,7 @@ function getScore(nationId) {
   score += nations.filter(n => n.eliminated && !n.isBarbarian && n.eliminatedBy === nationId).length * 20;
   score += Math.floor((nations[nationId].legitimacy || 50) / 10);
   score -= Math.floor(turnNumber * 0.5);
-  return Math.max(0, score);
+  return score;
 }
 
 function checkElimination() {
@@ -5295,9 +5371,13 @@ function checkElimination() {
       n.eliminated = true;
 
       let conqueror = -1;
-      for (let i = 0; i < nations.length; i++) {
-        if (i === n.id || nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe) continue;
-        if (nations[i].relations[n.id] === 'war') { conqueror = i; break; }
+      if (n._lastCapturedBy !== undefined && nations[n._lastCapturedBy] && !nations[n._lastCapturedBy].eliminated && !nations[n._lastCapturedBy].isBarbarian && !nations[n._lastCapturedBy].isTribe) {
+        conqueror = n._lastCapturedBy;
+      } else {
+        for (let i = 0; i < nations.length; i++) {
+          if (i === n.id || nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe) continue;
+          if (nations[i].relations[n.id] === 'war') { conqueror = i; break; }
+        }
       }
       if (conqueror < 0) {
         n.eliminatedBy = -1;
@@ -5321,6 +5401,9 @@ function checkElimination() {
       }
       if (conqueror === playerNation) showToast(`${n.name} has been conquered! Their resources and units are yours.`);
       else showToast(`${n.name} has been eliminated by ${nations[conqueror].name}!`);
+
+      if (agreements[n.id]) delete agreements[n.id];
+      for (const k in agreements) { if (agreements[k] && agreements[k][n.id]) delete agreements[k][n.id]; }
     }
   }
 
@@ -5362,8 +5445,8 @@ function showVictory(type) {
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `Turn 200 reached. <strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> has the highest score!`
-    : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> rules supreme!`;
+  const desc = type === 'score' ? `Turn 200 reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
+    : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
   overlay.id = 'victoryOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(10,8,3,0.92);display:flex;align-items:center;justify-content:center;';
@@ -5455,10 +5538,10 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `Turn 200 reached. <strong style="color:${winner.color}">${winner.name}</strong> has the highest score (${getScore(winnerId)}).`;
+    desc = `Turn 200 reached. <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
-    desc = `<strong style="color:${nations[playerNation].color}">${nations[playerNation].name}</strong> has been conquered. Your civilization is no more.`;
+    desc = `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has been conquered. Your civilization is no more.`;
   }
   const overlay = document.createElement('div');
   overlay.id = 'defeatOverlay';
@@ -5513,7 +5596,7 @@ function aiTurn(nationId) {
     let cityTension = 0;
     for (const ac of aiCitiesAll) {
       for (const oc of otherCities) {
-        const dist = Math.abs(ac.x - oc.x) + Math.abs(ac.y - oc.y);
+        const dist = hexDistance(ac.x, ac.y, oc.x, oc.y);
         if (dist < 12) cityTension += 4;
         else if (dist < 20) cityTension += 1;
       }
@@ -5524,7 +5607,7 @@ function aiTurn(nationId) {
     let troopsNearBorder = 0;
     for (const u of theirMilitary) {
       for (const ac of aiCitiesAll) {
-        if (Math.abs(u.x - ac.x) + Math.abs(u.y - ac.y) <= 10) { troopsNearBorder++; break; }
+        if (hexDistance(u.x, u.y, ac.x, ac.y) <= 10) { troopsNearBorder++; break; }
       }
     }
     if (troopsNearBorder >= 3) changeLoyalty(nationId, otherId, -3);
@@ -5605,7 +5688,10 @@ function aiTurn(nationId) {
         ? Math.max(4, aiCityCount * 3)
         : Math.max(2, aiCityCount);
 
-      if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
+      const peaceUntil = n._peaceCooldown?.[otherId] || 0;
+      if (turnNumber < peaceUntil) {
+        // recently made peace; refuse to redeclare for cooldown duration
+      } else if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
         n.relations[otherId] = 'war';
         nations[otherId].relations[nationId] = 'war';
 
@@ -5635,6 +5721,13 @@ function aiTurn(nationId) {
           if (otherLoy > 0 || severelyOutmatched) {
             n.relations[otherId] = 'peace';
             nations[otherId].relations[nationId] = 'peace';
+            const myLoy = getLoyalty(nationId, otherId);
+            if (myLoy < 10) changeLoyalty(nationId, otherId, 10 - myLoy);
+            if (otherLoy < 10) changeLoyalty(otherId, nationId, 10 - otherLoy);
+            if (!n._peaceCooldown) n._peaceCooldown = {};
+            if (!nations[otherId]._peaceCooldown) nations[otherId]._peaceCooldown = {};
+            n._peaceCooldown[otherId] = turnNumber + 10;
+            nations[otherId]._peaceCooldown[nationId] = turnNumber + 10;
           }
         }
       }
@@ -5683,7 +5776,7 @@ function aiTurn(nationId) {
     for (const eu of units) {
       if (eu.nationId === nationId || !UNIT_DEFS[eu.type]?.combat) continue;
       if (n.relations[eu.nationId] !== 'war') continue;
-      const d = Math.abs(eu.x - c.x) + Math.abs(eu.y - c.y);
+      const d = hexDistance(eu.x, eu.y, c.x, c.y);
       if (d <= 8) threatLevel += getEffectiveAtk(eu);
     }
   }
@@ -5831,17 +5924,13 @@ function aiTurn(nationId) {
       if (FORMATION_UNITS.has(u.type) && u.formation) {
 
         const enemyNearby = units.some(e => e.nationId !== nationId && UNIT_DEFS[e.type]?.combat && n.relations[e.nationId] === 'war' && Math.abs(e.x - u.x) + Math.abs(e.y - u.y) <= 3);
-        if (enemyNearby && u.formation !== 'line') {
-          u.formation = 'line';
-          if (u.movesLeft > 0) u.movesLeft--;
-        } else if (!enemyNearby && u.formation !== 'column' && atWar) {
-          u.formation = 'column';
-          if (u.movesLeft > 0) u.movesLeft--;
-        }
-
         const inOwnCity = cities.some(c => c.x === u.x && c.y === u.y && c.nationId === nationId);
-        if (inOwnCity && threatLevel > 0 && u.formation !== 'square') {
-          u.formation = 'square';
+        let desiredFormation = u.formation;
+        if (inOwnCity && threatLevel > 0) desiredFormation = 'square';
+        else if (enemyNearby) desiredFormation = 'line';
+        else if (atWar) desiredFormation = 'column';
+        if (desiredFormation !== u.formation) {
+          u.formation = desiredFormation;
           if (u.movesLeft > 0) u.movesLeft--;
         }
       }
@@ -6220,6 +6309,9 @@ function aiTurn(nationId) {
           else if (n.wood >= 30) c.producing = 'frigate';
         }
       }
+      const _bld = CITY_BUILDING_DEFS[c.producing];
+      if (_bld && !_bld.wonder && (c.buildings || []).includes(c.producing)) c.producing = bestCombat;
+      else if (_bld && _bld.wonder && cities.some(ci => ci !== c && (ci.producing === c.producing || (ci.buildings || []).includes(c.producing)))) c.producing = bestCombat;
     }
     tickProduction(c);
     const y = getCityYields(c);
@@ -6532,6 +6624,8 @@ function hitFamilyOpinion(nationId, amount) {
 function endTurn() {
   if (document.getElementById('victoryOverlay') || document.getElementById('defeatOverlay')) return;
   if (battleReplayActive) return;
+  if (window._endTurnBusy) return;
+  window._endTurnBusy = true;
 
   animationBlocking = false; animatingUnits.length = 0; lastAnimTime = 0; stopMarchSound();
   escMenuOpen = false; eventModalOpen = false;
@@ -6573,7 +6667,18 @@ function endTurn() {
     const rate = nationHasWonder(i, 'merchants_guild') ? UNIT_MAINTENANCE * 0.5 : UNIT_MAINTENANCE;
     const maintenance = paidUnits * rate;
     nations[i].gold -= maintenance;
-    if (nations[i].gold < 0) nations[i].gold = 0;
+    if (nations[i].gold < 0) {
+      if (i !== playerNation) {
+        const myUnits = units.filter(u => u.nationId === i && UNIT_DEFS[u.type]?.combat);
+        myUnits.sort((a, b) => (UNIT_DEFS[a.type]?.atk || 0) - (UNIT_DEFS[b.type]?.atk || 0));
+        while (nations[i].gold < 0 && myUnits.length > 0) {
+          const victim = myUnits.shift();
+          removeUnit(victim);
+          nations[i].gold += rate * 2;
+        }
+      }
+      if (nations[i].gold < 0) nations[i].gold = 0;
+    }
   }
   battleEvents = []; // Clear any stale events
   for (let i = 0; i < nations.length; i++) {
@@ -6713,6 +6818,7 @@ function finishEndTurn() {
   if (turnNumber > 3 && turnNumber % 4 === 0) triggerEvent();
 
   setTimeout(checkEndTurnReminders, 200);
+  window._endTurnBusy = false;
 }
 
 function evtHasCoastalCity() {
@@ -7573,7 +7679,7 @@ function triggerEvent() {
   if (evt.diplomatic && validDiploNations.length > 0) {
     const dn = validDiploNations[Math.floor(Math.random() * validDiploNations.length)];
     currentEventNation = dn.id;
-    const nationTag = `<strong style="color:${dn.color}">${dn.name}</strong>`;
+    const nationTag = `<strong style="color:${dn.color}">${escHtml(dn.name)}</strong>`;
     eventText = eventText.replace(/\{NATION\}/g, nationTag);
   }
   const modal = document.getElementById('eventModal');
@@ -8670,6 +8776,7 @@ function cycleToNextUnit(force = false) {
 function showUnitPanel(unit) {
   selectedCity = null;
   selectedUnit = unit;
+  if (unit) delete unit._pendingCityName;
   startSelectionFlash();
   const panel = document.getElementById('panel');
   const def = UNIT_DEFS[unit.type];
@@ -8782,7 +8889,7 @@ function showUnitPanel(unit) {
       if (canRepairTile(unit, unit.x, unit.y)) {
         const pil = pillaged.find(p => p.tileIndex === ti);
         const impName = IMPROVEMENT_DEFS[pil.originalImprovement] ? IMPROVEMENT_DEFS[pil.originalImprovement].name : pil.originalImprovement;
-        const turnsLeft = Math.max(0, 2 - (turnNumber - pil.turnPillaged));
+        const turnsLeft = Math.max(0, 3 - (turnNumber - pil.turnPillaged));
         html += `<button class="p-btn" onclick="doRepair()" style="border-color:#f84;color:#fc8">Repair ${impName} <span class="cost">${turnsLeft} turns left</span></button>`;
       }
       if (t.type === 5) html += `<button class="p-btn" onclick="doChop()">Chop Forest <span class="cost">+15 wood</span></button>`;
@@ -8882,7 +8989,9 @@ function renameCity() {
   if (!selectedCity || selectedCity.nationId !== playerNation) return;
   const newName = prompt('Rename city:', selectedCity.name);
   if (newName && newName.trim()) {
-    selectedCity.name = newName.trim().substring(0, 20);
+    const clean = newName.trim().replace(/[<>"'&`]/g, '').substring(0, 20);
+    if (!clean) return;
+    selectedCity.name = clean;
     showCityPanel(selectedCity);
     render();
     showToast(`City renamed to ${selectedCity.name}`);
@@ -8902,7 +9011,7 @@ function showCityPanel(city) {
     prodStr = `${prodName} (${getProductionTurns(city)} turns)`;
   }
   const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
-  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${city.name}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
+  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${escHtml(city.name)}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
   const pop = city.population || 1;
   const jobs = getCityJobs(city);
   const needed = pop * 2;
@@ -9126,9 +9235,9 @@ function confirmSettle() {
 
   selectedUnit._pendingCityName = name;
   let html = `<h3>\u2691 Found City</h3>`;
-  html += `<p>Your settlers wish to found a city here.<br>The city shall be called: <strong style="color:#d4a856">${name}</strong></p>`;
-  html += `<button class="p-btn" onclick="doSettle()" style="border-color:#4a4;color:#afa">Confirm - Found ${name}</button>`;
-  html += `<button class="p-btn" onclick="showUnitPanel(selectedUnit)">Cancel</button>`;
+  html += `<p>Your settlers wish to found a city here.<br>The city shall be called: <strong style="color:#d4a856">${escHtml(name)}</strong></p>`;
+  html += `<button class="p-btn" onclick="doSettle()" style="border-color:#4a4;color:#afa">Confirm - Found ${escHtml(name)}</button>`;
+  html += `<button class="p-btn" onclick="if(selectedUnit){delete selectedUnit._pendingCityName;}showUnitPanel(selectedUnit)">Cancel</button>`;
   panel.innerHTML = html; panel.style.display = 'block';
 }
 
@@ -9148,7 +9257,7 @@ function renderKingdoms() {
     if (n.eliminated && n.id !== playerNation) {
       html += `<div class="kingdom-row" style="opacity:0.4">
         <span class="kingdom-dot" style="background:${n.color}"></span>
-        <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">Eliminated</span></span>
+        <span class="kingdom-name">${escHtml(n.name)}<br><span style="font-size:10px;color:#666">Eliminated</span></span>
       </div>`;
       continue;
     }
@@ -9160,7 +9269,7 @@ function renderKingdoms() {
     const score = getScore(n.id);
     html += `<div class="kingdom-row">
       <span class="kingdom-dot" style="background:${n.color}"></span>
-      <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">${cityCount} cities, ${unitCount} units</span><br><span style="font-size:10px;color:#888">Score: ${score} | Mil: ${milStrength}</span>`;
+      <span class="kingdom-name">${escHtml(n.name)}<br><span style="font-size:10px;color:#666">${cityCount} cities, ${unitCount} units</span><br><span style="font-size:10px;color:#888">Score: ${score} | Mil: ${milStrength}</span>`;
     if (n.id !== playerNation) {
       const loy = getLoyalty(n.id, playerNation);
       const loyLabel = getLoyaltyLabel(loy);
@@ -9256,7 +9365,7 @@ function renderKingdoms() {
       const warriors = units.filter(u => u.nationId === n.id).length;
       html += `<div class="kingdom-row">
         <span class="kingdom-dot" style="background:${n.color}"></span>
-        <span class="kingdom-name">${n.name}<br><span style="font-size:10px;color:#666">${settlement ? settlement.name : '—'}, ${warriors} warriors</span></span>
+        <span class="kingdom-name">${escHtml(n.name)}<br><span style="font-size:10px;color:#666">${escHtml(settlement ? settlement.name : '—')}, ${warriors} warriors</span></span>
         <span class="kingdom-status" style="color:${relColor}">${rel}</span>
         <div style="margin-top:4px;margin-left:20px;">`;
       if (rel !== 'war') {
@@ -9289,9 +9398,20 @@ function sendEnvoy(nationId) {
 function acceptPeace(nationId) {
   const n = nations[nationId];
   const pn = nations[playerNation];
+  if (!n || !pn) return;
+  if (!pn.relations) pn.relations = {};
+  if (!n.relations) n.relations = {};
   if (n.wantsPeace) n.wantsPeace[playerNation] = false;
   pn.relations[nationId] = 'peace';
   n.relations[playerNation] = 'peace';
+  const myLoy = getLoyalty(playerNation, nationId);
+  const theirLoy = getLoyalty(nationId, playerNation);
+  if (myLoy < 10) changeLoyalty(playerNation, nationId, 10 - myLoy);
+  if (theirLoy < 10) changeLoyalty(nationId, playerNation, 10 - theirLoy);
+  if (!pn._peaceCooldown) pn._peaceCooldown = {};
+  if (!n._peaceCooldown) n._peaceCooldown = {};
+  pn._peaceCooldown[nationId] = turnNumber + 10;
+  n._peaceCooldown[playerNation] = turnNumber + 10;
   showToast(`Peace treaty signed with ${n.name}!`);
   renderKingdoms();
 }
@@ -9359,12 +9479,23 @@ function cancelAgreement(nationId, type) {
       const tileOwner = tiles[u.y * MAP_COLS + u.x].owner;
       if (canEnterTerritory(nationId, tileOwner, u.x, u.y)) continue; // still allowed here
 
-      for (const nb of hexNeighbors(u.x, u.y)) {
-        const nx2 = nb.col, ny2 = nb.row;
-        if (nx2 < 0 || nx2 >= MAP_COLS || ny2 < 0 || ny2 >= MAP_ROWS) continue;
-        const nbOwner = tiles[ny2 * MAP_COLS + nx2].owner;
-        if (canEnterTerritory(nationId, nbOwner, nx2, ny2) && !units.some(o => o.x === nx2 && o.y === ny2 && o !== u)) {
-          u.x = nx2; u.y = ny2; expelled++; break;
+      const visited = new Set([u.y * MAP_COLS + u.x]);
+      const queue = [{ x: u.x, y: u.y }];
+      let placed = false;
+      while (queue.length > 0 && !placed) {
+        const cur = queue.shift();
+        for (const nb of hexNeighbors(cur.x, cur.y)) {
+          const nx2 = nb.col, ny2 = nb.row;
+          if (nx2 < 0 || nx2 >= MAP_COLS || ny2 < 0 || ny2 >= MAP_ROWS) continue;
+          const ni = ny2 * MAP_COLS + nx2;
+          if (visited.has(ni)) continue;
+          visited.add(ni);
+          if (!unitCanTraverse(u.type, tiles[ni].type, nationId, nx2, ny2)) continue;
+          const nbOwner = tiles[ni].owner;
+          if (canEnterTerritory(nationId, nbOwner, nx2, ny2) && !units.some(o => o.x === nx2 && o.y === ny2 && o !== u)) {
+            u.x = nx2; u.y = ny2; expelled++; placed = true; break;
+          }
+          queue.push({ x: nx2, y: ny2 });
         }
       }
     }
@@ -9469,12 +9600,22 @@ function infiltrateNation(nationId) {
   const cost = 50;
   if (nations[playerNation].gold < cost) { showToast(`Not enough gold (need ${cost}g).`); return; }
   nations[playerNation].gold -= cost;
-  revealNationBorders(nationId, playerNation);
 
   if (Math.random() < 0.25) {
     changeLoyalty(nationId, playerNation, -15);
-    showToast(`Spies infiltrated ${nations[nationId].name} — their borders revealed. They suspect something.`);
+    nations[nationId]._caughtSpies = (nations[nationId]._caughtSpies || 0) + 1;
+    if (nations[nationId]._caughtSpies >= 3 && nations[nationId].relations[playerNation] !== 'war') {
+      nations[nationId].relations[playerNation] = 'war';
+      nations[playerNation].relations[nationId] = 'war';
+      showWarDeclaration(nations[nationId]);
+      showToast(`Repeated espionage has driven ${nations[nationId].name} to declare war!`);
+      nations[nationId]._caughtSpies = 0;
+    } else {
+      const remaining = 3 - nations[nationId]._caughtSpies;
+      showToast(`Your spies were caught infiltrating ${nations[nationId].name}! ${remaining > 0 ? remaining + ' more incidents may provoke war.' : ''}`);
+    }
   } else {
+    revealNationBorders(nationId, playerNation);
     showToast(`Spies infiltrated ${nations[nationId].name} — their borders revealed.`);
   }
   render(); renderKingdoms();
@@ -9498,6 +9639,9 @@ let _techTreeAbort = null;
 function showTechTree() {
   techTreeOpen = true;
   selectedUnit = null; selectedCity = null; moveMode = false; reachableTiles.clear();
+  hidePanel();
+  const _court = document.getElementById('courtPanel'); if (_court) _court.style.display = 'none';
+  if (typeof closePlanningPopup === 'function') closePlanningPopup();
   _buildTechTreeOverlay();
 }
 
@@ -9860,6 +10004,20 @@ function toggleDiplomacy(nationId) {
       if (!nations[nationId].loyalty) nations[nationId].loyalty = {};
       nations[nationId].loyalty[playerNation] = -60;
     }
+
+    for (let allyId = 0; allyId < nations.length; allyId++) {
+      if (allyId === nationId || allyId === playerNation) continue;
+      const ally = nations[allyId];
+      if (!ally || ally.eliminated || ally.isBarbarian || ally.isTribe) continue;
+      if (!hasAgreement(nationId, allyId, 'war_help')) continue;
+      if (ally.relations?.[playerNation] === 'war') continue;
+      if (!ally.relations) ally.relations = {};
+      if (!pn.relations) pn.relations = {};
+      ally.relations[playerNation] = 'war';
+      pn.relations[allyId] = 'war';
+      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, allyId, aType);
+      showToast(`${ally.name} honors their alliance with ${nations[nationId].name} and joins the war!`);
+    }
     showToast(`War declared on ${nations[nationId].name}!`);
   }
   else {
@@ -10013,7 +10171,7 @@ function renderNationPicker() {
     <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
       <div class="nation-flag" style="background:${n.color}"></div>
       <div>
-        <div class="nation-card-name">${n.name}</div>
+        <div class="nation-card-name">${escHtml(n.name)}</div>
         <div class="nation-card-sub">${n.cityNames.slice(0,2).join(', ')}</div>
       </div>
     </div>`).join('');
@@ -10152,7 +10310,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   let html = `<div class="tt-title">${name}</div>`;
   html += `<div class="tt-detail">${desc}</div>`;
   if (t.owner >= 0) {
-    html += `<div class="tt-detail">Owner: <span style="color:${nations[t.owner].color}">${nations[t.owner].name}</span></div>`;
+    html += `<div class="tt-detail">Owner: <span style="color:${nations[t.owner].color}">${escHtml(nations[t.owner].name)}</span></div>`;
   }
   if (t.improvement) {
     const imp = IMPROVEMENT_DEFS[t.improvement];
@@ -10206,7 +10364,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
 
   const pilHere = pillaged.find(p => p.tileIndex === (my * MAP_COLS + mx));
   if (pilHere) {
-    const turnsLeft = Math.max(0, 2 - (turnNumber - pilHere.turnPillaged));
+    const turnsLeft = Math.max(0, 3 - (turnNumber - pilHere.turnPillaged));
     const impName = IMPROVEMENT_DEFS[pilHere.originalImprovement] ? IMPROVEMENT_DEFS[pilHere.originalImprovement].name : pilHere.originalImprovement;
     html += `<div class="tt-detail" style="color:#f84">\uD83D\uDEE0\uFE0F Pillaged ${impName} - ${turnsLeft} turns to repair with worker</div>`;
   }
@@ -10215,7 +10373,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (u) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
-    html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${nations[u.nationId].name}</span>)</div>`;
+    html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
     const ttMaxHp = getEffectiveMaxHp(u);
     const ttLevel = getUnitLevel(u);
     html += `<div class="tt-detail">HP: ${u.hp}/${ttMaxHp}${ttLevel.xp > 0 ? ` | <span style="color:${ttLevel.color}">${ttLevel.rank}</span>` : ''}</div>`;
@@ -10498,6 +10656,8 @@ canvas.addEventListener('click', (e) => {
     const isNaval = UNIT_DEFS[selectedUnit.type].naval;
     const tileOk = isNaval ? tiles[ti].type === 0 : tiles[ti].type !== 0;
     if (tileOk) {
+      const _gotoPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
+      if (!_gotoPath || _gotoPath.length === 0) { showToast('No path to that destination.'); gotoMode = false; render(); return; }
       if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) { gotoMode = false; render(); return; }
       selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
       gotoMode = false;
@@ -10848,7 +11008,11 @@ function stopSelectionFlash() {
 }
 
 document.addEventListener('keydown', (e) => {
+  const _focusTag = document.activeElement?.tagName;
+  const _inInput = _focusTag === 'INPUT' || _focusTag === 'TEXTAREA' || _focusTag === 'SELECT';
+
   if (e.key === 'Escape') {
+    if (_inInput) { document.activeElement.blur(); e.preventDefault(); return; }
     e.preventDefault();
     if (eventModalOpen) return; // Can't ESC out of events, must choose
     if (document.getElementById('noResearchPopup')) { document.getElementById('noResearchPopup').remove(); return; }
@@ -10861,14 +11025,19 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  const tag = document.activeElement?.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (_inInput) return;
+
+  if (escMenuOpen || eventModalOpen || document.getElementById('warDeclOverlay') || document.getElementById('idleCitiesPopup') || document.getElementById('noResearchPopup')) return;
 
   if (e.key === 'e' && !techTreeOpen) { endTurn(); e.preventDefault(); return; }
-  if (escMenuOpen || eventModalOpen) return;
 
   if (e.key === 'q') { cycleToNextUnit(true); e.preventDefault(); return; }
-  if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') { confirmSettle(); e.preventDefault(); }
+  if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') {
+    const _check = canFoundCity(selectedUnit.x, selectedUnit.y, selectedUnit.nationId);
+    if (_check.ok) confirmSettle();
+    else showToast(_check.reason);
+    e.preventDefault();
+  }
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.ranged) { enterRangedMode(); e.preventDefault(); }
   if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
@@ -10910,6 +11079,7 @@ document.addEventListener('keydown', (e) => {
         : tileUnits[(idx - 1 + tileUnits.length) % tileUnits.length];
       selectedUnit = next; selectedCity = null;
       moveMode = false; reachableTiles.clear(); gotoMode = false; rangedMode = false;
+      if (tooltipEl) tooltipEl.style.display = 'none';
       if (next.movesLeft > 0) enterMoveMode();
       showUnitPanel(next); render();
       e.preventDefault();
@@ -11247,7 +11417,7 @@ function openPlanningPopup(tileIdx, screenX, screenY) {
   popup.innerHTML = `
     <div style="margin-bottom:6px;font-weight:bold;color:#c8b060;">Annotate Tile</div>
     <div style="margin-bottom:6px;">${swatches}</div>
-    <input id="planLabelInput" type="text" maxlength="20" placeholder="Label (optional)" value="${ann.label || ''}"
+    <input id="planLabelInput" type="text" maxlength="20" placeholder="Label (optional)" value="${escHtml(ann.label || '')}"
       style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(180,140,60,0.4);border-radius:4px;color:#e0d0b0;padding:4px 6px;font-size:13px;outline:none;"
       oninput="window._planUpdateLabel(${tileIdx},this.value)"
       onkeydown="if(event.key==='Enter'||event.key==='Escape'){event.stopPropagation();closePlanningPopup();render();}"
@@ -11316,8 +11486,8 @@ window.enterMoveMode = function() {
   if (UNIT_DEFS[u.type]?.combat) {
     for (const enemy of units) {
       if (enemy.nationId === u.nationId) continue;
-      if (nations[u.nationId].relations[enemy.nationId] !== 'war') continue;
-      const dist = Math.abs(enemy.x - u.x) + Math.abs(enemy.y - u.y);
+      if (nations[u.nationId]?.relations?.[enemy.nationId] !== 'war') continue;
+      const dist = hexDistance(enemy.x, enemy.y, u.x, u.y);
       if (dist <= u.movesLeft) reachableTiles.add(enemy.y * MAP_COLS + enemy.x);
     }
   }
@@ -11342,6 +11512,7 @@ window.confirmSettle = confirmSettle;
 window.doChop = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   if (tiles[selectedUnit.y * MAP_COLS + selectedUnit.x].type !== 5) return;
+  if (selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   chopForest(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
@@ -11370,6 +11541,7 @@ window.doHunt = function() {
 window.doRepair = function() {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   if (!canRepairTile(selectedUnit, selectedUnit.x, selectedUnit.y)) return;
+  if (selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   repairTile(selectedUnit);
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
@@ -11380,6 +11552,7 @@ window.doBuild = function(key) {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   if (selectedUnit.building) return; // already building
   if (!canBuildImprovement(selectedUnit, key)) return;
+  if (selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   buildImprovement(selectedUnit, key);
   const imp = IMPROVEMENT_DEFS[key];
@@ -11442,8 +11615,8 @@ function renderCourtPanel() {
     const rulerBonuses = ruler.traits.map(t => CHARACTER_TRAITS[t]?.desc || '').filter(d => d).join('; ');
     html += `<div style="padding:8px;background:rgba(180,140,60,0.1);border:1px solid rgba(180,140,60,0.3);border-radius:4px;margin-bottom:8px;">`;
     html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">`;
-    html += `<div style="width:36px;height:36px;border-radius:50%;background:${nations[playerNation].color};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:#fff;border:2px solid rgba(255,255,255,0.3);">${ruler.name.charAt(0)}</div>`;
-    html += `<div><b style="color:#e0c880">${ruler.name}</b><br><span style="font-size:11px;">Ruler | Age ${ruler.age} | ${ruler.gender}</span></div>`;
+    html += `<div style="width:36px;height:36px;border-radius:50%;background:${nations[playerNation].color};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:#fff;border:2px solid rgba(255,255,255,0.3);">${escHtml(ruler.name.charAt(0))}</div>`;
+    html += `<div><b style="color:#e0c880">${escHtml(ruler.name)}</b><br><span style="font-size:11px;">Ruler | Age ${ruler.age} | ${ruler.gender}</span></div>`;
     html += `</div>`;
     html += `<div style="font-size:11px;">Traits: ${traitDescs}</div>`;
     html += `<div style="font-size:10px;color:#a89878;margin-top:2px;">Bonuses: ${rulerBonuses}</div>`;
@@ -11454,7 +11627,7 @@ function renderCourtPanel() {
 
   if (spouse) {
     html += `<div style="padding:6px;background:rgba(100,80,60,0.1);border:1px solid rgba(100,80,60,0.2);border-radius:4px;margin-bottom:8px;">`;
-    html += `<b>${spouse.name}</b> <span style="font-size:11px;color:#a89878;">Spouse | Age ${spouse.age}</span>`;
+    html += `<b>${escHtml(spouse.name)}</b> <span style="font-size:11px;color:#a89878;">Spouse | Age ${spouse.age}</span>`;
     html += `<div style="font-size:11px;">Traits: ${spouse.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ')}</div>`;
     html += `</div>`;
   }
@@ -11465,7 +11638,7 @@ function renderCourtPanel() {
       html += `<div class="section-title">Children</div>`;
       for (const child of children) {
         html += `<div style="padding:4px 6px;font-size:11px;border-bottom:1px solid rgba(180,140,60,0.1);">`;
-        html += `${child.name} (Age ${child.age}, ${child.gender})`;
+        html += `${escHtml(child.name)} (Age ${child.age}, ${child.gender})`;
         html += ` — ${child.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ')}`;
         html += `</div>`;
       }
@@ -11476,7 +11649,7 @@ function renderCourtPanel() {
   if (recentDeaths.length > 0) {
     html += `<div class="section-title" style="margin-top:8px;">Recent Deaths</div>`;
     for (const d of recentDeaths.slice(-5)) {
-      html += `<div style="font-size:10px;color:#a89878;padding:2px 0;">${d.name} (died age ${d.age}, turn ${d.deathTurn})</div>`;
+      html += `<div style="font-size:10px;color:#a89878;padding:2px 0;">${escHtml(d.name)} (died age ${d.age}, turn ${d.deathTurn})</div>`;
     }
   }
 
@@ -11494,7 +11667,7 @@ function renderCourtPanel() {
       const head = f.headId ? characters.find(c => c.id === f.headId && !c.deathTurn) : null;
       html += `<div style="padding:6px 8px;margin:3px 0;background:rgba(40,30,20,0.4);border:1px solid rgba(160,140,100,0.2);border-radius:4px;">`;
       html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">`;
-      html += `<span style="font-size:12px;color:#e0c880;">House of ${f.name}</span>`;
+      html += `<span style="font-size:12px;color:#e0c880;">House of ${escHtml(f.name)}</span>`;
       html += `<span style="font-size:11px;color:${opColor};">${opLabel} (${op})</span>`;
       html += `</div>`;
       html += `<div style="height:4px;background:rgba(0,0,0,0.3);border-radius:2px;margin-bottom:4px;">`;
@@ -11503,7 +11676,7 @@ function renderCourtPanel() {
       if (head) {
         const traitStr = head.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ');
         html += `<div style="font-size:11px;color:#c8b080;padding:3px 0 2px 0;">`;
-        html += `<span style="color:#e0c880;">Head:</span> ${head.name} (Age ${head.age}, ${head.gender})`;
+        html += `<span style="color:#e0c880;">Head:</span> ${escHtml(head.name)} (Age ${head.age}, ${head.gender})`;
         if (traitStr) html += ` — <span style="color:#d4a856;">${traitStr}</span>`;
         html += `</div>`;
       }
@@ -11562,6 +11735,7 @@ window.setFormation = function(formation) {
 window.fortifyUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
   if (selectedUnit.fortified) return;
+  if (selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
@@ -11616,6 +11790,7 @@ window.restUnit = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.combat) return;
   const maxHp = getEffectiveMaxHp(selectedUnit);
   if (selectedUnit.hp >= maxHp) return;
+  if (selectedUnit.movesLeft <= 0) return;
   if (selectedUnit.nationId === playerNation && !tryActivateUnit(selectedUnit)) return;
   const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === selectedUnit.nationId);
   const healAmt = inCity ? 5 : 3;
@@ -11666,6 +11841,7 @@ function serializeGame() {
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
+    delete su._pendingCityName; delete su._formationSwitched;
     return su;
   });
 
@@ -11712,6 +11888,7 @@ function deserializeGame(json) {
     if (u.reloadTurns === undefined) u.reloadTurns = 0;
     if (FORMATION_UNITS.has(u.type) && !u.formation) u.formation = 'line';
     if (UNIT_DEFS[u.type]?.artillery && !u.ammo) u.ammo = 'cannonball';
+    if (UNIT_DEFS[u.type]?.artillery && u.ammo && UNIT_DEFS[u.type].ammoTypes && !UNIT_DEFS[u.type].ammoTypes.includes(u.ammo)) u.ammo = UNIT_DEFS[u.type].ammoTypes[0];
     if (u.type === 'general' && !u.traits) u.traits = [Object.keys(GENERAL_TRAITS)[Math.floor(Math.random() * Object.keys(GENERAL_TRAITS).length)]];
     if (u.turnStartMoves === undefined) u.turnStartMoves = u.movesLeft;
     return u;
@@ -11946,7 +12123,12 @@ function spawnTribes(count) {
     nations[playerNation].relations[nId] = 'peace'; nations[nId].relations[playerNation] = 'peace';
     nations[playerNation].loyalty[nId] = 20; nations[nId].loyalty[playerNation] = 20;
     for (let j = 0; j < nId; j++) {
-      if (!nations[j] || nations[j].isBarbarian) continue;
+      if (!nations[j]) continue;
+      if (nations[j].isBarbarian) {
+        if (!nations[j].relations) nations[j].relations = {};
+        nations[j].relations[nId] = 'war'; nations[nId].relations[j] = 'war';
+        continue;
+      }
       nations[j].relations[nId] = 'peace'; nations[nId].relations[j] = 'peace';
       nations[j].loyalty[nId] = 20; nations[nId].loyalty[j] = 20;
     }
