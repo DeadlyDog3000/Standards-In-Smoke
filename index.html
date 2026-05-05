@@ -590,6 +590,35 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Old World &mdash; City Loyalty, Laws &amp; Statistics Panel</b><br>
+        <i style="color:#a89878;">City Loyalty (Old World-style)</i><br>
+        - <b>Discontent vs Order</b> replaces the old jobs-only mood. Cities track foreign culture, recent conquest, distance from capital, war weariness, low legitimacy, winter, slavery, and cruel rulers as discontent — countered by fortifications, cathedrals, granaries, garrisons, capital status, charismatic rulers, high legitimacy, and Tyranny<br>
+        - Six mood tiers: <b>Loyal</b> (+10% production, faster growth) → Content → Uneasy → Unhappy → Furious → <b>Rebellious</b> (foreign-cultured cities can flip back to their original owner; native cities spawn rebel barbarians)<br>
+        - When a city flips back via rebellion, the capital is reassigned, foreign garrison troops are killed, and non-combat units defect — matching capture rules<br>
+        - Captured cities remember their original culture forever; re-conquest, garrisoning, or cathedrals can suppress unrest but not erase it<br>
+        - City panel now shows the full discontent / order breakdown inline so you can see what is destabilising a city at a glance<br>
+        <br>
+        <i style="color:#a89878;">Laws of the Realm</i> &mdash; press <b>L</b> or click the new top-bar Laws button<br>
+        - Six paired law slots inspired by Old World. First adoption in a category costs 1 order; switching costs 1 order + 60 gold:<br>
+        &nbsp;&nbsp;• <b>Governance:</b> Centralization (+1 order, +1 legitimacy/turn) vs Vassalage (+10 family opinion, +10% building production, halved legitimacy gains)<br>
+        &nbsp;&nbsp;• <b>Labor:</b> Slavery (+25% production, +1 discontent/city, family opinion drain) vs Freedom (+1 science &amp; +1 food per city, +20% growth)<br>
+        &nbsp;&nbsp;• <b>Culture:</b> Epic Poetry (+1 legitimacy/turn, +3 morale, capital order) vs Divine Rule (+15 legitimacy on adoption, family opinion drift, but unbeliever discontent)<br>
+        &nbsp;&nbsp;• <b>Order</b> [needs Banking]: Tyranny (cities -2 discontent, family opinion drain, cheaper espionage) vs Constitution (rush -25%, +0.5 legitimacy + 0.5 family opinion/turn)<br>
+        &nbsp;&nbsp;• <b>Military</b> [needs Military Leadership]: Limitanei (-50% maintenance, -1 ATK, +1 free unit/city) vs Standing Army (+1 ATK, +50% maintenance, +2 starting XP)<br>
+        &nbsp;&nbsp;• <b>Crafts</b> [needs Engineering]: Engineers (+1 worker move, +20% production, cheaper wonders) vs Stonecutters (-25% stone/wood for buildings, fortifications give extra order)<br>
+        - Adopting <b>Vassalage</b> instantly grants all your noble families +10 opinion; <b>Divine Rule</b> grants +15 legitimacy<br>
+        <br>
+        <i style="color:#a89878;">City Statistics Panel</i> &mdash; click the <b>📊 Statistics</b> button on any city panel<br>
+        - <b>Production / turn</b> as segmented pip bars for each resource (food, gold, wood, stone, steel, science, gunpowder), each with its own cap. Bars fill toward the cap and glow with a ★ MAX badge when reached or exceeded<br>
+        - <b>Public Mood</b> shown as a split pip bar with red Discontent on the left, green Order on the right, plus per-factor bars for every contributing pressure or support<br>
+        - <b>Population</b> shown as a citizen bar that lights up with a ★ FULL badge when the city hits its job cap<br>
+        - Every yield breakdown lists the source: city center, tile improvements, banking, wonders, ruler bonuses, season multiplier, and active laws<br>
+        <br>
+        <i style="color:#a89878;">Compatibility</i><br>
+        - Saves are forward-compatible: existing cities are treated as native (originalNationId = current owner) and existing nations start with no laws adopted<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Bug Fixes, Diplomacy &amp; Hex Math</b><br>
@@ -1021,6 +1050,7 @@
   <div id="kingdoms"></div>
   <div id="courtPanel" style="display:none;position:fixed;top:40px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
   <div id="lawsPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:580px;max-width:92vw;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(180,140,60,0.5);border-radius:8px;padding:14px 16px;z-index:140;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
+  <div id="cityStatsPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:520px;max-width:92vw;max-height:82vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(108,198,244,0.4);border-radius:8px;padding:14px 16px;z-index:145;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
   <div id="labels"></div>
   <div id="toast"></div>
   <div id="tileTooltip"></div>
@@ -1077,21 +1107,33 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.1</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.4</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">Old World &mdash; City Loyalty &amp; Laws</b><br>
+          <b style="color:#b8a070;">Old World &mdash; City Loyalty, Laws &amp; Statistics Panel</b><br>
+          <i style="color:#a89878;">City Loyalty (Old World-style)</i><br>
           - <b>Discontent vs Order</b> replaces the old jobs-only mood. Cities track foreign culture, recent conquest, distance from capital, war weariness, low legitimacy, winter, slavery, and cruel rulers as discontent — countered by fortifications, cathedrals, granaries, garrisons, capital status, charismatic rulers, high legitimacy, and Tyranny<br>
-          - Six mood tiers: <b>Loyal</b> (+10% production, faster growth) → Content → Uneasy → Unhappy → Furious → <b>Rebellious</b> (foreign-cultured cities can flip back to original owner; native cities spawn rebels)<br>
-          - City panel now shows the full discontent / order breakdown so you can see exactly what is destabilising a city<br>
-          - Captured cities remember their original culture forever — re-conquest, garrisoning, or building cathedrals no longer instantly fixes the problem<br>
-          - <b>Laws of the Realm</b> (press L) — six paired law slots inspired by Old World. Adopting your first law in a category costs 1 order; switching costs 1 order + 60 gold:<br>
+          - Six mood tiers: <b>Loyal</b> (+10% production, faster growth) → Content → Uneasy → Unhappy → Furious → <b>Rebellious</b> (foreign-cultured cities can flip back to their original owner; native cities spawn rebel barbarians)<br>
+          - When a city flips back via rebellion, the capital is reassigned, foreign garrison troops are killed, and non-combat units defect to the new owner — matching the existing capture rules<br>
+          - Captured cities remember their original culture forever; re-conquest, garrisoning, or cathedrals can suppress unrest but not erase it<br>
+          - City panel now shows the full discontent / order breakdown inline so you can see what is destabilising a city at a glance<br>
+          <br>
+          <i style="color:#a89878;">Laws of the Realm</i> &mdash; press <b>L</b> or click the new top-bar Laws button<br>
+          - Six paired law slots inspired by Old World. First adoption in a category costs 1 order; switching costs 1 order + 60 gold:<br>
           &nbsp;&nbsp;• <b>Governance:</b> Centralization (+1 order, +1 legitimacy/turn) vs Vassalage (+10 family opinion, +10% building production, halved legitimacy gains)<br>
-          &nbsp;&nbsp;• <b>Labor:</b> Slavery (+25% production, but discontent + family opinion drain) vs Freedom (+1 science/city, +20% growth, cheaper workers)<br>
+          &nbsp;&nbsp;• <b>Labor:</b> Slavery (+25% production, +1 discontent/city, family opinion drain) vs Freedom (+1 science &amp; +1 food per city, +20% growth)<br>
           &nbsp;&nbsp;• <b>Culture:</b> Epic Poetry (+1 legitimacy/turn, +3 morale, capital order) vs Divine Rule (+15 legitimacy on adoption, family opinion drift, but unbeliever discontent)<br>
-          &nbsp;&nbsp;• <b>Order</b> [needs Banking]: Tyranny (cities -2 discontent, but family opinion drains) vs Constitution (rush -25%, +0.5 legitimacy + 0.5 family opinion/turn)<br>
+          &nbsp;&nbsp;• <b>Order</b> [needs Banking]: Tyranny (cities -2 discontent, family opinion drain, cheaper espionage) vs Constitution (rush -25%, +0.5 legitimacy + 0.5 family opinion/turn)<br>
           &nbsp;&nbsp;• <b>Military</b> [needs Military Leadership]: Limitanei (-50% maintenance, -1 ATK, +1 free unit/city) vs Standing Army (+1 ATK, +50% maintenance, +2 starting XP)<br>
-          &nbsp;&nbsp;• <b>Crafts</b> [needs Engineering]: Engineers (+1 worker move, +20% building production) vs Stonecutters (-25% stone/wood for buildings, fortifications give extra order)<br>
+          &nbsp;&nbsp;• <b>Crafts</b> [needs Engineering]: Engineers (+1 worker move, +20% production, cheaper wonders) vs Stonecutters (-25% stone/wood for buildings, fortifications give extra order)<br>
           - Adopting <b>Vassalage</b> instantly grants all your noble families +10 opinion; <b>Divine Rule</b> grants +15 legitimacy<br>
+          <br>
+          <i style="color:#a89878;">City Statistics Panel</i> &mdash; click the <b>📊 Statistics</b> button on any city panel<br>
+          - <b>Production / turn</b> as segmented pip bars for each resource (food, gold, wood, stone, steel, science, gunpowder), each with its own cap. Bars fill toward the cap and glow with a ★ MAX badge when reached or exceeded<br>
+          - <b>Public Mood</b> shown as a split pip bar with red Discontent on the left, green Order on the right, plus per-factor bars for every contributing pressure or support<br>
+          - <b>Population</b> shown as a citizen bar that lights up with a ★ FULL badge when the city hits its job cap<br>
+          - Every yield breakdown lists the source: city center, tile improvements, banking, wonders, ruler bonuses, season multiplier, and active laws<br>
+          <br>
+          <i style="color:#a89878;">Compatibility</i><br>
           - Saves are forward-compatible: existing cities are treated as native (originalNationId = current owner) and existing nations start with no laws adopted<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.0</b></div>
@@ -4445,6 +4487,78 @@ function getCityYields(city) {
   y.science += lawCityScienceBonus(city.nationId);
   y.food += lawCityFoodBonus(city.nationId);
   return y;
+}
+
+function getCityYieldBreakdown(city) {
+
+  const sources = { gold: [], food: [], wood: [], stone: [], steel: [], gunpowder: [], science: [] };
+  const base = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, gunpowder: 0, science: 0.5 };
+  for (const k in base) if (base[k] !== 0) sources[k].push({ label: 'City center', val: base[k] });
+
+  let tileTotals = { gold: 0, food: 0, wood: 0, stone: 0, steel: 0, gunpowder: 0, science: 0 };
+  for (const ti of city.ownedTiles) {
+    const t = tiles[ti];
+    if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
+      if (t.improvement === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) {
+        const baseY = ANIMAL_DATA[t.animal].baseYield;
+        for (const k in baseY) tileTotals[k] = (tileTotals[k] || 0) + baseY[k];
+      } else {
+        const yields = IMPROVEMENT_DEFS[t.improvement].yields;
+        for (const k in yields) tileTotals[k] = (tileTotals[k] || 0) + yields[k];
+      }
+    } else if (!t.improvement) {
+      if (t.animal) tileTotals.food += 0.5;
+      else if (t.type === 6) tileTotals.food += 0.5;
+    }
+  }
+  for (const k in tileTotals) if (tileTotals[k] !== 0) sources[k].push({ label: 'Tiles & improvements', val: tileTotals[k] });
+
+  if (nationHasWonder(city.nationId, 'great_library')) sources.science.push({ label: 'Great Library', val: 1 });
+  if (nationHasTech(city.nationId, 'banking')) {
+    let mkt = 0;
+    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
+    if (mkt > 0) sources.gold.push({ label: `Banking (${mkt} markets)`, val: mkt });
+  }
+  if (nationHasWonder(city.nationId, 'merchants_guild')) {
+    sources.gold.push({ label: 'Merchant\'s Guild', val: 3 });
+    let mkt = 0;
+    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
+    if (mkt > 0) sources.gold.push({ label: `Guild markets bonus`, val: mkt * 2 });
+  }
+
+  let foodSum = 0; for (const s of sources.food) foodSum += s.val;
+  const seasonMult = getSeasonEffect().foodMult;
+  if (seasonMult !== 1) {
+    const seasonDelta = foodSum * (seasonMult - 1);
+    sources.food.push({ label: `${currentSeason} (${seasonMult.toFixed(2)}×)`, val: seasonDelta });
+  }
+
+  const rb = getRulerBonuses(city.nationId);
+  if (rb.scienceBonus) {
+    let sumSci = 0; for (const s of sources.science) sumSci += s.val;
+    sources.science.push({ label: `Ruler (+${Math.round(rb.scienceBonus * 100)}% science)`, val: sumSci * rb.scienceBonus });
+  }
+  if (rb.goldBonus) {
+    let sumG = 0; for (const s of sources.gold) sumG += s.val;
+    sources.gold.push({ label: `Ruler (+${Math.round(rb.goldBonus * 100)}% gold)`, val: sumG * rb.goldBonus });
+  }
+  if (rb.prodBonus) {
+    for (const k of ['wood', 'stone', 'steel']) {
+      let sumK = 0; for (const s of sources[k]) sumK += s.val;
+      if (sumK !== 0) sources[k].push({ label: `Ruler (+${Math.round(rb.prodBonus * 100)}%)`, val: sumK * rb.prodBonus });
+    }
+  }
+
+  if (lawCityScienceBonus(city.nationId)) sources.science.push({ label: 'Freedom (law)', val: 1 });
+  if (lawCityFoodBonus(city.nationId)) sources.food.push({ label: 'Freedom (law)', val: 1 });
+
+  const totals = {};
+  for (const k in sources) {
+    let sum = 0;
+    for (const s of sources[k]) sum += s.val;
+    totals[k] = sum;
+  }
+  return { sources, totals };
 }
 
 function getTotalYields(nationId) {
@@ -9441,6 +9555,7 @@ function showCityPanel(city) {
     html += `<button class="p-btn" onclick="rushProduce()" ${!canRush ? 'disabled' : ''}>Rush Produce <span class="cost">${rushCost} gold</span></button>`;
     if (queue.length > 0) html += `<button class="p-btn" onclick="clearQueue()" style="font-size:11px;">Clear Queue</button>`;
   }
+  html += `<button class="p-btn" onclick="toggleCityStats()" style="background:rgba(108,198,244,0.12);border-color:rgba(108,198,244,0.4);color:#bdf;font-size:12px;padding:5px 10px;margin-bottom:6px;">📊 Statistics</button>`;
   html += `<div class="tab-bar">
     <button class="tab-btn active" id="tabProd" onclick="showCityTab('prod')">Production</button>
     <button class="tab-btn" id="tabTiles" onclick="showCityTab('tiles')">Tiles</button>
@@ -9540,6 +9655,184 @@ function showCityTab(tab) {
     html += `<button class="p-btn" onclick="enterBuyTileMode()">Select Tile to Buy</button>`;
     content.innerHTML = html;
   }
+}
+
+const RESOURCE_COLORS = {
+  food: '#7cc66c', gold: '#e0c44a', wood: '#a07a4a', stone: '#9098a8',
+  steel: '#c0c8d4', science: '#9c7ae0', gunpowder: '#c89060',
+};
+
+const RESOURCE_MAX = { food: 20, gold: 20, wood: 12, stone: 12, steel: 12, science: 15, gunpowder: 12 };
+const PIPS_PER_BAR = 20;
+const MOOD_MAX = 12;
+
+function pipBar(value, max, color, opts = {}) {
+  const pips = opts.pips || PIPS_PER_BAR;
+  const filled = Math.min(pips, Math.round((value / max) * pips));
+  const overflow = value > max;
+  let html = `<div style="display:flex;gap:1px;height:14px;align-items:stretch;">`;
+  for (let i = 0; i < pips; i++) {
+    const isFilled = i < filled;
+    const bg = isFilled ? (overflow ? `linear-gradient(180deg,${color},#fff8)` : color) : 'rgba(255,255,255,0.06)';
+    const border = isFilled ? `1px solid rgba(0,0,0,0.4)` : `1px solid rgba(160,140,100,0.15)`;
+    const glow = (isFilled && overflow) ? `box-shadow:0 0 4px ${color};` : '';
+    html += `<div style="flex:1;background:${bg};${glow}border:${border};border-radius:1px;"></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function moodPipBar(discontent, order, max) {
+  const pips = 10;
+  const dFilled = Math.min(pips, Math.round((discontent / max) * pips));
+  const oFilled = Math.min(pips, Math.round((order / max) * pips));
+  const dOverflow = discontent > max, oOverflow = order > max;
+  let html = `<div style="display:flex;gap:2px;height:18px;align-items:stretch;">`;
+  html += `<div style="flex:1;display:flex;flex-direction:row-reverse;gap:1px;">`;
+  for (let i = 0; i < pips; i++) {
+    const filled = i < dFilled;
+    const bg = filled ? (dOverflow ? 'linear-gradient(180deg,#c33,#fcc)' : '#c33') : 'rgba(255,255,255,0.05)';
+    const glow = (filled && dOverflow) ? 'box-shadow:0 0 4px #c33;' : '';
+    html += `<div style="flex:1;background:${bg};${glow}border:1px solid rgba(0,0,0,0.4);border-radius:1px;"></div>`;
+  }
+  html += `</div>`;
+  html += `<div style="width:2px;background:rgba(255,255,255,0.5);"></div>`;
+  html += `<div style="flex:1;display:flex;gap:1px;">`;
+  for (let i = 0; i < pips; i++) {
+    const filled = i < oFilled;
+    const bg = filled ? (oOverflow ? 'linear-gradient(180deg,#6a6,#cfc)' : '#6a6') : 'rgba(255,255,255,0.05)';
+    const glow = (filled && oOverflow) ? 'box-shadow:0 0 4px #6a6;' : '';
+    html += `<div style="flex:1;background:${bg};${glow}border:1px solid rgba(0,0,0,0.4);border-radius:1px;"></div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+window.toggleCityStats = function() {
+  const panel = document.getElementById('cityStatsPanel');
+  if (!panel || !selectedCity) return;
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    renderCityStatsPanel(selectedCity);
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+};
+
+function renderCityStatsPanel(city) {
+  const panel = document.getElementById('cityStatsPanel');
+  if (!panel) return;
+  const yb = getCityYieldBreakdown(city);
+  const loyalty = getCityLoyaltyStatus(city);
+  const d = loyalty.discontent || { factors: [], orderFactors: [], value: 0, order: 0, net: 0 };
+
+  const resourceOrder = ['food', 'gold', 'wood', 'stone', 'steel', 'science', 'gunpowder'];
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(180,140,60,0.25);padding-bottom:6px;">`;
+  html += `<h3 style="margin:0;color:#bdf;font-family:'Uncial Antiqua',cursive;">${escHtml(city.name)} — Statistics</h3>`;
+  html += `<button class="p-btn" onclick="document.getElementById('cityStatsPanel').style.display='none'" style="font-size:11px;padding:2px 10px;width:auto;margin:0;">Close</button>`;
+  html += `</div>`;
+
+  html += `<div style="color:#e0c880;font-size:13px;margin:8px 0 4px;font-weight:bold;">Production / Turn</div>`;
+  html += `<div style="font-size:10px;color:#887;margin-bottom:6px;">Each bar fills toward its cap (${PIPS_PER_BAR} pips). Brighter glowing pips = exceeded cap.</div>`;
+
+  for (const k of resourceOrder) {
+    const total = yb.totals[k] || 0;
+    if (Math.abs(total) < 0.01) continue;
+    const sources = (yb.sources[k] || []).filter(s => Math.abs(s.val) > 0.01);
+    if (sources.length === 0) continue;
+    const cap = RESOURCE_MAX[k] || 15;
+    const color = RESOURCE_COLORS[k] || '#888';
+    const isMax = total >= cap;
+
+    html += `<div style="margin:5px 0 8px 0;">`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:2px;">`;
+    html += `<span style="color:${color};text-transform:capitalize;"><b>${k}</b></span>`;
+    html += `<span style="color:${color};">`;
+    html += `<b>${total >= 0 ? '+' : ''}${total.toFixed(1)}</b> <span style="color:#887;font-size:10px;">/ ${cap}${isMax ? ' <span style="color:#fff;text-shadow:0 0 6px ' + color + ';">★ MAX</span>' : ''}</span>`;
+    html += `</span></div>`;
+    html += pipBar(Math.max(0, total), cap, color);
+
+    const positive = sources.filter(s => s.val > 0);
+    const negative = sources.filter(s => s.val < 0);
+    const parts = [];
+    for (const s of positive) parts.push(`<span style="color:${color};">+${s.val.toFixed(1)}</span> ${escHtml(s.label)}`);
+    for (const s of negative) parts.push(`<span style="color:#c66;">${s.val.toFixed(1)}</span> ${escHtml(s.label)}`);
+    html += `<div style="font-size:10px;color:#a89878;margin-top:3px;line-height:1.45;">${parts.join(' &nbsp;·&nbsp; ')}</div>`;
+    html += `</div>`;
+  }
+
+  html += `<div style="color:#e0c880;font-size:13px;margin:14px 0 4px;font-weight:bold;border-top:1px solid rgba(180,140,60,0.2);padding-top:10px;">Public Mood</div>`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px;">`;
+  html += `<span style="color:#c33;">Discontent <b>${d.value.toFixed(1)}</b></span>`;
+  html += `<span><b style="color:${loyalty.color}">${loyalty.label}</b> &nbsp; <span style="font-size:10px;color:#887;">net ${d.net.toFixed(1)}</span></span>`;
+  html += `<span style="color:#6a6;">Order <b>${d.order.toFixed(1)}</b></span>`;
+  html += `</div>`;
+  html += moodPipBar(d.value, d.order, MOOD_MAX);
+  html += `<div style="display:flex;justify-content:space-between;font-size:9px;color:#665;margin-top:1px;"><span>cap ${MOOD_MAX}</span><span>cap ${MOOD_MAX}</span></div>`;
+
+  const allFactors = [
+    ...(d.factors || []).map(f => ({ ...f, type: 'discontent' })),
+    ...(d.orderFactors || []).map(f => ({ ...f, type: 'order' })),
+  ].sort((a,b) => b.val - a.val);
+  let maxFactor = 0;
+  for (const f of allFactors) maxFactor = Math.max(maxFactor, f.val);
+  if (maxFactor < 1) maxFactor = 1;
+
+  if (allFactors.length === 0) {
+    html += `<p style="font-size:11px;color:#a89878;margin:8px 0;">This city has no significant pressures or supports.</p>`;
+  } else {
+    html += `<div style="margin-top:8px;font-size:11px;">`;
+    for (const f of allFactors) {
+      const isD = f.type === 'discontent';
+      const c = isD ? '#c66' : '#6a6';
+      const sign = isD ? '+' : '−';
+      html += `<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">`;
+      html += `<span style="color:${c};width:32px;text-align:right;flex-shrink:0;font-family:monospace;">${sign}${f.val.toFixed(1)}</span>`;
+      html += `<div style="flex:0 0 60px;">${pipBar(f.val, MOOD_MAX, c, { pips: 6 })}</div>`;
+      html += `<span style="color:#c8b8a0;">${escHtml(f.label)}</span>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  const pop = city.population || 1;
+  const jobs = getCityJobs(city);
+  const needed = pop * 2;
+  const cy = getCityYields(city);
+  const foodBonus = Math.max(0, cy.food - pop);
+  const hasGranary = (city.buildings || []).includes('granary');
+  const hasCathedral = nationHasWonder(city.nationId, 'grand_cathedral');
+  const hasMedicine = nationHasTech(city.nationId, 'medicine');
+  const moodMult = loyalty.status === 'loyal' ? 1.15
+    : loyalty.status === 'content' ? 1.0
+    : loyalty.status === 'uneasy' ? 0.7
+    : loyalty.status === 'unhappy' ? 0.4
+    : loyalty.status === 'furious' ? 0.15
+    : 0;
+  let growthChance = (0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0) + (hasCathedral ? 0.10 : 0) + (hasMedicine ? 0.15 : 0)) * moodMult * lawGrowthMult(city.nationId);
+  growthChance = Math.max(0, growthChance);
+  const maxPop = Math.max(5, jobs);
+  const atCap = pop >= maxPop;
+
+  html += `<div style="color:#e0c880;font-size:13px;margin:14px 0 4px;font-weight:bold;border-top:1px solid rgba(180,140,60,0.2);padding-top:10px;">Population</div>`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px;">`;
+  html += `<span>Citizens <b style="color:#e0c880">${pop}</b> / ${maxPop}${atCap ? ' <span style="color:#fff;font-size:10px;text-shadow:0 0 5px #6a6;">★ FULL</span>' : ''}</span>`;
+  html += `<span style="font-size:11px;color:#c8b8a0;">Jobs ${jobs}/${needed}</span>`;
+  html += `</div>`;
+  html += pipBar(pop, maxPop, '#7cc66c');
+
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin:8px 0 2px;color:#c8b8a0;">`;
+  html += `<span>Food balance: <b style="color:${cy.food >= pop ? '#6a6' : '#c66'}">${(cy.food - pop).toFixed(1)}</b></span>`;
+  if (atCap) {
+    html += `<span style="color:#c80;">Build improvements to expand!</span>`;
+  } else {
+    const pct = Math.round(growthChance * 100);
+    html += `<span>Growth: <b style="color:${pct > 20 ? '#6a6' : pct > 5 ? '#cc6' : '#c80'}">${pct}%</b>/turn (mood ×${moodMult.toFixed(2)})</span>`;
+  }
+  html += `</div>`;
+
+  panel.innerHTML = html;
 }
 
 function enterBuyTileMode() {
