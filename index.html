@@ -1009,6 +1009,7 @@
     <button class="top-btn" onclick="showTechTree()"><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
     <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
+    <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)">Laws</button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
     <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
@@ -1019,6 +1020,7 @@
   <div id="panel"></div>
   <div id="kingdoms"></div>
   <div id="courtPanel" style="display:none;position:fixed;top:40px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
+  <div id="lawsPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:580px;max-width:92vw;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(180,140,60,0.5);border-radius:8px;padding:14px 16px;z-index:140;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
   <div id="labels"></div>
   <div id="toast"></div>
   <div id="tileTooltip"></div>
@@ -1046,6 +1048,7 @@
       <div style="text-align:left;font-size:13px;line-height:2;color:#c8b8a0;max-width:260px;margin:0 auto;">
         <b>E</b> &mdash; End Turn<br>
         <b>T</b> &mdash; Tech Tree<br>
+        <b>L</b> &mdash; Laws Panel<br>
         <b>K</b> &mdash; Kingdoms Panel<br>
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
@@ -1073,6 +1076,23 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.1</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Old World &mdash; City Loyalty &amp; Laws</b><br>
+          - <b>Discontent vs Order</b> replaces the old jobs-only mood. Cities track foreign culture, recent conquest, distance from capital, war weariness, low legitimacy, winter, slavery, and cruel rulers as discontent — countered by fortifications, cathedrals, granaries, garrisons, capital status, charismatic rulers, high legitimacy, and Tyranny<br>
+          - Six mood tiers: <b>Loyal</b> (+10% production, faster growth) → Content → Uneasy → Unhappy → Furious → <b>Rebellious</b> (foreign-cultured cities can flip back to original owner; native cities spawn rebels)<br>
+          - City panel now shows the full discontent / order breakdown so you can see exactly what is destabilising a city<br>
+          - Captured cities remember their original culture forever — re-conquest, garrisoning, or building cathedrals no longer instantly fixes the problem<br>
+          - <b>Laws of the Realm</b> (press L) — six paired law slots inspired by Old World. Adopting your first law in a category costs 1 order; switching costs 1 order + 60 gold:<br>
+          &nbsp;&nbsp;• <b>Governance:</b> Centralization (+1 order, +1 legitimacy/turn) vs Vassalage (+10 family opinion, +10% building production, halved legitimacy gains)<br>
+          &nbsp;&nbsp;• <b>Labor:</b> Slavery (+25% production, but discontent + family opinion drain) vs Freedom (+1 science/city, +20% growth, cheaper workers)<br>
+          &nbsp;&nbsp;• <b>Culture:</b> Epic Poetry (+1 legitimacy/turn, +3 morale, capital order) vs Divine Rule (+15 legitimacy on adoption, family opinion drift, but unbeliever discontent)<br>
+          &nbsp;&nbsp;• <b>Order</b> [needs Banking]: Tyranny (cities -2 discontent, but family opinion drains) vs Constitution (rush -25%, +0.5 legitimacy + 0.5 family opinion/turn)<br>
+          &nbsp;&nbsp;• <b>Military</b> [needs Military Leadership]: Limitanei (-50% maintenance, -1 ATK, +1 free unit/city) vs Standing Army (+1 ATK, +50% maintenance, +2 starting XP)<br>
+          &nbsp;&nbsp;• <b>Crafts</b> [needs Engineering]: Engineers (+1 worker move, +20% building production) vs Stonecutters (-25% stone/wood for buildings, fortifications give extra order)<br>
+          - Adopting <b>Vassalage</b> instantly grants all your noble families +10 opinion; <b>Divine Rule</b> grants +15 legitimacy<br>
+          - Saves are forward-compatible: existing cities are treated as native (originalNationId = current owner) and existing nations start with no laws adopted<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.0</b></div>
         <div style="margin-bottom:12px;">
@@ -1951,6 +1971,8 @@ function getEffectiveAtk(unit, target) {
 
   const rulerBonuses = getRulerBonuses(unit.nationId);
   if (rulerBonuses.atkBonus) bonus += rulerBonuses.atkBonus;
+
+  bonus += lawAtkBonus(unit.nationId);
 
   const formBonus = getFormationBonus(unit);
 
@@ -3028,6 +3050,169 @@ const CITY_BUILDING_DEFS = {
   war_college:      { name: 'War College', icon: '\uD83C\uDFDB', desc: 'All combat units gain +1 ATK. Units heal +1 HP/turn everywhere. +2 max orders.', category: 'wonder', wonder: true },
 };
 
+const LAWS = {
+
+  centralization: { category: 'governance', categoryName: 'Governance', name: 'Centralization', icon: '★',
+    desc: '+1 max orders/turn. +1 legitimacy/turn. -1 discontent in cities far from capital.',
+    flavor: 'The crown commands every province directly.', tech: null, opposite: 'vassalage' },
+  vassalage: { category: 'governance', categoryName: 'Governance', name: 'Vassalage', icon: '⚔',
+    desc: 'All noble families +10 opinion (one-time) and +0.4/turn drift. Building production +10%. Legitimacy gains halved.',
+    flavor: 'Power flows through the great houses.', tech: null, opposite: 'centralization' },
+
+  slavery: { category: 'labor', categoryName: 'Labor', name: 'Slavery', icon: '⛓',
+    desc: '+25% city building production. +1 base discontent in every city. Family opinion -0.3/turn.',
+    flavor: 'The bound serve the free.', tech: null, opposite: 'freedom' },
+  freedom: { category: 'labor', categoryName: 'Labor', name: 'Freedom', icon: '⚗',
+    desc: '+1 science per city. +20% population growth. Cities gain +1 base food.',
+    flavor: 'Free hands build proud nations.', tech: null, opposite: 'slavery' },
+
+  epic_poetry: { category: 'culture', categoryName: 'Culture', name: 'Epic Poetry', icon: '✍',
+    desc: '+1 legitimacy/turn. All units +3 morale. Capital city -1 discontent.',
+    flavor: 'Bards immortalise our deeds.', tech: null, opposite: 'divine_rule' },
+  divine_rule: { category: 'culture', categoryName: 'Culture', name: 'Divine Rule', icon: '✝',
+    desc: '+15 legitimacy on adoption. Noble families +1 opinion/turn. Foreign-cultured cities +1 discontent (unbelievers).',
+    flavor: 'The ruler speaks for the gods.', tech: null, opposite: 'epic_poetry' },
+
+  tyranny: { category: 'order', categoryName: 'Order', name: 'Tyranny', icon: '⚠',
+    desc: 'All cities -2 discontent (suppression). Noble families -0.5 opinion/turn. Espionage actions cost -10 gold.',
+    flavor: 'The lash keeps the realm whole.', tech: 'banking', opposite: 'constitution' },
+  constitution: { category: 'order', categoryName: 'Order', name: 'Constitution', icon: '⚖',
+    desc: '+0.5 legitimacy/turn. Noble families +0.5 opinion/turn. Rush production -25% gold cost.',
+    flavor: 'Even kings answer to the law.', tech: 'banking', opposite: 'tyranny' },
+
+  limitanei: { category: 'military', categoryName: 'Military', name: 'Limitanei', icon: '🛡',
+    desc: 'Unit maintenance halved. Combat units -1 ATK. Free military units per city +1.',
+    flavor: 'Frontier farmers stand ready.', tech: 'military_leadership', opposite: 'standing_army' },
+  standing_army: { category: 'military', categoryName: 'Military', name: 'Standing Army', icon: '⚔',
+    desc: 'All combat units +1 ATK. Unit maintenance +50%. New units start with +2 XP.',
+    flavor: 'A professional soldiery, paid in coin.', tech: 'military_leadership', opposite: 'limitanei' },
+
+  engineers: { category: 'crafts', categoryName: 'Crafts', name: 'Engineers', icon: '⚙',
+    desc: 'Workers +1 movement. Building production +20%. Wonders cost -15% stone.',
+    flavor: 'The realm rises by clever hands.', tech: 'engineering', opposite: 'stonecutters' },
+  stonecutters: { category: 'crafts', categoryName: 'Crafts', name: 'Stonecutters', icon: '⛰',
+    desc: 'City buildings cost -25% stone and -25% wood. Cities with fortifications -1 discontent.',
+    flavor: 'Our walls outlast our enemies.', tech: 'engineering', opposite: 'engineers' },
+};
+
+const LAW_CATEGORIES = ['governance', 'labor', 'culture', 'order', 'military', 'crafts'];
+const LAW_SWITCH_GOLD = 60;
+const LAW_ADOPT_ORDER_COST = 1;
+
+function nationLaws(nationId) { return nations[nationId]?.laws || []; }
+function nationHasLaw(nationId, lawKey) { return (nations[nationId]?.laws || []).includes(lawKey); }
+function nationLawInCategory(nationId, category) { return (nations[nationId]?.laws || []).find(k => LAWS[k]?.category === category) || null; }
+function canAdoptLaw(nationId, lawKey) {
+  const law = LAWS[lawKey]; if (!law) return { ok: false, reason: 'Unknown law.' };
+  const n = nations[nationId]; if (!n) return { ok: false, reason: 'No nation.' };
+  if (nationHasLaw(nationId, lawKey)) return { ok: false, reason: 'Already adopted.' };
+  if (law.tech && !nationHasTech(nationId, law.tech)) return { ok: false, reason: `Requires ${TECHS[law.tech]?.name || law.tech}.` };
+  if (nationId === playerNation && ordersRemaining < LAW_ADOPT_ORDER_COST) return { ok: false, reason: 'No orders remaining.' };
+  const existing = nationLawInCategory(nationId, law.category);
+  if (existing && (n.gold || 0) < LAW_SWITCH_GOLD) return { ok: false, reason: `Switching laws costs ${LAW_SWITCH_GOLD} gold.` };
+  return { ok: true, switching: !!existing, prevLaw: existing };
+}
+function adoptLaw(nationId, lawKey) {
+  const check = canAdoptLaw(nationId, lawKey);
+  if (!check.ok) { if (nationId === playerNation) showToast(check.reason); return false; }
+  const n = nations[nationId];
+  if (!n.laws) n.laws = [];
+  if (check.prevLaw) {
+    const idx = n.laws.indexOf(check.prevLaw);
+    if (idx >= 0) n.laws.splice(idx, 1);
+    n.gold = Math.max(0, (n.gold || 0) - LAW_SWITCH_GOLD);
+  }
+  n.laws.push(lawKey);
+  if (nationId === playerNation) {
+    ordersRemaining = Math.max(0, ordersRemaining - LAW_ADOPT_ORDER_COST);
+  }
+
+  if (lawKey === 'vassalage') {
+    for (const f of families) if (f.nationId === nationId) f.opinion = Math.min(100, f.opinion + 10);
+  } else if (lawKey === 'divine_rule') {
+    n.legitimacy = Math.min(100, (n.legitimacy || 50) + 15);
+  }
+  if (nationId === playerNation) {
+    showToast(`Law adopted: ${LAWS[lawKey].name}${check.switching ? ` (replacing ${LAWS[check.prevLaw].name})` : ''}.`);
+  }
+  return true;
+}
+
+function lawProductionMult(nationId) {
+  let m = 1;
+  if (nationHasLaw(nationId, 'slavery')) m *= 1.25;
+  if (nationHasLaw(nationId, 'vassalage')) m *= 1.10;
+  if (nationHasLaw(nationId, 'engineers')) m *= 1.20;
+  return m;
+}
+function lawAtkBonus(nationId) {
+  let b = 0;
+  if (nationHasLaw(nationId, 'standing_army')) b += 1;
+  if (nationHasLaw(nationId, 'limitanei')) b -= 1;
+  return b;
+}
+function lawMaintenanceMult(nationId) {
+  let m = 1;
+  if (nationHasLaw(nationId, 'limitanei')) m *= 0.5;
+  if (nationHasLaw(nationId, 'standing_army')) m *= 1.5;
+  return m;
+}
+function lawFreeGarrisonBonus(nationId) {
+  return nationHasLaw(nationId, 'limitanei') ? 1 : 0;
+}
+function lawBuildingCostMult(nationId, resource) {
+  let m = 1;
+  if (nationHasLaw(nationId, 'stonecutters') && (resource === 'stone' || resource === 'wood')) m *= 0.75;
+  if (nationHasLaw(nationId, 'engineers') && resource === 'stone') m *= 0.85;
+  return m;
+}
+function lawCityFoodBonus(nationId) {
+  return nationHasLaw(nationId, 'freedom') ? 1 : 0;
+}
+function lawWorkerMoveBonus(nationId) {
+  return nationHasLaw(nationId, 'engineers') ? 1 : 0;
+}
+function lawRushCostMult(nationId) {
+  return nationHasLaw(nationId, 'constitution') ? 0.75 : 1;
+}
+function lawMoraleBonus(nationId) {
+  return nationHasLaw(nationId, 'epic_poetry') ? 3 : 0;
+}
+function lawStartingXp(nationId) {
+  return nationHasLaw(nationId, 'standing_army') ? 2 : 0;
+}
+function lawSpyDiscount(nationId) {
+  return nationHasLaw(nationId, 'tyranny') ? 10 : 0;
+}
+function lawLegitimacyDelta(nationId) {
+  let d = 0;
+  if (nationHasLaw(nationId, 'centralization')) d += 1;
+  if (nationHasLaw(nationId, 'epic_poetry')) d += 1;
+  if (nationHasLaw(nationId, 'constitution')) d += 0.5;
+  return d;
+}
+function lawLegitimacyGainMult(nationId) {
+  return nationHasLaw(nationId, 'vassalage') ? 0.5 : 1;
+}
+function lawFamilyOpinionDrift(nationId) {
+  let d = 0;
+  if (nationHasLaw(nationId, 'vassalage')) d += 0.4;
+  if (nationHasLaw(nationId, 'divine_rule')) d += 1.0;
+  if (nationHasLaw(nationId, 'tyranny')) d -= 0.5;
+  if (nationHasLaw(nationId, 'constitution')) d += 0.5;
+  if (nationHasLaw(nationId, 'slavery')) d -= 0.3;
+  return d;
+}
+function lawCityScienceBonus(nationId) {
+  return nationHasLaw(nationId, 'freedom') ? 1 : 0;
+}
+function lawOrderBonus(nationId) {
+  return nationHasLaw(nationId, 'centralization') ? 1 : 0;
+}
+function lawGrowthMult(nationId) {
+  return nationHasLaw(nationId, 'freedom') ? 1.2 : 1;
+}
+
 const UNIT_UPGRADES = {
   crossbowman: { to: 'musketeer', tech: 'gunpowder_tech', cost: { steel: 10, gold: 15, gunpowder: 10 } },
   swordsman:   { to: 'grenadier', tech: 'bayonet_drill', cost: { steel: 10, gold: 15, gunpowder: 10 } },
@@ -3991,6 +4176,7 @@ function createNation(name, color, isPlayer) {
     legitimacy: 50,
     relations: {},
     loyalty: {},
+    laws: [],
     researched: new Set(),
     eliminated: false,
     rulerId: null,
@@ -4085,8 +4271,11 @@ function spawnUnit(type, nationId, x, y) {
   const hp = def.hp || (def.combat ? 10 : 5);
   let startXp = 0;
   if (def.combat && nationHasWonder(nationId, 'royal_arsenal')) startXp = 5;
-  const morale = MORALE_MAX;
-  const u = { type, nationId, x, y, movesLeft: def.moves, maxMoves: def.moves, turnStartMoves: def.moves, vision: def.vision, hp, xp: startXp, morale, maxMorale: MORALE_MAX };
+  if (def.combat) startXp += lawStartingXp(nationId);
+  const morale = MORALE_MAX + lawMoraleBonus(nationId);
+  let baseMoves = def.moves;
+  if (type === 'worker' || type === 'veteran_worker') baseMoves += lawWorkerMoveBonus(nationId);
+  const u = { type, nationId, x, y, movesLeft: baseMoves, maxMoves: baseMoves, turnStartMoves: baseMoves, vision: def.vision, hp, xp: startXp, morale, maxMorale: MORALE_MAX + lawMoraleBonus(nationId) };
 
   if (FORMATION_UNITS.has(type)) u.formation = 'line';
 
@@ -4123,6 +4312,7 @@ function getMaxOrders(nationId) {
   const leg = n.legitimacy || 50;
   let orders = 3 + cityCount + Math.floor(leg / 25);
   if (nationHasWonder(nationId, 'war_college')) orders += 2;
+  orders += lawOrderBonus(nationId);
   return orders;
 }
 
@@ -4185,6 +4375,9 @@ function foundCity(unit, cityName) {
     isCapital,
     population: 1, discontent: 0,
     buildings: [],
+    originalNationId: unit.nationId,
+    foundedTurn: turnNumber,
+    capturedTurn: -999,
   };
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
     const tx = unit.x + dx, ty = unit.y + dy;
@@ -4248,6 +4441,9 @@ function getCityYields(city) {
   if (rb.scienceBonus) y.science *= (1 + rb.scienceBonus);
   if (rb.goldBonus) y.gold *= (1 + rb.goldBonus);
   if (rb.prodBonus) { y.wood *= (1 + rb.prodBonus); y.stone *= (1 + rb.prodBonus); y.steel *= (1 + rb.prodBonus); }
+
+  y.science += lawCityScienceBonus(city.nationId);
+  y.food += lawCityFoodBonus(city.nationId);
   return y;
 }
 
@@ -4282,9 +4478,12 @@ function getCityScaleFactor(nationId) {
 }
 function getScaledCosts(nationId, costs) {
   const s = getCityScaleFactor(nationId);
-  if (s === 1) return costs;
   const out = {};
-  for (const k in costs) out[k] = Math.ceil(costs[k] * s);
+  for (const k in costs) {
+    let v = costs[k] * s;
+    v *= lawBuildingCostMult(nationId, k);
+    out[k] = Math.ceil(v);
+  }
   return out;
 }
 
@@ -4293,7 +4492,7 @@ function getProductionTurns(city) {
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   const rb = getRulerBonuses(city.nationId);
-  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (rb.prodBonus || 0));
+  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (rb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
@@ -4303,7 +4502,7 @@ function tickProduction(city) {
     city.producing = null; city.productionProgress = 0; return; // unknown type — clear to prevent infinite loop
   }
   const prodRb = getRulerBonuses(city.nationId);
-  city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0));
+  city.productionProgress += 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing] || {});
   let total = 0; for (const k in costs) total += costs[k];
   if (city.productionProgress >= total) {
@@ -4387,7 +4586,7 @@ function tickProduction(city) {
 }
 
 function getRushCost(nationId) {
-  return 50; // flat gold cost to rush
+  return Math.ceil(50 * lawRushCostMult(nationId));
 }
 
 window.rushProduce = function() {
@@ -4919,7 +5118,9 @@ function tickCityCapture() {
           if (nations[oldOwner] && !nations[oldOwner].isBarbarian) {
             nations[oldOwner]._lastCapturedBy = occupier.nationId;
           }
+          if (city.originalNationId === undefined) city.originalNationId = oldOwner;
           city.nationId = occupier.nationId;
+          city.capturedTurn = turnNumber;
           city.captureProgress = {};
           city.contested = false;
           city.producing = null; city.productionProgress = 0;
@@ -6499,19 +6700,204 @@ function getCityJobs(city) {
   return jobs;
 }
 
-function getCityLoyaltyStatus(city) {
+function getCityCapital(nationId) {
+  return cities.find(c => c.nationId === nationId && c.isCapital) || cities.find(c => c.nationId === nationId);
+}
+
+function getCityDiscontent(city) {
+  const factors = [];
+  let value = 0;
+  const n = nations[city.nationId];
+  if (!n) return { value: 0, factors, order: 0 };
+  const pop = city.population || 1;
+
   const jobs = getCityJobs(city);
-  const needed = city.population * 2;
-  if (jobs >= needed) return { status: 'content', label: 'Content', color: '#6a6' };
-  const deficit = needed - jobs;
-  if (deficit <= 2) return { status: 'uneasy', label: 'Uneasy', color: '#cc6' };
-  if (deficit <= 4) return { status: 'unhappy', label: 'Unhappy', color: '#c80' };
-  return { status: 'furious', label: 'Furious', color: '#c33' };
+  const needed = pop * 2;
+  const deficit = Math.max(0, needed - jobs);
+  if (deficit > 0) { value += deficit * 0.5; factors.push({ label: `Crowding (${deficit} unemployed)`, val: deficit * 0.5 }); }
+
+  if (city.capturedTurn !== undefined && city.capturedTurn > 0) {
+    const since = turnNumber - city.capturedTurn;
+    if (since < 30) {
+      const v = Math.max(0, 4 - since / 8);
+      if (v > 0.1) { value += v; factors.push({ label: `Recent conquest (${since} turns ago)`, val: v }); }
+    }
+  }
+
+  if (city.originalNationId !== undefined && city.originalNationId !== city.nationId && !nations[city.originalNationId]?.isBarbarian) {
+    let v = 1.5;
+    if (nationHasLaw(city.nationId, 'divine_rule')) v += 1;
+    value += v;
+    factors.push({ label: `Foreign culture (${nations[city.originalNationId]?.name || 'former owner'})`, val: v });
+  }
+
+  const cap = getCityCapital(city.nationId);
+  if (cap && cap !== city) {
+    const dist = hexDistance(cap.x, cap.y, city.x, city.y);
+    if (dist > 8) {
+      let v = (dist - 8) * 0.25;
+      if (nationHasLaw(city.nationId, 'centralization')) v = Math.max(0, v - 1);
+      if (v > 0.05) { value += v; factors.push({ label: `Distant from capital (${dist} hex)`, val: v }); }
+    }
+  }
+
+  let warCount = 0;
+  for (const otherId in (n.relations || {})) {
+    if (n.relations[otherId] === 'war' && !nations[otherId]?.isBarbarian) warCount++;
+  }
+  if (warCount > 0) {
+    const v = warCount * 0.5;
+    value += v; factors.push({ label: `War weariness (${warCount} war${warCount > 1 ? 's' : ''})`, val: v });
+  }
+
+  if (n.legitimacy < 30) { value += 1; factors.push({ label: 'Crisis of legitimacy', val: 1 }); }
+  else if (n.legitimacy < 45) { value += 0.5; factors.push({ label: 'Low legitimacy', val: 0.5 }); }
+
+  if (typeof currentSeason === 'string' && currentSeason === 'winter' && !(city.buildings || []).includes('granary')) {
+    value += 0.5; factors.push({ label: 'Winter (no granary)', val: 0.5 });
+  }
+
+  if (nationHasLaw(city.nationId, 'slavery')) {
+    value += 1; factors.push({ label: 'Slavery (resentment)', val: 1 });
+  }
+
+  const ruler = getNationRuler(city.nationId);
+  if (ruler && ruler.traits?.includes('cruel')) {
+    value += 0.5; factors.push({ label: `Cruel ruler (${ruler.name})`, val: 0.5 });
+  }
+
+  let order = 0;
+  const orderFactors = [];
+  const bld = city.buildings || [];
+  if (bld.includes('fortifications')) {
+    let v = 1; if (nationHasLaw(city.nationId, 'stonecutters')) v += 1;
+    order += v; orderFactors.push({ label: `Fortifications`, val: v });
+  }
+  if (bld.includes('granary')) { order += 0.5; orderFactors.push({ label: 'Granary', val: 0.5 }); }
+  if (nationHasWonder(city.nationId, 'grand_cathedral')) { order += 1.5; orderFactors.push({ label: 'Grand Cathedral', val: 1.5 }); }
+
+  const garrison = units.find(u => u.x === city.x && u.y === city.y && u.nationId === city.nationId && UNIT_DEFS[u.type]?.combat);
+  if (garrison) { order += 1.5; orderFactors.push({ label: `Garrison (${UNIT_DEFS[garrison.type].name || garrison.type})`, val: 1.5 }); }
+
+  if (city.isCapital) { order += 1; orderFactors.push({ label: 'Capital', val: 1 }); }
+  if (city.isCapital && nationHasLaw(city.nationId, 'epic_poetry')) { order += 1; orderFactors.push({ label: 'Epic Poetry (capital)', val: 1 }); }
+
+  if (nationHasLaw(city.nationId, 'tyranny')) { order += 2; orderFactors.push({ label: 'Tyranny', val: 2 }); }
+
+  if (ruler && ruler.traits?.includes('charismatic')) { order += 1; orderFactors.push({ label: `Charismatic ruler`, val: 1 }); }
+  if (ruler && ruler.traits?.includes('diplomatic')) { order += 0.5; orderFactors.push({ label: `Diplomatic ruler`, val: 0.5 }); }
+
+  if (n.legitimacy >= 75) { order += 1; orderFactors.push({ label: 'High legitimacy', val: 1 }); }
+
+  return { value, order, factors, orderFactors, net: Math.max(0, value - order) };
+}
+
+function getCityLoyaltyStatus(city) {
+  const d = getCityDiscontent(city);
+  const net = d.net;
+  if (net <= 0) return { status: 'loyal', label: 'Loyal', color: '#6cc6f4', net, discontent: d };
+  if (net <= 1.5) return { status: 'content', label: 'Content', color: '#6a6', net, discontent: d };
+  if (net <= 3) return { status: 'uneasy', label: 'Uneasy', color: '#cc6', net, discontent: d };
+  if (net <= 5) return { status: 'unhappy', label: 'Unhappy', color: '#c80', net, discontent: d };
+  if (net <= 7.5) return { status: 'furious', label: 'Furious', color: '#c33', net, discontent: d };
+  return { status: 'rebellious', label: 'Rebellious', color: '#f0f', net, discontent: d };
+}
+
+function getCityProductionPenalty(city) {
+  const s = getCityLoyaltyStatus(city).status;
+  if (s === 'loyal') return 1.10;
+  if (s === 'content') return 1.0;
+  if (s === 'uneasy') return 0.9;
+  if (s === 'unhappy') return 0.75;
+  if (s === 'furious') return 0.5;
+  return 0.25; // rebellious
+}
+
+function tryCityRebellion(city) {
+  const status = getCityLoyaltyStatus(city);
+  if (status.status !== 'rebellious') return false;
+  const flipBack = city.originalNationId !== undefined && city.originalNationId !== city.nationId
+    && !nations[city.originalNationId]?.eliminated && !nations[city.originalNationId]?.isBarbarian;
+  if (flipBack && Math.random() < 0.18) {
+
+    const oldOwner = city.nationId;
+    const newOwner = city.originalNationId;
+    const wasCapital = city.isCapital;
+    city.nationId = newOwner;
+    city.capturedTurn = turnNumber;
+    city.producing = null; city.productionProgress = 0; city.productionQueue = [];
+    if (wasCapital) {
+      city.isCapital = false;
+      const newCap = cities.find(c => c.nationId === oldOwner);
+      if (newCap) newCap.isCapital = true;
+      if (!cities.some(c => c.nationId === newOwner && c.isCapital)) city.isCapital = true;
+    }
+    for (const ti of city.ownedTiles) {
+      if (tiles[ti].owner === oldOwner) tiles[ti].owner = newOwner;
+    }
+    tiles[city.y * MAP_COLS + city.x].owner = newOwner;
+
+    for (const u of [...units]) {
+      if (u.nationId !== oldOwner) continue;
+      const ui = u.y * MAP_COLS + u.x;
+      if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
+        if (UNIT_DEFS[u.type]?.combat) removeUnit(u);
+        else { u.nationId = newOwner; u.movesLeft = 0; }
+      }
+    }
+    if (!nations[oldOwner].isBarbarian) nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy || 50) - 4);
+    if (!nations[newOwner].isBarbarian) nations[newOwner].legitimacy = Math.min(100, (nations[newOwner].legitimacy || 50) + 2);
+    if (oldOwner === playerNation) {
+      showToast(`${city.name} has thrown off your rule and rejoined ${nations[newOwner].name}!`);
+      addFloatingText(city.x, city.y, 'Rebellion!', '#f0f', 2500, 14);
+      screenShake(6, 400);
+    } else if (newOwner === playerNation) {
+      showToast(`${city.name} has rebelled and rejoined our cause!`);
+      addFloatingText(city.x, city.y, 'Liberated!', '#6f6', 2500, 14);
+    }
+    _tileCityMapDirty = true;
+    return true;
+  }
+
+  if (Math.random() < 0.10) {
+    const rebelId = createNation('Barbarians', '#8b0000', false);
+    nations[rebelId].name = `${city.name} Rebels`;
+    nations[rebelId].isBarbarian = true;
+    nations[rebelId].eliminated = false;
+    for (let i = 0; i < nations.length; i++) {
+      if (i === rebelId) continue;
+      nations[i].relations[rebelId] = 'war';
+      nations[rebelId].relations[i] = 'war';
+    }
+    let spawned = 0;
+    for (const nb of hexNeighbors(city.x, city.y)) {
+      if (spawned >= 2) break;
+      if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+      const t = tiles[nb.row * MAP_COLS + nb.col];
+      if (t.type === 0) continue;
+      if (units.some(u => u.x === nb.col && u.y === nb.row)) continue;
+      const rType = turnNumber >= 40 ? 'barbarian_brute' : turnNumber >= 20 ? 'barbarian_raider' : 'barbarian_axeman';
+      spawnUnit(rType, rebelId, nb.col, nb.row);
+      spawned++;
+    }
+    city.population = Math.max(1, city.population - 1);
+    if (city.nationId === playerNation) {
+      showToast(`Citizens of ${city.name} have risen in revolt!`);
+      addFloatingText(city.x, city.y, 'Revolt!', '#f0f', 2500, 14);
+      screenShake(5, 350);
+    }
+    return true;
+  }
+  return false;
 }
 
 function tickCityLoyalty() {
   for (const city of cities) {
-    if (nations[city.nationId]?.isBarbarian || nations[city.nationId]?.isTribe) continue;
+    const n = nations[city.nationId];
+    if (n?.isBarbarian || n?.isTribe || n?.eliminated) continue;
+
+    const status = getCityLoyaltyStatus(city);
+    if (status.status === 'rebellious') tryCityRebellion(city);
 
     const cy = getCityYields(city);
     const foodBonus = Math.max(0, cy.food - city.population);
@@ -6520,7 +6906,15 @@ function tickCityLoyalty() {
     const hasMedicine = nationHasTech(city.nationId, 'medicine');
     const maxPop = Math.max(5, getCityJobs(city));
     if ((city.population || 1) >= maxPop) continue;
-    const growthChance = 0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0) + (hasCathedral ? 0.10 : 0) + (hasMedicine ? 0.15 : 0);
+
+    const moodMult = status.status === 'loyal' ? 1.15
+      : status.status === 'content' ? 1.0
+      : status.status === 'uneasy' ? 0.7
+      : status.status === 'unhappy' ? 0.4
+      : status.status === 'furious' ? 0.15
+      : 0;
+    let growthChance = (0.12 + foodBonus * 0.02 + (hasGranary ? 0.08 : 0) + (hasCathedral ? 0.10 : 0) + (hasMedicine ? 0.15 : 0)) * moodMult;
+    growthChance *= lawGrowthMult(city.nationId);
     if (Math.random() < growthChance) city.population = (city.population || 1) + 1;
   }
 }
@@ -6554,7 +6948,7 @@ function tickFamilyOpinions() {
 
     if (n.gold < 20) family.opinion = Math.max(0, family.opinion - 0.5);
 
-    family.opinion = Math.max(0, Math.min(100, family.opinion));
+    family.opinion = Math.max(0, Math.min(100, family.opinion + lawFamilyOpinionDrift(family.nationId)));
 
     if (family.opinion >= 80) n._legFamilyBonus = (n._legFamilyBonus || 0) + 2;
 
@@ -6662,9 +7056,10 @@ function endTurn() {
   for (const c of cities) cityCounts[c.nationId]++;
   for (let i = 0; i < nations.length; i++) {
     if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
-    const freeMil = cityCounts[i] * FREE_MIL_PER_CITY;
+    const freeMil = cityCounts[i] * (FREE_MIL_PER_CITY + lawFreeGarrisonBonus(i));
     const paidUnits = Math.max(0, milCounts[i] - freeMil);
-    const rate = nationHasWonder(i, 'merchants_guild') ? UNIT_MAINTENANCE * 0.5 : UNIT_MAINTENANCE;
+    const baseRate = nationHasWonder(i, 'merchants_guild') ? UNIT_MAINTENANCE * 0.5 : UNIT_MAINTENANCE;
+    const rate = baseRate * lawMaintenanceMult(i);
     const maintenance = paidUnits * rate;
     nations[i].gold -= maintenance;
     if (nations[i].gold < 0) {
@@ -6788,6 +7183,10 @@ function finishEndTurn() {
 
     const rb = getRulerBonuses(i);
     if (rb.legPenalty) legChange -= rb.legPenalty;
+
+    if (legChange > 0) legChange *= lawLegitimacyGainMult(i);
+    legChange += lawLegitimacyDelta(i);
+
     nations[i].legitimacy = Math.min(100, Math.max(0, (nations[i].legitimacy || 50) + legChange));
 
     if (rb.loyaltyBonus) {
@@ -9021,6 +9420,18 @@ function showCityPanel(city) {
   html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}${queueStr}</p>`;
   html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
   html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
+  if (loyalty.discontent) {
+    const d = loyalty.discontent;
+    const dItems = (d.factors || []).filter(f => f.val > 0.05).map(f => `<div style="color:#c88">+${f.val.toFixed(1)} ${escHtml(f.label)}</div>`).join('');
+    const oItems = (d.orderFactors || []).filter(f => f.val > 0.05).map(f => `<div style="color:#8c8">−${f.val.toFixed(1)} ${escHtml(f.label)}</div>`).join('');
+    if (dItems || oItems) {
+      html += `<div style="margin-top:4px;font-size:11px;border-top:1px dashed rgba(160,140,100,0.2);padding-top:4px;">`;
+      html += `<div style="color:#a89878;margin-bottom:2px;">Discontent <b style="color:#c88">${d.value.toFixed(1)}</b> &nbsp; Order <b style="color:#8c8">${d.order.toFixed(1)}</b> &nbsp; Net <b style="color:${loyalty.color}">${d.net.toFixed(1)}</b></div>`;
+      if (dItems) html += dItems;
+      if (oItems) html += oItems;
+      html += `</div>`;
+    }
+  }
   const bldgs = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
   if (bldgs.length > 0) html += `<div style="margin-top:3px;font-size:11px;color:#8ab;">${bldgs.map(b => `${b.icon} ${b.name}`).join(' &bull; ')}</div>`;
   html += `</div>`;
@@ -9597,7 +10008,7 @@ function requestMappingAgreement(nationId) {
 }
 
 function infiltrateNation(nationId) {
-  const cost = 50;
+  const cost = Math.max(10, 50 - lawSpyDiscount(playerNation));
   if (nations[playerNation].gold < cost) { showToast(`Not enough gold (need ${cost}g).`); return; }
   nations[playerNation].gold -= cost;
 
@@ -11046,6 +11457,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'x' && selectedUnit && selectedUnit.nationId === playerNation) { toggleAutoExplore(); e.preventDefault(); }
   if (e.key === 'p') { togglePlanningMode(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
+  if (e.key === 'l') { toggleLawsPanel(); e.preventDefault(); }
 
   if (e.key === 'n') { cycleToNextUnit(true); e.preventDefault(); }
 
@@ -11604,6 +12016,75 @@ window.toggleCourt = function() {
   }
 };
 
+window.toggleLawsPanel = function() {
+  const panel = document.getElementById('lawsPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none') {
+    renderLawsPanel();
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+};
+
+window.playerAdoptLaw = function(lawKey) {
+  if (adoptLaw(playerNation, lawKey)) {
+    renderLawsPanel();
+    updateUI();
+    render();
+  } else {
+    renderLawsPanel();
+  }
+};
+
+function renderLawsPanel() {
+  const panel = document.getElementById('lawsPanel');
+  if (!panel) return;
+  const n = nations[playerNation];
+  const myLaws = n.laws || [];
+  const myGold = Math.floor(n.gold || 0);
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">`;
+  html += `<h3 style="color:#d4a856;margin:0;font-family:'Uncial Antiqua',cursive;">Laws of the Realm</h3>`;
+  html += `<button class="p-btn" onclick="document.getElementById('lawsPanel').style.display='none'" style="font-size:11px;padding:2px 8px;">Close</button>`;
+  html += `</div>`;
+  html += `<div style="font-size:11px;color:#a89878;margin-bottom:10px;line-height:1.5;">Each category permits one law. First adoption costs <b style="color:#e0c880">${LAW_ADOPT_ORDER_COST} order</b>. Switching laws costs <b style="color:#e0c880">${LAW_ADOPT_ORDER_COST} order + ${LAW_SWITCH_GOLD} gold</b>. You have <b style="color:#e0c880">${myGold}g</b>, <b style="color:#e0c880">${ordersRemaining}</b> orders left.</div>`;
+
+  for (const cat of LAW_CATEGORIES) {
+    const lawsInCat = Object.entries(LAWS).filter(([,l]) => l.category === cat);
+    if (lawsInCat.length === 0) continue;
+    const adoptedKey = nationLawInCategory(playerNation, cat);
+    const catName = lawsInCat[0][1].categoryName;
+    html += `<div style="margin:10px 0;border:1px solid rgba(180,140,60,0.25);border-radius:6px;padding:8px 10px;background:rgba(40,30,20,0.4);">`;
+    html += `<div style="color:#e0c880;font-size:14px;margin-bottom:6px;font-weight:bold;border-bottom:1px solid rgba(180,140,60,0.2);padding-bottom:4px;">${escHtml(catName)}${adoptedKey ? ` <span style="color:#6cc6f4;font-size:11px;">(active: ${escHtml(LAWS[adoptedKey].name)})</span>` : ''}</div>`;
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
+    for (const [lawKey, law] of lawsInCat) {
+      const isActive = adoptedKey === lawKey;
+      const techGate = law.tech && !nationHasTech(playerNation, law.tech);
+      const check = canAdoptLaw(playerNation, lawKey);
+      const switching = adoptedKey && adoptedKey !== lawKey;
+      const bg = isActive ? 'rgba(108,198,244,0.15)' : techGate ? 'rgba(40,30,20,0.6)' : 'rgba(30,25,18,0.6)';
+      const border = isActive ? '2px solid rgba(108,198,244,0.6)' : '1px solid rgba(180,140,60,0.25)';
+      html += `<div style="background:${bg};border:${border};border-radius:5px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;">`;
+      html += `<div>`;
+      html += `<div style="font-size:13px;color:${isActive ? '#6cc6f4' : '#e0c880'};margin-bottom:3px;"><span style="font-size:14px;">${law.icon}</span> <b>${escHtml(law.name)}</b>${isActive ? ' ✓' : ''}</div>`;
+      html += `<div style="font-size:11px;color:#c8b8a0;line-height:1.4;margin-bottom:4px;">${escHtml(law.desc)}</div>`;
+      html += `<div style="font-size:10px;color:#887;font-style:italic;">"${escHtml(law.flavor)}"</div>`;
+      if (techGate) html += `<div style="font-size:10px;color:#c66;margin-top:4px;">Requires ${escHtml(TECHS[law.tech]?.name || law.tech)}</div>`;
+      html += `</div>`;
+      if (!isActive) {
+        const label = switching ? `Adopt (${LAW_SWITCH_GOLD}g + 1 order)` : `Adopt (1 order)`;
+        const dis = !check.ok;
+        html += `<button class="p-btn" onclick="playerAdoptLaw('${lawKey}')" ${dis ? 'disabled' : ''} title="${dis ? escHtml(check.reason || '') : ''}" style="margin-top:6px;font-size:11px;padding:3px 6px;${dis ? 'opacity:0.5;' : ''}">${label}</button>`;
+      } else {
+        html += `<div style="margin-top:6px;font-size:10px;color:#6cc6f4;text-align:center;">— Active —</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+  panel.innerHTML = html;
+}
+
 function renderCourtPanel() {
   const panel = document.getElementById('courtPanel');
   const ruler = getNationRuler(playerNation);
@@ -11836,6 +12317,9 @@ function serializeGame() {
     population: c.population || 1, discontent: c.discontent || 0,
     buildings: c.buildings || [],
     productionQueue: c.productionQueue || [],
+    originalNationId: c.originalNationId,
+    foundedTurn: c.foundedTurn,
+    capturedTurn: c.capturedTurn,
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._legFamilyBonus; return sn; });
   const sUnits = units.map(u => {
@@ -11880,7 +12364,7 @@ function deserializeGame(json) {
 
     tiles = d.tiles.map(t => { const type = t.type === 7 ? 2 : t.type; return { ...t, type, revealed: new Set(t.revealed), spriteKey: t.spriteKey || pickSprite(type, Math.floor(Math.random() * 997)), hasRiver: false }; });
   }
-  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0, relations: n.relations || {}, loyalty: n.loyalty || {} }));
+  nations = d.nations.map(n => ({ ...n, researched: new Set(n.researched || []), science: n.science || 0, gunpowder: n.gunpowder || 0, legitimacy: n.legitimacy || 50, wantsPeace: n.wantsPeace || {}, currentResearch: n.currentResearch || null, researchProgress: n.researchProgress || 0, relations: n.relations || {}, loyalty: n.loyalty || {}, laws: n.laws || [] }));
   units = d.units.map(u => {
 
     if (u.morale === undefined) u.morale = MORALE_MAX;
@@ -11893,7 +12377,7 @@ function deserializeGame(json) {
     if (u.turnStartMoves === undefined) u.turnStartMoves = u.movesLeft;
     return u;
   });
-  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0, buildings: c.buildings || [], productionQueue: c.productionQueue || [] }));
+  cities = d.cities.map(c => ({ ...c, ownedTiles: new Set(c.ownedTiles), isCapital: c.isCapital || false, population: c.population || 1, discontent: c.discontent || 0, buildings: c.buildings || [], productionQueue: c.productionQueue || [], originalNationId: c.originalNationId !== undefined ? c.originalNationId : c.nationId, foundedTurn: c.foundedTurn !== undefined ? c.foundedTurn : 0, capturedTurn: c.capturedTurn !== undefined ? c.capturedTurn : -999 }));
 
   const capitalSet = new Set();
   for (const c of cities) {
