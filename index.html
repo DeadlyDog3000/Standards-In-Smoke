@@ -326,6 +326,12 @@
     }
     .event-choice:hover { background: rgba(220, 210, 190, 0.22); border-color: rgba(210, 180, 100, 0.6); }
     .event-effect { float: right; color: #a89878; font-size: 11px; }
+    .event-card { max-width: 460px; padding: 0 28px 24px; overflow: hidden; }
+    .ev-art { height: 168px; margin: 0 -28px 16px; background-size: cover; background-position: center; border-bottom: 1px solid rgba(212, 168, 86, 0.45); box-shadow: inset 0 -40px 40px -20px rgba(40, 35, 22, 0.95); border-radius: 8px 8px 0 0; }
+    .event-effect .fx { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; padding: 1px 6px; border-radius: 9px; font-size: 10.5px; white-space: nowrap; }
+    .event-effect .fx i { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+    .event-effect .fx.gain { background: rgba(80, 140, 60, 0.25); color: #a8d898; }
+    .event-effect .fx.cost { background: rgba(160, 60, 40, 0.25); color: #f0a088; }
 
     /* Setup Card */
     .setup-card {
@@ -8796,6 +8802,22 @@ const EVENTS = [
 ];
 
 let currentEventNation = null; // Track which nation a diplomatic event is about
+// the picture over an event: by what it's about
+const EVENT_THEMES = [
+  ['harbour', /naval|ship|pirate|harbou?r|\bsea\b|sea_|coast|fisher|pearl|\bport\b|whal|blockade|sailor|admiral/i],
+  ['mine', /\bmines?\b|mine_|\biron\b|iron_|\bore\b|quarr|mountain_pass|\bcaves?\b|coal|deposit/i],
+  ['camp', /desert(er|ion)|mutin|mercenar|general|\barms\b|arms_|gunpowder|\barmy\b|soldier|veteran|recruit|drill|barracks|\bfort|siege|\bwar\b|war_|\braid|bandit|militia|officer|rebel_informant|hospital/i],
+  ['envoy', /diplomat|\bspy\b|spy_|refugee|insult|border|envoy|embass|treaty|marriage|alliance|defector|hostage|ransom|expedition|nomad|chief/i],
+  ['market', /merchant|trade|smuggl|market|caravan|guild|\bbank|loan|\btax|debt|\bcoin|\bfair\b|creditor|currency|debase|industr/i],
+  ['country', /harvest|famine|plague|storm|flood|drought|weather|crop|farm|herd|blight|locust|wolf|wolves|\bfire\b|fire_|disease|illness|plenty|winter|frost|avalanche|earthquake|timber|granary|population|serf|planting/i],
+  ['court', /rebellion|festival|religio|schism|golden|court|noble|heir|royal|\bking|queen|coronation|scandal|assassin|succession|legitim|church|cathedral|pilgrim|pretender|palace|conspira|administrat|corrupt|governor|census|peace_dividend|grand_project|princess/i],
+];
+function eventTheme(evt) {
+  const s = evt.id + ' ' + evt.title;
+  for (const [t, re] of EVENT_THEMES) if (re.test(s)) return t;
+  return 'study';
+}
+
 function triggerEvent() {
 
   const validDiploNations = nations.filter(n => !n.isBarbarian && !n.eliminated && n.id !== playerNation && discoveredNations.has(n.id));
@@ -8817,18 +8839,21 @@ function triggerEvent() {
   }
   const modal = document.getElementById('eventModal');
   const card = document.getElementById('eventCard');
-  let html = `<h3>${evt.title}</h3><p>${eventText}</p>`;
+  let html = `<div class="ev-art" style="background-image:url('events/${eventTheme(evt)}.jpg')"></div><h3>${evt.title}</h3><p>${eventText}</p>`;
   const pn = nations[playerNation];
   const evtScale = getCityScaleFactor(playerNation);
   const specialEffectKeys = new Set(['spawnWorker', 'spawnSwordsman', 'charDeath', 'familyOpinion', 'loyalty', 'legitimacy']);
   let anyAffordable = false;
   evt.choices.forEach((ch, idx) => {
+    // (each effect a chip: gains green, costs red, a resource's own colour by it)
+    const FX_COL = { gold: '#d4a856', food: '#8bc34a', wood: '#8d6e3f', stone: '#9e9e9e', steel: '#607d8b', gunpowder: '#3a3a3a', science: '#7c4dff' };
     const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
       const scaled = (!specialEffectKeys.has(k) && v < 0) ? -Math.ceil(-v * evtScale) : v;
       const sign = scaled > 0 ? '+' : '';
       const label = k === 'legitimacy' ? '⚜' : k === 'loyalty' ? 'Relations' : k.charAt(0).toUpperCase() + k.slice(1);
-      return `${sign}${scaled} ${label}`;
-    }).join(', ');
+      const dot = FX_COL[k] ? `<i style="background:${FX_COL[k]}"></i>` : '';
+      return `<span class="fx ${scaled > 0 ? 'gain' : 'cost'}">${dot}${sign}${scaled} ${label}</span>`;
+    }).join('') + (ch.effects.spawnWorker ? '<span class="fx gain">+ a worker</span>' : '') + (ch.effects.spawnSwordsman ? '<span class="fx gain">+ a swordsman</span>' : '');
 
     const canAfford = Object.entries(ch.effects).every(([k, v]) => {
       if (v >= 0 || k === 'loyalty' || k === 'spawnWorker' || k === 'spawnSwordsman' || k === 'charDeath' || k === 'familyOpinion') return true;
