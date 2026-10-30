@@ -8869,6 +8869,13 @@ function render() {
   const evenNbr = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]];
   const oddNbr  = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
   if (currentVisionSet) {
+    // all the dimmed hexes go into two shapes filled once each, so shared edges aren't darkened twice into a black grid
+    const fogEdge = new Path2D(), fogDeep = new Path2D();
+    const addHex = (path, x, y) => {
+      const cx = x + w / 2, cy = y + faceH / 2, hw = w / 2, hh = faceH / 2;
+      path.moveTo(cx - hw * 0.5, cy - hh); path.lineTo(cx + hw * 0.5, cy - hh); path.lineTo(cx + hw, cy);
+      path.lineTo(cx + hw * 0.5, cy + hh); path.lineTo(cx - hw * 0.5, cy + hh); path.lineTo(cx - hw, cy); path.closePath();
+    };
     for (let my = startRow; my < endRow; my++) {
       const baseWorldY = my * ch - camYch;
       for (let mx = startCol; mx < endCol; mx++) {
@@ -8886,11 +8893,11 @@ function render() {
           const nc = mx + dirs[d][0], nr = my + dirs[d][1];
           if (nc >= 0 && nc < MAP_COLS && nr >= 0 && nr < MAP_ROWS && currentVisionSet.has(nr * MAP_COLS + nc)) { isEdge = true; break; }
         }
-        ctx.fillStyle = isEdge ? 'rgba(10, 8, 5, 0.3)' : 'rgba(10, 8, 5, 0.5)';
-        drawHexPath(ctx, sx, fy, w, faceH);
-        ctx.fill();
+        addHex(isEdge ? fogEdge : fogDeep, sx, fy);
       }
     }
+    ctx.fillStyle = 'rgba(10, 8, 5, 0.3)'; ctx.fill(fogEdge);
+    ctx.fillStyle = 'rgba(10, 8, 5, 0.5)'; ctx.fill(fogDeep);
   }
 
   for (let my = startRow; my < endRow; my++) {
