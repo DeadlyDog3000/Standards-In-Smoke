@@ -605,7 +605,9 @@
         - Cities build faster as they grow, instead of every city working at the same pace<br>
         - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed<br>
         - Muskets, rifles and cannon fire with a flash and a bank of drifting powder smoke; blows raise dust where they land<br>
-        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game
+        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game<br>
+        - <b>Research picks up:</b> every city's townsfolk add science (1 + 0.4 per citizen), so a growing realm reaches new techs every ten or so turns instead of every forty<br>
+        - Fixed a battle replay that could wait forever when the camera was asked to pan twice at once
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.5</b></div>
       <div style="margin-bottom:12px;">
@@ -1157,7 +1159,9 @@
         - Cities build faster as they grow, instead of every city working at the same pace<br>
         - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed<br>
         - Muskets, rifles and cannon fire with a flash and a bank of drifting powder smoke; blows raise dust where they land<br>
-        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game
+        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game<br>
+        - <b>Research picks up:</b> every city's townsfolk add science (1 + 0.4 per citizen), so a growing realm reaches new techs every ten or so turns instead of every forty<br>
+        - Fixed a battle replay that could wait forever when the camera was asked to pan twice at once
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2811,7 +2815,10 @@ let targetCamX = null, targetCamY = null, camPanCallback = null;
 function panCameraTo(col, row, callback) {
   targetCamX = clampCamX(col + 0.5 - visibleCols() / 2);
   targetCamY = clampCamY(row + 0.5 - visibleRows() / 2);
+  // a pan already under way is superseded: let whoever waited on it carry on, rather than wait forever
+  const superseded = camPanCallback;
   camPanCallback = callback || null;
+  if (superseded) superseded();
   if (!camPanActive) { camPanActive = true; requestAnimationFrame(camPanTick); }
 }
 let camPanActive = false;
@@ -4645,6 +4652,7 @@ function getCityYields(city) {
   }
 
   y.science += lawCityScienceBonus(city.nationId);
+  y.science += 1 + (city.population || 1) * 0.4; // townsfolk: clerks, doctors, tinkerers
   y.food += lawCityFoodBonus(city.nationId);
 
   y.food *= getSeasonEffect().foodMult;
@@ -4718,6 +4726,7 @@ function getCityYieldBreakdown(city) {
   }
 
   if (lawCityScienceBonus(city.nationId)) sources.science.push({ label: 'Freedom (law)', val: 1 });
+  sources.science.push({ label: `Townsfolk (${city.population || 1})`, val: 1 + (city.population || 1) * 0.4 });
   if (lawCityFoodBonus(city.nationId)) sources.food.push({ label: 'Freedom (law)', val: 1 });
 
   const totals = {};
