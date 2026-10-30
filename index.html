@@ -176,6 +176,8 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    .portrait { border-radius: 50%; object-fit: cover; border: 2px solid rgba(212, 168, 86, 0.6); box-shadow: 0 2px 6px rgba(0,0,0,0.6); flex-shrink: 0; background: #2a2218; }
+    .kc-face { width: 34px; height: 34px; border-color: var(--kc); }
     .vol-box { margin: 4px 0 14px; }
     .vol-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; font-size: 15px; }
     .vol-row input { flex: 1; max-width: 170px; accent-color: #d4a856; }
@@ -703,7 +705,8 @@
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
         - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
-        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games
+        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games<br>
+        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court and on each realm's card in Kingdoms
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -1316,7 +1319,8 @@
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
         - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
-        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games
+        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games<br>
+        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court and on each realm's card in Kingdoms
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -2661,19 +2665,24 @@ const CHARACTER_TRAITS = {
 
 // names as each realm's own people would bear them, c. 1680–1815 (a realm the player names gets the old mixed list)
 const NAME_CULTURES = [
-  { re: /Britain|United States|America|England|Scotland|Ireland/, m: ['William','George','Charles','Henry','Edward','Arthur','Thomas','John','Robert','Frederick','Horatio','Richard'], f: ['Charlotte','Caroline','Elizabeth','Mary','Anne','Georgiana','Sarah','Augusta','Harriet','Jane'], l: ['Pitt','Fox','Spencer','Grenville','Howard','Russell','Seymour','Cavendish','Paget','Moore','Fraser','Campbell'] },
-  { re: /France|Belgium|Quebec/, m: ['Louis','Jean','Charles','François','Henri','Pierre','Jacques','Joseph','Philippe','Armand','Étienne','Nicolas'], f: ['Marie','Joséphine','Louise','Hortense','Pauline','Thérèse','Adélaïde','Élisabeth','Juliette','Madeleine'], l: ['Bourbon','Murat','Ney','Davout','Lannes','Talleyrand','Fouché','Berthier','Masséna','Soult','Lafayette','Rohan'] },
-  { re: /Austria|Prussia|Saxony|Westphalia|Bavaria|Württemberg|Hanover|Germany|Hesse|Baden|Swiss/, m: ['Friedrich','Karl','Wilhelm','Johann','Joseph','Ludwig','Franz','Heinrich','Leopold','Gebhard','August','Maximilian'], f: ['Luise','Maria','Charlotte','Sophie','Wilhelmine','Amalie','Theresia','Karoline','Friederike','Auguste'], l: ['Hohenzollern','Blücher','Gneisenau','Scharnhorst','Stein','Hardenberg','Clausewitz','Wettin','Schwarzenberg','Metternich','Radetzky','Kinsky'] },
-  { re: /Holland|Netherlands|Dutch/, m: ['Willem','Johan','Pieter','Hendrik','Jan','Cornelis','Frederik','Lodewijk','Gijsbert','Maurits'], f: ['Anna','Wilhelmina','Johanna','Maria','Sophia','Catharina','Elisabeth','Louise'], l: ['van Oranje','de Witt','van Hogendorp','Schimmelpenninck','van Heeckeren','Bentinck','van der Capellen','Falck','van Zuylen','de Jonge'] },
-  { re: /Spain|Mexico|Granada|Castile/, m: ['Carlos','Fernando','José','Manuel','Francisco','Pedro','Antonio','Diego','Gaspar','Luis','Juan','Rafael'], f: ['María','Isabel','Luisa','Josefa','Teresa','Ana','Carlota','Mercedes','Pilar','Inés'], l: ['de Borbón','Godoy','Palafox','Castaños','Floridablanca','Jovellanos','de la Cuesta','Blake','Aranda','Moncada','Medinaceli','Osuna'] },
-  { re: /Portugal|Brazil/, m: ['João','José','Pedro','Miguel','António','Francisco','Manuel','Luís','Rodrigo','Gomes'], f: ['Maria','Carlota','Isabel','Ana','Leonor','Teresa','Joana','Mariana'], l: ['de Bragança','Pombal','de Sousa','Pereira','de Almeida','Coutinho','Mascarenhas','de Melo','Freire','da Silva'] },
-  { re: /Italy|Naples|Venice|Sardinia|Piedmont|Papal|Sicily|Tuscany|Genoa/, m: ['Carlo','Vittorio','Ferdinando','Giuseppe','Francesco','Gioacchino','Pietro','Luigi','Alessandro','Giovanni','Eugenio','Antonio'], f: ['Maria','Carolina','Teresa','Elisa','Paolina','Beatrice','Isabella','Giulia','Lucia','Clotilde'], l: ['di Savoia','Borghese','Colonna','Orsini','Medici','Caracciolo','Pignatelli','Doria','Visconti','Farnese','Gonzaga','Este'] },
-  { re: /Russia|Muscovy/, m: ['Alexander','Nikolai','Pavel','Mikhail','Pyotr','Ivan','Dmitri','Fyodor','Grigory','Sergei','Andrei','Konstantin'], f: ['Ekaterina','Maria','Elizaveta','Anna','Natalia','Sofia','Olga','Darya','Alexandra','Tatiana'], l: ['Romanov','Kutuzov','Bagration','Suvorov','Orlov','Potemkin','Barclay','Rostopchin','Golitsyn','Volkonsky','Dolgorukov','Sheremetev'] },
-  { re: /Warsaw|Poland|Lithuania/, m: ['Józef','Stanisław','Tadeusz','Jan','Adam','Michał','Kazimierz','Ignacy','Antoni','Henryk'], f: ['Maria','Izabela','Anna','Zofia','Barbara','Helena','Teresa','Katarzyna'], l: ['Poniatowski','Czartoryski','Kościuszko','Dąbrowski','Potocki','Radziwiłł','Sapieha','Zamoyski','Lubomirski','Sobieski'] },
-  { re: /Sweden|Denmark|Norway|Finland/, m: ['Gustav','Karl','Fredrik','Johan','Axel','Erik','Christian','Adolf','Magnus','Olof','Nils','Bernhard'], f: ['Sofia','Lovisa','Kristina','Ulrika','Charlotta','Hedvig','Margareta','Ingrid','Birgitta','Eleonora'], l: ['Vasa','Oxenstierna','Bernadotte','De la Gardie','Stenbock','Brahe','Bielke','Horn','Wachtmeister','Bille','Rosenkrantz','Moltke'] },
-  { re: /Ottoman|Turk/, m: ['Selim','Mahmud','Mustafa','Ahmed','Osman','Mehmed','Süleyman','Abdülhamid','Halil','Hüseyin','Murad','Ibrahim'], f: ['Mihrişah','Ayşe','Fatma','Hatice','Esma','Nakşidil','Zeynep','Emine','Hafsa','Kösem'], l: ['Osmanoğlu','Köprülü','Pasha','Bey','Kara','Çelebi','Bayraktar','Damat','Sokollu','Halil'] },
-  { re: /Persia|Qajar|Afghan/, m: ['Fath-Ali','Abbas','Mohammad','Agha','Hossein','Mirza','Karim','Nader','Ismail','Reza'], f: ['Mahd-e Olya','Fatemeh','Khadijeh','Zahra','Maryam','Shirin','Leila','Roxana'], l: ['Qajar','Zand','Afshar','Safavi','Qa’em-Maqam','Amir','Shirazi','Isfahani','Tabrizi','Khan'] },
+  { p: 'west', re: /Britain|United States|America|England|Scotland|Ireland/, m: ['William','George','Charles','Henry','Edward','Arthur','Thomas','John','Robert','Frederick','Horatio','Richard'], f: ['Charlotte','Caroline','Elizabeth','Mary','Anne','Georgiana','Sarah','Augusta','Harriet','Jane'], l: ['Pitt','Fox','Spencer','Grenville','Howard','Russell','Seymour','Cavendish','Paget','Moore','Fraser','Campbell'] },
+  { p: 'french', re: /France|Belgium|Quebec/, m: ['Louis','Jean','Charles','François','Henri','Pierre','Jacques','Joseph','Philippe','Armand','Étienne','Nicolas'], f: ['Marie','Joséphine','Louise','Hortense','Pauline','Thérèse','Adélaïde','Élisabeth','Juliette','Madeleine'], l: ['Bourbon','Murat','Ney','Davout','Lannes','Talleyrand','Fouché','Berthier','Masséna','Soult','Lafayette','Rohan'] },
+  { p: 'german', re: /Austria|Prussia|Saxony|Westphalia|Bavaria|Württemberg|Hanover|Germany|Hesse|Baden|Swiss/, m: ['Friedrich','Karl','Wilhelm','Johann','Joseph','Ludwig','Franz','Heinrich','Leopold','Gebhard','August','Maximilian'], f: ['Luise','Maria','Charlotte','Sophie','Wilhelmine','Amalie','Theresia','Karoline','Friederike','Auguste'], l: ['Hohenzollern','Blücher','Gneisenau','Scharnhorst','Stein','Hardenberg','Clausewitz','Wettin','Schwarzenberg','Metternich','Radetzky','Kinsky'] },
+  { p: 'west', re: /Holland|Netherlands|Dutch/, m: ['Willem','Johan','Pieter','Hendrik','Jan','Cornelis','Frederik','Lodewijk','Gijsbert','Maurits'], f: ['Anna','Wilhelmina','Johanna','Maria','Sophia','Catharina','Elisabeth','Louise'], l: ['van Oranje','de Witt','van Hogendorp','Schimmelpenninck','van Heeckeren','Bentinck','van der Capellen','Falck','van Zuylen','de Jonge'] },
+  { p: 'south', re: /Spain|Mexico|Granada|Castile/, m: ['Carlos','Fernando','José','Manuel','Francisco','Pedro','Antonio','Diego','Gaspar','Luis','Juan','Rafael'], f: ['María','Isabel','Luisa','Josefa','Teresa','Ana','Carlota','Mercedes','Pilar','Inés'], l: ['de Borbón','Godoy','Palafox','Castaños','Floridablanca','Jovellanos','de la Cuesta','Blake','Aranda','Moncada','Medinaceli','Osuna'] },
+  { p: 'south', re: /Portugal|Brazil/, m: ['João','José','Pedro','Miguel','António','Francisco','Manuel','Luís','Rodrigo','Gomes'], f: ['Maria','Carlota','Isabel','Ana','Leonor','Teresa','Joana','Mariana'], l: ['de Bragança','Pombal','de Sousa','Pereira','de Almeida','Coutinho','Mascarenhas','de Melo','Freire','da Silva'] },
+  { p: 'south', re: /Italy|Naples|Venice|Sardinia|Piedmont|Papal|Sicily|Tuscany|Genoa/, m: ['Carlo','Vittorio','Ferdinando','Giuseppe','Francesco','Gioacchino','Pietro','Luigi','Alessandro','Giovanni','Eugenio','Antonio'], f: ['Maria','Carolina','Teresa','Elisa','Paolina','Beatrice','Isabella','Giulia','Lucia','Clotilde'], l: ['di Savoia','Borghese','Colonna','Orsini','Medici','Caracciolo','Pignatelli','Doria','Visconti','Farnese','Gonzaga','Este'] },
+  { p: 'russ', re: /Russia|Muscovy/, m: ['Alexander','Nikolai','Pavel','Mikhail','Pyotr','Ivan','Dmitri','Fyodor','Grigory','Sergei','Andrei','Konstantin'], f: ['Ekaterina','Maria','Elizaveta','Anna','Natalia','Sofia','Olga','Darya','Alexandra','Tatiana'], l: ['Romanov','Kutuzov','Bagration','Suvorov','Orlov','Potemkin','Barclay','Rostopchin','Golitsyn','Volkonsky','Dolgorukov','Sheremetev'] },
+  { p: 'german', re: /Warsaw|Poland|Lithuania/, m: ['Józef','Stanisław','Tadeusz','Jan','Adam','Michał','Kazimierz','Ignacy','Antoni','Henryk'], f: ['Maria','Izabela','Anna','Zofia','Barbara','Helena','Teresa','Katarzyna'], l: ['Poniatowski','Czartoryski','Kościuszko','Dąbrowski','Potocki','Radziwiłł','Sapieha','Zamoyski','Lubomirski','Sobieski'] },
+  { p: 'west', re: /Sweden|Denmark|Norway|Finland/, m: ['Gustav','Karl','Fredrik','Johan','Axel','Erik','Christian','Adolf','Magnus','Olof','Nils','Bernhard'], f: ['Sofia','Lovisa','Kristina','Ulrika','Charlotta','Hedvig','Margareta','Ingrid','Birgitta','Eleonora'], l: ['Vasa','Oxenstierna','Bernadotte','De la Gardie','Stenbock','Brahe','Bielke','Horn','Wachtmeister','Bille','Rosenkrantz','Moltke'] },
+  { p: 'ott', re: /Ottoman|Turk/, m: ['Selim','Mahmud','Mustafa','Ahmed','Osman','Mehmed','Süleyman','Abdülhamid','Halil','Hüseyin','Murad','Ibrahim'], f: ['Mihrişah','Ayşe','Fatma','Hatice','Esma','Nakşidil','Zeynep','Emine','Hafsa','Kösem'], l: ['Osmanoğlu','Köprülü','Pasha','Bey','Kara','Çelebi','Bayraktar','Damat','Sokollu','Halil'] },
+  { p: 'ott', re: /Persia|Qajar|Afghan/, m: ['Fath-Ali','Abbas','Mohammad','Agha','Hossein','Mirza','Karim','Nader','Ismail','Reza'], f: ['Mahd-e Olya','Fatemeh','Khadijeh','Zahra','Maryam','Shirin','Leila','Roxana'], l: ['Qajar','Zand','Afshar','Safavi','Qa’em-Maqam','Amir','Shirazi','Isfahani','Tabrizi','Khan'] },
 ];
+// a painted likeness for a ruler or consort: by their realm's people, and whether a man or a woman
+function portraitOf(ch) {
+  const c = ch ? nameCulture(ch.nationId) : null;
+  return `portraits/${c ? c.p : 'west'}_${ch && ch.gender === 'female' ? 'f' : 'm'}.jpg`;
+}
 function nameCulture(nationId) {
   const nm = nationId != null && nations[nationId] ? nations[nationId].name : '';
   return NAME_CULTURES.find(c => c.re.test(nm)) || null;
@@ -11359,7 +11368,7 @@ function renderKingdoms() {
     const unitCount = units.filter(u => u.nationId === n.id).length;
     const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
     html += `<div class="kcard ${rel}" style="--kc:${col}">
-      <div class="kc-head"><span class="kc-crest"></span>
+      <div class="kc-head">${(() => { const r = getNationRuler(n.id); return r ? `<img class="portrait kc-face" src="${portraitOf(r)}" alt="" title="${escHtml(r.name)}">` : '<span class="kc-crest"></span>'; })()}
         <div class="kc-title"><b>${escHtml(n.name)}</b><small>${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}</small></div>
         <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
     if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
@@ -14006,7 +14015,7 @@ function renderCourtPanel() {
     const rulerBonuses = ruler.traits.map(t => CHARACTER_TRAITS[t]?.desc || '').filter(d => d).join('; ');
     html += `<div style="padding:8px;background:rgba(180,140,60,0.1);border:1px solid rgba(180,140,60,0.3);border-radius:4px;margin-bottom:8px;">`;
     html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">`;
-    html += `<div style="width:36px;height:36px;border-radius:50%;background:${nations[playerNation].color};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:#fff;border:2px solid rgba(255,255,255,0.3);">${escHtml(ruler.name.charAt(0))}</div>`;
+    html += `<img class="portrait" src="${portraitOf(ruler)}" alt="" style="width:54px;height:54px;border-color:${safeColor(nations[playerNation].color)}">`;
     html += `<div><b style="color:#e0c880">${escHtml(ruler.name)}</b><br><span style="font-size:11px;">Ruler | Age ${ruler.age} | ${ruler.gender}</span></div>`;
     html += `</div>`;
     html += `<div style="font-size:11px;">Traits: ${traitDescs}</div>`;
@@ -14018,7 +14027,7 @@ function renderCourtPanel() {
 
   if (spouse) {
     html += `<div style="padding:6px;background:rgba(100,80,60,0.1);border:1px solid rgba(100,80,60,0.2);border-radius:4px;margin-bottom:8px;">`;
-    html += `<b>${escHtml(spouse.name)}</b> <span style="font-size:11px;color:#a89878;">Spouse | Age ${spouse.age}</span>`;
+    html += `<img class="portrait" src="${portraitOf(spouse)}" alt="" style="width:34px;height:34px;float:left;margin-right:8px;"><b>${escHtml(spouse.name)}</b> <span style="font-size:11px;color:#a89878;">Spouse | Age ${spouse.age}</span>`;
     html += `<div style="font-size:11px;">Traits: ${spouse.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ')}</div>`;
     html += `</div>`;
   }
