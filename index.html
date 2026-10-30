@@ -4260,7 +4260,7 @@ function generateMap() {
     t.animal = animal;
   }
 
-  units = []; cities = []; nations = []; turnNumber = 1;
+  units = []; cities = []; nations = []; turnNumber = 1; currentSeason = 'spring';
   barbarianCamps = []; citySites = []; pillaged = [];
   discoveredNations = new Set();
   agreements = {};
@@ -4672,6 +4672,18 @@ function getProductionTurns(city) {
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
+// Finished but can't be paid for: wait. An AI city that waits three turns picks something it can afford instead (a settler it can't feed is put off for a while)
+function stallProduction(city, total) {
+  city.productionProgress = Math.min(city.productionProgress, total);
+  if (city.nationId === playerNation) return;
+  city._stall = (city._stall || 0) + 1;
+  if (city._stall >= 3) {
+    if (city.producing === 'settler') city._noSettlerUntil = turnNumber + 12;
+    city.producing = null;
+    city._stall = 0;
+  }
+}
+
 function tickProduction(city) {
   if (!city.producing) return;
   if (!PRODUCTION_COSTS[city.producing] && !CITY_BUILDING_DEFS[city.producing]) {
@@ -4689,10 +4701,7 @@ function tickProduction(city) {
     if (isBuilding) {
       let canAfford = true;
       for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
-      if (!canAfford) {
-        city.productionProgress = Math.min(city.productionProgress, total);
-        return;
-      }
+      if (!canAfford) { stallProduction(city, total); return; }
       for (const k in costs) n[k] -= costs[k];
     }
     {
@@ -4726,10 +4735,7 @@ function tickProduction(city) {
       } else {
         let canAffordUnit = true;
         for (const k in costs) if ((n[k] || 0) < costs[k]) { canAffordUnit = false; break; }
-        if (!canAffordUnit) {
-          city.productionProgress = Math.min(city.productionProgress, total);
-          return;
-        }
+        if (!canAffordUnit) { stallProduction(city, total); return; }
         for (const k in costs) n[k] -= costs[k];
         const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
         let sx = city.x, sy = city.y, foundTile = false;
@@ -4757,6 +4763,7 @@ function tickProduction(city) {
       }
     }
 
+    city._stall = 0;
     const overflow = Math.max(0, city.productionProgress - total);
     const queue = city.productionQueue || [];
     if (queue.length > 0) {
@@ -4781,14 +4788,13 @@ window.rushProduce = function() {
   n.gold -= cost;
 
   const isBuilding = !!CITY_BUILDING_DEFS[selectedCity.producing];
+  // rushing pays for the haste, not the materials: units and buildings both still cost their resources
+  const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing] || {});
+  let canAfford = true;
+  for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
+  if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
   if (isBuilding) {
-    const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
-    let canAfford = true;
-    for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
-    if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
     for (const k in costs) n[k] -= costs[k];
-  }
-  if (isBuilding) {
     const bld = CITY_BUILDING_DEFS[selectedCity.producing];
     const bldCosts = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing]);
 
@@ -4807,14 +4813,18 @@ window.rushProduce = function() {
     showToast(`Rushed ${bld.name}!`);
   } else {
     const isNaval = UNIT_DEFS[selectedCity.producing] && UNIT_DEFS[selectedCity.producing].naval;
-    let sx = selectedCity.x, sy = selectedCity.y;
+    let sx = selectedCity.x, sy = selectedCity.y, foundTile = false;
     for (const nb of hexNeighbors(selectedCity.x, selectedCity.y)) {
       const nx = nb.col, ny = nb.row;
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       const tt = tiles[ny * MAP_COLS + nx].type;
       if (isNaval ? tt !== 0 : tt === 0) continue;
-      if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; break; }
+      if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; foundTile = true; break; }
     }
+    if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
+      n.gold += cost; showToast(`No room to deploy a unit near ${selectedCity.name}!`); return;
+    }
+    for (const k in costs) n[k] -= costs[k];
     spawnUnit(selectedCity.producing, selectedCity.nationId, sx, sy);
     showToast(`Rushed ${selectedCity.producing}!`);
   }
@@ -5878,6 +5888,7 @@ function getScoreBreakdown(nationId) {
 }
 
 function showVictory(type) {
+  window._gameOver = true;
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : 'Domination Victory';
@@ -5971,6 +5982,7 @@ function deleteVictoryEntry(index) {
 }
 
 function showDefeat(type, winnerId) {
+  window._gameOver = true;
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   let title, desc;
@@ -6184,9 +6196,17 @@ function aiTurn(nationId) {
       addAgreement(nationId, allyId, 'war_help');
       for (let eid = 0; eid < nations.length; eid++) {
         if (eid === nationId || eid === allyId || nations[eid].eliminated || nations[eid].isBarbarian) continue;
-        if (n.relations[eid] === 'war') {
+        if (n.relations[eid] === 'war' && nations[allyId].relations[eid] !== 'war') {
+          if (eid === playerNation) {
+            // joining a war on you: not while a peace treaty with you holds, and never without telling you
+            if (turnNumber < (nations[allyId]._peaceCooldown?.[playerNation] || 0)) continue;
+            for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, allyId, aType);
+          }
           nations[allyId].relations[eid] = 'war';
           nations[eid].relations[allyId] = 'war';
+          if (eid === playerNation) {
+            showWarDeclaration(nations[allyId]);
+          }
         }
       }
     }
@@ -6221,7 +6241,8 @@ function aiTurn(nationId) {
   }
 
   let aiOrdersLeft = getMaxOrders(nationId) + getDifficultyModifiers().aiBonusOrders;
-  const aiUnits = units.filter(u => u.nationId === nationId);
+  // settlers act first: newly trained ones sit at the back of the list, and the soldiers ahead used up every order
+  const aiUnits = units.filter(u => u.nationId === nationId).sort((a, b) => (b.type === 'settler') - (a.type === 'settler'));
   for (const u of [...aiUnits]) {
     if (!units.includes(u)) continue;
 
@@ -6655,7 +6676,7 @@ function aiTurn(nationId) {
   const topStart = Math.max(0, availCombat.length - 3);
   for (const c of aiCities) {
 
-    if (threatLevel > 20 && c.producing && !UNIT_DEFS[c.producing]?.combat) {
+    if (threatLevel > 20 && c.producing && !UNIT_DEFS[c.producing]?.combat && !(c.producing === 'settler' && threatLevel <= combatUnits.length * 6)) {
       const emergUnit = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
       c.producing = emergUnit; c.productionProgress = 0;
     }
@@ -6687,7 +6708,14 @@ function aiTurn(nationId) {
       const workersHaveWork = unimprovedTiles > workers * 2;
 
       const hasFort = (c.buildings || []).includes('fortifications');
-      if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
+      // early expansion: a young realm with a few soldiers sends out settlers even with raiders about, unless the threat outweighs its army
+      const freeSites = citySites.filter(s => !s.settled).length;
+      const settlerFood = getScaledCosts(nationId, PRODUCTION_COSTS.settler).food;
+      const haveSettler = units.some(u => u.nationId === nationId && u.type === 'settler') || aiCities.some(ci => ci !== c && ci.producing === 'settler');
+      if (aiCities.length < 4 && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
+          && n.food >= settlerFood && threatLevel <= combatCount * 6 && Math.random() < 0.6) {
+        c.producing = 'settler';
+      } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
         c.producing = 'fortifications';
       } else if (threatLevel > 0) {
         c.producing = bestCombat;
@@ -6732,7 +6760,7 @@ function aiTurn(nationId) {
 
           if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
 
-          else if (aiCities.length < maxCities && existingSettlers === 0 && n.food >= 50 && roll < 0.55) c.producing = 'settler';
+          else if (aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
           else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
           else c.producing = bestCombat; // default: keep building army
         }
@@ -6917,17 +6945,22 @@ function moveAITowardHighGround(u, tx, ty, steps) {
   }
 }
 
-function getFoodConsumption(nationId) {
-  const nationCities = cities.filter(c => c.nationId === nationId);
-  let consumption = 0;
-  for (const c of nationCities) {
-    consumption += 1 + (c.population || 1) * 0.5;
-    for (const ti of c.ownedTiles) {
-      if (tiles[ti].improvement === 'urban') consumption += 1;
-      if (tiles[ti].improvement === 'market') consumption += 0.5;
-      if (tiles[ti].improvement === 'steel_mill') consumption += 0.5;
-    }
+function getCityFoodUpkeep(c) {
+  let consumption = 1 + (c.population || 1) * 0.5;
+  for (const ti of c.ownedTiles) {
+    if (tiles[ti].improvement === 'urban') consumption += 1;
+    if (tiles[ti].improvement === 'market') consumption += 0.5;
+    if (tiles[ti].improvement === 'steel_mill') consumption += 0.5;
   }
+  return consumption;
+}
+// at war with another nation (the standing feud with barbarian raiders doesn't count)
+function nationAtRealWar(n) {
+  return Object.entries(n.relations || {}).some(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
+}
+function getFoodConsumption(nationId) {
+  let consumption = 0;
+  for (const c of cities) if (c.nationId === nationId) consumption += getCityFoodUpkeep(c);
   return consumption;
 }
 
@@ -7154,12 +7187,24 @@ function tickCityLoyalty() {
     if (status.status === 'rebellious') tryCityRebellion(city);
 
     const cy = getCityYields(city);
-    const foodBonus = Math.max(0, cy.food - city.population);
+    const surplus = cy.food - getCityFoodUpkeep(city);
+    // hunger: with the stores empty, a city that eats more than it grows can lose a citizen
+    if (surplus < 0 && (n.food || 0) <= 0 && (city.population || 1) > 1 && Math.random() < 0.15) {
+      city.population--;
+      if (city.nationId === playerNation) {
+        showToast(`Hunger in ${city.name}: a citizen is lost. Farms, fishing or a smaller army would feed them.`);
+        addFloatingText(city.x, city.y, '-1 pop (hunger)', '#d66', 2200, 13);
+      }
+      continue;
+    }
+    if (surplus <= 0) continue; // no spare food, no growth
+    const foodBonus = surplus;
     const hasGranary = (city.buildings || []).includes('granary');
     const hasCathedral = nationHasWonder(city.nationId, 'grand_cathedral');
     const hasMedicine = nationHasTech(city.nationId, 'medicine');
     const maxPop = Math.max(5, getCityJobs(city));
     if ((city.population || 1) >= maxPop) continue;
+    if (city.producing === 'settler') continue; // a city raising settlers sends its people out instead of growing (its food is saved for them)
 
     const moodMult = status.status === 'loyal' ? 1.15
       : status.status === 'content' ? 1.0
@@ -7395,6 +7440,7 @@ function _finishEndTurnImpl() {
   try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
+  if (window._gameOver) return; // the game ended this turn: no more turn, autosave or events
   try { tickMoraleRecovery(); } catch(e) { console.error('tickMoraleRecovery error:', e); }
 
   for (const u of units) {
@@ -7444,6 +7490,8 @@ function _finishEndTurnImpl() {
   const wasFortified = new Set(units.filter(u => u.fortified));
   const computedMoves = new Map();
   for (const u of units) {
+    // the Engineers law's extra step follows the law: every worker gets it while it's adopted, upgraded ones too
+    if ((u.type === 'worker' || u.type === 'veteran_worker') && UNIT_DEFS[u.type]) u.maxMoves = UNIT_DEFS[u.type].moves + lawWorkerMoveBonus(u.nationId);
     let moves = u.maxMoves;
     if (u.formation && FORMATIONS[u.formation]) moves += FORMATIONS[u.formation].moveMod;
     const cmd = getCommandBonus(u);
@@ -10019,7 +10067,8 @@ function renderCityStatsPanel(city) {
   const jobs = getCityJobs(city);
   const needed = pop * 2;
   const cy = getCityYields(city);
-  const foodBonus = Math.max(0, cy.food - pop);
+  const foodSurplus = cy.food - getCityFoodUpkeep(city);
+  const foodBonus = Math.max(0, foodSurplus);
   const hasGranary = (city.buildings || []).includes('granary');
   const hasCathedral = nationHasWonder(city.nationId, 'grand_cathedral');
   const hasMedicine = nationHasTech(city.nationId, 'medicine');
@@ -10042,9 +10091,13 @@ function renderCityStatsPanel(city) {
   html += pipBar(pop, maxPop, '#7cc66c');
 
   html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin:8px 0 2px;color:#c8b8a0;">`;
-  html += `<span>Food balance: <b style="color:${cy.food >= pop ? '#6a6' : '#c66'}">${(cy.food - pop).toFixed(1)}</b></span>`;
+  html += `<span>Food balance: <b style="color:${foodSurplus > 0 ? '#6a6' : '#c66'}">${foodSurplus > 0 ? '+' : ''}${foodSurplus.toFixed(1)}</b></span>`;
   if (atCap) {
     html += `<span style="color:#c80;">Build improvements to expand!</span>`;
+  } else if (city.producing === 'settler') {
+    html += `<span style="color:#cc6;">No growth while training a Settler</span>`;
+  } else if (foodSurplus <= 0) {
+    html += `<span style="color:#c66;">No spare food: no growth</span>`;
   } else {
     const pct = Math.round(growthChance * 100);
     html += `<span>Growth: <b style="color:${pct > 20 ? '#6a6' : pct > 5 ? '#cc6' : '#c80'}">${pct}%</b>/turn (mood ×${moodMult.toFixed(2)})</span>`;
@@ -10358,7 +10411,7 @@ function requestAgreement(nationId, type) {
   const n = nations[nationId];
   const ruler = getNationRuler(nationId);
   const rulerTraits = ruler ? (ruler.traits || []) : [];
-  const theyAreAtWar = Object.values(n.relations).some(r => r === 'war');
+  const theyAreAtWar = nationAtRealWar(n);
   const ourMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
   const theirMil = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
   let refuseChance = 0.10;
@@ -10493,7 +10546,7 @@ function requestMappingAgreement(nationId) {
   let mapRefuseChance = 0.12;
   if (rulerTraitsM.includes('diplomatic')) mapRefuseChance -= 0.08;
   if (rulerTraitsM.includes('cruel') || rulerTraitsM.includes('reckless')) mapRefuseChance += 0.15;
-  const theyAtWarM = Object.values(nm.relations).some(r => r === 'war');
+  const theyAtWarM = nationAtRealWar(nm);
   if (theyAtWarM) mapRefuseChance += 0.25;
   if (loy >= 70) mapRefuseChance = Math.max(0, mapRefuseChance - 0.10);
   if (Math.random() < mapRefuseChance) {
@@ -10920,6 +10973,18 @@ function toggleDiplomacy(nationId) {
   const pn = nations[playerNation];
   const current = pn.relations[nationId] || 'peace';
   const next = current === 'war' ? 'peace' : 'war';
+  if (next === 'peace') {
+    // seeking peace is an offer: they weigh the armies and how they feel about you
+    if (!pn._peaceAsked) pn._peaceAsked = {};
+    if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${nations[nationId].name} has already answered this turn.`); return; }
+    pn._peaceAsked[nationId] = turnNumber;
+    const mil = id => units.filter(u => u.nationId === id && UNIT_DEFS[u.type]?.combat).length;
+    const chance = Math.max(0.1, Math.min(0.9, 0.35 + (mil(playerNation) - mil(nationId)) * 0.05 + (getLoyalty(nationId, playerNation) + 60) / 300));
+    if (Math.random() < chance) { acceptPeace(nationId); return; }
+    showToast(`${nations[nationId].name} refuses to make peace. Try again next turn, or give them reason to.`);
+    renderKingdoms();
+    return;
+  }
   if (next === 'war') {
     const cooldownUntil = pn._peaceCooldown?.[nationId] || 0;
     if (turnNumber < cooldownUntil) {
@@ -13040,6 +13105,9 @@ function deserializeGame(json) {
   planSelectUnit = null;
   currentEventNation = null;
   window._endTurnBusy = false;
+  window._gameOver = false;
+  // drop the previous game's map caches (camps, sites, territory, vision)
+  invalidateRenderLookups(); _tileCityMapDirty = true; visionDirty = true; minimapDirty = true;
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
@@ -13384,6 +13452,7 @@ function resetRuntimeState() {
   prevResources = null;
   currentEventNation = null;
   window._endTurnBusy = false;
+  window._gameOver = false;
   eventLogEntries = [];
   characters = []; nextCharId = 1;
   families = []; nextFamilyId = 1;
