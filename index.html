@@ -706,7 +706,7 @@
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
         - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
         - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games<br>
-        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court and on each realm's card in Kingdoms
+        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court, on each realm's card in Kingdoms, at a first meeting, on a declaration of war (over a war camp) and among the candidates of an election
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -1320,7 +1320,7 @@
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
         - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
         - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games<br>
-        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court and on each realm's card in Kingdoms
+        - <b>Portraits</b>: rulers and consorts are painted in the court dress of their own people, in the Court, on each realm's card in Kingdoms, at a first meeting, on a declaration of war (over a war camp) and among the candidates of an election
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -2887,10 +2887,10 @@ function showElectionModal(nationId, candidates) {
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
     const traitDescs = c.traits.map(t => `<span style="color:#d4a856">${escHtml(t)}</span>: ${escHtml(CHARACTER_TRAITS[t]?.desc || '')}`).join(', ');
-    html += `<div style="border:1px solid rgba(180,140,60,0.3);border-radius:4px;padding:10px;margin:6px 0;cursor:pointer;transition:background 0.2s;"
+    html += `<div style="border:1px solid rgba(180,140,60,0.3);border-radius:4px;padding:10px;margin:6px 0;cursor:pointer;overflow:hidden;transition:background 0.2s;"
       onmouseover="this.style.background='rgba(180,140,60,0.15)'" onmouseout="this.style.background=''"
       onclick="window._electCandidate(${i})">`;
-    html += `<b>${escHtml(c.name)}</b> (Age ${c.age | 0}, ${escHtml(c.gender)})<br>`;
+    html += `<img class="portrait" src="${portraitOf(Object.assign({ nationId }, c))}" alt="" style="width:40px;height:40px;float:left;margin-right:10px;"><b>${escHtml(c.name)}</b> (Age ${c.age | 0}, ${escHtml(c.gender)})<br>`;
     html += `<span style="font-size:12px;">${traitDescs}</span>`;
     html += `</div>`;
   }
@@ -4490,11 +4490,12 @@ function showWarDeclaration(nation) {
   if (existing) existing.remove();
   const overlay = document.createElement('div');
   overlay.id = 'warDeclOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:160;background:rgba(80,10,5,0.85);display:flex;align-items:center;justify-content:center;animation:warFlash 0.3s ease-out;';
+  overlay.style.cssText = "position:fixed;inset:0;z-index:160;background:linear-gradient(rgba(80,10,5,0.7),rgba(40,6,3,0.9)),url('events/camp.jpg') center/cover;display:flex;align-items:center;justify-content:center;animation:warFlash 0.3s ease-out;";
+  const wc = safeColor(nation.color), warRuler = getNationRuler(nation.id);
   overlay.innerHTML = `<div style="text-align:center;padding:40px;">
-    <div style="width:80px;height:80px;border-radius:50%;background:${nation.color};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
-      <span style="font-size:40px;">\u2694\uFE0F</span>
-    </div>
+    ${warRuler ? `<img class="portrait" src="${portraitOf(warRuler)}" alt="" style="width:104px;height:104px;display:block;margin:0 auto 16px;border:3px solid ${wc};box-shadow:0 0 30px rgba(255,60,30,0.6);">
+      <div style="font-size:12px;color:#d8b8a0;margin:-8px 0 10px;">${escHtml(warRuler.name)}</div>`
+    : `<div style="width:80px;height:80px;border-radius:50%;background:${wc};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;"><span style="font-size:40px;">\u2694\uFE0F</span></div>`}
     <h1 style="color:#ff4444;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 0 20px rgba(255,50,30,0.6);margin-bottom:10px;">War Declared!</h1>
     <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${escHtml(nation.name)}</strong> has declared war on your kingdom!</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
