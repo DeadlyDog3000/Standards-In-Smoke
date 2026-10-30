@@ -658,6 +658,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Ruins &amp; Raiders</b><br>
+        - <b>Ancient ruins</b> lie scattered across the wild land. The first unit of any realm to reach them finds something: a strongbox of gold, scholars' notes for your research, a sealed granary, an old map of the country round about, or a veterans' cache of arms<br>
+        - Barbarian camps are drawn as camps: hide tents round a fire, a ring of stakes and a ragged black banner<br>
+        - Raiders <b>sack</b> any town of three or more people (as they do a capital) instead of burning it down; only small villages can still be razed<br>
+        - A soft vignette frames the map
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Seasons, Sentries &amp; Settlers</b><br>
@@ -1247,7 +1255,15 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.8</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Ruins &amp; Raiders</b><br>
+        - <b>Ancient ruins</b> lie scattered across the wild land. The first unit of any realm to reach them finds something: a strongbox of gold, scholars' notes for your research, a sealed granary, an old map of the country round about, or a veterans' cache of arms<br>
+        - Barbarian camps are drawn as camps: hide tents round a fire, a ring of stakes and a ragged black banner<br>
+        - Raiders <b>sack</b> any town of three or more people (as they do a capital) instead of burning it down; only small villages can still be razed<br>
+        - A soft vignette frames the map
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Seasons, Sentries &amp; Settlers</b><br>
         - <b>Seasons show on the land:</b> snow lies in winter, the woods turn gold in autumn, spring greens<br>
@@ -5585,7 +5601,7 @@ function doAttack(attacker, tx, ty) {
   addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
 }
 
-// Barbarians don't raze a capital: they plunder it, burn a building and make off with the loot
+// Barbarians don't raze a capital or a town of 3+: they plunder it, burn a building and make off with the loot
 function sackCapital(city, raider) {
   const owner = nations[city.nationId];
   const gold = Math.floor((owner.gold || 0) * 0.4), food = Math.floor((owner.food || 0) * 0.3);
@@ -5644,7 +5660,7 @@ function tickCityCapture() {
         if (city.captureProgress[occupier.nationId] >= 4) {
           const oldOwner = city.nationId;
 
-          if (isBarbarianNation(occupier.nationId) && city.isCapital) {
+          if (isBarbarianNation(occupier.nationId) && (city.isCapital || (city.population || 1) >= 3)) { // a real town is plundered; only a village can be burned to the ground
             sackCapital(city, occupier);
             continue;
           }
@@ -7813,6 +7829,7 @@ function _finishEndTurnImpl() {
   try { tickMilitia(); } catch(e) { console.error('tickMilitia error:', e); }
   try { rebuildRoads(); } catch(e) { console.error('rebuildRoads error:', e); }
   try { updateCityThreats(); } catch(e) { console.error('updateCityThreats error:', e); }
+  try { claimRuins(); } catch(e) { console.error('claimRuins error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   if (window._gameOver) return; // the game ended this turn: no more turn, autosave or events
@@ -9254,6 +9271,105 @@ function drawRoads(w, facePad, ch, pId) {
   ctx.restore();
 }
 
+// ---- Ancient ruins: scattered over the wild land; the first unit of any realm to reach one finds something ----
+function scatterRuins() {
+  const want = Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 260));
+  let placed = 0;
+  for (let tries = 0; tries < want * 40 && placed < want; tries++) {
+    const x = Math.floor(Math.random() * MAP_COLS), y = Math.floor(Math.random() * MAP_ROWS), t = tiles[y * MAP_COLS + x];
+    if (t.type === 0 || t.type === 4 || t.owner >= 0 || t.ruins) continue;
+    if (cities.some(c => hexDistance(c.x, c.y, x, y) < 4) || barbarianCamps.some(b => hexDistance(b.x, b.y, x, y) < 2)) continue;
+    if (units.some(u => u.x === x && u.y === y)) continue;
+    t.ruins = true; placed++;
+  }
+}
+const RUIN_FINDS = [
+  { w: 3, f: (n, u) => { const g = 25 + Math.floor(Math.random() * 40); n.gold = (n.gold || 0) + g; return `a buried strongbox: +${g} gold`; } },
+  { w: 2, f: (n, u) => { if (!n.currentResearch) { const g = 30; n.gold = (n.gold || 0) + g; return `old coins: +${g} gold`; } n.researchProgress = (n.researchProgress || 0) + 25; return `scholars' notes: +25 research`; } },
+  { w: 2, f: (n, u) => { n.food = (n.food || 0) + 30; return 'a sealed granary: +30 food'; } },
+  { w: 2, f: (n, u) => { revealAround(u.x, u.y, 6, u.nationId); return 'an old map of the country round about'; } },
+  { w: 1, f: (n, u) => { if (!UNIT_DEFS[u.type]?.combat) { n.steel = (n.steel || 0) + 20; return 'a rusted armoury: +20 steel'; } awardXP(u, 10); return 'a veterans\' cache of arms: +10 experience'; } },
+];
+function claimRuins() {
+  let any = false;
+  for (const u of units) {
+    const t = tiles[u.y * MAP_COLS + u.x];
+    if (!t || !t.ruins) continue;
+    const n = nations[u.nationId];
+    if (!n || n.isBarbarian) continue;
+    t.ruins = false; any = true;
+    let roll = Math.random() * RUIN_FINDS.reduce((a, r) => a + r.w, 0), find = RUIN_FINDS[0];
+    for (const r of RUIN_FINDS) { roll -= r.w; if (roll <= 0) { find = r; break; } }
+    const what = find.f(n, u);
+    if (u.nationId === playerNation) {
+      showToast(`🏛 Your ${u.type.replace(/_/g, ' ')} explores ancient ruins and finds ${what}!`);
+      addFloatingText(u.x, u.y, 'Ruins explored!', '#e0c880', 2200, 14);
+      playAchievement();
+    }
+  }
+  if (any) { updateUI(); render(); }
+}
+function drawRuins(cx, cy, w) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + w * 0.05, w * 0.3, w * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+  const col = (x, h) => {
+    const cw = w * 0.095;
+    ctx.fillStyle = '#d8d0bc'; ctx.fillRect(x - cw / 2, cy - h, cw, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(x + cw * 0.1, cy - h, cw * 0.4, h);
+    ctx.fillStyle = '#e8e2d0'; ctx.fillRect(x - cw * 0.7, cy - h - cw * 0.35, cw * 1.4, cw * 0.35);
+  };
+  col(cx - w * 0.2, w * 0.34); col(cx + w * 0.02, w * 0.2); col(cx + w * 0.22, w * 0.38);
+  // the fallen lintel
+  ctx.fillStyle = '#cfc6b0';
+  ctx.save(); ctx.translate(cx - w * 0.04, cy - w * 0.02); ctx.rotate(-0.25); ctx.fillRect(-w * 0.17, -w * 0.035, w * 0.34, w * 0.07); ctx.restore();
+  ctx.restore();
+}
+
+// A raiders' camp: hide tents round a fire behind a ring of stakes, a ragged black banner over it
+function drawCamp(camp, cx, cy, w, faceH) {
+  let seed = (camp.x * 92821) ^ (camp.y * 68917);
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const rx = w * 0.36, ry = faceH * 0.3;
+  ctx.save();
+  ctx.fillStyle = 'rgba(70, 50, 30, 0.5)';
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+  // stakes round the back
+  ctx.strokeStyle = '#5a4026'; ctx.lineWidth = Math.max(1, w * 0.018);
+  for (let a = Math.PI * 1.05; a < Math.PI * 1.95; a += 0.16) {
+    const px = cx + Math.cos(a) * rx * 1.1, py = cy + Math.sin(a) * ry * 1.15;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py - w * 0.09); ctx.stroke();
+  }
+  const tents = [];
+  for (let i = 0; i < 4; i++) { const a = Math.PI * (0.9 + i * 0.55) + rnd() * 0.3; tents.push({ x: cx + Math.cos(a) * rx * 0.72, y: cy + Math.sin(a) * ry * 0.7, s: 0.85 + rnd() * 0.3, c: rnd() }); }
+  tents.sort((p, q) => p.y - q.y);
+  for (const t of tents) {
+    const tw = w * 0.15 * t.s, th = tw * 0.85;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(t.x + tw * 0.1, t.y, tw * 0.6, tw * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = t.c < 0.5 ? '#8a6a48' : '#a08058';
+    ctx.beginPath(); ctx.moveTo(t.x - tw / 2, t.y); ctx.lineTo(t.x, t.y - th); ctx.lineTo(t.x + tw / 2, t.y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.moveTo(t.x, t.y - th); ctx.lineTo(t.x + tw / 2, t.y); ctx.lineTo(t.x, t.y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#2e2116';
+    ctx.beginPath(); ctx.moveTo(t.x - tw * 0.1, t.y); ctx.lineTo(t.x, t.y - th * 0.45); ctx.lineTo(t.x + tw * 0.1, t.y); ctx.closePath(); ctx.fill();
+  }
+  // the fire
+  const fx = cx - rx * 0.15, fyy = cy + ry * 0.35;
+  const glow = ctx.createRadialGradient(fx, fyy, 0, fx, fyy, w * 0.2);
+  glow.addColorStop(0, 'rgba(255, 190, 80, 0.75)'); glow.addColorStop(1, 'rgba(255, 120, 30, 0)');
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(fx, fyy, w * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffcf6a';
+  ctx.beginPath(); ctx.moveTo(fx - w * 0.03, fyy); ctx.quadraticCurveTo(fx, fyy - w * 0.1, fx + w * 0.03, fyy); ctx.closePath(); ctx.fill();
+  // the banner
+  const bx = cx + rx * 0.45, by = cy - ry * 0.5;
+  ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = Math.max(1, w * 0.015);
+  ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - w * 0.3); ctx.stroke();
+  ctx.fillStyle = '#1c1612';
+  ctx.beginPath(); ctx.moveTo(bx, by - w * 0.3); ctx.lineTo(bx + w * 0.13, by - w * 0.27); ctx.lineTo(bx + w * 0.09, by - w * 0.22); ctx.lineTo(bx + w * 0.13, by - w * 0.17); ctx.lineTo(bx, by - w * 0.19); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
 // A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
 function drawTown(city, cx, cy, w, faceH) {
   let seed = (city.x * 73856093) ^ (city.y * 19349663);
@@ -9458,6 +9574,8 @@ function render() {
     ctx.fillStyle = 'rgba(10, 8, 5, 0.5)'; ctx.fill(fogDeep);
   }
 
+  // a unit standing on ruins explores them (settled just after this frame, not while drawing)
+  if (!window._ruinCheck && units.some(u => tiles[u.y * MAP_COLS + u.x]?.ruins)) window._ruinCheck = setTimeout(() => { window._ruinCheck = 0; claimRuins(); }, 0);
   const roadKey = turnNumber + '|' + cities.length;
   if (_roadsKey !== roadKey) { rebuildRoads(); _roadsKey = roadKey; }
 
@@ -9688,18 +9806,22 @@ function render() {
     }
 
     if (VIEW_TILE >= 12) {
+      if (t.ruins && VIEW_TILE >= 14) drawRuins(sx + w / 2, fy + faceH / 2 + faceH * 0.12, w);
       const camp = _campMap && _campMap.get(i);
       if (camp) {
         if (!camp.destroyed) {
           ctx.fillStyle = 'rgba(180, 50, 30, 0.35)';
           drawHexPath(ctx, sx, fy, w, faceH);
           ctx.fill();
-          ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.28, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#f44';
-          ctx.font = `bold ${Math.max(9, w * 0.4)}px system-ui`;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('\uD83D\uDD25', sx + w / 2, fy + faceH / 2);
+          if (VIEW_TILE >= 18) drawCamp(camp, sx + w / 2, fy + faceH / 2, w, faceH);
+          else {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.28, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#f44';
+            ctx.font = `bold ${Math.max(9, w * 0.4)}px system-ui`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('\uD83D\uDD25', sx + w / 2, fy + faceH / 2);
+          }
         } else {
 
           ctx.fillStyle = 'rgba(100, 40, 20, 0.15)';
@@ -10083,6 +10205,13 @@ function render() {
     ctx.save(); ctx.globalAlpha = 0.05; ctx.fillStyle = '#aaccff'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   } else if (currentSeason === 'autumn') {
     ctx.save(); ctx.globalAlpha = 0.03; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
+  }
+  // a soft vignette, like the edge of an old painting, so the eye rests on the middle of the map
+  {
+    const r = Math.hypot(viewW, viewH) / 2;
+    const vg = ctx.createRadialGradient(viewW / 2, viewH / 2, r * 0.55, viewW / 2, viewH / 2, r);
+    vg.addColorStop(0, 'rgba(15, 10, 5, 0)'); vg.addColorStop(1, 'rgba(15, 10, 5, 0.32)');
+    ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = vg; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   }
 
   renderFloatingTexts();
@@ -11848,7 +11977,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-5.8';
+const CURRENT_VERSION = 'beta-5.9';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13826,6 +13955,7 @@ function serializeGame() {
     if (t.spriteKey) ct.s = t.spriteKey;
     if (t.hasRiver) ct.rv = true;
     if (t.riverTo !== undefined) ct.rt = t.riverTo;
+    if (t.ruins) ct.ru = 1;
     if (t.animal) ct.an = t.animal;
     return ct;
   });
@@ -13883,7 +14013,7 @@ function deserializeGame(json) {
       const type = d.v >= 10 ? t.t : (t.t === 7 ? 2 : t.t); // v10+ has hills (7) and rivers (8)
       const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
       const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
-      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, animal: t.an || null };
+      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, ruins: !!t.ru, animal: t.an || null };
     });
   } else {
 
@@ -14383,6 +14513,7 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
   spawnCitySitesAcrossMap(extraSites);
+  scatterRuins();
 
   if (barbarianDensity > 0) {
     spawnBarbarianCamp();
