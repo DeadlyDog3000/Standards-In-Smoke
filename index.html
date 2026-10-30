@@ -35,6 +35,12 @@
     #menu > *:not(.menu-bg) { position: relative; z-index: 3; }
     #menu h1 { font-size: 86px; color: #f0e2c0; font-style: italic; text-shadow: 2px 3px 8px rgba(0,0,0,0.8), 0 0 30px rgba(180,140,60,0.4); margin-bottom: 6px; letter-spacing: 3px; }
     #menu h1, #menu h2 { text-align: center; padding: 0 16px; }
+    /* dark scrollbars, to match the panels (the browser's white ones glared in every log and list) */
+    * { scrollbar-width: thin; scrollbar-color: rgba(180, 150, 80, 0.45) rgba(20, 16, 10, 0.6); }
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-track { background: rgba(20, 16, 10, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(180, 150, 80, 0.45); border-radius: 5px; border: 2px solid rgba(20, 16, 10, 0.6); }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 86, 0.7); }
     #menu h1 { font-size: clamp(40px, 11vw, 86px); }
     #menuMain { text-align: center; padding: 0 16px; max-width: 100%; }
     @media (max-width: 600px) { #menuMain .menu-btn { display: block; margin: 8px auto; min-width: 0; width: min(260px, 80vw); } }
@@ -3503,10 +3509,28 @@ function researchTech(nationId, techKey) {
 
   const tech = TECHS[techKey];
   if (!tech) return false;
-  const overflow = Math.max(0, (nations[nationId].researchProgress || 0) - (tech.cost || 0));
-  nations[nationId].researched.add(techKey);
-  nations[nationId].currentResearch = null;
-  nations[nationId].researchProgress = overflow;
+  const n = nations[nationId];
+  n.researched.add(techKey);
+  if (n.techProgress) delete n.techProgress[techKey];
+  // (a tech given some other way — an event, a treaty — leaves the one being studied as it was)
+  if (n.currentResearch === techKey) {
+    n.researchProgress = Math.max(0, (n.researchProgress || 0) - (tech.cost || 0));   // (what's left over carries on)
+    n.currentResearch = null;
+    // on toward the goal, if one is set: the next tech its road needs
+    if (n.researchGoal) {
+      const next = nationHasTech(nationId, n.researchGoal) ? null : researchPathNext(nationId, n.researchGoal);
+      if (next) {
+        setResearchTarget(nationId, next);
+        if (nationId === playerNation) setTimeout(() => showToast(`On toward ${TECHS[n.researchGoal].name}: now researching ${TECHS[next].name}`), 1600);
+      } else if (nationHasTech(nationId, n.researchGoal)) n.researchGoal = null;
+      else if (nationId === playerNation) {
+        // (the road is blocked by something other than learning — horses to be had: the goal is kept, and you're told)
+        const stuck = [...researchPathSet(nationId, n.researchGoal)].find(k => TECHS[k].prereqs.every(p => nationHasTech(nationId, p)));
+        const why = stuck && TECHS[stuck].needsResource === 'horses' ? `${TECHS[stuck].name} needs horses: a pasture, or a herd tile in your lands` : `${stuck ? TECHS[stuck].name : 'the next tech'} can't be studied yet`;
+        setTimeout(() => showToast(`On the way to ${TECHS[n.researchGoal].name}: ${why}.`), 1600);
+      } else n.researchGoal = null;
+    }
+  }
   if (nationId === playerNation) {
     showToast(`Researched ${tech.name}!`);
     playTechUnlockFX();
@@ -3522,14 +3546,33 @@ function researchTech(nationId, techKey) {
 
 function setResearchTarget(nationId, techKey) {
   if (!nationCanResearch(nationId, techKey)) return false;
-  nations[nationId].currentResearch = techKey;
-  nations[nationId].researchProgress = nations[nationId].researchProgress || 0;
-
-  if (nations[nationId]._lastResearch !== techKey) {
-    nations[nationId].researchProgress = 0;
-    nations[nationId]._lastResearch = techKey;
-  }
+  const n = nations[nationId];
+  if (!n.techProgress) n.techProgress = {};
+  if (n.currentResearch === techKey) return true;
+  // what's been done on a tech is kept when you turn to another, and taken up again when you come back to it;
+  //  and what was left over from the last one finished goes on into the new one
+  const carry = n.currentResearch ? 0 : (n.researchProgress || 0);
+  if (n.currentResearch) n.techProgress[n.currentResearch] = n.researchProgress || 0;
+  n.currentResearch = techKey;
+  n.researchProgress = (n.techProgress[techKey] || 0) + carry;
+  delete n.techProgress[techKey];
+  n._lastResearch = techKey;
   return true;
+}
+
+// the road to a tech not yet in reach: of everything it still needs (itself included), the one to study next — the
+//  earliest in the tree that can be studied now
+function researchPathNext(nationId, goal) {
+  const ready = [...researchPathSet(nationId, goal)].filter(k => nationCanResearch(nationId, k));
+  const depthOf = k => { const f = x => !TECHS[x] || !TECHS[x].prereqs.length ? 0 : 1 + Math.max(...TECHS[x].prereqs.map(f)); return f(k); };
+  ready.sort((a, b) => depthOf(a) - depthOf(b) || TECHS[a].cost - TECHS[b].cost);
+  return ready[0] || null;
+}
+// (everything a tech still needs before it, and itself)
+function researchPathSet(nationId, goal) {
+  const need = new Set(), stack = [goal];
+  while (stack.length) { const k = stack.pop(); if (need.has(k) || nationHasTech(nationId, k) || !TECHS[k]) continue; need.add(k); for (const p of TECHS[k].prereqs) stack.push(p); }
+  return need;
 }
 
 function tickResearch(nationId) {
@@ -11120,6 +11163,7 @@ function closeTechTree() {
 window.showTechTree = showTechTree;
 window.closeTechTree = closeTechTree;
 
+window._clearResearchGoal = function() { const n = nations[playerNation]; if (n) n.researchGoal = null; _buildTechTreeOverlay(); };
 window.doResearch = function(tKey) {
   if (setResearchTarget(playerNation, tKey)) {
     showToast(`Now researching: ${TECHS[tKey].name}`);
@@ -11155,29 +11199,39 @@ function _buildTechTreeOverlay() {
     { key: 'growth', label: '🌿 Growth', color: '#40a860' },
   ];
 
+  // three bands, one for each kind of tech; in each, a column for each step down the tree, and the techs in a column
+  //  ordered after the ones they come from, so the lines between them cross as little as they can
   const techLayout = {}; // key -> { col, row, section }
-  let globalRow = 0;
+  const bands = [];
+  let rowBase = 0;
   for (const sec of SECTIONS) {
-    const secTechs = Object.entries(TECHS)
-      .filter(([, t]) => t.section === sec.key)
-      .sort((a, b) => depth[a[0]] - depth[b[0]] || a[0].localeCompare(b[0]));
-    for (const [key] of secTechs) {
-      techLayout[key] = { col: depth[key], row: globalRow, section: sec.key };
-      globalRow++;
+    const cols = {};
+    for (const k of Object.keys(TECHS)) if (TECHS[k].section === sec.key) (cols[depth[k]] ||= []).push(k);
+    const ds = Object.keys(cols).map(Number).sort((a, b) => a - b);
+    if (!ds.length) continue;
+    let rows = 0;
+    const bary = k => { const ps = TECHS[k].prereqs.filter(p => techLayout[p]); return ps.length ? ps.reduce((a, p) => a + techLayout[p].row, 0) / ps.length : 1e3; };
+    for (const d of ds) {
+      cols[d].sort((a, b) => bary(a) - bary(b) || TECHS[a].cost - TECHS[b].cost || a.localeCompare(b));
+      cols[d].forEach((k, i) => { techLayout[k] = { col: d, row: rowBase + i, section: sec.key }; });
+      rows = Math.max(rows, cols[d].length);
     }
-    globalRow++; // gap between sections
+    bands.push({ sec, row0: rowBase, rows });
+    rowBase += rows + 0.45;
   }
 
   const maxCol = Math.max(...Object.values(techLayout).map(l => l.col));
-  const NODE_W = 160, NODE_H = 72, COL_GAP = 48, ROW_GAP = 12;
+  const NODE_W = 168, NODE_H = 72, COL_GAP = 54, ROW_GAP = 14, LEFT = 118;
   const COLS = maxCol + 1;
-  const ROWS = globalRow;
-  const CANVAS_W = COLS * (NODE_W + COL_GAP) + COL_GAP;
-  const CANVAS_H = ROWS * (NODE_H + ROW_GAP) + ROW_GAP + 16;
+  const CANVAS_W = LEFT + COLS * (NODE_W + COL_GAP);
+  const CANVAS_H = Math.ceil(ROW_GAP + rowBase * (NODE_H + ROW_GAP) + 8);
+  const DPR = Math.min(2, window.devicePixelRatio || 1);
+  const goal = n.researchGoal && !nationHasTech(playerNation, n.researchGoal) ? n.researchGoal : null;
+  const goalPath = goal ? researchPathSet(playerNation, goal) : null;
 
   function nodePos(key) {
     const l = techLayout[key];
-    const x = COL_GAP + l.col * (NODE_W + COL_GAP) + NODE_W / 2;
+    const x = LEFT + l.col * (NODE_W + COL_GAP) + NODE_W / 2;
     const y = ROW_GAP + l.row * (NODE_H + ROW_GAP) + NODE_H / 2;
     return { x, y };
   }
@@ -11212,6 +11266,9 @@ function _buildTechTreeOverlay() {
         <div style="display:inline-block;vertical-align:middle;width:100px;height:6px;background:rgba(0,0,0,0.4);border-radius:3px;margin-left:6px;">
           <div style="background:#d4a856;height:100%;width:${pct}%;border-radius:3px;"></div>
         </div>` : `&nbsp;·&nbsp;<span style="color:#6a6060;">No research selected</span>`}
+      ${goal ? `&nbsp;·&nbsp;<span style="color:#e8c070;">⚑ Goal: ${TECHS[goal].name}</span> <span style="color:#8a7a5a;">(${goalPath.size} to go)</span>
+        <button onclick="window._clearResearchGoal()" style="margin-left:4px;background:none;border:1px solid rgba(180,150,80,0.35);color:#a89878;border-radius:3px;font-size:10px;padding:1px 6px;cursor:pointer;">clear</button>` : ''}
+      <div style="color:#7a6a50;font-size:10px;margin-top:3px;">Click a tech to study it · click one still locked to make it your goal, and the techs on the way are studied in turn</div>
     </div>
     <button onclick="closeTechTree()" style="
       background:rgba(80,20,20,0.5);border:1px solid rgba(200,80,60,0.4);
@@ -11231,17 +11288,34 @@ function _buildTechTreeOverlay() {
   scroll.style.cssText = 'flex:1;overflow:auto;padding:16px;';
 
   const cvs = document.createElement('canvas');
-  cvs.width = CANVAS_W;
-  cvs.height = CANVAS_H;
-  cvs.style.cssText = `display:block;cursor:pointer;`;
+  cvs.width = Math.round(CANVAS_W * DPR);
+  cvs.height = Math.round(CANVAS_H * DPR);
+  cvs.style.cssText = `display:block;cursor:pointer;margin:0 auto;width:${CANVAS_W}px;height:${CANVAS_H}px;`;
   scroll.appendChild(cvs);
   overlay.appendChild(scroll);
   document.body.appendChild(overlay);
 
   const ctx2 = cvs.getContext('2d');
 
+  let hoverKey = null;
   function drawTree() {
+    ctx2.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx2.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    // the road to the tech under the pointer (or else to the goal), lit
+    const hov = hoverKey && !nationHasTech(playerNation, hoverKey) ? researchPathSet(playerNation, hoverKey) : null;
+    const lit = hov || goalPath;
+
+    // the bands, each with its name
+    for (const b of bands) {
+      const y0 = ROW_GAP / 2 + b.row0 * (NODE_H + ROW_GAP), h = b.rows * (NODE_H + ROW_GAP);
+      ctx2.fillStyle = b.sec.color + '12';
+      _roundRect(ctx2, 6, y0, CANVAS_W - 12, h, 8); ctx2.fill();
+      ctx2.save();
+      ctx2.translate(LEFT / 2 - 6, y0 + h / 2);
+      ctx2.fillStyle = b.sec.color; ctx2.font = 'bold 14px Cinzel, serif'; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+      ctx2.fillText(b.sec.label, 0, 0);
+      ctx2.restore();
+    }
 
     ctx2.lineWidth = 1.5;
     for (const [key, tech] of Object.entries(TECHS)) {
@@ -11250,7 +11324,9 @@ function _buildTechTreeOverlay() {
         if (!techLayout[prereqKey]) continue;
         const from = nodePos(prereqKey);
         const researched = nationHasTech(playerNation, prereqKey);
-        ctx2.strokeStyle = researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
+        const onRoad = lit && lit.has(key) && (lit.has(prereqKey) || researched);
+        ctx2.strokeStyle = onRoad ? 'rgba(240,200,100,0.95)' : researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
+        ctx2.lineWidth = onRoad ? 2.6 : 1.5;
         ctx2.beginPath();
 
         const fx = from.x + NODE_W / 2, fy = from.y;
@@ -11264,7 +11340,7 @@ function _buildTechTreeOverlay() {
         ctx2.save();
         ctx2.translate(tx2, ty2);
         ctx2.rotate(angle);
-        ctx2.fillStyle = researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
+        ctx2.fillStyle = onRoad ? 'rgba(240,200,100,0.95)' : researched ? 'rgba(180,150,60,0.6)' : 'rgba(80,70,50,0.4)';
         ctx2.beginPath();
         ctx2.moveTo(0, 0); ctx2.lineTo(-10, -4); ctx2.lineTo(-10, 4);
         ctx2.closePath(); ctx2.fill();
@@ -11302,6 +11378,15 @@ function _buildTechTreeOverlay() {
       ctx2.lineWidth = isActive ? 2.5 : 1.5;
       _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
       ctx2.stroke();
+      // (on the road lit: a dashed gold edge; the goal itself, a flag)
+      if (lit && lit.has(key) && !isActive) {
+        ctx2.save(); ctx2.setLineDash([5, 4]); ctx2.strokeStyle = '#e8c070'; ctx2.lineWidth = 1.6;
+        _roundRect(ctx2, nx - 3, ny - 3, NODE_W + 6, NODE_H + 6, 8); ctx2.stroke(); ctx2.restore();
+      }
+      if (key === goal) {
+        ctx2.font = '11px sans-serif'; ctx2.fillStyle = '#f0c060'; ctx2.textAlign = 'right'; ctx2.textBaseline = 'top';
+        ctx2.fillText('⚑ goal', nx + NODE_W - 6, ny + 8);
+      }
 
       if (isActive) {
         ctx2.save();
@@ -11318,7 +11403,7 @@ function _buildTechTreeOverlay() {
       _roundRect(ctx2, nx, ny, 4, NODE_H, 4);
       ctx2.fill();
 
-      const alpha = (researched || prereqsMet || isActive) ? 1.0 : 0.38;
+      const alpha = (researched || prereqsMet || isActive) ? 1.0 : (lit && lit.has(key)) ? 0.85 : 0.6;
       ctx2.globalAlpha = alpha;
 
       ctx2.font = 'bold 12px Cinzel, serif';
@@ -11333,7 +11418,7 @@ function _buildTechTreeOverlay() {
       ctx2.font = '10px sans-serif';
       ctx2.fillStyle = '#a89878';
       const turnsEst = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '?';
-      ctx2.fillText(`${tech.cost} sci · ${turnsEst}t`, nx + 10, ny + 26, NODE_W - 20);
+      ctx2.fillText(`${tech.cost} sci · ${turnsEst}t${tech.needsResource === 'horses' && !researched && !canDo ? ' · needs horses' : ''}`, nx + 10, ny + 26, NODE_W - 20);
 
       const unlockIcons = tech.unlocks.map(u => {
         const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
@@ -11373,8 +11458,8 @@ function _buildTechTreeOverlay() {
 
   cvs.addEventListener('click', (e) => {
     const rect = cvs.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (cvs.width / rect.width);
-    const my = (e.clientY - rect.top) * (cvs.height / rect.height);
+    const mx = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+    const my = (e.clientY - rect.top) * (CANVAS_H / rect.height);
     for (const [key] of Object.entries(TECHS)) {
       const { x, y } = nodePos(key);
       const nx = x - NODE_W / 2, ny = y - NODE_H / 2;
@@ -11383,18 +11468,29 @@ function _buildTechTreeOverlay() {
         if (!nationCanResearch(playerNation, key)) {
           const t = TECHS[key];
           const missing = t.prereqs.filter(p => !nationHasTech(playerNation, p)).map(p => TECHS[p]?.name || p).join(', ');
-          if (missing) { showToast(`Requires: ${missing}`); return; }
+          // locked: it becomes the goal, and the first tech on the way to it is studied now
+          if (missing) {
+            const next = researchPathNext(playerNation, key);
+            if (!next) { showToast(`Requires: ${missing}`); return; }
+            n.researchGoal = key;
+            const steps = researchPathSet(playerNation, key).size;
+            if (n.currentResearch && researchPathSet(playerNation, key).has(n.currentResearch)) showToast(`Goal: ${t.name} (${steps} techs). Carrying on with ${TECHS[n.currentResearch].name}.`);
+            else { setResearchTarget(playerNation, next); showToast(`Goal: ${t.name} (${steps} techs). Researching ${TECHS[next].name} first.`); }
+            _buildTechTreeOverlay(); updateUI();
+            return;
+          }
           if (t.needsResource === 'horses') { showToast(`Requires a pasture or herd tile to research ${t.name}.`); return; }
           showToast(`Cannot research ${t.name} yet.`);
           return;
         }
+        // (studying a tech off the goal's road lets the goal go)
+        if (n.researchGoal && !researchPathSet(playerNation, n.researchGoal).has(key)) n.researchGoal = null;
         window.doResearch(key);
         return;
       }
     }
   }, { signal });
 
-  let hoverKey = null;
   const tooltip = document.createElement('div');
   tooltip.style.cssText = `
     position:fixed;z-index:210;background:rgba(10,8,4,0.97);border:1px solid rgba(180,150,80,0.5);
@@ -11406,8 +11502,8 @@ function _buildTechTreeOverlay() {
 
   cvs.addEventListener('mousemove', (e) => {
     const rect = cvs.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (cvs.width / rect.width);
-    const my = (e.clientY - rect.top) * (cvs.height / rect.height);
+    const mx = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+    const my = (e.clientY - rect.top) * (CANVAS_H / rect.height);
     let found = null;
     for (const [key] of Object.entries(TECHS)) {
       const { x, y } = nodePos(key);
@@ -11417,6 +11513,7 @@ function _buildTechTreeOverlay() {
     }
     if (found !== hoverKey) {
       hoverKey = found;
+      drawTree();
       if (found) {
         const t = TECHS[found];
         const researched = nationHasTech(playerNation, found);
