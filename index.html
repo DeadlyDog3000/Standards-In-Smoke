@@ -6233,7 +6233,7 @@ function checkElimination() {
     return;
   }
 
-  if (turnNumber >= 200) {
+  if (turnNumber >= 200 && !nations[playerNation].scoreSettled) {
     let bestId = playerNation, bestScore = getScore(playerNation);
     for (let i = 0; i < nations.length; i++) {
       if (nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe || nations[i].isPlayer) continue;
@@ -6256,6 +6256,14 @@ function getScoreBreakdown(nationId) {
   return { cityCount, tileCount, techCount, combatCount, civilianCount, eliminated, total: getScore(nationId) };
 }
 
+// (after the score is counted at turn 200: play on — the result stands in the history, and it isn't counted again)
+window._keepPlaying = function(id) {
+  document.getElementById(id)?.remove();
+  window._gameOver = false;
+  if (nations[playerNation]) nations[playerNation].scoreSettled = true;
+  showToast('The tally is made — the realm goes on.');
+  updateUI(); render();
+};
 function showVictory(type) {
   window._gameOver = true;
   hidePanel();
@@ -6265,7 +6273,7 @@ function showVictory(type) {
     : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
   overlay.id = 'victoryOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(10,8,3,0.92);display:flex;align-items:center;justify-content:center;';
+  overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,8,3,0.45),rgba(10,8,3,0.88) 70%),url('events/victory.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
     <h1 style="color:#d4a856;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(212,168,86,0.5);">${typeLabel}!</h1>
     <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
@@ -6284,6 +6292,7 @@ function showVictory(type) {
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
     <button class="menu-btn" onclick="document.getElementById('victoryOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+    ${type === 'score' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('victoryOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
   </div>`;
   document.body.appendChild(overlay);
   saveVictoryToHistory(type, s);
@@ -6365,7 +6374,7 @@ function showDefeat(type, winnerId) {
   }
   const overlay = document.createElement('div');
   overlay.id = 'defeatOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(10,5,3,0.92);display:flex;align-items:center;justify-content:center;';
+  overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,5,3,0.5),rgba(10,5,3,0.9) 70%),url('events/defeat.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
     <h1 style="color:#c44;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(200,60,40,0.5);">${title}</h1>
     <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
@@ -6383,6 +6392,7 @@ function showDefeat(type, winnerId) {
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
     <button class="menu-btn" onclick="document.getElementById('defeatOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+    ${type === 'score' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('defeatOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
   </div>`;
   document.body.appendChild(overlay);
 }
