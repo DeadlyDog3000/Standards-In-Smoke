@@ -80,6 +80,23 @@
     #topbar .spacer { flex: 1; min-width: 4px; }
     .top-btn .btn-full { display: inline; }
     .top-btn .btn-short { display: none; }
+    .top-btn .btn-ico { display: none; }
+    .res-mark { display: none; color: #b8a070; font-size: 12px; }
+    #topbar .top-btn, #endTurnBtn { flex-shrink: 0; }
+    /* Narrower than a wide desktop: the buttons as icons, then the resources' names too (on hover instead) — so the whole
+       bar, End Turn and all, fits a laptop instead of running off the right edge */
+    @media (max-width: 1450px) {
+      .res-label { display: none; }
+      .res-mark { display: inline; }
+      .res-val { min-width: 0; }
+    }
+    @media (max-width: 1650px) {
+      #topbar { gap: 10px; }
+      .top-btn:not(.end-turn) .btn-full { display: none; }
+      .top-btn:not(.end-turn) .btn-ico { display: inline; }
+      .top-btn:not(.end-turn) { padding: 3px 8px; font-size: 14px; }
+      .top-btn.end-turn { font-weight: bold; padding: 4px 16px; }
+    }
 
     /* Compact: hide resource labels, keep icon+value — triggers at ~1050px */
     @media (max-width: 1050px) {
@@ -89,8 +106,8 @@
       .top-btn { padding: 4px 8px; font-size: 12px; }
     }
 
-    /* Narrow: two-row topbar — triggers at ~780px */
-    @media (max-width: 780px) {
+    /* Narrow: two-row topbar — once the one row (about 830px at its most compact) no longer fits */
+    @media (max-width: 880px) {
       #topbar {
         height: auto; flex-wrap: wrap; gap: 4px 8px;
         padding: 4px 8px 4px; align-items: center;
@@ -107,6 +124,7 @@
       .top-btn .btn-full { display: none; }
       .top-btn .btn-short { display: inline; }
       .top-btn { padding: 4px 6px; font-size: 11px; }
+      .top-btn:not(.end-turn) .btn-short { display: none; }
       .res-icon { width: 10px; height: 10px; }
       .res-val { min-width: 16px; font-size: 11px; }
       #topbar { gap: 3px 6px; font-size: 11px; }
@@ -1109,26 +1127,26 @@
   <canvas id="map"></canvas>
   <canvas id="minimap" width="160" height="100"></canvas>
   <div id="topbar">
-    <div class="res"><span class="res-icon" style="background:#d4a856"></span><span class="res-label">Gold:</span><span class="res-val" id="resGold">0</span><span class="res-rate" id="rateGold"></span></div>
-    <div class="res"><span class="res-icon" style="background:#8bc34a"></span><span class="res-label">Food:</span><span class="res-val" id="resFood">0</span><span class="res-rate" id="rateFood"></span></div>
-    <div class="res"><span class="res-icon" style="background:#8d6e3f"></span><span class="res-label">Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
-    <div class="res"><span class="res-icon" style="background:#9e9e9e"></span><span class="res-label">Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
-    <div class="res"><span class="res-icon" style="background:#607d8b"></span><span class="res-label">Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
-    <div class="res"><span class="res-icon" style="background:#3a3a3a"></span><span class="res-label">Gunpowder:</span><span class="res-val" id="resGunpowder">0</span><span class="res-rate" id="rateGunpowder"></span></div>
-    <div class="res"><span class="res-icon" style="background:#7c4dff"></span><span class="res-label">Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
+    <div class="res" title="Gold (and how much more a turn)"><span class="res-icon" style="background:#d4a856"></span><span class="res-label">Gold:</span><span class="res-val" id="resGold">0</span><span class="res-rate" id="rateGold"></span></div>
+    <div class="res" title="Food (and how much more a turn)"><span class="res-icon" style="background:#8bc34a"></span><span class="res-label">Food:</span><span class="res-val" id="resFood">0</span><span class="res-rate" id="rateFood"></span></div>
+    <div class="res" title="Wood (and how much more a turn)"><span class="res-icon" style="background:#8d6e3f"></span><span class="res-label">Wood:</span><span class="res-val" id="resWood">0</span><span class="res-rate" id="rateWood"></span></div>
+    <div class="res" title="Stone (and how much more a turn)"><span class="res-icon" style="background:#9e9e9e"></span><span class="res-label">Stone:</span><span class="res-val" id="resStone">0</span><span class="res-rate" id="rateStone"></span></div>
+    <div class="res" title="Steel (and how much more a turn)"><span class="res-icon" style="background:#607d8b"></span><span class="res-label">Steel:</span><span class="res-val" id="resSteel">0</span><span class="res-rate" id="rateSteel"></span></div>
+    <div class="res" title="Gunpowder (and how much more a turn)"><span class="res-icon" style="background:#3a3a3a"></span><span class="res-label">Gunpowder:</span><span class="res-val" id="resGunpowder">0</span><span class="res-rate" id="rateGunpowder"></span></div>
+    <div class="res" title="Science (and how much more a turn)"><span class="res-icon" style="background:#7c4dff"></span><span class="res-label">Science:</span><span class="res-val" id="resScience">0</span><span class="res-rate" id="rateScience"></span></div>
     <div class="spacer"></div>
-    <div class="res"><span style="color:#d4a856">⚜</span><span class="res-label">Legit:</span><span class="res-val" id="resLegitimacy">50</span></div>
-    <div class="res"><span class="res-label">Orders:</span><span class="res-val" id="resOrders">0</span></div>
-    <div class="res"><span class="res-label" style="color:#b8a070">Turn</span><span class="res-val" id="turnCounter">1</span></div>
-    <div class="res"><span class="res-label" style="color:#d4a856">Score:</span><span class="res-val" id="playerScore">0</span></div>
+    <div class="res" title="Legitimacy: how firmly your rule is accepted"><span style="color:#d4a856">⚜</span><span class="res-label">Legit:</span><span class="res-val" id="resLegitimacy">50</span></div>
+    <div class="res" title="Orders left this turn"><span class="res-mark">⚑</span><span class="res-label">Orders:</span><span class="res-val" id="resOrders">0</span></div>
+    <div class="res" title="Turn"><span class="res-mark">⌛</span><span class="res-label" style="color:#b8a070">Turn</span><span class="res-val" id="turnCounter">1</span></div>
+    <div class="res" title="Score"><span class="res-mark">★</span><span class="res-label" style="color:#d4a856">Score:</span><span class="res-val" id="playerScore">0</span></div>
     <div class="res" id="seasonIndicator" style="color:#8ac;font-size:12px;"></div>
-    <button class="top-btn" onclick="showTechTree()"><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
-    <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
-    <button class="top-btn" onclick="toggleCourt()">Court</button>
-    <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)">Laws</button>
-    <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)">Market</button>
+    <button class="top-btn" onclick="showTechTree()" title="Tech tree (T)"><span class="btn-ico">⚗</span><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
+    <button class="top-btn" onclick="toggleKingdoms()" title="Kingdoms: the other realms, war and peace, pacts and trade"><span class="btn-ico">♛</span><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
+    <button class="top-btn" onclick="toggleCourt()" title="Court: your ruler, heirs and the great families"><span class="btn-ico">👑</span><span class="btn-full">Court</span></button>
+    <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)"><span class="btn-ico">📜</span><span class="btn-full">Laws</span></button>
+    <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)"><span class="btn-ico">⚖</span><span class="btn-full">Market</span></button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
-    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
+    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-ico">➜</span><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
