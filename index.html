@@ -90,7 +90,7 @@
       .res-mark { display: inline; }
       .res-val { min-width: 0; }
     }
-    @media (max-width: 1650px) {
+    @media (max-width: 1720px) {
       #topbar { gap: 10px; }
       .top-btn:not(.end-turn) .btn-full { display: none; }
       .top-btn:not(.end-turn) .btn-ico { display: inline; }
@@ -176,6 +176,16 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    #empirePanel { position: fixed; top: 50px; left: 50%; transform: translateX(-50%); width: 760px; max-width: 96vw; max-height: 78vh; overflow: auto; z-index: 60; background: rgba(30, 25, 18, 0.97); border: 2px solid rgba(180, 140, 60, 0.4); border-radius: 8px; padding: 12px 14px; color: #e8dcc8; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+    #empirePanel .emp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    #empirePanel h3 { color: #e0c880; font-family: 'Uncial Antiqua', cursive; font-size: 20px; margin: 0; }
+    #empirePanel .emp-head .diplo-btn { margin-left: auto; }
+    #empirePanel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #empirePanel th { text-align: left; color: #a89878; font-weight: normal; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid rgba(180, 140, 60, 0.3); }
+    #empirePanel td { padding: 6px; border-bottom: 1px solid rgba(160, 140, 100, 0.12); white-space: nowrap; }
+    #empirePanel td i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+    #empirePanel tbody tr { cursor: pointer; } #empirePanel tbody tr:hover { background: rgba(212, 168, 86, 0.1); }
+    .emp-dim { color: #8a7a5a; font-size: 11px; } .emp-warn { color: #e0a060; }
     #topbar.tut-lift { z-index: 101; }
     .tut-spot { position: fixed; z-index: 101; pointer-events: none; border: 2px solid #f0c860; border-radius: 6px; box-shadow: 0 0 0 3px rgba(240, 200, 96, 0.25), 0 0 18px rgba(240, 200, 96, 0.6); animation: tutPulse 1.4s ease-in-out infinite; }
     @keyframes tutPulse { 50% { box-shadow: 0 0 0 5px rgba(240, 200, 96, 0.12), 0 0 26px rgba(240, 200, 96, 0.8); } }
@@ -1198,6 +1208,7 @@
     <button class="top-btn" onclick="toggleCourt()" title="Court: your ruler, heirs and the great families"><span class="btn-ico">👑</span><span class="btn-full">Court</span></button>
     <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)"><span class="btn-ico">📜</span><span class="btn-full">Laws</span></button>
     <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)"><span class="btn-ico">⚖</span><span class="btn-full">Market</span></button>
+    <button class="top-btn" onclick="toggleEmpirePanel()" title="Empire: all your cities at a glance (O)"><span class="btn-ico">🏛</span><span class="btn-full">Empire</span></button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
     <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-ico">➜</span><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
@@ -1240,6 +1251,7 @@
         <b>T</b> &mdash; Tech Tree<br>
         <b>L</b> &mdash; Laws Panel<br>
         <b>M</b> &mdash; Market<br>
+        <b>O</b> &mdash; Empire: all your cities at a glance<br>
         <b>K</b> &mdash; Kingdoms Panel<br>
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
@@ -13150,6 +13162,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   if (e.key === 'l') { toggleLawsPanel(); e.preventDefault(); }
   if (e.key === 'm') { toggleMarketPanel(); e.preventDefault(); }
+  if (e.key === 'o') { toggleEmpirePanel(); e.preventDefault(); }
 
   if (e.key === 'n') { cycleToNextUnit(true); e.preventDefault(); }
 
@@ -13765,6 +13778,41 @@ function aiUseMarket(nationId) {
     while ((n.gold || 0) < 120 && (n[res] || 0) > 150 + MARKET_LOT && lots < 6) { marketSell(nationId, res); lots++; }
   }
 }
+// ---- the Empire: every city of yours in one table — its people and mood, what it makes, what it's building and when it's
+//  done, who guards it; click a row to go there ----
+window.toggleEmpirePanel = function() {
+  const old = document.getElementById('empirePanel');
+  if (old) { old.remove(); return; }
+  const mine = cities.filter(c => c.nationId === playerNation && !c.ruined);
+  const el = document.createElement('div'); el.id = 'empirePanel';
+  const COL = { gold: '#d4a856', food: '#8bc34a', science: '#7c4dff' };
+  let tot = { gold: 0, food: 0, science: 0, pop: 0 };
+  const rows = mine.map(c => {
+    const y = getCityYields(c), mood = getCityLoyaltyStatus(c), surplus = y.food - getCityFoodUpkeep(c);
+    tot.gold += y.gold || 0; tot.food += surplus; tot.science += y.science || 0; tot.pop += c.population || 1;
+    const guards = units.filter(u => u.nationId === playerNation && u.x === c.x && u.y === c.y && UNIT_DEFS[u.type]?.combat).length;
+    const prod = c.producing ? `${escHtml(getProductionName(c.producing))} <span class="emp-dim">${getProductionTurns(c)}t</span>` : '<span class="emp-warn">nothing</span>';
+    return `<tr onclick="window._empireGo(${c.x},${c.y})">
+      <td><b>${escHtml(c.name)}</b>${c.isCapital ? ' <span class="emp-dim">★</span>' : ''}</td>
+      <td>${c.population || 1}</td>
+      <td style="color:${mood.color}">${escHtml(mood.label || mood.status)}</td>
+      <td style="color:${surplus > 0 ? '#9ad08a' : '#e08070'}">${surplus > 0 ? '+' : ''}${surplus.toFixed(1)}</td>
+      <td><i style="background:${COL.gold}"></i>${(y.gold || 0).toFixed(1)}</td>
+      <td><i style="background:${COL.science}"></i>${(y.science || 0).toFixed(1)}</td>
+      <td>${prod}</td>
+      <td class="${guards ? '' : 'emp-warn'}">${guards || 'none'}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<div class="emp-head"><h3>Empire</h3><span class="emp-dim">${mine.length} ${mine.length === 1 ? 'city' : 'cities'} · ${tot.pop} people · food ${tot.food >= 0 ? '+' : ''}${tot.food.toFixed(1)} · gold +${tot.gold.toFixed(1)} · science +${tot.science.toFixed(1)} a turn</span><button class="diplo-btn" onclick="toggleEmpirePanel()">Close</button></div>
+    <table><thead><tr><th>City</th><th>Pop</th><th>Mood</th><th>Food</th><th>Gold</th><th>Science</th><th>Building</th><th>Guards</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="emp-dim">No cities yet.</td></tr>'}</tbody></table>`;
+  document.body.appendChild(el);
+};
+window._empireGo = function(x, y) {
+  document.getElementById('empirePanel')?.remove();
+  const c = cities.find(c => c.x === x && c.y === y); if (!c) return;
+  panCameraTo(x, y); selectedUnit = null; selectedCity = c; showCityPanel(c); render();
+};
+
 window.toggleMarketPanel = function() {
   const panel = document.getElementById('marketPanel');
   if (!panel) return;
