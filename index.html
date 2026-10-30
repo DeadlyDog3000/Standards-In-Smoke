@@ -175,6 +175,13 @@
       border-radius: 6px; padding: 14px; z-index: 25; font-size: 13px; color: #e8dcc8;
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
+    .ycity { margin: 4px 0 6px; }
+    #topbar.tut-lift { z-index: 101; }
+    .tut-spot { position: fixed; z-index: 101; pointer-events: none; border: 2px solid #f0c860; border-radius: 6px; box-shadow: 0 0 0 3px rgba(240, 200, 96, 0.25), 0 0 18px rgba(240, 200, 96, 0.6); animation: tutPulse 1.4s ease-in-out infinite; }
+    @keyframes tutPulse { 50% { box-shadow: 0 0 0 5px rgba(240, 200, 96, 0.12), 0 0 26px rgba(240, 200, 96, 0.8); } }
+    .ychips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .ychip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 5px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(160, 140, 100, 0.2); font-size: 11px; color: #e8dcc8; }
+    .ychip i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
     #kingdoms { width: 330px; max-height: calc(100vh - 200px); }
     .kcard { border: 1px solid rgba(160, 140, 100, 0.22); border-left: 3px solid var(--kc); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 10%, transparent), rgba(0,0,0,0.12) 60%); }
     .kcard.gone { opacity: 0.4; }
@@ -3981,6 +3988,7 @@ function showOrdersExhaustedPopup() {
 }
 
 function checkEndTurnReminders() {
+  if (typeof tutorialActive !== 'undefined' && tutorialActive) return;   // (the tutorial first; these come after it)
   if (eventModalOpen || techTreeOpen) return;
   const idleCities = cities.filter(c => c.nationId === playerNation && !c.ruined && !c.producing && !(c.productionQueue?.length));
   if (idleCities.length > 0) {
@@ -10363,7 +10371,9 @@ function showCityPanel(city) {
   selectedCity = city;
   const panel = document.getElementById('panel');
   const y = getCityYields(city);
-  const yStr = Object.entries(y).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
+  // (what the city makes a turn, as chips in the top bar's colours, each named on hover)
+  const Y_COL = { gold: '#d4a856', food: '#8bc34a', wood: '#8d6e3f', stone: '#9e9e9e', steel: '#607d8b', gunpowder: '#3a3a3a', science: '#7c4dff' };
+  const yStr = `<span class="ychips">${Object.entries(y).filter(([, v]) => v > 0).map(([k, v]) => `<span class="ychip" title="${k} a turn"><i style="background:${Y_COL[k] || '#888'}"></i>+${v.toFixed(1)}</span>`).join('')}</span>`;
   let prodStr = 'None';
   if (city.producing) {
     const bld = CITY_BUILDING_DEFS[city.producing];
@@ -10378,7 +10388,7 @@ function showCityPanel(city) {
   const loyalty = getCityLoyaltyStatus(city);
   const queue = city.productionQueue || [];
   const queueStr = queue.length > 0 ? `<br><span style="font-size:11px;color:#998;">Queue: ${queue.map(q => getProductionName(q)).join(' → ')}</span>` : '';
-  html += `<p>Yields/turn: ${yStr}<br>Producing: ${prodStr}${queueStr}</p>`;
+  html += `<div class="ycity">${yStr}</div><p>Producing: ${prodStr}${queueStr}</p>`;
   html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
   html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
   if (loyalty.discontent) {
@@ -14057,12 +14067,12 @@ function tribeAI(nationId) {
 
 const TUTORIAL_STEPS = [
   { title: 'Welcome to Standards In Smoke', text: 'Build your civilization from a small settlement into a mighty empire. Expand your territory, research technologies, and conquer your rivals.' },
-  { title: 'Resources', text: 'The top bar shows your resources: Gold, Food, Wood, Stone, Steel, and Science. Cities with improvements generate these each turn. Keep an eye on food - more cities consume more!' },
+  { title: 'Resources', target: '#topbar', text: 'The top bar shows your resources: Gold, Food, Wood, Stone, Steel, and Science. Cities with improvements generate these each turn. Keep an eye on food - more cities consume more!' },
   { title: 'Your City', text: 'Click your city tile to manage production. Train workers to build improvements, settlers to found new cities, scouts to explore, and soldiers to defend your lands.' },
   { title: 'Moving Units', text: 'Click a unit to select it - reachable tiles highlight in blue. Click to move there. Use Go To (G) to set multi-turn waypoints. Ranged units (R) can attack from 2 tiles away.' },
-  { title: 'End Turn', text: 'Press End Turn (E) when done. Cities produce resources, units regain moves, and AI nations take their turns. The game autosaves each turn and every 3 minutes.' },
-  { title: 'Technology & Diplomacy', text: 'Press T to open the tech tree - spend science to unlock new units and improvements. Watch the Kingdoms panel to track relations - nations may declare war if loyalty drops!' },
-  { title: 'Good Luck, Commander!', text: 'Explore with scouts, expand with settlers, improve tiles with workers, and build your army. Rush production with science when time is short. May your empire endure!' },
+  { title: 'End Turn', target: '#endTurnBtn', text: 'Press End Turn (E) when done. Cities produce resources, units regain moves, and AI nations take their turns. The game autosaves each turn and every 3 minutes.' },
+  { title: 'Technology & Diplomacy', target: '#topbar .top-btn[onclick="showTechTree()"], #topbar .top-btn[onclick="toggleKingdoms()"]', text: 'Press T to open the tech tree - spend science to unlock new units and improvements. Watch the Kingdoms panel to track relations - nations may declare war if loyalty drops!' },
+  { title: 'Good Luck, Commander!', text: 'Explore with scouts, expand with settlers, improve tiles with workers, and build your army. Rush production with gold when time is short. May your empire endure!' },
 ];
 let tutorialActive = false, tutorialStep = 0;
 
@@ -14076,6 +14086,7 @@ function showTutorialStep() {
   if (tutorialStep >= TUTORIAL_STEPS.length) {
     overlay.style.display = 'none'; tutorialActive = false;
     localStorage.setItem('sis_tutorial_done', 'true');
+    endTutorialShade();
     return;
   }
   const s = TUTORIAL_STEPS[tutorialStep];
@@ -14084,18 +14095,35 @@ function showTutorialStep() {
     <div style="background:rgba(30,25,18,0.97);border:1px solid rgba(160,140,100,0.5);border-radius:8px;padding:28px;max-width:440px;text-align:center;">
       <h3 style="color:#e0c880;margin:0 0 12px;font-size:18px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">${s.title}</h3>
       <p style="color:#c8b8a0;line-height:1.6;margin:0 0 18px;font-size:14px;">${s.text}</p>
-      <button class="p-btn" onclick="nextTutorialStep()" style="min-width:140px;">${btnText}</button>
+      <button class="p-btn" onclick="nextTutorialStep()" style="min-width:160px;width:auto;display:inline-block;text-align:center;">${btnText}</button>
       <div style="margin-top:10px;font-size:11px;color:#8a7a5a;">Step ${tutorialStep + 1} of ${TUTORIAL_STEPS.length}</div>
     </div>
-    <button class="p-btn" onclick="skipTutorial()" style="position:absolute;top:16px;right:16px;font-size:12px;">Skip Tutorial</button>
+    <button class="p-btn" onclick="skipTutorial()" style="position:absolute;top:56px;right:16px;width:auto;font-size:12px;">Skip Tutorial</button>
   `;
   overlay.style.display = 'flex';
+  // (what the card speaks of, ringed in light above the shade)
+  document.querySelectorAll('.tut-spot').forEach(e => e.remove());
+  // (and lifted out of the shade, so it can be seen as well as found)
+  document.getElementById('topbar').classList.toggle('tut-lift', !!(s.target && s.target.includes('topbar') || s.target === '#endTurnBtn'));
+  if (s.target) for (const el of document.querySelectorAll(s.target)) {
+    const r = el.getBoundingClientRect(); if (!r.width) continue;
+    const spot = document.createElement('div'); spot.className = 'tut-spot';
+    spot.style.cssText = `left:${r.left - 4}px;top:${r.top - 3}px;width:${r.width + 8}px;height:${r.height + 6}px;`;
+    document.body.appendChild(spot);
+  }
+}
+function endTutorialShade() {
+  document.querySelectorAll('.tut-spot').forEach(e => e.remove());
+  document.getElementById('topbar').classList.remove('tut-lift');
+  // (and now what was held back while it ran: idle cities, research to choose)
+  setTimeout(() => { try { checkEndTurnReminders(); } catch (e) {} }, 300);
 }
 window.nextTutorialStep = function() { tutorialStep++; showTutorialStep(); };
 window.skipTutorial = function() {
   document.getElementById('tutorial-overlay').style.display = 'none';
   tutorialActive = false;
   localStorage.setItem('sis_tutorial_done', 'true');
+  endTutorialShade();
 };
 
 function startGame(cols, rows, pName, pColor, opponents) {
