@@ -1785,6 +1785,14 @@
 
 const canvas = document.getElementById('map');
 const ctx = canvas.getContext('2d');
+// The map is drawn at the screen's real pixel density (sharp on Retina); viewW/viewH are its size in CSS pixels, which all layout uses
+let DPR = 1, viewW = window.innerWidth, viewH = window.innerHeight;
+function sizeMapCanvas() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  viewW = window.innerWidth; viewH = window.innerHeight;
+  canvas.width = Math.round(viewW * DPR); canvas.height = Math.round(viewH * DPR);
+  canvas.style.width = viewW + 'px'; canvas.style.height = viewH + 'px';
+}
 const minimapCanvas = document.getElementById('minimap');
 const mctx = minimapCanvas.getContext('2d');
 
@@ -2639,7 +2647,7 @@ function renderFloatingTexts() {
     const yOff = -t * 40;
     const pos = hexScreenPos(ft.col, ft.row);
     const sx = pos.x + w / 2, sy = pos.y + facePad + ch / 2 + yOff;
-    if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) continue;
+    if (sx < -50 || sx > viewW + 50 || sy < -50 || sy > viewH + 50) continue;
     ctx.save();
     ctx.globalAlpha = Math.max(0, alpha);
     ctx.font = `bold ${ft.fontSize}px 'EB Garamond', serif`;
@@ -2926,9 +2934,9 @@ function updateAmbientBirds() {
   if (VIEW_TILE >= 28) {
     const cs = hexColStep(), ch = hexCellH();
     const startRow = Math.max(0, Math.floor(camY));
-    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(canvas.height / ch) + 2);
+    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(viewH / ch) + 2);
     const startCol = Math.max(0, Math.floor(camX));
-    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(canvas.width / cs) + 2);
+    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(viewW / cs) + 2);
     for (let my = startRow; my < endRow && !forestVisible; my++) {
       for (let mx = startCol; mx < endCol; mx++) {
         if (tiles[my * MAP_COLS + mx].type === 5) { forestVisible = true; break; }
@@ -2962,9 +2970,9 @@ function updateAmbientTown() {
   if (VIEW_TILE >= 28) {
     const cs = hexColStep(), ch = hexCellH();
     const startRow = Math.max(0, Math.floor(camY));
-    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(canvas.height / ch) + 2);
+    const endRow = Math.min(MAP_ROWS, Math.floor(camY) + Math.ceil(viewH / ch) + 2);
     const startCol = Math.max(0, Math.floor(camX));
-    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(canvas.width / cs) + 2);
+    const endCol = Math.min(MAP_COLS, Math.floor(camX) + Math.ceil(viewW / cs) + 2);
     for (let my = startRow; my < endRow && !townVisible; my++) {
       for (let mx = startCol; mx < endCol; mx++) {
         const t = tiles[my * MAP_COLS + mx];
@@ -8626,12 +8634,12 @@ function getTileCityMap() {
   return _tileCityMap;
 }
 function render() {
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any accumulated transform from shake or aborted frames
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
-  viewCols = Math.ceil(canvas.width / cs) + 3;
-  viewRows = Math.ceil(canvas.height / ch) + 3;
+  viewCols = Math.ceil(viewW / cs) + 3;
+  viewRows = Math.ceil(viewH / ch) + 3;
   ctx.fillStyle = '#2a2a2a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, viewW, viewH);
 
   const shake = getShakeOffset();
   if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
@@ -8662,7 +8670,7 @@ function render() {
         const t = tiles[i];
         const sx = mx * cs - camXcs;
         const sy = baseWorldY + (mx & 1) * halfCh;
-        if (sx < -w * 2 || sy < -ch * 2 || sx > canvas.width + w || sy > canvas.height + ch) continue;
+        if (sx < -w * 2 || sy < -ch * 2 || sx > viewW + w || sy > viewH + ch) continue;
         if (!t.revealed.has(pId)) continue;
 
         const img = hexImages[t.spriteKey] || hexImages['Grass_Plants'];
@@ -8705,7 +8713,7 @@ function render() {
         if (currentVisionSet.has(i)) continue;
         const sx = mx * cs - camXcs;
         const fy = baseWorldY + (mx & 1) * halfCh + facePad;
-        if (sx < -w * 2 || fy < -ch * 2 || sx > canvas.width + w || fy > canvas.height + ch) continue;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
 
         const dirs = (mx & 1) ? oddNbr : evenNbr;
         let isEdge = false;
@@ -8727,7 +8735,7 @@ function render() {
     const t = tiles[i];
     const sx = mx * cs - camXcs;
     const fy = baseWorldY + (mx & 1) * halfCh + facePad; // face y position
-    if (sx < -w * 2 || fy < -ch * 2 || sx > canvas.width + w || fy > canvas.height + ch) continue;
+    if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
     if (!t.revealed.has(pId)) continue;
 
     if (t.improvement && VIEW_TILE >= 16) {
@@ -8872,7 +8880,7 @@ function render() {
     const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
     if (!tiles[key].revealed.has(pId)) continue;
     const pos = hexScreenPos(rx, ry);
-    if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
     ctx.fillStyle = (buyTileMode || workerBuyMode) ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
     drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
     ctx.fill();
@@ -8883,7 +8891,7 @@ function render() {
     const rx = idx % MAP_COLS, ry = Math.floor(idx / MAP_COLS);
     if (!tiles[idx]?.revealed.has(pId)) continue;
     const pos = hexScreenPos(rx, ry);
-    if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
 
     ctx.save();
     ctx.globalAlpha = 0.38;
@@ -8918,7 +8926,7 @@ function render() {
       const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
       if (!tiles[key]?.revealed.has(pId)) continue;
       const pos = hexScreenPos(rx, ry);
-      if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+      if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
       ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#ff4444';
       drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
     }
@@ -8929,7 +8937,7 @@ function render() {
       const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
       if (!tiles[key]?.revealed.has(pId)) continue;
       const pos = hexScreenPos(rx, ry);
-      if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+      if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
       ctx.save(); ctx.globalAlpha = 0.3; ctx.fillStyle = '#44ffaa';
       drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
     }
@@ -8978,7 +8986,7 @@ function render() {
           ctx.save();
           ctx.font = `bold ${Math.max(10, w * 0.29)}px system-ui`;
           const tw2 = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + 16;
-          const bx = Math.min(Math.max(pos.x + w / 2 - tw2 / 2, 4), canvas.width - tw2 - 4);
+          const bx = Math.min(Math.max(pos.x + w / 2 - tw2 / 2, 4), viewW - tw2 - 4);
           const by2 = Math.max(pos.y + facePad - 54, 4);
           ctx.fillStyle = 'rgba(20,16,10,0.93)';
           ctx.fillRect(bx, by2, tw2, 46);
@@ -9035,7 +9043,7 @@ function render() {
       if (currentVisionSet && !currentVisionSet.has(tIdx)) continue;
     }
     const pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
-    if (pos.x < -w || pos.y < -ch || pos.x > canvas.width + w || pos.y > canvas.height + ch) continue;
+    if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
     if (u.nationId !== pId) discoverNation(u.nationId);
     const nCol = nations[u.nationId].color;
 
@@ -9203,9 +9211,9 @@ function render() {
   }
 
   if (currentSeason === 'winter') {
-    ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = '#aaccff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = '#aaccff'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   } else if (currentSeason === 'autumn') {
-    ctx.save(); ctx.globalAlpha = 0.05; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.05; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   }
 
   renderFloatingTexts();
@@ -9220,7 +9228,7 @@ function render() {
   const ti = document.getElementById('turnInfo'); if (ti.textContent !== turnStr) ti.textContent = turnStr;
   const zi = document.getElementById('zoomInfo'); if (zi.textContent !== zoomStr) zi.textContent = zoomStr;
 
-  if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
   const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime;
   if (hasEffects && !selectionFlashRAF && !animationBlocking) {
@@ -9240,7 +9248,7 @@ function updateCityLabels() {
     const fp = Math.round(drawH * 2 / 48);
     const sx = pos.x + w / 2;
     const sy = pos.y + fp - Math.max(4, ch * 0.15);
-    if (sx < -100 || sy < -20 || sx > canvas.width + 100 || sy > canvas.height + 20) continue;
+    if (sx < -100 || sy < -20 || sx > viewW + 100 || sy > viewH + 20) continue;
     let el = _labelCache[idx];
     if (!el) {
       el = document.createElement('div');
@@ -11345,8 +11353,8 @@ canvas.addEventListener('wheel', (e) => {
   const newCS = hexColStep(), newCH = hexCellH();
   camX = Math.max(0, Math.round(worldX - mx / newCS));
   camY = Math.max(0, Math.round(worldY - my / newCH));
-  viewCols = Math.ceil(canvas.width / newCS) + 3;
-  viewRows = Math.ceil(canvas.height / newCH) + 3;
+  viewCols = Math.ceil(viewW / newCS) + 3;
+  viewRows = Math.ceil(viewH / newCH) + 3;
   camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
   camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
   render(); updateUI();
@@ -11392,8 +11400,8 @@ canvas.addEventListener('touchmove', (e) => {
       const newCS = hexColStep(), newCH = hexCellH();
       camX = Math.max(0, Math.round(worldX - midX / newCS));
       camY = Math.max(0, Math.round(worldY - midY / newCH));
-      viewCols = Math.ceil(canvas.width / newCS) + 3;
-      viewRows = Math.ceil(canvas.height / newCH) + 3;
+      viewCols = Math.ceil(viewW / newCS) + 3;
+      viewRows = Math.ceil(viewH / newCH) + 3;
       camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
       camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
       render();
@@ -12999,9 +13007,9 @@ function loadGame(slot) {
   document.getElementById('menu').style.display = 'none';
   stopMenuSlideshow();
   document.getElementById('game').style.display = 'block';
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
-  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  sizeMapCanvas();
+  viewCols = Math.ceil(viewW / hexColStep()) + 3;
+  viewRows = Math.ceil(viewH / hexCellH()) + 3;
   setTimeout(updateTopbarOffset, 50);
   if (deserializeGame(data)) {
 
@@ -13260,9 +13268,9 @@ function startGame(cols, rows, pName, pColor, opponents) {
   document.getElementById('menu').style.display = 'none';
   stopMenuSlideshow();
   document.getElementById('game').style.display = 'block';
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
-  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  sizeMapCanvas();
+  viewCols = Math.ceil(viewW / hexColStep()) + 3;
+  viewRows = Math.ceil(viewH / hexCellH()) + 3;
   setTimeout(updateTopbarOffset, 50);
   generateAndPlay(pName, pColor, opponents);
   startMusic();
@@ -13313,8 +13321,8 @@ function generateAndPlay(pName, pColor, opponents) {
   spawnCitySites(sp.x, sp.y, 3);
 
   VIEW_TILE = 32;
-  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
-  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  viewCols = Math.ceil(viewW / hexColStep()) + 3;
+  viewRows = Math.ceil(viewH / hexCellH()) + 3;
   const cx = Math.floor(viewCols / 2), cy = Math.floor(viewRows / 2);
   camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, sp.x - cx));
   camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, sp.y - cy));
@@ -13363,9 +13371,9 @@ function updateTopbarOffset() {
 
 window.addEventListener('resize', () => {
   if (!MAP_COLS) return;
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  viewCols = Math.ceil(canvas.width / hexColStep()) + 3;
-  viewRows = Math.ceil(canvas.height / hexCellH()) + 3;
+  sizeMapCanvas();
+  viewCols = Math.ceil(viewW / hexColStep()) + 3;
+  viewRows = Math.ceil(viewH / hexCellH()) + 3;
   updateTopbarOffset();
   render();
 });
