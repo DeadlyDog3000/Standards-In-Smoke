@@ -13148,11 +13148,22 @@ function findLandNear(cx, cy, radius, skipOccupied = false) {
 function findRandomCapitalSite() {
   const minDist = Math.max(12, Math.floor(Math.min(MAP_COLS, MAP_ROWS) / 6));
   for (let attempt = 0; attempt < 200; attempt++) {
-    const tx = Math.floor(Math.random() * MAP_COLS);
-    const ty = Math.floor(Math.random() * MAP_ROWS);
+    // keep starts off the map's very edge and give them land to work (relaxed if the map won't allow it)
+    const picky = attempt < 150, edge = picky ? Math.min(5, Math.floor(Math.min(MAP_COLS, MAP_ROWS) / 8)) : 0;
+    const tx = edge + Math.floor(Math.random() * (MAP_COLS - edge * 2));
+    const ty = edge + Math.floor(Math.random() * (MAP_ROWS - edge * 2));
     const t = tiles[ty * MAP_COLS + tx];
     if (!t || (t.type !== 1 && t.type !== 3 && t.type !== 5 && t.type !== 6)) continue;
     if (cities.some(c => hexDistance(c.x, c.y, tx, ty) < minDist)) continue;
+    if (picky) {
+      let land = 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+        const x = tx + dx, y = ty + dy;
+        if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS || hexDistance(tx, ty, x, y) > 2) continue;
+        if (tiles[y * MAP_COLS + x].type !== 0) land++;
+      }
+      if (land < 10) continue;
+    }
     return { x: tx, y: ty };
   }
 
