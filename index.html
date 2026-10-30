@@ -9409,6 +9409,72 @@ function drawCamp(camp, cx, cy, w, faceH) {
   ctx.restore();
 }
 
+// A building or wonder a town has raised, drawn small in the town
+function drawLandmark(kind, x, y, w) {
+  const u = w * 0.01; // one hundredth of a tile
+  const shadow = (hw) => { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x + u * 2, y, hw * 0.65, hw * 0.16, 0, 0, Math.PI * 2); ctx.fill(); };
+  const block = (bx, by, bw, bh, c) => { ctx.fillStyle = c; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(bx + bw * 0.6, by, bw * 0.4, bh); };
+  const roof = (bx, by, bw, rh, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(bx - u, by); ctx.lineTo(bx + bw / 2, by - rh); ctx.lineTo(bx + bw + u, by); ctx.closePath(); ctx.fill(); };
+  switch (kind) {
+    case 'granary': { // a barn and a round silo
+      shadow(u * 16);
+      block(x - u * 9, y - u * 8, u * 12, u * 8, '#a86b3c'); roof(x - u * 9, y - u * 8, u * 12, u * 6, '#6e3f22');
+      block(x + u * 4, y - u * 13, u * 6, u * 13, '#cbb98f');
+      ctx.fillStyle = '#8a7b5c'; ctx.beginPath(); ctx.ellipse(x + u * 7, y - u * 13, u * 3, u * 2, 0, Math.PI, 0); ctx.fill();
+      break;
+    }
+    case 'factory': { // brick works with a smoking chimney
+      shadow(u * 16);
+      block(x - u * 10, y - u * 9, u * 16, u * 9, '#8f4a35');
+      ctx.fillStyle = '#5b3a2c'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x - u * 10 + i * u * 5.3, y - u * 9); ctx.lineTo(x - u * 10 + i * u * 5.3 + u * 5.3, y - u * 9); ctx.lineTo(x - u * 10 + i * u * 5.3 + u * 5.3, y - u * 13); ctx.closePath(); ctx.fill(); }
+      block(x + u * 7, y - u * 20, u * 3.5, u * 20, '#7a3d2c');
+      ctx.fillStyle = 'rgba(200,200,200,0.55)'; ctx.beginPath(); ctx.arc(x + u * 10, y - u * 24, u * 3.5, 0, Math.PI * 2); ctx.arc(x + u * 14, y - u * 28, u * 4.5, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'great_library': { // a domed hall with a portico
+      shadow(u * 20);
+      block(x - u * 11, y - u * 10, u * 22, u * 10, '#e2dac4');
+      ctx.fillStyle = '#9fb3b8'; ctx.beginPath(); ctx.arc(x, y - u * 10, u * 7, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#efe9d8'; for (let i = 0; i < 4; i++) ctx.fillRect(x - u * 9 + i * u * 5.5, y - u * 9, u * 1.6, u * 9);
+      ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - u * 0.7, y - u * 20, u * 1.4, u * 3);
+      break;
+    }
+    case 'grand_cathedral': { // twin towers and a great rose
+      shadow(u * 20);
+      block(x - u * 9, y - u * 14, u * 18, u * 14, '#d7cdb2');
+      block(x - u * 11, y - u * 24, u * 6, u * 24, '#cfc4a6'); block(x + u * 5, y - u * 24, u * 6, u * 24, '#cfc4a6');
+      roof(x - u * 11, y - u * 24, u * 6, u * 9, '#55606b'); roof(x + u * 5, y - u * 24, u * 6, u * 9, '#55606b');
+      ctx.fillStyle = '#6b4aa0'; ctx.beginPath(); ctx.arc(x, y - u * 9, u * 3, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'royal_arsenal': { // a squat armoury and a cannon at its door
+      shadow(u * 18);
+      block(x - u * 10, y - u * 10, u * 18, u * 10, '#9b9384'); roof(x - u * 10, y - u * 10, u * 18, u * 5, '#4c4a46');
+      ctx.fillStyle = '#2a2622'; ctx.save(); ctx.translate(x + u * 9, y - u * 2); ctx.rotate(-0.35); ctx.fillRect(0, -u * 1.5, u * 9, u * 3); ctx.restore();
+      ctx.beginPath(); ctx.arc(x + u * 9, y - u * 0.5, u * 2.3, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'merchants_guild': { // a tall guildhall, gilded roof
+      shadow(u * 14);
+      block(x - u * 7, y - u * 16, u * 14, u * 16, '#e6d3a8'); roof(x - u * 7, y - u * 16, u * 14, u * 9, '#c9a24a');
+      ctx.fillStyle = '#5a4630'; for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) ctx.fillRect(x - u * 5 + i * u * 4, y - u * 14 + r * u * 6, u * 2, u * 3);
+      break;
+    }
+    case 'war_college': { // a colonnade under a pediment
+      shadow(u * 20);
+      ctx.fillStyle = '#d9d2c2'; ctx.fillRect(x - u * 12, y - u * 2, u * 24, u * 2);
+      ctx.fillStyle = '#ece6d6'; for (let i = 0; i < 5; i++) ctx.fillRect(x - u * 11 + i * u * 5, y - u * 12, u * 2, u * 10);
+      ctx.fillStyle = '#d9d2c2'; ctx.fillRect(x - u * 12, y - u * 14, u * 24, u * 2);
+      ctx.beginPath(); ctx.moveTo(x - u * 12, y - u * 14); ctx.lineTo(x, y - u * 20); ctx.lineTo(x + u * 12, y - u * 14); ctx.closePath(); ctx.fill();
+      break;
+    }
+    default: { // anything else: a plain hall
+      shadow(u * 14);
+      block(x - u * 7, y - u * 9, u * 14, u * 9, '#d9c7a0'); roof(x - u * 7, y - u * 9, u * 14, u * 6, '#7d3a2a');
+    }
+  }
+}
+
 // A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
 function drawTown(city, cx, cy, w, faceH) {
   let seed = (city.x * 73856093) ^ (city.y * 19349663);
@@ -9432,10 +9498,19 @@ function drawTown(city, cx, cy, w, faceH) {
     houses.push({ x: cx + Math.cos(a) * rx * r, y: cy + Math.sin(a) * ry * r, s: 0.8 + rnd() * 0.4, roof: rnd(), wall: rnd() });
   }
   if (city.isCapital) houses.push({ x: cx + rx * 0.05, y: cy - ry * 0.35, church: true, s: 1 });
+  // what the town has built stands among its houses: wonders round the back, the workaday buildings at the sides
+  const LANDMARK_SLOTS = [[-0.62, -0.25], [0.7, -0.2], [-0.35, 0.55], [0.45, 0.6], [-0.8, 0.25], [0.85, 0.3], [0.05, 0.75]];
+  let slot = 0;
+  for (const b of (city.buildings || [])) {
+    if (b === 'fortifications' || slot >= LANDMARK_SLOTS.length) continue;
+    const [ax, ay] = LANDMARK_SLOTS[slot++];
+    houses.push({ x: cx + rx * ax, y: cy + ry * ay, lm: b, s: 1 });
+  }
   houses.sort((p, q) => p.y - q.y);
   const roofs = ['#9a4330', '#7d3a2a', '#5f5a63', '#86563a'], walls = ['#e2d3b2', '#cdb894', '#d9c7a0'];
   for (const h of houses) {
     const hw = w * 0.12 * h.s, wh = hw * 0.62, rh = hw * 0.55;
+    if (h.lm) { drawLandmark(h.lm, h.x, h.y, w); continue; }
     if (h.church) {
       const tw = w * 0.085, th = w * 0.3;
       ctx.fillStyle = '#d6c6a2'; ctx.fillRect(h.x - tw / 2, h.y - th, tw, th);
