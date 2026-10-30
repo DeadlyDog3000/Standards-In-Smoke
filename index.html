@@ -664,6 +664,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Landmarks &amp; Mixed Armies</b><br>
+        - <b>Towns show what they've built:</b> a granary and its silo, a factory with a smoking chimney, and a landmark for each wonder (the Library's dome, the Cathedral's towers, the Arsenal and its cannon, the gilded Guildhall, the War College colonnade)<br>
+        - Rival armies are mixed: foot, horse and guns, with artillery kept to about a quarter (late-game rivals used to field nothing but field guns)<br>
+        - Rival workers build a first harbour once they know Navigation, so they can put ships to sea
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Ruins &amp; Raiders</b><br>
@@ -1263,7 +1270,14 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Landmarks &amp; Mixed Armies</b><br>
+        - <b>Towns show what they've built:</b> a granary and its silo, a factory with a smoking chimney, and a landmark for each wonder (the Library's dome, the Cathedral's towers, the Arsenal and its cannon, the gilded Guildhall, the War College colonnade)<br>
+        - Rival armies are mixed: foot, horse and guns, with artillery kept to about a quarter (late-game rivals used to field nothing but field guns)<br>
+        - Rival workers build a first harbour once they know Navigation, so they can put ships to sea
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Ruins &amp; Raiders</b><br>
         - <b>Ancient ruins</b> lie scattered across the wild land. The first unit of any realm to reach them finds something: a strongbox of gold, scholars' notes for your research, a sealed granary, an old map of the country round about, or a veterans' cache of arms<br>
@@ -6756,6 +6770,7 @@ function aiTurn(nationId) {
             else if (canBuildImprovement(u, 'farm')) buildImprovement(u, 'farm');
             else if (canBuildImprovement(u, 'treasury')) buildImprovement(u, 'treasury');
             else if (canBuildImprovement(u, 'science_lab')) buildImprovement(u, 'science_lab');
+            else if (canBuildImprovement(u, 'port') && !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port')) buildImprovement(u, 'port'); // a first harbour, so the realm can put to sea
             else if (canBuildImprovement(u, 'market')) buildImprovement(u, 'market');
             else if (canBuildImprovement(u, 'quarry')) buildImprovement(u, 'quarry');
             else {
@@ -7080,11 +7095,21 @@ function aiTurn(nationId) {
       const combatCount = combatUnits.length;
 
       let bestCombat = null;
-      for (let ci = availCombat.length - 1; ci >= 0; ci--) {
-        const costs = getScaledCosts(nationId, PRODUCTION_COSTS[availCombat[ci]]);
-        let canAfford = true;
-        for (const k in costs) if ((n[k] || 0) < costs[k] * 0.5) { canAfford = false; break; }
-        if (canAfford) { bestCombat = availCombat[ci]; break; }
+      // a balanced army: guns stay at most about a quarter of it, horse about a quarter, the rest foot
+      const roleOf = t => UNIT_DEFS[t]?.artillery ? 'guns' : /cavalry|hussar|lancer|dragoon/.test(t) ? 'horse' : 'foot';
+      const roleCount = { guns: 0, horse: 0, foot: 0 };
+      for (const cu of combatUnits) roleCount[roleOf(cu.type)]++;
+      const armySize = Math.max(1, combatUnits.length);
+      const roleFull = r => (r === 'guns' && roleCount.guns / armySize >= 0.25) || (r === 'horse' && roleCount.horse / armySize >= 0.3);
+      for (const pass of [0, 1]) {
+        for (let ci = availCombat.length - 1; ci >= 0; ci--) {
+          if (pass === 0 && roleFull(roleOf(availCombat[ci]))) continue;
+          const costs = getScaledCosts(nationId, PRODUCTION_COSTS[availCombat[ci]]);
+          let canAfford = true;
+          for (const k in costs) if ((n[k] || 0) < costs[k] * 0.5) { canAfford = false; break; }
+          if (canAfford) { bestCombat = availCombat[ci]; break; }
+        }
+        if (bestCombat) break;
       }
       if (!bestCombat) {
         // nothing affordable yet: aim at the unit it's closest to paying for, not the dearest one
@@ -12091,7 +12116,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-5.9';
+const CURRENT_VERSION = 'beta-6.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
