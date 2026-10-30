@@ -603,7 +603,9 @@
         - <b>Market</b> (top bar or <b>M</b>): sell surplus food, wood, stone, steel or gunpowder for gold, or buy what you lack. Prices slide as you trade and settle again next turn. Rival treasuries use it too<br>
         - An undefended city with an enemy at its gates calls up a <b>militia</b> (once every ten turns)<br>
         - Cities build faster as they grow, instead of every city working at the same pace<br>
-        - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed
+        - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed<br>
+        - Muskets, rifles and cannon fire with a flash and a bank of drifting powder smoke; blows raise dust where they land<br>
+        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.5</b></div>
       <div style="margin-bottom:12px;">
@@ -1153,7 +1155,9 @@
         - <b>Market</b> (top bar or <b>M</b>): sell surplus food, wood, stone, steel or gunpowder for gold, or buy what you lack. Prices slide as you trade and settle again next turn. Rival treasuries use it too<br>
         - An undefended city with an enemy at its gates calls up a <b>militia</b> (once every ten turns)<br>
         - Cities build faster as they grow, instead of every city working at the same pace<br>
-        - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed
+        - Rivals short of gold build workers first and aim at units they can afford, rather than sitting empty-handed<br>
+        - Muskets, rifles and cannon fire with a flash and a bank of drifting powder smoke; blows raise dust where they land<br>
+        - An event you can't afford any answer to can now be declined (a little legitimacy lost) instead of locking the game
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2749,6 +2753,29 @@ function spawnDeathParticles(col, row, color) {
     });
   }
 }
+// Gunpowder: a muzzle flash and a bank of white smoke drifting off the firing line; dust where the blow lands
+const FIREARM_UNITS = new Set(['musketeer', 'rifleman', 'grenadier', 'dragoon', 'field_gun', 'cannon', 'mortar', 'frigate', 'galleon', 'man_of_war']);
+function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
+  const now = Date.now();
+  const big = !!UNIT_DEFS[attackerType]?.artillery || /frigate|galleon|man_of_war/.test(attackerType);
+  // direction toward the target, in screen terms
+  const pa = hexScreenPos(ax, ay), pd = hexScreenPos(dx, dy), w = hexWidth();
+  let vx = pd.x - pa.x, vy = pd.y - pa.y; const len = Math.hypot(vx, vy) || 1; vx /= len; vy /= len;
+  if (FIREARM_UNITS.has(attackerType)) {
+    particles.push({ kind: 'flash', col: ax, row: ay, ox: vx * 14, oy: vy * 14 - 4, vx: 0, vy: 0, size: big ? 26 : 16, startTime: now, duration: 200 });
+    const puffs = big ? 9 : 6;
+    for (let i = 0; i < puffs; i++) {
+      particles.push({ kind: 'smoke', col: ax, row: ay, ox: vx * (8 + i * 3) + (Math.random() - 0.5) * 10, oy: vy * (8 + i * 3) - 4 + (Math.random() - 0.5) * 8,
+        vx: vx * 14 + 10 + Math.random() * 8, vy: -12 - Math.random() * 12, size: (big ? 22 : 15) + Math.random() * 7,
+        tone: 205 + Math.floor(Math.random() * 35), startTime: now + i * 25, duration: 1600 + Math.random() * 900 });
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    particles.push({ kind: 'smoke', col: dx, row: dy, ox: (Math.random() - 0.5) * 14, oy: 6 + (Math.random() - 0.5) * 6,
+      vx: (Math.random() - 0.5) * 16, vy: -6 - Math.random() * 6, size: 10 + Math.random() * 6, tone: 150 + Math.floor(Math.random() * 25), startTime: now + 120, duration: 900 });
+  }
+  if (!animationBlocking) requestAnimationFrame(() => render());
+}
 function renderParticles() {
   const now = Date.now();
   const w = hexWidth(), facePad = Math.round(w * 1.5 * 4 / 48), ch = hexCellH();
@@ -2759,6 +2786,19 @@ function renderParticles() {
     const t = elapsed / p.duration;
     const pos = hexScreenPos(p.col, p.row);
     const sx = pos.x + w / 2 + p.vx * t, sy = pos.y + facePad + ch / 2 + p.vy * t;
+    if (p.kind === 'smoke' || p.kind === 'flash') {
+      if (elapsed < 0) continue;
+      const k = w / 48; // effects scale with the zoom
+      const x = pos.x + w / 2 + (p.ox + p.vx * t) * k, y = pos.y + facePad + ch / 2 + (p.oy + p.vy * t) * k;
+      const r = (p.kind === 'smoke' ? p.size * (0.6 + t * 1.6) : p.size * (1 - t * 0.6)) * k;
+      const a = p.kind === 'smoke' ? 0.72 * (1 - t) * Math.min(1, t * 6) : 0.95 * (1 - t);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      if (p.kind === 'smoke') { g.addColorStop(0, `rgba(${p.tone},${p.tone},${p.tone - 6},${a})`); g.addColorStop(1, `rgba(${p.tone},${p.tone},${p.tone - 6},0)`); }
+      else { g.addColorStop(0, `rgba(255,250,210,${a})`); g.addColorStop(0.4, `rgba(255,190,70,${a * 0.8})`); g.addColorStop(1, 'rgba(255,120,30,0)'); }
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      continue;
+    }
     ctx.save();
     ctx.globalAlpha = 1 - t;
     ctx.fillStyle = p.color;
@@ -2800,6 +2840,8 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
   const playerInvolved = attackerNationId === playerNation || defenderNationId === playerNation;
   const visible = aTile.revealed.has(playerNation) || dTile.revealed.has(playerNation);
   if (!playerInvolved && !visible) return;
+  const seen = !currentVisionSet || currentVisionSet.has(attackerY * MAP_COLS + attackerX) || currentVisionSet.has(defenderY * MAP_COLS + defenderX);
+  if (seen && particles.length < 400) spawnCombatSmoke(attackerX, attackerY, defenderX, defenderY, attackerType);
 
   if (attackerNationId === playerNation) {
     if (dmgToDefender > 0) addFloatingText(defenderX, defenderY, `-${dmgToDefender}`, '#ff4444', 1400, 16);
@@ -8532,6 +8574,7 @@ function triggerEvent() {
   const pn = nations[playerNation];
   const evtScale = getCityScaleFactor(playerNation);
   const specialEffectKeys = new Set(['spawnWorker', 'spawnSwordsman', 'charDeath', 'familyOpinion', 'loyalty', 'legitimacy']);
+  let anyAffordable = false;
   evt.choices.forEach((ch, idx) => {
     const effectStr = Object.entries(ch.effects).filter(([k]) => k !== 'spawnWorker' && k !== 'spawnSwordsman' && k !== 'charDeath' && k !== 'familyOpinion').map(([k, v]) => {
       const scaled = (!specialEffectKeys.has(k) && v < 0) ? -Math.ceil(-v * evtScale) : v;
@@ -8546,13 +8589,25 @@ function triggerEvent() {
       const scaled = -Math.ceil(-v * evtScale);
       return (pn[k] || 0) + scaled >= 0;
     });
+    if (canAfford) anyAffordable = true;
     const disabled = canAfford ? '' : ' disabled style="opacity:0.4;cursor:default;"';
     html += `<button class="event-choice"${disabled} onclick="applyEventChoice('${evt.id}', ${idx})">${ch.label}${effectStr ? `<span class="event-effect">${effectStr}</span>` : ''}</button>`;
   });
+  // every answer costs more than the treasury holds: the court can still decline (a little legitimacy lost), so the game never locks
+  if (!anyAffordable) html += `<button class="event-choice" onclick="declineEvent()">We cannot afford any of this<span class="event-effect">-2 ⚜</span></button>`;
   card.innerHTML = html;
   modal.classList.add('active');
   eventModalOpen = true;
 }
+window.declineEvent = function() {
+  const n = nations[playerNation];
+  n.legitimacy = Math.max(0, (n.legitimacy ?? 50) - 2);
+  logEvent('The court could not afford any answer.');
+  document.getElementById('eventModal').classList.remove('active');
+  eventModalOpen = false;
+  currentEventNation = null;
+  updateUI(); render();
+};
 
 function applyEventChoice(eventId, choiceIndex) {
   const evt = EVENTS.find(e => e.id === eventId);
