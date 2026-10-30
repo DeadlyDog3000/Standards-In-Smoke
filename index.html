@@ -4710,11 +4710,14 @@ function getProductionTurns(city) {
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing]);
   let total = 0; for (const k in costs) total += costs[k];
   const rb = getRulerBonuses(city.nationId);
-  const rate = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (rb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
+  const rate = cityBaseProduction(city) * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (rb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
   return Math.max(1, Math.ceil((total - city.productionProgress) / rate));
 }
 
 // Finished but can't be paid for: wait. An AI city that waits three turns picks something it can afford instead (a settler it can't feed is put off for a while)
+// a bigger town works faster: 4.6 a turn for a hamlet of one, 10 for a city of ten
+function cityBaseProduction(city) { return 4 + (city.population || 1) * 0.6; }
+
 function stallProduction(city, total) {
   city.productionProgress = Math.min(city.productionProgress, total);
   if (city.nationId === playerNation) return;
@@ -4732,7 +4735,7 @@ function tickProduction(city) {
     city.producing = null; city.productionProgress = 0; return; // unknown type — clear to prevent infinite loop
   }
   const prodRb = getRulerBonuses(city.nationId);
-  const tickIncrement = 5 * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
+  const tickIncrement = cityBaseProduction(city) * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
   city.productionProgress += tickIncrement;
   const costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[city.producing] || {});
   let total = 0; for (const k in costs) total += costs[k];
