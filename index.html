@@ -658,6 +658,22 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Seasons, Sentries &amp; Settlers</b><br>
+        - <b>Seasons show on the land:</b> snow lies in winter, the woods turn gold in autumn, spring greens<br>
+        - <b>Enemies at the gates:</b> a city with a hostile army within three tiles is ringed in red, and you're warned when the danger appears<br>
+        - <b>Settlers</b> now cost 30 food and one citizen from the city that trains them (it needs at least 2). A city training them pauses its growth only once it can spare them<br>
+        - Rival settlers head for the site they chose instead of wandering, and realms with food to spare found more cities<br>
+        - New keys: <b>K</b> Kingdoms, <b>+ / -</b> zoom, <b>Z</b> wakes a fortified unit (W only pans the map now, and never cancels a worker's build)<br>
+        <i style="color:#a89878;">Fixes</i><br>
+        - Workers mid-build and fortified units can't be sent off with planning orders or auto-explore (a worker could carry its build to another tile)<br>
+        - Escape on the tech tree just closes it; game keys no longer act behind it or on the title screen<br>
+        - A war started by caught spies cancels open borders and other agreements; the gold counter updates after spying or a mapping deal<br>
+        - Upgrading a unit drops a formation the new unit can't use (a column hussar made a lancer kept +2 moves)<br>
+        - A worker's "Buy Adjacent Tile" really is adjacent to the worker<br>
+        - Markets being built count toward the next one's price, and cancelling a build refunds what was paid
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.7</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Roads, Shores &amp; Painted Borders</b><br>
@@ -1193,14 +1209,17 @@
         <b>E</b> &mdash; End Turn<br>
         <b>T</b> &mdash; Tech Tree<br>
         <b>L</b> &mdash; Laws Panel<br>
+        <b>M</b> &mdash; Market<br>
         <b>K</b> &mdash; Kingdoms Panel<br>
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
         <b>R</b> &mdash; Ranged Attack<br>
         <b>V</b> &mdash; Fortify Unit<br>
+        <b>Z</b> &mdash; Wake Unit<br>
         <b>H</b> &mdash; Rest &amp; Heal<br>
         <b>X</b> &mdash; Auto-Explore<br>
-        <b>N</b> &mdash; Next Unit<br>
+        <b>N / Q</b> &mdash; Next Unit<br>
+        <b>P</b> &mdash; Planning Mode<br>
         <b>C</b> &mdash; Center on Selection<br>
         <b>[ / ]</b> &mdash; Cycle Cities<br>
         <b>WASD / Arrows</b> &mdash; Pan camera<br>
@@ -1221,7 +1240,23 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.7</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Seasons, Sentries &amp; Settlers</b><br>
+        - <b>Seasons show on the land:</b> snow lies in winter, the woods turn gold in autumn, spring greens<br>
+        - <b>Enemies at the gates:</b> a city with a hostile army within three tiles is ringed in red, and you're warned when the danger appears<br>
+        - <b>Settlers</b> now cost 30 food and one citizen from the city that trains them (it needs at least 2). A city training them pauses its growth only once it can spare them<br>
+        - Rival settlers head for the site they chose instead of wandering, and realms with food to spare found more cities<br>
+        - New keys: <b>K</b> Kingdoms, <b>+ / -</b> zoom, <b>Z</b> wakes a fortified unit (W only pans the map now, and never cancels a worker's build)<br>
+        <i style="color:#a89878;">Fixes</i><br>
+        - Workers mid-build and fortified units can't be sent off with planning orders or auto-explore (a worker could carry its build to another tile)<br>
+        - Escape on the tech tree just closes it; game keys no longer act behind it or on the title screen<br>
+        - A war started by caught spies cancels open borders and other agreements; the gold counter updates after spying or a mapping deal<br>
+        - Upgrading a unit drops a formation the new unit can't use (a column hussar made a lancer kept +2 moves)<br>
+        - A worker's "Buy Adjacent Tile" really is adjacent to the worker<br>
+        - Markets being built count toward the next one's price, and cancelling a build refunds what was paid
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.7</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Roads, Shores &amp; Painted Borders</b><br>
         - <b>Roads:</b> each city is joined to its capital by a road over land that doesn't cross a rival's territory. A city on the road earns +2 gold in trade (shown in its statistics); roads redraw as cities are founded or lost<br>
@@ -3243,7 +3278,7 @@ const TILE_DESCS = [
 ];
 
 const UNIT_DEFS = {
-  settler:        { moves: 6, vision: 4, icon: '\u2691', desc: 'Colonists ready to found a new city.' },
+  settler:        { moves: 6, vision: 4, icon: '\u2691', desc: 'Colonists ready to found a new city. They leave from the city that trains them: it needs 2 citizens and gives up 1.' },
   scout:          { moves: 11, vision: 7, icon: '\uD83D\uDD2D', desc: 'Fast cavalry scout on horseback. Excellent vision range.' },
   worker:         { moves: 6, vision: 4, icon: '\uD83D\uDD28', desc: 'Builds improvements on tiles within city borders.' },
   swordsman:      { moves: 4, vision: 4, icon: '\u2694', desc: 'Melee infantry. Can attack enemy units and cities.', combat: true, atk: 5, hp: 12, ability: 'Charge: can move and attack (unless in Square)' },
@@ -3287,7 +3322,7 @@ const IMPROVEMENT_DEFS = {
 };
 
 const PRODUCTION_COSTS = {
-  settler:        { food: 50 },
+  settler:        { food: 30 }, // and one citizen from the city that trains them
   worker:         { food: 30 },
   scout:          { food: 20, gold: 10 },
   swordsman:      { steel: 30, gold: 20 },
@@ -4922,7 +4957,9 @@ function stallProduction(city, total) {
   city.productionProgress = Math.min(city.productionProgress, total);
   if (city.nationId === playerNation) return;
   city._stall = (city._stall || 0) + 1;
-  if (city._stall >= 3) {
+  // a settler is worth waiting for while the granaries fill (the city doesn't grow meanwhile, so the food piles up)
+  const patience = city.producing === 'settler' ? 8 : 3;
+  if (city._stall >= patience) {
     if (city.producing === 'settler') city._noSettlerUntil = turnNumber + 12;
     city.producing = null;
     city._stall = 0;
@@ -4980,6 +5017,7 @@ function tickProduction(city) {
       } else {
         let canAffordUnit = true;
         for (const k in costs) if ((n[k] || 0) < costs[k]) { canAffordUnit = false; break; }
+        if (city.producing === 'settler' && (city.population || 1) < 2) canAffordUnit = false; // settlers are people: a hamlet of one can't spare them
         if (!canAffordUnit) { stallProduction(city, total); return; }
         for (const k in costs) n[k] -= costs[k];
         const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
@@ -4997,6 +5035,7 @@ function tickProduction(city) {
           return;
         } else {
           spawnUnit(city.producing, city.nationId, sx, sy);
+          if (city.producing === 'settler') city.population = Math.max(1, (city.population || 1) - 1);
           if (city.nationId === playerNation) {
             const unitDef = UNIT_DEFS[city.producing];
             const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
@@ -5069,8 +5108,12 @@ window.rushProduce = function() {
     if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
       n.gold += cost; showToast(`No room to deploy a unit near ${selectedCity.name}!`); return;
     }
+    if (selectedCity.producing === 'settler' && (selectedCity.population || 1) < 2) {
+      n.gold += cost; showToast(`${selectedCity.name} needs at least 2 citizens to send out settlers.`); return;
+    }
     for (const k in costs) n[k] -= costs[k];
     spawnUnit(selectedCity.producing, selectedCity.nationId, sx, sy);
+    if (selectedCity.producing === 'settler') selectedCity.population = Math.max(1, (selectedCity.population || 1) - 1);
     showToast(`Rushed ${selectedCity.producing}!`);
   }
   playAchievement();
@@ -5096,7 +5139,9 @@ function getImprovementCost(impKey, nationId) {
   const cost = {};
   for (const k in imp.cost) cost[k] = imp.cost[k];
   if (imp.scalingCost) {
-    const count = tiles.filter(t => t.owner === nationId && t.improvement === impKey).length;
+    // markets already standing, plus those workers are still building, set the price
+    const count = tiles.filter(t => t.owner === nationId && t.improvement === impKey).length
+      + units.filter(u => u.nationId === nationId && u.building === impKey).length;
     for (const k in cost) cost[k] = Math.round(cost[k] * Math.pow(2, count));
   }
   return cost;
@@ -5134,6 +5179,7 @@ function buildImprovement(worker, impKey) {
   } else {
 
     worker.building = impKey;
+    worker.buildCost = cost; // refunded exactly if the build is called off
     worker.buildProgress = 0;
     worker.buildTotal = buildTurns;
     worker.movesLeft = 0;
@@ -6531,6 +6577,7 @@ function aiTurn(nationId) {
           u.maxMoves = newDef.moves;
           u.movesLeft = 0;
           u.vision = newDef.vision;
+          if (FORMATION_UNITS.has(upg.to)) u.formation = u.formation || 'line'; else delete u.formation;
           continue;
         }
       }
@@ -6568,6 +6615,13 @@ function aiTurn(nationId) {
         }
 
         let bestTarget = null, bestScore = -Infinity;
+        // keep to the site it set out for (re-choosing each turn sent settlers wandering back and forth)
+        const held = u._settleTarget;
+        if (held && canFoundCity(held.x, held.y, u.nationId).ok && !(held.turn && turnNumber - held.turn > 25)) {
+          moveAIToward(u, held.x, held.y, u.movesLeft);
+          if (u.movesLeft > 0 && u.x === held.x && u.y === held.y && canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u, getNextHistoricalCityName(u.nationId));
+          continue;
+        }
 
         for (const s of citySites) {
           if (s.settled) continue;
@@ -6600,7 +6654,10 @@ function aiTurn(nationId) {
             if (d < bestDist) { bestDist = d; bestTarget = b; }
           }
         }
-        if (bestTarget) moveAIToward(u, bestTarget.x, bestTarget.y, u.movesLeft);
+        if (bestTarget) {
+          if (canFoundCity(bestTarget.x, bestTarget.y, u.nationId).ok) u._settleTarget = { x: bestTarget.x, y: bestTarget.y, turn: turnNumber };
+          moveAIToward(u, bestTarget.x, bestTarget.y, u.movesLeft);
+        }
         else moveAIUnitMultiple(u, u.movesLeft);
       }
     } else if ((u.type === 'worker' || u.type === 'veteran_worker') && u.movesLeft > 0) {
@@ -6992,8 +7049,9 @@ function aiTurn(nationId) {
       const haveSettler = units.some(u => u.nationId === nationId && u.type === 'settler') || aiCities.some(ci => ci !== c && ci.producing === 'settler');
       if (poor && workers === 0 && workersHaveWork && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.worker).food) {
         c.producing = 'worker'; // a broke realm with no one working its land: workers first, so mines and farms start paying
-      } else if (aiCities.length < 4 && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
-          && n.food >= settlerFood && threatLevel <= combatCount * 6 && Math.random() < 0.6) {
+      } else if ((c.population || 1) >= 2 && aiCities.length < (n.food >= settlerFood * 2 ? 8 : 4) && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
+          && n.food >= settlerFood * 0.5
+          && threatLevel <= combatCount * (n.food >= settlerFood * 2 ? 10 : 6) && (n.food >= settlerFood * 2 || Math.random() < 0.6)) {
         c.producing = 'settler';
       } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
         c.producing = 'fortifications';
@@ -7040,7 +7098,7 @@ function aiTurn(nationId) {
 
           if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
 
-          else if (aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
+          else if ((c.population || 1) >= 2 && aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
           else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
           else c.producing = bestCombat; // default: keep building army
         }
@@ -7484,7 +7542,7 @@ function tickCityLoyalty() {
     const hasMedicine = nationHasTech(city.nationId, 'medicine');
     const maxPop = Math.max(5, getCityJobs(city));
     if ((city.population || 1) >= maxPop) continue;
-    if (city.producing === 'settler') continue; // a city raising settlers sends its people out instead of growing (its food is saved for them)
+    if (city.producing === 'settler' && (city.population || 1) >= 2) continue; // a city raising settlers sends its people out instead of growing (its food is saved for them); a hamlet of one still grows until it can spare them
 
     const moodMult = status.status === 'loyal' ? 1.15
       : status.status === 'content' ? 1.0
@@ -10394,7 +10452,7 @@ function showUnitPanel(unit) {
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
       if (unit.fortified) {
-        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#6c6;color:#6c6">Wake (W) <span class="cost">Unfortify unit</span></button>`;
+        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#6c6;color:#6c6">Wake (Z) <span class="cost">Unfortify unit</span></button>`;
       }
     }
   }
@@ -10756,7 +10814,7 @@ function renderCityStatsPanel(city) {
   html += `<span>Food balance: <b style="color:${foodSurplus > 0 ? '#6a6' : '#c66'}">${foodSurplus > 0 ? '+' : ''}${foodSurplus.toFixed(1)}</b></span>`;
   if (atCap) {
     html += `<span style="color:#c80;">Build improvements to expand!</span>`;
-  } else if (city.producing === 'settler') {
+  } else if (city.producing === 'settler' && pop >= 2) {
     html += `<span style="color:#cc6;">No growth while training a Settler</span>`;
   } else if (foodSurplus <= 0) {
     html += `<span style="color:#c66;">No spare food: no growth</span>`;
@@ -10795,7 +10853,8 @@ function enterWorkerBuyTileMode() {
       for (const nb of hexNeighbors(tx, ty)) {
         if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
         const ni = nb.row * MAP_COLS + nb.col;
-        if (tiles[ni].type !== 0 && tiles[ni].owner < 0) reachableTiles.add(ni);
+        // "adjacent" means next to the worker itself, on the edge of your land
+        if (tiles[ni].type !== 0 && tiles[ni].owner < 0 && hexDistance(nb.col, nb.row, selectedUnit.x, selectedUnit.y) <= 1) reachableTiles.add(ni);
       }
     }
   }
@@ -10807,6 +10866,7 @@ function workerBuyTile(worker, tx, ty) {
   const n = nations[nId];
   const ti = ty * MAP_COLS + tx;
   if (tiles[ti].type === 0 || tiles[ti].owner >= 0) return false;
+  if (hexDistance(tx, ty, worker.x, worker.y) > 1) { showToast('A worker can only buy a tile next to it.'); return false; }
   const cost = tiles[ti].improvement ? 7 : 5;
   if (n.gold < cost) { showToast(`Need ${cost} gold to buy this tile.`); return false; }
   let nearest = null, nearestDist = Infinity;
@@ -11195,7 +11255,7 @@ function requestMappingAgreement(nationId) {
   }
   changeLoyalty(nationId, playerNation, 5);
   showToast(`Mapping agreement with ${nations[nationId].name}. Their territory revealed!`);
-  render(); renderKingdoms();
+  updateUI(); render(); renderKingdoms();
 }
 
 function infiltrateNation(nationId) {
@@ -11209,6 +11269,7 @@ function infiltrateNation(nationId) {
     if (nations[nationId]._caughtSpies >= 3 && nations[nationId].relations[playerNation] !== 'war') {
       nations[nationId].relations[playerNation] = 'war';
       nations[playerNation].relations[nationId] = 'war';
+      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, nationId, aType);
       showWarDeclaration(nations[nationId]);
       showToast(`Repeated espionage has driven ${nations[nationId].name} to declare war!`);
       nations[nationId]._caughtSpies = 0;
@@ -11220,7 +11281,7 @@ function infiltrateNation(nationId) {
     revealNationBorders(nationId, playerNation);
     showToast(`Spies infiltrated ${nations[nationId].name} — their borders revealed.`);
   }
-  render(); renderKingdoms();
+  updateUI(); render(); renderKingdoms();
 }
 
 window.requestAgreement = requestAgreement;
@@ -11753,7 +11814,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-5.7';
+const CURRENT_VERSION = 'beta-5.8';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -12258,7 +12319,11 @@ canvas.addEventListener('click', (e) => {
 
   if (planningMode) {
     if (!tiles[ti].revealed.has(playerNation)) return;
-    const ownUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation);
+    // a worker mid-build or a fortified unit can't be given marching orders (it would carry its build or its fortification along)
+    const ownUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && !u.building && !u.fortified);
+    if (!ownUnit && !planSelectUnit && units.some(u => u.x === mx && u.y === my && u.nationId === playerNation)) {
+      showToast('That unit is busy building or fortified. Wake it first.'); return;
+    }
     if (planSelectUnit) {
 
       const atWar = (nid) => nations[playerNation].relations[nid] === 'war';
@@ -12593,6 +12658,7 @@ function processGotoOrders() {
   let lastMovedUnit = null;
   for (const u of units) {
 
+    if (u.building) continue; // a worker at its build stays put
     if (u.autoExplore && u.gotoX === undefined) doAutoExploreStep(u);
     if (u.gotoX === undefined || u.nationId !== playerNation) continue;
     if (u.x === u.gotoX && u.y === u.gotoY) {
@@ -12734,6 +12800,9 @@ function stopSelectionFlash() {
 document.addEventListener('keydown', (e) => {
   const _focusTag = document.activeElement?.tagName;
   const _inInput = _focusTag === 'INPUT' || _focusTag === 'TEXTAREA' || _focusTag === 'SELECT';
+  // game keys only while a game is on screen; the tech tree handles its own keys (Escape and T close it)
+  if (!MAP_COLS || document.getElementById('menu').style.display !== 'none') return;
+  if (techTreeOpen) return;
 
   if (e.key === 'Escape') {
     if (_inInput) { document.activeElement.blur(); e.preventDefault(); return; }
@@ -12766,7 +12835,13 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'g' && selectedUnit) { enterGotoMode(); e.preventDefault(); }
   if (e.key === 'r' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.ranged) { enterRangedMode(); e.preventDefault(); }
   if (e.key === 'v' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { fortifyUnit(); e.preventDefault(); }
-  if (e.key === 'w' && selectedUnit && selectedUnit.nationId === playerNation && (selectedUnit.fortified || selectedUnit.building)) { wakeUnit(); e.preventDefault(); }
+  // Z wakes a fortified unit (W pans the camera, and must never cancel a worker's build)
+  if (e.key === 'z' && selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.fortified && !selectedUnit.building) { wakeUnit(); e.preventDefault(); }
+  if (e.key === 'k') { toggleKingdoms(); e.preventDefault(); }
+  if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: (e.key === '-' || e.key === '_') ? 100 : -100, clientX: viewW / 2, clientY: viewH / 2, bubbles: true, cancelable: true }));
+    e.preventDefault();
+  }
   if (e.key === 'h' && selectedUnit && UNIT_DEFS[selectedUnit.type]?.combat && selectedUnit.nationId === playerNation) { restUnit(); e.preventDefault(); }
   if (e.key === 'x' && selectedUnit && selectedUnit.nationId === playerNation) { toggleAutoExplore(); e.preventDefault(); }
   if (e.key === 'p') { togglePlanningMode(); e.preventDefault(); }
@@ -12953,6 +13028,7 @@ window.cancelGoto = function() {
 window.toggleAutoExplore = function() {
   if (!selectedUnit || selectedUnit.nationId !== playerNation) return;
   if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
+  if (selectedUnit.building) { showToast('This worker is busy building.'); return; }
   selectedUnit.autoExplore = !selectedUnit.autoExplore;
   if (selectedUnit.autoExplore) {
     delete selectedUnit.gotoX; delete selectedUnit.gotoY;
@@ -13303,10 +13379,11 @@ window.cancelBuild = function() {
   if (selectedUnit.nationId !== playerNation) return;
 
   const impKey = selectedUnit.building;
-  const cost = getImprovementCost(impKey, selectedUnit.nationId);
+  const cost = selectedUnit.buildCost || IMPROVEMENT_DEFS[impKey].cost; // what was paid, not today's price
   const n = nations[selectedUnit.nationId];
   for (const k in cost) n[k] = (n[k] || 0) + cost[k];
   selectedUnit.building = null;
+  delete selectedUnit.buildCost;
   selectedUnit.buildProgress = 0;
   selectedUnit.buildTotal = 0;
   showToast(`Cancelled building ${IMPROVEMENT_DEFS[impKey].name}. Resources refunded.`);
@@ -13669,6 +13746,8 @@ window.upgradeUnit = function() {
   selectedUnit.maxMoves = newDef.moves;
   selectedUnit.movesLeft = 0; // upgrade uses the turn
   selectedUnit.vision = newDef.vision;
+  // a formation only carries over if the new kind of unit can keep one (a column hussar made a lancer kept +2 moves for ever)
+  if (FORMATION_UNITS.has(upg.to)) selectedUnit.formation = selectedUnit.formation || 'line'; else delete selectedUnit.formation;
   showToast(`Upgraded to ${newDef.icon} ${upg.to.replace(/_/g, ' ')}!`);
   showUnitPanel(selectedUnit); updateUI(); render();
 };
