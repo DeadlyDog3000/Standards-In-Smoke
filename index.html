@@ -696,6 +696,22 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Fair Fights &amp; a Truer Map</b><br>
+        <i style="color:#a89878;">Combat fixes</i><br>
+        - <b>Formations and generals defend the right way round:</b> Square really is +30% defence (it was taking 30% more damage), Line -15%, and a cautious general's +15% protects his men<br>
+        - Ranged units fire at most two tiles away, and not after moving (dragoons excepted); they can no longer strike from four tiles off through a move order<br>
+        - Units can't walk through other armies to reach the tiles behind them<br>
+        - Rival artillery waits out its reload even when an enemy stands next to it<br>
+        - When a city falls, only its civilians go over to the new owner; soldiers in its lands stay loyal<br>
+        - Resting never lowers morale (a line abroad used to bleed it away), and law-raised morale ceilings are kept<br>
+        - The combat preview, and the rivals' judgement of a fight, count the counter-blow as it really falls<br>
+        <i style="color:#a89878;">Map</i><br>
+        - The minimap fills its whole frame (the right quarter was empty), with its view box and click-to-jump matching<br>
+        - Your units that can still act this turn wear a small gold pip<br>
+        - Faster drawing: fog, borders' tint and seasons cost far less when zoomed out on a big map
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Landmarks &amp; Mixed Armies</b><br>
@@ -1310,7 +1326,23 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.0</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Fair Fights &amp; a Truer Map</b><br>
+        <i style="color:#a89878;">Combat fixes</i><br>
+        - <b>Formations and generals defend the right way round:</b> Square really is +30% defence (it was taking 30% more damage), Line -15%, and a cautious general's +15% protects his men<br>
+        - Ranged units fire at most two tiles away, and not after moving (dragoons excepted); they can no longer strike from four tiles off through a move order<br>
+        - Units can't walk through other armies to reach the tiles behind them<br>
+        - Rival artillery waits out its reload even when an enemy stands next to it<br>
+        - When a city falls, only its civilians go over to the new owner; soldiers in its lands stay loyal<br>
+        - Resting never lowers morale (a line abroad used to bleed it away), and law-raised morale ceilings are kept<br>
+        - The combat preview, and the rivals' judgement of a fight, count the counter-blow as it really falls<br>
+        <i style="color:#a89878;">Map</i><br>
+        - The minimap fills its whole frame (the right quarter was empty), with its view box and click-to-jump matching<br>
+        - Your units that can still act this turn wear a small gold pip<br>
+        - Faster drawing: fog, borders' tint and seasons cost far less when zoomed out on a big map
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Landmarks &amp; Mixed Armies</b><br>
         - <b>Towns show what they've built:</b> a granary and its silo, a factory with a smoking chimney, and a landmark for each wonder (the Library's dome, the Cathedral's towers, the Arsenal and its cannon, the gilded Guildhall, the War College colonnade)<br>
@@ -2212,7 +2244,8 @@ function tickMoraleRecovery() {
   for (const u of units) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
     if (u.morale === undefined) u.morale = MORALE_MAX;
-    if (u.morale >= MORALE_MAX) continue;
+    const cap = u.maxMorale ?? MORALE_MAX; // laws can raise a unit's ceiling
+    if (u.morale >= cap) continue;
     const ti = u.y * MAP_COLS + u.x;
     const t = tiles[ti];
     if (!t) continue;
@@ -2229,7 +2262,7 @@ function tickMoraleRecovery() {
 
     const rb = getRulerBonuses(u.nationId);
     if (rb.moraleBonus) recovery += rb.moraleBonus * 0.2;
-    u.morale = Math.min(MORALE_MAX, u.morale + recovery);
+    u.morale = Math.min(cap, u.morale + Math.max(0, recovery)); // resting never lowers morale (a line abroad used to bleed it away)
   }
 }
 
@@ -5442,15 +5475,18 @@ function estimateCombat(attacker, tx, ty) {
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
   const siegeBonus = (atkDef.siege && inCity) ? SIEGE_BONUS : 1.0;
   const flankBonus = getFlankingBonus(attacker, tx, ty);
-  const formDef = target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0;
-  const cmdDef = getCommandBonus(target).defMult || 1.0;
-  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef);
+  const formDef = 1 / (target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0);
+  const cmdDef = 1 / (getCommandBonus(target).defMult || 1.0);
+  // mirrors doAttack: the difficulty's combat multipliers, and the defender strikes back with the strength it had before the blow
+  const diffMods = getDifficultyModifiers();
+  const atkDiffMult = attacker.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
+  const defDiffMult = target.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
+  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef * atkDiffMult);
   let estRetaliation = 0;
   if (tgtDef.combat && !atkDef.ranged) {
     const tgtMaxHp = getEffectiveMaxHp(target);
-    const tgtHpAfter = Math.max(0, target.hp - estDmg);
-    const tgtHpRatio = tgtHpAfter / tgtMaxHp;
-    estRetaliation = Math.round(((getEffectiveAtk(target)) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio));
+    const tgtHpRatio = target.hp / tgtMaxHp;
+    estRetaliation = Math.round(((getEffectiveAtk(target)) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio) * defDiffMult);
   }
   return { estDmg, estRetaliation, targetHp: target.hp, attackerHp: attacker.hp, targetType: target.type, isRanged: !!atkDef.ranged };
 }
@@ -5466,11 +5502,13 @@ function canAttack(attacker, tx, ty) {
   if (!target) return false;
   if (nations[attacker.nationId].relations[target.nationId] !== 'war') return false;
 
-  if (!def.ranged) {
-    const neighbors = hexNeighbors(attacker.x, attacker.y);
-    if (!neighbors.some(nb => nb.col === tx && nb.row === ty)) return false;
-  }
-  return true;
+  const adjacent = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
+  if (!def.ranged) return adjacent;
+  // a ranged unit fires at most two tiles off, and (dragoons aside) not after moving; at close quarters it can always fight
+  if (adjacent) return true;
+  if (hexDistance(attacker.x, attacker.y, tx, ty) > 2) return false;
+  const moved = attacker.movesLeft < (attacker.turnStartMoves ?? attacker.maxMoves);
+  return !moved || attacker.type === 'dragoon';
 }
 
 function doAttack(attacker, tx, ty) {
@@ -5542,10 +5580,10 @@ function doAttack(attacker, tx, ty) {
   let defTerrainBonus = getTerrainDefense(defTerrain, inCity, defCity);
 
   const defFormation = getFormationBonus(target);
-  defTerrainBonus *= defFormation.defMult;
+  defTerrainBonus /= defFormation.defMult; // these are damage multipliers (lower is safer): a +30% defence divides the blow
 
   const defCmd = getCommandBonus(target);
-  defTerrainBonus *= defCmd.defMult;
+  defTerrainBonus /= defCmd.defMult;
 
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
 
@@ -5851,10 +5889,10 @@ function tickCityCapture() {
           for (const u of units) {
             if (u.nationId !== oldOwner) continue;
             const ui = u.y * MAP_COLS + u.x;
-            if (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y)) {
+            // the townsfolk in its lands (workers, settlers) go over to the new masters; soldiers in the field stay loyal
+            if (!UNIT_DEFS[u.type]?.combat && (city.ownedTiles.has(ui) || (u.x === city.x && u.y === city.y))) {
               u.nationId = occupier.nationId;
               u.movesLeft = 0;
-              if (!UNIT_DEFS[u.type]?.combat) u.morale = Math.min(u.morale ?? MORALE_MAX, 50);
             }
           }
 
@@ -6957,8 +6995,8 @@ function aiTurn(nationId) {
           const aiRFortBonus = bestTarget.fortified ? FORT_BONUS : 1.0;
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? SIEGE_BONUS : 1.0;
           const aiRFlankBonus = getFlankingBonus(u, bestTarget.x, bestTarget.y);
-          const aiRFormDef = bestTarget.formation ? (getFormationBonus(bestTarget).defMult || 1.0) : 1.0;
-          const aiRCmdDef = getCommandBonus(bestTarget).defMult || 1.0;
+          const aiRFormDef = 1 / (bestTarget.formation ? (getFormationBonus(bestTarget).defMult || 1.0) : 1.0);
+          const aiRCmdDef = 1 / (getCommandBonus(bestTarget).defMult || 1.0);
           const aiRDiffMult = getDifficultyModifiers().aiCombatMult;
 
           let aiRAmmoMult = 1.0, aiRAmmoMoraleMult = 1.0;
@@ -7005,6 +7043,7 @@ function aiTurn(nationId) {
         for (const enemy of units) {
           if (enemy.nationId === nationId || n.relations[enemy.nationId] !== 'war') continue;
           const isAdj = hexNeighbors(u.x, u.y).some(nb => nb.col === enemy.x && nb.row === enemy.y);
+          if (!canAttack(u, enemy.x, enemy.y)) continue; // guns still reloading, or no moves left
           if (!isAdj) continue;
 
           const est = estimateCombat(u, enemy.x, enemy.y);
@@ -12240,7 +12279,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.0';
+const CURRENT_VERSION = 'beta-6.1';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13377,8 +13416,8 @@ window.doRangedAttack = function(tx, ty) {
   const rFortBonus = target.fortified ? FORT_BONUS : 1.0;
   const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? SIEGE_BONUS : 1.0;
   const rFlankBonus = getFlankingBonus(selectedUnit, tx, ty);
-  const rFormDef = target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0;
-  const rCmdDef = getCommandBonus(target).defMult || 1.0;
+  const rFormDef = 1 / (target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0);
+  const rCmdDef = 1 / (getCommandBonus(target).defMult || 1.0);
 
   let rAmmoMult = 1.0, rAmmoMoraleMult = 1.0;
   const rAtkDef = UNIT_DEFS[selectedUnit.type];
@@ -13713,7 +13752,7 @@ window.enterMoveMode = function() {
       const nd = dist + moveCost;
       if (nd > u.movesLeft) continue;
       if (visited.has(nk) && visited.get(nk) <= nd) continue;
-      if (units.some(o => o.x === nx && o.y === ny && o !== u && o.nationId === u.nationId)) continue;
+      if (units.some(o => o.x === nx && o.y === ny && o !== u)) continue; // no walking through anyone's units: friends block the tile, foes must be fought
       visited.set(nk, nd);
       reachableTiles.add(nk);
       queue.push({ key: nk, dist: nd });
