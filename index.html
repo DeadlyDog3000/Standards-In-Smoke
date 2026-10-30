@@ -249,10 +249,17 @@
 
     /* City labels */
     .city-label {
-      position: absolute; color: #fff; font-size: 11px; font-weight: bold;
-      text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
-      pointer-events: none; white-space: nowrap; transform: translateX(-50%); z-index: 15;
+      position: absolute; color: #f4e8cc; font-size: 11px; font-weight: bold;
+      pointer-events: none; white-space: nowrap; transform: translate(-50%, -60%); z-index: 15;
+      display: inline-flex; align-items: center; gap: 0.35em; padding: 0.12em 0.6em 0.12em 0.15em;
+      background: rgba(22, 18, 12, 0.82); border: 1px solid color-mix(in srgb, var(--nc) 70%, #000); border-bottom: 2px solid var(--nc);
+      border-radius: 1em; box-shadow: 0 1px 4px rgba(0,0,0,0.6); text-shadow: 0 1px 1px #000;
     }
+    .city-label .cl-pop { min-width: 1.4em; height: 1.4em; border-radius: 50%; background: var(--nc); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85em; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
+    .city-label .cl-siege { color: #ff8a70; font-size: 0.9em; }
+    .city-label .cl-bld { font-size: 0.85em; opacity: 0.9; }
+    .city-label.contested { border-color: #d04030; animation: clSiege 1s ease-in-out infinite; }
+    @keyframes clSiege { 50% { box-shadow: 0 0 10px rgba(220, 60, 40, 0.8); } }
 
     /* Turn indicator */
     #turnInfo {
@@ -690,7 +697,8 @@
         - Rival workers build a first harbour once they know Navigation, so they can put ships to sea<br>
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
-        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips
+        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
+        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -1301,7 +1309,8 @@
         - Rival workers build a first harbour once they know Navigation, so they can put ships to sea<br>
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
-        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips
+        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
+        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -10418,7 +10427,7 @@ function updateCityLabels() {
     const drawH = w * 1.5;
     const fp = Math.round(drawH * 2 / 48);
     const sx = pos.x + w / 2;
-    const sy = pos.y + fp - Math.max(4, ch * 0.15);
+    const sy = pos.y + fp + ch * 1.02;   // (under the town, on the hex's lower edge: clear of the units standing in it)
     if (sx < -100 || sy < -20 || sx > viewW + 100 || sy > viewH + 20) continue;
     let el = _labelCache[idx];
     if (!el) {
@@ -10428,16 +10437,20 @@ function updateCityLabels() {
       _labelCache[idx] = el;
     }
     el.style.left = sx + 'px'; el.style.top = sy + 'px';
-    el.style.color = city.contested ? '#000' : nations[city.nationId].color;
-    el.style.fontSize = Math.max(9, w * 0.4) + 'px';
-    let label = city.isCapital ? '\u2655 ' + city.name : city.name;
-    if (city.contested && city.captureProgress) {
-      const maxProg = Math.max(0, ...Object.values(city.captureProgress));
-      if (maxProg > 0) label += ` (${maxProg}/4)`;
-    }
+    el.style.fontSize = Math.max(9, Math.min(14, w * 0.36)) + 'px';
+    // (a banner: the realm's colour down its edge and round the town's size, the name, a star for a capital, a red
+    //  count when it's being taken, and what it's built)
+    let prog = 0;
+    if (city.contested && city.captureProgress) prog = Math.max(0, ...Object.values(city.captureProgress));
     const bldIcons = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]?.icon).filter(Boolean).join('');
-    if (bldIcons) label += ' ' + bldIcons;
-    el.textContent = label;
+    const col = safeColor(nations[city.nationId].color);
+    const key = [city.name, city.population, city.isCapital, prog, bldIcons, col].join('|');
+    if (el._key !== key) {
+      el._key = key;
+      el.style.setProperty('--nc', col);
+      el.innerHTML = `<span class="cl-pop">${city.population || 1}</span><span class="cl-name">${city.isCapital ? '★ ' : ''}${escHtml(city.name)}</span>${prog > 0 ? `<span class="cl-siege">⚔ ${prog}/4</span>` : ''}${bldIcons ? `<span class="cl-bld">${bldIcons}</span>` : ''}`;
+    }
+    el.classList.toggle('contested', prog > 0);
     el.style.display = '';
     idx++;
   }
