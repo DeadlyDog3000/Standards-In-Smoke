@@ -7720,6 +7720,7 @@ function _finishEndTurnImpl() {
   try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
   try { tickMilitia(); } catch(e) { console.error('tickMilitia error:', e); }
   try { rebuildRoads(); } catch(e) { console.error('rebuildRoads error:', e); }
+  try { updateCityThreats(); } catch(e) { console.error('updateCityThreats error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   if (window._gameOver) return; // the game ended this turn: no more turn, autosave or events
@@ -9017,6 +9018,22 @@ function getTileCityMap() {
   _tileCityMapDirty = false;
   return _tileCityMap;
 }
+let _snowPattern = null;
+function getSnowPattern() {
+  if (_snowPattern !== null) return _snowPattern;
+  try {
+    const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d');
+    let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.5})`;
+      g.beginPath(); g.arc(rnd() * S, rnd() * S, 0.6 + rnd() * 1.4, 0, Math.PI * 2); g.fill();
+    }
+    _snowPattern = ctx.createPattern(c, 'repeat');
+    if (!_snowPattern || !_snowPattern.setTransform) _snowPattern = false;
+  } catch (e) { _snowPattern = false; }
+  return _snowPattern;
+}
 let _fogPattern = null;
 function getFogPattern() {
   if (_fogPattern !== null) return _fogPattern;
@@ -9065,6 +9082,23 @@ function deriveRiverFlow() {
       const ni = nb.row * MAP_COLS + nb.col, nt = tiles[ni];
       if (!nt.hasRiver || nt.riverTo !== undefined) continue;
       nt.riverTo = i; q.push(ni);
+    }
+  }
+}
+
+// Enemies at the gates: each of your cities with a hostile army within three tiles (one you can see) is ringed in red,
+// and you're told once when the danger appears
+function updateCityThreats() {
+  const pn = nations[playerNation];
+  for (const city of cities) {
+    if (city.nationId !== playerNation) { city._threatened = false; continue; }
+    const foes = units.filter(u => u.nationId !== playerNation && UNIT_DEFS[u.type]?.combat && pn.relations?.[u.nationId] === 'war'
+      && hexDistance(u.x, u.y, city.x, city.y) <= 3 && (!currentVisionSet || currentVisionSet.has(u.y * MAP_COLS + u.x)));
+    const was = !!city._threatened;
+    city._threatened = foes.length > 0;
+    if (city._threatened && !was) {
+      const who = nations[foes[0].nationId];
+      showToast(`⚔ ${who?.isBarbarian ? 'Raiders' : (who?.name || 'Enemies')} near ${city.name}! (${foes.length} ${foes.length === 1 ? 'unit' : 'units'})`);
     }
   }
 }
@@ -9334,6 +9368,35 @@ function render() {
 
   const roadKey = turnNumber + '|' + cities.length;
   if (_roadsKey !== roadKey) { rebuildRoads(); _roadsKey = roadKey; }
+
+  // the season on the land: snow lies in winter, the woods turn in autumn, spring greens
+  if (currentSeason !== 'summer') {
+    const land = new Path2D();
+    for (let my = startRow; my < endRow; my++) {
+      const baseWorldY = my * ch - camYch;
+      for (let mx = startCol; mx < endCol; mx++) {
+        const t = tiles[my * MAP_COLS + mx];
+        if (t.type === 0 || t.type === 2 || !t.revealed.has(pId)) continue; // not the sea, nor the snowfields
+        const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
+        const cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
+        // the whole tile, sprite included, from its top face down
+        land.moveTo(cx - hw * 0.5, cy - hh - facePad); land.lineTo(cx + hw * 0.5, cy - hh - facePad); land.lineTo(cx + hw, cy - facePad * 0.5);
+        land.lineTo(cx + hw, cy); land.lineTo(cx + hw * 0.5, cy + hh); land.lineTo(cx - hw * 0.5, cy + hh); land.lineTo(cx - hw, cy); land.lineTo(cx - hw, cy - facePad * 0.5); land.closePath();
+      }
+    }
+    ctx.save();
+    if (currentSeason === 'winter') {
+      ctx.fillStyle = 'rgba(236, 242, 252, 0.27)'; ctx.fill(land);
+      const snow = getSnowPattern();
+      if (snow) { snow.setTransform(new DOMMatrix().translate(-((camX * cs) % 128), -((camY * ch) % 128))); ctx.fillStyle = snow; ctx.fill(land); }
+    } else if (currentSeason === 'autumn') {
+      ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(235, 170, 95, 0.55)'; ctx.fill(land);
+    } else if (currentSeason === 'spring') {
+      ctx.fillStyle = 'rgba(150, 225, 110, 0.08)'; ctx.fill(land);
+    }
+    ctx.restore();
+  }
 
   // territory tint: one shape per realm, filled once (per-hex fills overlapped into a darker grid)
   {
@@ -9744,6 +9807,7 @@ function render() {
       const pos = hexScreenPos(city.x, city.y);
       if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
       drawTown(city, pos.x + w / 2, pos.y + facePad + ch / 2, w, faceH);
+
     }
   }
 
@@ -9924,12 +9988,20 @@ function render() {
   }
 
   if (currentSeason === 'winter') {
-    ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = '#aaccff'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.05; ctx.fillStyle = '#aaccff'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   } else if (currentSeason === 'autumn') {
-    ctx.save(); ctx.globalAlpha = 0.05; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.03; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   }
 
   renderFloatingTexts();
+  // cities under threat: a red dashed ring around the tile, drawn above the garrison
+  for (const city of cities) {
+    if (!city._threatened || city.nationId !== pId) continue;
+    const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
+    if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
+    ctx.save(); ctx.strokeStyle = 'rgba(230, 35, 25, 1)'; ctx.lineWidth = Math.max(2.5, w * 0.07); ctx.setLineDash([Math.max(4, w * 0.13), Math.max(3, w * 0.08)]);
+    ctx.beginPath(); ctx.ellipse(pos.x + w / 2, pos.y + fp + ch / 2, w * 0.62, ch * 0.62, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
   renderParticles();
 
   updateCityLabels();
