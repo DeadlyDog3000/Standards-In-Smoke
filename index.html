@@ -9277,6 +9277,39 @@ function getTileCityMap() {
   _tileCityMapDirty = false;
   return _tileCityMap;
 }
+// Area tints (fog, territory, seasons) are painted solid, hex by hex, on an offscreen layer and laid over the map once at
+// their transparency: no doubled seams where hexes meet, and far cheaper than one vast shape (zoomed out, hexes become rectangles)
+let _hexLayer = null;
+function drawHexLayer(pts, w, faceH, alpha, style, op, top, colors) {
+  if (!pts.length) return;
+  top = top || 0;
+  const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
+  if (!_hexLayer) _hexLayer = document.createElement('canvas');
+  if (_hexLayer.width !== W || _hexLayer.height !== H) { _hexLayer.width = W; _hexLayer.height = H; }
+  const g = _hexLayer.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const fast = w < 22, hw = w / 2, hh = faceH / 2;
+  let last = null;
+  if (!colors) g.fillStyle = typeof style === 'string' ? style : '#fff';
+  for (let k = 0, n = 0; k < pts.length; k += 2, n++) {
+    const sx = pts[k], fy = pts[k + 1];
+    if (colors && colors[n] !== last) { g.fillStyle = colors[n]; last = colors[n]; }
+    if (fast) { g.fillRect(sx + w * 0.12, fy - top, w * 0.76, faceH + top); continue; }
+    const cx = sx + hw, cy = fy + hh;
+    g.beginPath();
+    g.moveTo(cx - hw * 0.5, cy - hh - top); g.lineTo(cx + hw * 0.5, cy - hh - top);
+    if (top) { g.lineTo(cx + hw, cy - top * 0.5); g.lineTo(cx + hw, cy); } else g.lineTo(cx + hw, cy);
+    g.lineTo(cx + hw * 0.5, cy + hh); g.lineTo(cx - hw * 0.5, cy + hh); g.lineTo(cx - hw, cy);
+    if (top) g.lineTo(cx - hw, cy - top * 0.5);
+    g.closePath(); g.fill();
+  }
+  if (style && typeof style !== 'string') { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = style; g.fillRect(0, 0, W, H); }
+  ctx.save(); ctx.globalAlpha = alpha; if (op) ctx.globalCompositeOperation = op;
+  ctx.drawImage(_hexLayer, 0, 0, viewW, viewH);
+  ctx.restore();
+}
+
 let _snowPattern = null;
 function getSnowPattern() {
   if (_snowPattern !== null) return _snowPattern;
@@ -9768,13 +9801,8 @@ function render() {
   const evenNbr = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]];
   const oddNbr  = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
   if (currentVisionSet) {
-    // all the dimmed hexes go into two shapes filled once each, so shared edges aren't darkened twice into a black grid
-    const fogEdge = new Path2D(), fogDeep = new Path2D();
-    const addHex = (path, x, y) => {
-      const cx = x + w / 2, cy = y + faceH / 2, hw = w / 2, hh = faceH / 2;
-      path.moveTo(cx - hw * 0.5, cy - hh); path.lineTo(cx + hw * 0.5, cy - hh); path.lineTo(cx + hw, cy);
-      path.lineTo(cx + hw * 0.5, cy + hh); path.lineTo(cx - hw * 0.5, cy + hh); path.lineTo(cx - hw, cy); path.closePath();
-    };
+    // the dimmed hexes, as two even layers (a lighter band next to what you can see)
+    const fogEdge = [], fogDeep = [];
     for (let my = startRow; my < endRow; my++) {
       const baseWorldY = my * ch - camYch;
       for (let mx = startCol; mx < endCol; mx++) {
@@ -9792,11 +9820,11 @@ function render() {
           const nc = mx + dirs[d][0], nr = my + dirs[d][1];
           if (nc >= 0 && nc < MAP_COLS && nr >= 0 && nr < MAP_ROWS && currentVisionSet.has(nr * MAP_COLS + nc)) { isEdge = true; break; }
         }
-        addHex(isEdge ? fogEdge : fogDeep, sx, fy);
+        (isEdge ? fogEdge : fogDeep).push(sx, fy);
       }
     }
-    ctx.fillStyle = 'rgba(10, 8, 5, 0.3)'; ctx.fill(fogEdge);
-    ctx.fillStyle = 'rgba(10, 8, 5, 0.5)'; ctx.fill(fogDeep);
+    drawHexLayer(fogEdge, w, faceH, 0.3, '#0a0805');
+    drawHexLayer(fogDeep, w, faceH, 0.5, '#0a0805');
   }
 
   // a unit standing on ruins explores them (settled just after this frame, not while drawing)
@@ -9806,7 +9834,7 @@ function render() {
 
   // the season on the land: snow lies in winter, the woods turn in autumn, spring greens
   if (currentSeason !== 'summer') {
-    const land = new Path2D();
+    const land = [];
     for (let my = startRow; my < endRow; my++) {
       const baseWorldY = my * ch - camYch;
       for (let mx = startCol; mx < endCol; mx++) {
@@ -9814,28 +9842,24 @@ function render() {
         if (t.type === 0 || t.type === 2 || !t.revealed.has(pId)) continue; // not the sea, nor the snowfields
         const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
         if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
-        const cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
-        // the whole tile, sprite included, from its top face down
-        land.moveTo(cx - hw * 0.5, cy - hh - facePad); land.lineTo(cx + hw * 0.5, cy - hh - facePad); land.lineTo(cx + hw, cy - facePad * 0.5);
-        land.lineTo(cx + hw, cy); land.lineTo(cx + hw * 0.5, cy + hh); land.lineTo(cx - hw * 0.5, cy + hh); land.lineTo(cx - hw, cy); land.lineTo(cx - hw, cy - facePad * 0.5); land.closePath();
+        land.push(sx, fy);
       }
     }
-    ctx.save();
+    // the whole tile, sprite included, from its top face down
     if (currentSeason === 'winter') {
-      ctx.fillStyle = 'rgba(236, 242, 252, 0.27)'; ctx.fill(land);
+      drawHexLayer(land, w, faceH, 0.27, '#ecf2fc', null, facePad);
       const snow = getSnowPattern();
-      if (snow) { snow.setTransform(new DOMMatrix().translate(-((camX * cs) % 128), -((camY * ch) % 128))); ctx.fillStyle = snow; ctx.fill(land); }
+      if (snow) { snow.setTransform(new DOMMatrix().scale(DPR).translate(-((camX * cs) % 128), -((camY * ch) % 128))); drawHexLayer(land, w, faceH, 1, snow, null, facePad); }
     } else if (currentSeason === 'autumn') {
-      ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(235, 170, 95, 0.55)'; ctx.fill(land);
+      drawHexLayer(land, w, faceH, 0.55, '#ebaa5f', 'multiply', facePad);
     } else if (currentSeason === 'spring') {
-      ctx.fillStyle = 'rgba(150, 225, 110, 0.08)'; ctx.fill(land);
+      drawHexLayer(land, w, faceH, 0.08, '#96e16e', null, facePad);
     }
-    ctx.restore();
   }
 
-  // territory tint: one shape per realm, filled once (per-hex fills overlapped into a darker grid)
+  // territory tint: each realm's land in its colour, one even wash (per-hex fills overlapped into a darker grid)
   {
-    const realmFill = new Map();
+    const pts = [], cols = [];
     for (let my = startRow; my < endRow; my++) {
       const baseWorldY = my * ch - camYch;
       for (let mx = startCol; mx < endCol; mx++) {
@@ -9843,16 +9867,10 @@ function render() {
         if (t.owner < 0 || !t.revealed.has(pId) || isBarbarianNation(t.owner)) continue;
         const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
         if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
-        let path = realmFill.get(t.owner);
-        if (!path) { path = new Path2D(); realmFill.set(t.owner, path); }
-        const cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
-        path.moveTo(cx - hw * 0.5, cy - hh); path.lineTo(cx + hw * 0.5, cy - hh); path.lineTo(cx + hw, cy);
-        path.lineTo(cx + hw * 0.5, cy + hh); path.lineTo(cx - hw * 0.5, cy + hh); path.lineTo(cx - hw, cy); path.closePath();
+        pts.push(sx, fy); cols.push(nations[t.owner].color);
       }
     }
-    ctx.save(); ctx.globalAlpha = 0.13;
-    for (const [owner, path] of realmFill) { ctx.fillStyle = nations[owner].color; ctx.fill(path); }
-    ctx.restore();
+    drawHexLayer(pts, w, faceH, 0.13, null, null, 0, cols);
   }
   // the sea: surf along every shore, and a few wave strokes on open water
   if (VIEW_TILE >= 16) {
