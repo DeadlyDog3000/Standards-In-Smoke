@@ -157,6 +157,39 @@
       border-radius: 6px; padding: 14px; z-index: 25; font-size: 13px; color: #e8dcc8;
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
+    #kingdoms { width: 330px; max-height: calc(100vh - 200px); }
+    .kcard { border: 1px solid rgba(160, 140, 100, 0.22); border-left: 3px solid var(--kc); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 10%, transparent), rgba(0,0,0,0.12) 60%); }
+    .kcard.gone { opacity: 0.4; }
+    .kcard.war { border-color: rgba(200, 80, 60, 0.5); border-left-color: var(--kc); }
+    .kc-head { display: flex; align-items: center; gap: 8px; }
+    .kc-crest { width: 22px; height: 26px; flex-shrink: 0; background: var(--kc); clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15); }
+    .kc-title { flex: 1; min-width: 0; line-height: 1.25; }
+    .kc-title b { color: #f0e2c0; font-size: 14px; }
+    .kc-title small { display: block; color: #8a7a5a; font-size: 10px; }
+    .kc-rel { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(90, 160, 80, 0.22); color: #9ad08a; white-space: nowrap; }
+    .kcard.war .kc-rel { background: rgba(200, 60, 40, 0.28); color: #f09080; }
+    .kcard.you .kc-rel { background: rgba(212, 168, 86, 0.22); color: #e0c880; }
+    .kc-op, .kc-army { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #a89878; margin-top: 6px; }
+    .kc-op > span, .kc-army > span { width: 50px; }
+    .kc-bar { flex: 1; height: 6px; background: rgba(0,0,0,0.45); border-radius: 3px; overflow: hidden; }
+    .kc-bar i { display: block; height: 100%; border-radius: 3px; }
+    .kc-op b { font-size: 11px; width: 72px; text-align: right; }
+    .kc-army b { color: #e8dcc8; } .kc-army em { font-style: normal; font-size: 10px; margin-left: auto; }
+    .kc-ask { margin-top: 7px; padding: 5px 8px; border-radius: 4px; background: rgba(212, 168, 86, 0.14); border: 1px solid rgba(212, 168, 86, 0.4); color: #f0c870; font-size: 11px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .kc-ask span { display: flex; gap: 4px; }
+    .kc-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+    .kc-acts .diplo-btn { padding: 4px 2px; font-size: 10.5px; }
+    .diplo-btn.ok { background: rgba(60, 120, 50, 0.35); border-color: rgba(110, 180, 90, 0.6); }
+    .diplo-btn.no { background: rgba(120, 40, 30, 0.35); border-color: rgba(190, 90, 70, 0.55); }
+    .diplo-btn.spy { background: rgba(70, 50, 80, 0.35); border-color: rgba(150, 110, 170, 0.45); }
+    .diplo-btn:disabled { opacity: 0.4; cursor: default; }
+    .kc-pacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .kc-pact { font-size: 10px; padding: 2px 8px; border-radius: 10px; border: 1px dashed rgba(180, 160, 120, 0.4); background: none; color: #b8a888; cursor: pointer; font-family: inherit; }
+    .kc-pact:hover:not(:disabled) { border-style: solid; color: #f0e2c0; }
+    .kc-pact:disabled { opacity: 0.4; cursor: default; }
+    .kc-pact.on { border: 1px solid rgba(110, 180, 90, 0.55); background: rgba(60, 120, 50, 0.25); color: #a8d898; cursor: default; display: inline-flex; align-items: center; gap: 4px; }
+    .kc-pact.on button { background: none; border: none; color: #c88; cursor: pointer; font-size: 12px; padding: 0 0 0 2px; line-height: 1; }
+    .kc-trade { margin-top: 6px; background: rgba(20, 16, 10, 0.6); border: 1px solid rgba(160, 140, 100, 0.25); border-radius: 4px; padding: 8px; }
     .kingdom-row {
       display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(140, 120, 80, 0.2); flex-wrap: wrap;
     }
@@ -10757,105 +10790,67 @@ function toggleKingdoms() {
 function renderKingdoms() {
   const el = document.getElementById('kingdoms');
   let html = '<h3>Kingdoms</h3>';
-  for (const n of nations) {
-
+  // each realm a card: its colours and name, how it stands with you, what it thinks of you, what it asks; then what
+  //  you can do, in one row, and your pacts with it as chips you can sign or tear up
+  const myMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
+  const order = [...nations].sort((a, b) => (b.id === playerNation) - (a.id === playerNation) || (!!a.eliminated - !!b.eliminated));
+  for (const n of order) {
     if (n.isBarbarian || n.isTribe) continue;
     if (n.id !== playerNation && !discoveredNations.has(n.id)) continue;
+    const col = safeColor(n.color);
     if (n.eliminated && n.id !== playerNation) {
-      html += `<div class="kingdom-row" style="opacity:0.4">
-        <span class="kingdom-dot" style="background:${n.color}"></span>
-        <span class="kingdom-name">${escHtml(n.name)}<br><span style="font-size:10px;color:#666">Eliminated</span></span>
-      </div>`;
+      html += `<div class="kcard gone" style="--kc:${col}"><div class="kc-head"><span class="kc-crest"></span><div class="kc-title"><b>${escHtml(n.name)}</b><small>Fallen</small></div></div></div>`;
       continue;
     }
-    const rel = n.id === playerNation ? 'You' : (nations[playerNation].relations[n.id] || 'peace');
-    const relColor = rel === 'war' ? '#e44' : (rel === 'You' ? '#d4a856' : '#4a4');
+    const you = n.id === playerNation;
+    const rel = you ? 'you' : (nations[playerNation].relations[n.id] || 'peace');
     const cityCount = cities.filter(c => c.nationId === n.id).length;
     const unitCount = units.filter(u => u.nationId === n.id).length;
     const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
-    const score = getScore(n.id);
-    html += `<div class="kingdom-row">
-      <span class="kingdom-dot" style="background:${n.color}"></span>
-      <span class="kingdom-name">${escHtml(n.name)}<br><span style="font-size:10px;color:#666">${cityCount} cities, ${unitCount} units</span><br><span style="font-size:10px;color:#888">Score: ${score} | Mil: ${milStrength}</span>`;
-    if (n.id !== playerNation) {
-      const loy = getLoyalty(n.id, playerNation);
-      const loyLabel = getLoyaltyLabel(loy);
-      const loyColor = getLoyaltyColor(loy);
-      html += `<br><span style="font-size:10px;color:${loyColor}">${loyLabel} (${Math.round(loy)})</span>`;
+    html += `<div class="kcard ${rel}" style="--kc:${col}">
+      <div class="kc-head"><span class="kc-crest"></span>
+        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}</small></div>
+        <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
+    if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
+    const loy = getLoyalty(n.id, playerNation);
+    html += `<div class="kc-op"><span>Opinion</span><div class="kc-bar"><i style="width:${Math.max(3, Math.min(100, (loy + 100) / 2))}%;background:${getLoyaltyColor(loy)}"></i></div><b style="color:${getLoyaltyColor(loy)}">${getLoyaltyLabel(loy)}</b></div>`;
+    const ratio = myMil > 0 ? milStrength / myMil : (milStrength > 0 ? 9 : 1);
+    html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b><em style="color:${ratio > 1.3 ? '#e07050' : ratio < 0.75 ? '#7ab870' : '#c8b890'}">${ratio > 1.3 ? 'stronger than yours' : ratio < 0.75 ? 'weaker than yours' : 'about as strong as yours'}</em></div>`;
+    // what they ask of you
+    if (n.wantsPeace && n.wantsPeace[playerNation]) {
+      html += `<div class="kc-ask">☮ They offer peace <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
     }
-    html += `</span>
-      <span class="kingdom-status" style="color:${relColor}">${rel}</span>`;
-    if (n.id !== playerNation) {
-      const action = rel === 'war' ? 'peace' : 'war';
-      html += ` <button class="diplo-btn" onclick="toggleDiplomacy(${n.id})">Declare ${action}</button>`;
-      html += ` <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold">Gift 20g</button>`;
-      if (n.wantsPeace && n.wantsPeace[playerNation]) {
-        html += `<br><span style="font-size:11px;color:#fc4;margin-left:20px;">☮ Offers peace!</span>`;
-        html += ` <button class="diplo-btn" style="background:#252;border-color:#4a4;" onclick="acceptPeace(${n.id})">Accept</button>`;
-        html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;" onclick="rejectPeace(${n.id})">Reject</button>`;
+    const pendingReq = rel !== 'war' && n._diploRequest && n._diploRequest[playerNation];
+    if (pendingReq) {
+      const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Barbarian Pact' };
+      html += `<div class="kc-ask">They ask for ${reqLabels[pendingReq] || escHtml(String(pendingReq))} <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button></span></div>`;
+    }
+    // what you can do
+    html += `<div class="kc-acts">
+      <button class="diplo-btn ${rel === 'war' ? 'ok' : 'no'}" onclick="toggleDiplomacy(${n.id})">${rel === 'war' ? 'Seek peace' : 'Declare war'}</button>
+      <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold: they think better of you">Gift 20g</button>
+      ${rel !== 'war' ? `<button class="diplo-btn" onclick="toggleTradePanel(${n.id})">Trade</button>` : ''}
+      <button class="diplo-btn spy" onclick="infiltrateNation(${n.id})" title="Send spies to reveal their borders — 50 gold. 25% chance of discovery">Spies 50g</button>
+    </div>`;
+    if (rel !== 'war') {
+      // pacts: signed ones lit, with an × to end them; the rest offered
+      const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
+      const pact = (type, name, req, show = true) => hasAgreement(playerNation, n.id, type)
+        ? `<span class="kc-pact on">✓ ${name}<button onclick="cancelAgreement(${n.id},'${type}')" title="End it">×</button></span>`
+        : show ? `<button class="kc-pact" onclick="${req}">+ ${name}</button>` : '';
+      const canMap = loy >= 20;
+      html += `<div class="kc-pacts">${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
+      // the trade panel, as it was
+      html += `<div id="tradePanel_${n.id}" class="kc-trade" style="display:none;">`;
+      const tradeMarkup = loy >= 80 ? 1.0 : loy >= 50 ? 1.25 : loy >= 20 ? 1.5 : 2.0;
+      const tradeLabel = loy >= 80 ? 'Friendly prices' : loy >= 50 ? 'Fair prices' : loy >= 20 ? 'Marked up' : 'Steep prices';
+      html += `<div style="font-size:10px;color:#8a7a5a;margin-bottom:4px;">${tradeLabel} (${Math.round(tradeMarkup * 100)}%) · 20 of a good for</div>`;
+      for (const res of ['food', 'wood', 'stone', 'steel', 'gunpowder']) {
+        const cost = Math.round(20 * tradeMarkup);
+        const theyHave = Math.floor(nations[n.id][res] || 0);
+        const canAfford = nations[playerNation].gold >= cost && theyHave >= 20;
+        html += `<button class="diplo-btn" style="font-size:10px;margin:1px;" ${canAfford ? '' : 'disabled'} onclick="requestTrade(${n.id},'${res}')" title="${theyHave < 20 ? "They don't have enough" : cost + ' gold for 20 ' + res}">${res} ${cost}g</button>`;
       }
-
-      if (rel !== 'war') {
-        const hasOB = hasAgreement(playerNation, n.id, 'open_borders');
-        const hasWH = hasAgreement(playerNation, n.id, 'war_help');
-        const hasBH = hasAgreement(playerNation, n.id, 'barb_help');
-        const pendingReq = n._diploRequest && n._diploRequest[playerNation];
-        html += `<div style="margin-top:4px;margin-left:20px;font-size:11px;">`;
-
-        if (hasOB) {
-          html += `<span style="color:#6a6;">Open Borders</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'open_borders')">Cancel</button><br>`;
-        } else {
-          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'open_borders')">Request Open Borders</button> `;
-        }
-
-        const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
-        if (hasWH) {
-          html += `<span style="color:#6a6;">War Alliance</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'war_help')">Cancel</button><br>`;
-        } else if (atWarWith.length > 0) {
-          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'war_help')">Request War Help</button> `;
-        }
-
-        if (hasBH) {
-          html += `<span style="color:#6a6;">Barbarian Pact</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'barb_help')">Cancel</button><br>`;
-        } else {
-          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestAgreement(${n.id},'barb_help')">Request Barbarian Help</button> `;
-        }
-
-        if (hasAgreement(playerNation, n.id, 'mapping')) {
-          html += `<span style="color:#6a6;">Mapping Agreement</span> <button class="diplo-btn" style="font-size:10px;" onclick="cancelAgreement(${n.id},'mapping')">Cancel</button><br>`;
-        } else {
-          const loy = getLoyalty(n.id, playerNation);
-          const canMap = loy >= 20;
-          html += `<button class="diplo-btn" style="font-size:10px;" onclick="requestMappingAgreement(${n.id})" ${!canMap ? 'disabled title="Relations too poor"' : 'title="Mutual border reveal — 30 gold"'}>Mapping Agreement <span style="color:#d4a856;font-size:9px;">(30g)</span></button><br>`;
-        }
-
-        html += `<br><button class="diplo-btn" style="font-size:10px;margin-top:4px;" onclick="toggleTradePanel(${n.id})">Trade Resources</button>`;
-        html += `<div id="tradePanel_${n.id}" style="display:none;margin-top:6px;background:rgba(20,16,10,0.6);border:1px solid rgba(160,140,100,0.25);border-radius:4px;padding:8px;">`;
-        const tradeLoy = getLoyalty(n.id, playerNation);
-        const tradeMarkup = tradeLoy >= 80 ? 1.0 : tradeLoy >= 50 ? 1.25 : tradeLoy >= 20 ? 1.5 : 2.0;
-        const tradeLabel = tradeLoy >= 80 ? 'Friendly prices' : tradeLoy >= 50 ? 'Fair prices' : tradeLoy >= 20 ? 'Marked up' : 'Steep prices';
-        html += `<div style="font-size:10px;color:#8a7a5a;margin-bottom:4px;">${tradeLabel} (${Math.round(tradeMarkup * 100)}%)</div>`;
-        for (const res of ['food','wood','stone','steel','gunpowder']) {
-          const cost = Math.round(20 * tradeMarkup);
-          const theyHave = Math.floor(nations[n.id][res] || 0);
-          const canAfford = nations[playerNation].gold >= cost && theyHave >= 20;
-          html += `<button class="diplo-btn" style="font-size:10px;margin:1px;" ${canAfford ? '' : 'disabled'} onclick="requestTrade(${n.id},'${res}')" title="${theyHave < 20 ? "They don't have enough" : cost + ' gold for 20 ' + res}">20 ${res} <span style="color:#d4a856;font-size:9px;">(${cost}g)</span></button> `;
-        }
-        html += `</div>`;
-        html += `</div>`;
-
-        if (pendingReq) {
-          html += `<div style="margin-left:20px;margin-top:2px;font-size:11px;color:#fc4;">`;
-          const reqLabels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Barbarian Pact' };
-          html += `Requests ${reqLabels[pendingReq] || pendingReq}! `;
-          html += `<button class="diplo-btn" style="background:#252;border-color:#4a4;font-size:10px;" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button>`;
-          html += ` <button class="diplo-btn" style="background:#422;border-color:#a44;font-size:10px;" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button>`;
-          html += `</div>`;
-        }
-      }
-
-      html += `<div style="margin-top:4px;margin-left:20px;font-size:11px;">`;
-      html += `<button class="diplo-btn" style="font-size:10px;background:rgba(80,30,30,0.5);border-color:rgba(180,80,60,0.6);" onclick="infiltrateNation(${n.id})" title="Send spies to reveal their borders — 50 gold. 25% chance of discovery.">Infiltrate <span style="color:#d4a856;font-size:9px;">(50g)</span></button>`;
       html += `</div>`;
     }
     html += `</div>`;
