@@ -176,6 +176,7 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    .nation-face { width: 38px; height: 38px; }
     .portrait { border-radius: 50%; object-fit: cover; border: 2px solid rgba(212, 168, 86, 0.6); box-shadow: 0 2px 6px rgba(0,0,0,0.6); flex-shrink: 0; background: #2a2218; }
     .kc-face { width: 34px; height: 34px; border-color: var(--kc); }
     .vol-box { margin: 4px 0 14px; }
@@ -2683,9 +2684,9 @@ function portraitOf(ch) {
   const c = ch ? nameCulture(ch.nationId) : null;
   return `portraits/${c ? c.p : 'west'}_${ch && ch.gender === 'female' ? 'f' : 'm'}.jpg`;
 }
+function cultureByName(nm) { return NAME_CULTURES.find(c => c.re.test(nm || '')) || null; }
 function nameCulture(nationId) {
-  const nm = nationId != null && nations[nationId] ? nations[nationId].name : '';
-  return NAME_CULTURES.find(c => c.re.test(nm)) || null;
+  return cultureByName(nationId != null && nations[nationId] ? nations[nationId].name : '');
 }
 function generateCharacterName(gender, nationId) {
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -12320,7 +12321,7 @@ function renderNationPicker() {
   if (!grid) return;
   grid.innerHTML = PRESET_NATIONS.map((n, i) => `
     <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
-      <div class="nation-flag" style="background:${n.color}"></div>
+      <img class="portrait nation-face" src="portraits/${(cultureByName(n.name) || { p: 'west' }).p}_m.jpg" alt="" style="border-color:${safeColor(n.color)}">
       <div>
         <div class="nation-card-name">${escHtml(n.name)}</div>
         <div class="nation-card-sub">${n.cityNames.slice(0,2).join(', ')}</div>
