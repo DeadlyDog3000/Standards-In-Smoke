@@ -176,6 +176,9 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    .vol-box { margin: 4px 0 14px; }
+    .vol-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; font-size: 15px; }
+    .vol-row input { flex: 1; max-width: 170px; accent-color: #d4a856; }
     .us-grid { margin: 6px 0 8px; }
     .us-bar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a89878; margin-bottom: 4px; }
     .us-bar > span { width: 46px; } .us-bar > b { width: 46px; text-align: right; color: #e8dcc8; font-weight: normal; }
@@ -670,6 +673,7 @@
         <span style="font-size:15px;color:#c8b89a;">Music</span>
         <button class="menu-btn" id="menuMusicToggle" onclick="toggleMusic();this.textContent=musicEnabled?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
       </div>
+      <div class="vol-box" id="menuVolumes" style="color:#c8b89a;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:15px;color:#c8b89a;">Auto Next Unit</span>
         <button class="menu-btn" id="menuAutoNextUnitToggle" onclick="toggleAutoNextUnit();this.textContent=autoNextUnit?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
@@ -698,7 +702,8 @@
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
-        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built
+        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
+        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -1310,7 +1315,8 @@
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
         - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
         - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips<br>
-        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built
+        - <b>City names</b> are banners in the realm's colours under each town, with its size, a star for a capital, a red count while it's being taken, and what it has built<br>
+        - <b>Volume</b> sliders in Options for the music, the land's own sounds (birds, towns, marching) and the effects, kept between games
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -2054,6 +2060,7 @@
         <span style="font-size:15px;">Music</span>
         <button class="esc-btn" id="musicToggleBtn" onclick="toggleMusic()" style="width:auto;margin:0;padding:6px 18px;">On</button>
       </div>
+      <div class="vol-box" id="escVolumes"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;">Auto Next Unit</span>
         <button class="esc-btn" id="autoNextUnitBtn" onclick="toggleAutoNextUnit()" style="width:auto;margin:0;padding:6px 18px;">On</button>
@@ -3182,6 +3189,39 @@ const MUSIC_TRACKS = [
   'nnchannel-church-choir-297898.m4a',
   'tunetank-church-choir-349262.m4a',
 ];
+// ---- volume, by kind: the music, the land's own sounds (birds, a town, a column on the march), and the effects (shots,
+//  clicks, fanfares). Every sound sets its volume as it always did; what reaches the ear is that times its kind's slider ----
+const SOUND_VOL = (() => { try { return Object.assign({ music: 1, amb: 1, sfx: 1 }, JSON.parse(localStorage.getItem('sis_volume') || '{}')); } catch (e) { return { music: 1, amb: 1, sfx: 1 }; } })();
+function soundKind(el) {
+  const src = el.currentSrc || el.src || '';
+  if (MUSIC_TRACKS.some(t => src.includes(encodeURI(t)) || src.includes(t))) return 'music';
+  if (/birds|town\.m4a|marching_loop/.test(src)) return 'amb';
+  return 'sfx';
+}
+const _liveSounds = new Set();   // (the long ones: music and the loops, kept so a slider moved now is heard now)
+{
+  const d = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
+  if (d && d.set) Object.defineProperty(HTMLMediaElement.prototype, 'volume', {
+    configurable: true,
+    get() { return this._baseVol ?? d.get.call(this); },
+    set(v) {
+      this._baseVol = v;
+      const k = soundKind(this); if (k !== 'sfx') _liveSounds.add(this);
+      d.set.call(this, Math.max(0, Math.min(1, v * (SOUND_VOL[k] ?? 1))));
+    },
+  });
+}
+window.setSoundVolume = function(kind, v) {
+  SOUND_VOL[kind] = Math.max(0, Math.min(1, +v));
+  try { localStorage.setItem('sis_volume', JSON.stringify(SOUND_VOL)); } catch (e) {}
+  for (const el of _liveSounds) el.volume = el._baseVol ?? 1;
+  document.querySelectorAll(`input[data-vol="${kind}"]`).forEach(i => { i.value = SOUND_VOL[kind]; });
+};
+function volumeSlidersHtml() {
+  return [['music', 'Music'], ['amb', 'Ambience'], ['sfx', 'Effects']].map(([k, l]) =>
+    `<label class="vol-row"><span>${l}</span><input type="range" min="0" max="1" step="0.05" value="${SOUND_VOL[k]}" data-vol="${k}" oninput="setSoundVolume('${k}', this.value)"></label>`).join('');
+}
+
 let musicTrackIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
 const bgMusic = new Audio(MUSIC_TRACKS[musicTrackIndex]);
 bgMusic.loop = false; bgMusic.volume = 0.35;
@@ -12131,6 +12171,7 @@ function showOptionsPanel() {
   document.getElementById('escOptions').style.display = 'block';
   document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
   document.getElementById('autoNextUnitBtn').textContent = autoNextUnit ? 'On' : 'Off';
+  document.getElementById('escVolumes').innerHTML = volumeSlidersHtml();
 }
 function toggleAutoNextUnit() {
   autoNextUnit = !autoNextUnit;
@@ -12310,6 +12351,7 @@ function showMenuOptions() {
   document.getElementById('menuMain').style.display = 'none';
   document.getElementById('menuOptions').style.display = 'block';
   document.getElementById('menuMusicToggle').textContent = musicEnabled ? 'On' : 'Off';
+  document.getElementById('menuVolumes').innerHTML = volumeSlidersHtml();
   refreshMenuSaveSlots();
 }
 function hideMenuOptions() {
