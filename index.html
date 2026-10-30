@@ -2110,7 +2110,11 @@ let hexImagesLoaded = 0;
 for (const name of HEX_TILE_FILES) {
   const img = new Image();
   img.src = `tiles/${name}.png`;
-  img.onload = () => { hexImagesLoaded++; };
+  img.onload = () => {
+    hexImagesLoaded++;
+    // a tile that arrives after the first frame: draw the map again once (batched) so it isn't left blank
+    if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; if (document.getElementById('game')?.style.display !== 'none') render(); });
+  };
   hexImages[name] = img;
 }
 
