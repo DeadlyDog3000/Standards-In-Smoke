@@ -2184,6 +2184,11 @@ function hexDistance(x1, y1, x2, y2) {
 
 let tiles = [];
 let camX = 0, camY = 0, viewCols, viewRows;
+// The camera may go half a screen past the map's edges, so every tile (a coastal capital, a corner of the map) can be brought to the middle
+function visibleCols() { return viewW / hexColStep(); }
+function visibleRows() { return viewH / hexCellH(); }
+function clampCamX(v) { const vc = visibleCols(); return Math.max(-vc / 2, Math.min(MAP_COLS - vc / 2, v)); }
+function clampCamY(v) { const vr = visibleRows(); return Math.max(-vr / 2, Math.min(MAP_ROWS - vr / 2, v)); }
 let nations = [];
 let playerNation = 0;
 let units = [];
@@ -2692,8 +2697,8 @@ function renderParticles() {
 
 let targetCamX = null, targetCamY = null, camPanCallback = null;
 function panCameraTo(col, row, callback) {
-  targetCamX = Math.max(0, Math.min(MAP_COLS - (viewCols || 10) + 1, Math.round(col - (viewCols || 10) / 2)));
-  targetCamY = Math.max(0, Math.min(MAP_ROWS - (viewRows || 10) + 1, Math.round(row - (viewRows || 10) / 2)));
+  targetCamX = clampCamX(col + 0.5 - visibleCols() / 2);
+  targetCamY = clampCamY(row + 0.5 - visibleRows() / 2);
   camPanCallback = callback || null;
   if (!camPanActive) { camPanActive = true; requestAnimationFrame(camPanTick); }
 }
@@ -8661,12 +8666,48 @@ function getTileCityMap() {
   _tileCityMapDirty = false;
   return _tileCityMap;
 }
+let _fogPattern = null;
+function getFogPattern() {
+  if (_fogPattern !== null) return _fogPattern;
+  try {
+    const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d');
+    g.fillStyle = '#27231d'; g.fillRect(0, 0, S, S);
+    // soft stains: tileable by drawing each blot at its wrapped positions
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let k = 0; k < 70; k++) {
+      const x = rnd() * S, y = rnd() * S, r = 20 + rnd() * 90, dark = rnd() < 0.5;
+      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
+        const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+        gr.addColorStop(0, dark ? 'rgba(10,8,5,0.10)' : 'rgba(120,100,70,0.06)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+      }
+    }
+    // paper grain
+    const img = g.getImageData(0, 0, S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 9; d[i] += n; d[i + 1] += n; d[i + 2] += n * 0.8; }
+    g.putImageData(img, 0, 0);
+    // a faint chart grid, as on an old sea map
+    g.strokeStyle = 'rgba(150,125,85,0.07)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, 0.5); g.lineTo(S, 0.5); g.moveTo(0.5, 0); g.lineTo(0.5, S);
+    g.moveTo(0, S / 2 + 0.5); g.lineTo(S, S / 2 + 0.5); g.moveTo(S / 2 + 0.5, 0); g.lineTo(S / 2 + 0.5, S); g.stroke();
+    _fogPattern = ctx.createPattern(c, 'repeat');
+    if (!_fogPattern || !_fogPattern.setTransform) _fogPattern = false;
+  } catch (e) { _fogPattern = false; }
+  return _fogPattern;
+}
+
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(viewW / cs) + 3;
   viewRows = Math.ceil(viewH / ch) + 3;
-  ctx.fillStyle = '#2a2a2a';
+  // unexplored land: a dark, old chart that scrolls with the map
+  const fogPat = getFogPattern();
+  if (fogPat) {
+    fogPat.setTransform(new DOMMatrix().translate(-((camX * cs) % 512), -((camY * ch) % 512)));
+    ctx.fillStyle = fogPat;
+  } else ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, viewW, viewH);
 
   const shake = getShakeOffset();
@@ -11319,8 +11360,8 @@ canvas.addEventListener('mousemove', (e) => {
   if (isDragging) {
     const dx = dragStartX - e.clientX, dy = dragStartY - e.clientY;
     if (Math.abs(dx) > 8 || Math.abs(dy) > 8) dragMoved = true;
-    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, dragCamStartX + Math.round(dx / colS)));
-    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, dragCamStartY + Math.round(dy / cellH)));
+    camX = clampCamX(dragCamStartX + dx / colS);
+    camY = clampCamY(dragCamStartY + dy / cellH);
   }
   const worldPx = e.clientX + camX * colS;
   const worldPy = e.clientY + camY * cellH;
@@ -11379,12 +11420,12 @@ canvas.addEventListener('wheel', (e) => {
   else VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(2, Math.round(VIEW_TILE * 0.15)));
 
   const newCS = hexColStep(), newCH = hexCellH();
-  camX = Math.max(0, Math.round(worldX - mx / newCS));
-  camY = Math.max(0, Math.round(worldY - my / newCH));
+  camX = worldX - mx / newCS;
+  camY = worldY - my / newCH;
   viewCols = Math.ceil(viewW / newCS) + 3;
   viewRows = Math.ceil(viewH / newCH) + 3;
-  camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
-  camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
+  camX = clampCamX(camX);
+  camY = clampCamY(camY);
   render(); updateUI();
 }, { passive: false });
 
@@ -11411,8 +11452,8 @@ canvas.addEventListener('touchmove', (e) => {
     const dx = touchStartX - t.clientX, dy = touchStartY - t.clientY;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) touchMoved = true;
     const colS = hexColStep(), cellH = hexCellH();
-    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, touchCamStartX + Math.round(dx / colS)));
-    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, touchCamStartY + Math.round(dy / cellH)));
+    camX = clampCamX(touchCamStartX + dx / colS);
+    camY = clampCamY(touchCamStartY + dy / cellH);
     render();
   } else if (e.touches.length === 2) {
     const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -11426,12 +11467,12 @@ canvas.addEventListener('touchmove', (e) => {
       if (dist > lastPinchDist * 1.05) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(1, Math.round(VIEW_TILE * 0.08)));
       else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08)));
       const newCS = hexColStep(), newCH = hexCellH();
-      camX = Math.max(0, Math.round(worldX - midX / newCS));
-      camY = Math.max(0, Math.round(worldY - midY / newCH));
+      camX = worldX - midX / newCS;
+      camY = worldY - midY / newCH;
       viewCols = Math.ceil(viewW / newCS) + 3;
       viewRows = Math.ceil(viewH / newCH) + 3;
-      camX = Math.min(camX, Math.max(0, MAP_COLS - viewCols + 1));
-      camY = Math.min(camY, Math.max(0, MAP_ROWS - viewRows + 1));
+      camX = clampCamX(camX);
+      camY = clampCamY(camY);
       render();
     }
     lastPinchDist = dist;
@@ -11704,8 +11745,8 @@ minimapCanvas.addEventListener('click', (e) => {
   const rect = minimapCanvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) / rect.width * MAP_COLS;
   const my = (e.clientY - rect.top) / rect.height * MAP_ROWS;
-  camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, Math.round(mx - viewCols / 2)));
-  camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, Math.round(my - viewRows / 2)));
+  camX = clampCamX(mx - visibleCols() / 2);
+  camY = clampCamY(my - visibleRows() / 2);
   render();
 });
 
@@ -12038,8 +12079,8 @@ setInterval(() => {
   if (keysDown['a'] || keysDown['arrowleft']) dx = -2;
   if (keysDown['d'] || keysDown['arrowright']) dx = 2;
   if (dx || dy) {
-    camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, camX + dx));
-    camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, camY + dy));
+    camX = clampCamX(camX + dx);
+    camY = clampCamY(camY + dy);
     const rrCS = hexColStep(), rrCH = hexCellH();
     const hh = pixelToHex(lastMouseX + camX * rrCS, lastMouseY + camY * rrCH);
     hoveredMX = hh.col; hoveredMY = hh.row;
@@ -13351,9 +13392,8 @@ function generateAndPlay(pName, pColor, opponents) {
   VIEW_TILE = 32;
   viewCols = Math.ceil(viewW / hexColStep()) + 3;
   viewRows = Math.ceil(viewH / hexCellH()) + 3;
-  const cx = Math.floor(viewCols / 2), cy = Math.floor(viewRows / 2);
-  camX = Math.max(0, Math.min(MAP_COLS - viewCols + 1, sp.x - cx));
-  camY = Math.max(0, Math.min(MAP_ROWS - viewRows + 1, sp.y - cy));
+  camX = clampCamX(sp.x + 0.5 - visibleCols() / 2);
+  camY = clampCamY(sp.y + 0.5 - visibleRows() / 2);
   revealAllUnits(playerNation);
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
