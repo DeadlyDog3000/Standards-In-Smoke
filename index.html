@@ -176,6 +176,14 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    .us-grid { margin: 6px 0 8px; }
+    .us-bar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a89878; margin-bottom: 4px; }
+    .us-bar > span { width: 46px; } .us-bar > b { width: 46px; text-align: right; color: #e8dcc8; font-weight: normal; }
+    .us-bar > div { flex: 1; height: 6px; background: rgba(0,0,0,0.45); border-radius: 3px; overflow: hidden; }
+    .us-bar i { display: block; height: 100%; border-radius: 3px; }
+    .us-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .us-chip { font-size: 11px; padding: 2px 7px; border-radius: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(160,140,100,0.25); color: #e8dcc8; white-space: nowrap; }
+    .us-chip em { font-style: normal; } .us-chip.good { border-color: rgba(110,180,90,0.5); color: #b0dca0; } .us-chip.water { border-color: rgba(90,140,200,0.5); color: #9cc0ec; }
     #empirePanel { position: fixed; top: 50px; left: 50%; transform: translateX(-50%); width: 760px; max-width: 96vw; max-height: 78vh; overflow: auto; z-index: 60; background: rgba(30, 25, 18, 0.97); border: 2px solid rgba(180, 140, 60, 0.4); border-radius: 8px; padding: 12px 14px; color: #e8dcc8; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
     #empirePanel .emp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
     #empirePanel h3 { color: #e0c880; font-family: 'Uncial Antiqua', cursive; font-size: 20px; margin: 0; }
@@ -681,7 +689,8 @@
         - Rival armies are mixed: foot, horse and guns, with artillery kept to about a quarter (late-game rivals used to field nothing but field guns)<br>
         - Rival workers build a first harbour once they know Navigation, so they can put ships to sea<br>
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
-        - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked
+        - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
+        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -1291,7 +1300,8 @@
         - Rival armies are mixed: foot, horse and guns, with artillery kept to about a quarter (late-game rivals used to field nothing but field guns)<br>
         - Rival workers build a first harbour once they know Navigation, so they can put ships to sea<br>
         - <b>Empire</b> overview (<b>O</b>, or the new top-bar button): every city in one table with its people, mood, spare food, gold, science, what it's building and who guards it; click one to go there<br>
-        - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked
+        - The <b>minimap</b> is larger and sharp, fills its frame edge to edge (a quarter of it stood empty), shows cities as ringed dots and the view as a true-sized frame, and a click lands where you clicked<br>
+        - A unit's <b>health and morale</b> show as bars, and its moves, sight, attack and the ground's defence as chips
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.9</b></div>
       <div style="margin-bottom:12px;">
@@ -10607,18 +10617,20 @@ function showUnitPanel(unit) {
   const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
   const effectiveMaxHp = getEffectiveMaxHp(unit);
   const unitLevel = getUnitLevel(unit);
-  let statsLine = `Moves: ${unit.movesLeft}/${unit.maxMoves} | Vision: ${unit.vision} | HP: ${unit.hp}/${effectiveMaxHp}`;
+  // (its state at a glance: health and morale as bars, then what it can do and what the ground gives it, as chips)
+  const bar = (label, v, max, col) => `<div class="us-bar"><span>${label}</span><div><i style="width:${Math.max(0, Math.min(100, v / max * 100))}%;background:${col}"></i></div><b>${v}/${max}</b></div>`;
+  const chip = (t, title, cls = '') => `<span class="us-chip ${cls}"${title ? ` title="${title}"` : ''}>${t}</span>`;
+  const hpCol = unit.hp / effectiveMaxHp > 0.6 ? '#6ab04c' : unit.hp / effectiveMaxHp > 0.3 ? '#e0b040' : '#d05040';
+  let bars = bar('Health', unit.hp, effectiveMaxHp, hpCol), chips = chip(`➜ ${unit.movesLeft}/${unit.maxMoves}`, 'Moves left this turn') + chip(`👁 ${unit.vision}`, 'How far it sees');
   if (def.combat) {
     const effAtk = getEffectiveAtk(unit);
-    statsLine += ` | ATK: ${effAtk}`;
-    if (effAtk > (def.atk || 4)) statsLine += ` <span style="color:${unitLevel.color}">(+${unitLevel.atkBonus})</span>`;
-    if (def.ranged) statsLine += ' (ranged)';
-    if (def.siege) statsLine += ' (siege)';
-    if (unit.fortified) statsLine += ' | Fortified';
+    chips += chip(`⚔ ${effAtk}${effAtk > (def.atk || 4) ? ` <em style="color:${unitLevel.color}">(+${effAtk - (def.atk || 4)})</em>` : ''}`, `Attack (${def.atk || 4} base, with its rank, laws and general)`);
+    if (def.ranged) chips += chip('Ranged', 'Can fire from range (R)');
+    if (def.siege) chips += chip('Siege', 'Strong against walls');
+    if (unit.fortified) chips += chip('Fortified', 'Dug in: harder to dislodge', 'good');
 
     const unitMorale = unit.morale !== undefined ? unit.morale : MORALE_MAX;
-    const moraleColor = unitMorale > 50 ? '#48f' : unitMorale > 25 ? '#fa0' : '#f44';
-    statsLine += ` | <span style="color:${moraleColor}">Morale: ${unitMorale}/${MORALE_MAX}</span>`;
+    bars += bar('Morale', unitMorale, MORALE_MAX, unitMorale > 50 ? '#5a8ee0' : unitMorale > 25 ? '#e0a030' : '#d04040');
 
     const uti = unit.y * MAP_COLS + unit.x;
     const uTerrain = tiles[uti].type;
@@ -10626,10 +10638,10 @@ function showUnitPanel(unit) {
     const hasCityFort = unitCity && (unitCity.buildings || []).includes('fortifications');
     const defLabel = (uTerrain === 5) ? 'Forest +25%' : (uTerrain === 2) ? 'Mountain +35%' : (uTerrain === 7) ? 'Hill +30%' : (uTerrain === 3) ? 'Swamp +15%' :
                      unitCity ? (hasCityFort ? 'City +52%' : 'City +40%') : null;
-    if (defLabel) statsLine += ` | DEF: ${defLabel}`;
-
-    if (tiles[uti].hasRiver) statsLine += ' | <span style="color:#4a7ec0">River</span>';
+    if (defLabel) chips += chip(`🛡 ${defLabel}`, 'Defence the ground gives it', 'good');
+    if (tiles[uti].hasRiver) chips += chip('River', 'On a river', 'water');
   }
+  const statsLine = `<div class="us-grid">${bars}<div class="us-chips">${chips}</div></div>`;
   let rankHtml = '';
   if (def.combat && unitLevel.xp > 0) {
     const nextLevel = XP_LEVELS.find(l => l.xp > (unit.xp || 0));
@@ -10657,7 +10669,7 @@ function showUnitPanel(unit) {
       generalHtml = `<p style="font-size:11px;color:#6c6;margin:2px 0;">Under command of General (${traitNames})</p>`;
     }
   }
-  let html = `<h3>${def.icon} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}<br>${statsLine}</p>${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
+  let html = `<h3>${def.icon} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
 
   if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
     const upg = UNIT_UPGRADES[unit.type];
