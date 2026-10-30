@@ -12948,7 +12948,7 @@ function renderMarketPanel() {
   const n = nations[playerNation];
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">`;
   html += `<h3 style="color:#d4a856;margin:0;font-family:'Uncial Antiqua',cursive;">Market</h3>`;
-  html += `<button class="p-btn" onclick="document.getElementById('marketPanel').style.display='none'" style="font-size:11px;padding:2px 8px;">Close</button></div>`;
+  html += `<button class="p-btn" onclick="document.getElementById('marketPanel').style.display='none'" style="font-size:11px;padding:2px 8px;flex:none;width:auto;">Close</button></div>`;
   html += `<div style="font-size:11px;color:#a89878;margin-bottom:10px;">Trade in lots of ${MARKET_LOT}. Every lot you sell this turn lowers the price, every lot you buy raises it; prices settle again next turn. Treasury: <b style="color:#e0c880">${Math.floor(n.gold || 0)} gold</b></div>`;
   for (const res in MARKET_GOODS) {
     const g = MARKET_GOODS[res], have = Math.floor(n[res] || 0);
@@ -12992,7 +12992,7 @@ function renderLawsPanel() {
   const myGold = Math.floor(n.gold || 0);
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">`;
   html += `<h3 style="color:#d4a856;margin:0;font-family:'Uncial Antiqua',cursive;">Laws of the Realm</h3>`;
-  html += `<button class="p-btn" onclick="document.getElementById('lawsPanel').style.display='none'" style="font-size:11px;padding:2px 8px;">Close</button>`;
+  html += `<button class="p-btn" onclick="document.getElementById('lawsPanel').style.display='none'" style="font-size:11px;padding:2px 8px;flex:none;width:auto;">Close</button>`;
   html += `</div>`;
   html += `<div style="font-size:11px;color:#a89878;margin-bottom:10px;line-height:1.5;">Each category permits one law. First adoption costs <b style="color:#e0c880">${LAW_ADOPT_ORDER_COST} order</b>. Switching laws costs <b style="color:#e0c880">${LAW_ADOPT_ORDER_COST} order + ${LAW_SWITCH_GOLD} gold</b>. You have <b style="color:#e0c880">${myGold}g</b>, <b style="color:#e0c880">${ordersRemaining}</b> orders left.</div>`;
 
