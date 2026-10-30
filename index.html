@@ -594,6 +594,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Roads, Shores &amp; Painted Borders</b><br>
+        - <b>Roads:</b> each city is joined to its capital by a road over land that doesn't cross a rival's territory. A city on the road earns +2 gold in trade (shown in its statistics); roads redraw as cities are founded or lost<br>
+        - Borders are drawn like a painted map: dark ink beneath, the realm's colour, a light inner edge. The territory tint is one even wash instead of a grid<br>
+        - The sea has surf along every shore and wave marks on open water<br>
+        - Battle replays only show fights you can see or take part in, skip the camera pan when the fight is already on screen, and play briskly on a busy turn
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Towns, Trade &amp; Militia</b><br>
@@ -1148,7 +1156,15 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.6</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Roads, Shores &amp; Painted Borders</b><br>
+        - <b>Roads:</b> each city is joined to its capital by a road over land that doesn't cross a rival's territory. A city on the road earns +2 gold in trade (shown in its statistics); roads redraw as cities are founded or lost<br>
+        - Borders are drawn like a painted map: dark ink beneath, the realm's colour, a light inner edge. The territory tint is one even wash instead of a grid<br>
+        - The sea has surf along every shore and wave marks on open water<br>
+        - Battle replays only show fights you can see or take part in, skip the camera pan when the fight is already on screen, and play briskly on a busy turn
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 5.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Towns, Trade &amp; Militia</b><br>
         - Every city is drawn as a little town that grows with its people: a church and your flag over the capital, a ring wall once fortified<br>
@@ -2863,6 +2879,7 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
     return; // Don't queue for replay — already shown
   }
 
+  if (!playerInvolved && !seen) return; // a skirmish in the fog isn't replayed: you can't see it
   battleEvents.push({ attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged });
 }
 
@@ -2898,14 +2915,17 @@ async function replayBattleEvents() {
   animationBlocking = true; animBlockStart = Date.now();
   const events = [...battleEvents];
   battleEvents = [];
+  const fast = events.length > 4; // a busy turn of fighting plays out briskly
   try {
     for (const evt of events) {
 
-      await new Promise(resolve => {
-        panCameraTo(evt.defenderX, evt.defenderY, resolve);
-      });
+      // pan only when the fight is off screen (or near its edge)
+      const sp = hexScreenPos(evt.defenderX, evt.defenderY), m = hexWidth() * 1.5;
+      if (sp.x < m || sp.y < m || sp.x > viewW - m || sp.y > viewH - m) {
+        await new Promise(resolve => { panCameraTo(evt.defenderX, evt.defenderY, resolve); });
+      }
 
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, fast ? 80 : 200));
 
       if (evt.dmgToDefender > 0) {
         addFloatingText(evt.defenderX, evt.defenderY, `-${evt.dmgToDefender}`, '#ff4444', 1400, 16);
@@ -2932,7 +2952,7 @@ async function replayBattleEvents() {
       }
       render();
 
-      await new Promise(r => setTimeout(r, evt.defenderDied || evt.attackerDied ? 800 : 500));
+      await new Promise(r => setTimeout(r, (evt.defenderDied || evt.attackerDied ? 800 : 500) * (fast ? 0.45 : 1)));
     }
   } catch(e) {
     console.error('Battle replay error:', e);
@@ -4637,6 +4657,7 @@ function getCityYields(city) {
   }
 
   if (nationHasWonder(city.nationId, 'great_library')) y.science += 1;
+  if (city._road) y.gold += ROAD_TRADE_GOLD;
 
   if (nationHasTech(city.nationId, 'banking')) {
     for (const ti of city.ownedTiles) {
@@ -4690,6 +4711,7 @@ function getCityYieldBreakdown(city) {
   for (const k in tileTotals) if (tileTotals[k] !== 0) sources[k].push({ label: 'Tiles & improvements', val: tileTotals[k] });
 
   if (nationHasWonder(city.nationId, 'great_library')) sources.science.push({ label: 'Great Library', val: 1 });
+  if (city._road) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
   if (nationHasTech(city.nationId, 'banking')) {
     let mkt = 0;
     for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
@@ -7592,6 +7614,7 @@ function _finishEndTurnImpl() {
   try { tickCityLoyalty(); } catch(e) { console.error('tickCityLoyalty error:', e); }
   try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
   try { tickMilitia(); } catch(e) { console.error('tickMilitia error:', e); }
+  try { rebuildRoads(); } catch(e) { console.error('rebuildRoads error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   if (window._gameOver) return; // the game ended this turn: no more turn, autosave or events
@@ -8920,6 +8943,65 @@ function getFogPattern() {
   return _fogPattern;
 }
 
+// ---- Roads: each city is joined to its capital by a road over land that doesn't cross a rival's territory.
+// A city on the road earns trade gold; the roads are redrawn as the realm changes (each turn, and when a city is founded or lost) ----
+const ROAD_TRADE_GOLD = 2, ROAD_MAX_LEN = 14;
+let roads = [], _roadsKey = '';
+function rebuildRoads() {
+  roads = [];
+  for (const c of cities) c._road = false;
+  for (const cap of cities) {
+    if (!cap.isCapital) continue;
+    const nId = cap.nationId, n = nations[nId];
+    if (!n || n.isBarbarian || n.isTribe) continue;
+    // one search out from the capital finds the way to every city of the realm
+    const start = cap.y * MAP_COLS + cap.x, prev = new Map([[start, -1]]), dist = new Map([[start, 0]]), q = [start];
+    for (let qi = 0; qi < q.length; qi++) {
+      const cur = q[qi], d = dist.get(cur);
+      if (d >= ROAD_MAX_LEN) continue;
+      const cx = cur % MAP_COLS, cy = (cur - cx) / MAP_COLS;
+      for (const nb of hexNeighbors(cx, cy)) {
+        if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+        const ni = nb.row * MAP_COLS + nb.col;
+        if (prev.has(ni)) continue;
+        const t = tiles[ni];
+        if (t.type === 0) continue;
+        if (t.owner >= 0 && t.owner !== nId) continue;
+        prev.set(ni, cur); dist.set(ni, d + 1); q.push(ni);
+      }
+    }
+    for (const c of cities) {
+      if (c === cap || c.nationId !== nId) continue;
+      let at = c.y * MAP_COLS + c.x;
+      if (!prev.has(at)) continue;
+      const path = [];
+      while (at !== -1) { path.push(at); at = prev.get(at); }
+      roads.push({ nationId: nId, path });
+      c._road = true;
+    }
+  }
+}
+function drawRoads(w, facePad, ch, pId) {
+  if (!roads.length) return;
+  const centre = (ti) => { const x = ti % MAP_COLS, y = (ti - x) / MAP_COLS, p = hexScreenPos(x, y); return [p.x + w / 2, p.y + facePad + ch / 2]; };
+  const seg = new Path2D();
+  for (const r of roads) {
+    let open = false;
+    for (let i = 0; i < r.path.length; i++) {
+      const ti = r.path[i];
+      if (!tiles[ti].revealed.has(pId)) { open = false; continue; }
+      const [x, y] = centre(ti);
+      if (!open) { seg.moveTo(x, y); open = true; } else seg.lineTo(x, y);
+    }
+  }
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(60, 42, 22, 0.5)'; ctx.lineWidth = Math.max(3, w * 0.16); ctx.stroke(seg);
+  ctx.strokeStyle = 'rgba(186, 152, 100, 0.92)'; ctx.lineWidth = Math.max(1.8, w * 0.1); ctx.stroke(seg);
+  if (w >= 40) { ctx.setLineDash([w * 0.06, w * 0.1]); ctx.strokeStyle = 'rgba(110, 84, 50, 0.55)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(seg); }
+  ctx.restore();
+}
+
 // A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
 function drawTown(city, cx, cy, w, faceH) {
   let seed = (city.x * 73856093) ^ (city.y * 19349663);
@@ -9131,6 +9213,72 @@ function render() {
     ctx.fillStyle = 'rgba(10, 8, 5, 0.5)'; ctx.fill(fogDeep);
   }
 
+  const roadKey = turnNumber + '|' + cities.length;
+  if (_roadsKey !== roadKey) { rebuildRoads(); _roadsKey = roadKey; }
+
+  // territory tint: one shape per realm, filled once (per-hex fills overlapped into a darker grid)
+  {
+    const realmFill = new Map();
+    for (let my = startRow; my < endRow; my++) {
+      const baseWorldY = my * ch - camYch;
+      for (let mx = startCol; mx < endCol; mx++) {
+        const t = tiles[my * MAP_COLS + mx];
+        if (t.owner < 0 || !t.revealed.has(pId) || isBarbarianNation(t.owner)) continue;
+        const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
+        let path = realmFill.get(t.owner);
+        if (!path) { path = new Path2D(); realmFill.set(t.owner, path); }
+        const cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
+        path.moveTo(cx - hw * 0.5, cy - hh); path.lineTo(cx + hw * 0.5, cy - hh); path.lineTo(cx + hw, cy);
+        path.lineTo(cx + hw * 0.5, cy + hh); path.lineTo(cx - hw * 0.5, cy + hh); path.lineTo(cx - hw, cy); path.closePath();
+      }
+    }
+    ctx.save(); ctx.globalAlpha = 0.13;
+    for (const [owner, path] of realmFill) { ctx.fillStyle = nations[owner].color; ctx.fill(path); }
+    ctx.restore();
+  }
+  // the sea: surf along every shore, and a few wave strokes on open water
+  if (VIEW_TILE >= 16) {
+    const evenN = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]], oddN = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
+    const edgeOf = [0, 3, 1, 2, 5, 4];
+    const surf = new Path2D(), waves = new Path2D();
+    const hw = w / 2, hh = faceH / 2;
+    for (let my = startRow; my < endRow; my++) {
+      const baseWorldY = my * ch - camYch;
+      for (let mx = startCol; mx < endCol; mx++) {
+        const t = tiles[my * MAP_COLS + mx];
+        if (t.type !== 0 || !t.revealed.has(pId)) continue;
+        const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
+        const cx = sx + hw, cy = fy + hh;
+        const verts = [[cx - hw * 0.5, cy - hh], [cx + hw * 0.5, cy - hh], [cx + hw, cy], [cx + hw * 0.5, cy + hh], [cx - hw * 0.5, cy + hh], [cx - hw, cy]];
+        const dirs = (mx & 1) ? oddN : evenN;
+        let coast = false;
+        for (let d = 0; d < 6; d++) {
+          const nc = mx + dirs[d][0], nr = my + dirs[d][1];
+          if (nc < 0 || nc >= MAP_COLS || nr < 0 || nr >= MAP_ROWS || tiles[nr * MAP_COLS + nc].type === 0) continue;
+          coast = true;
+          const e = edgeOf[d], a = verts[e], b = verts[(e + 1) % 6];
+          // the surf sits just off the shore, pulled a little toward the water
+          const ia = [a[0] + (cx - a[0]) * 0.04, a[1] + (cy - a[1]) * 0.04], ib = [b[0] + (cx - b[0]) * 0.04, b[1] + (cy - b[1]) * 0.04];
+          surf.moveTo(ia[0], ia[1]); surf.lineTo(ib[0], ib[1]);
+        }
+        if (!coast && ((mx * 7 + my * 13) % 3 === 0)) {
+          const ox = ((mx * 31 + my * 17) % 7 - 3) / 14 * w, oy = ((mx * 11 + my * 23) % 5 - 2) / 12 * faceH;
+          const wx = cx + ox, wy = cy + oy, ww = w * 0.16;
+          waves.moveTo(wx - ww, wy); waves.quadraticCurveTo(wx - ww / 2, wy - ww * 0.45, wx, wy); waves.quadraticCurveTo(wx + ww / 2, wy - ww * 0.45, wx + ww, wy);
+        }
+      }
+    }
+    ctx.save(); ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(235, 245, 255, 0.16)'; ctx.lineWidth = Math.max(2, w * 0.16); ctx.stroke(surf);
+    ctx.strokeStyle = 'rgba(240, 248, 255, 0.4)'; ctx.lineWidth = Math.max(1, w * 0.035); ctx.stroke(surf);
+    ctx.strokeStyle = 'rgba(225, 238, 255, 0.35)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke(waves);
+    ctx.restore();
+  }
+  if (VIEW_TILE >= 14) drawRoads(w, facePad, ch, pId);
+
   for (let my = startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
     for (let mx = startCol; mx < endCol; mx++) {
@@ -9176,12 +9324,6 @@ function render() {
       const dirs = (mx & 1) ? oddNbr : evenNbr;
       const edgeMap = [0, 3, 1, 2, 5, 4];
 
-      ctx.fillStyle = nationColor;
-      ctx.globalAlpha = 0.13;
-      drawHexPath(ctx, sx, fy, w, faceH);
-      ctx.fill();
-      ctx.globalAlpha = 1.0;
-
       const borderEdges = [];
       for (let ni = 0; ni < 6; ni++) {
         const nc = mx + dirs[ni][0], nr = my + dirs[ni][1];
@@ -9202,12 +9344,18 @@ function render() {
         }
       }
       if (borderEdges.length > 0) {
-        ctx.strokeStyle = isContested ? '#000000' : nationColor;
-        ctx.lineWidth = Math.max(2.5, VIEW_TILE / 6);
+        // a painted map border: dark ink beneath, the realm's colour, a lighter line along its inner edge
+        const bw = Math.max(2.5, Math.min(VIEW_TILE / 8, 9));
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.globalAlpha = 0.88;
+        ctx.strokeStyle = 'rgba(20, 14, 8, 0.45)'; ctx.lineWidth = bw * 1.55;
         drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        ctx.strokeStyle = isContested ? '#000000' : nationColor; ctx.lineWidth = bw; ctx.globalAlpha = 0.92;
+        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        if (bw >= 4 && !isContested) {
+          ctx.strokeStyle = shadeHex(nationColor, 0.5); ctx.lineWidth = Math.max(1, bw * 0.22); ctx.globalAlpha = 0.7;
+          drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        }
         ctx.globalAlpha = 1.0;
         ctx.lineWidth = 1;
         ctx.lineCap = 'butt';
@@ -11361,7 +11509,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-5.6';
+const CURRENT_VERSION = 'beta-5.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13474,7 +13622,7 @@ function deserializeGame(json) {
   window._endTurnBusy = false;
   window._gameOver = false;
   // drop the previous game's map caches (camps, sites, territory, vision)
-  invalidateRenderLookups(); _tileCityMapDirty = true; visionDirty = true; minimapDirty = true;
+  invalidateRenderLookups(); _tileCityMapDirty = true; visionDirty = true; minimapDirty = true; _roadsKey = '';
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
