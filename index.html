@@ -1063,6 +1063,7 @@
     <button class="top-btn" onclick="toggleKingdoms()"><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
     <button class="top-btn" onclick="toggleCourt()">Court</button>
     <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)">Laws</button>
+    <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)">Market</button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
     <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
@@ -1073,6 +1074,7 @@
   <div id="panel"></div>
   <div id="kingdoms"></div>
   <div id="courtPanel" style="display:none;position:fixed;top:40px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
+  <div id="marketPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:440px;max-width:92vw;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(180,140,60,0.5);border-radius:8px;padding:14px 16px;z-index:140;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
   <div id="lawsPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:580px;max-width:92vw;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(180,140,60,0.5);border-radius:8px;padding:14px 16px;z-index:140;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
   <div id="cityStatsPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:520px;max-width:92vw;max-height:82vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(108,198,244,0.4);border-radius:8px;padding:14px 16px;z-index:145;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
   <div id="labels"></div>
@@ -5323,6 +5325,28 @@ function sackCapital(city, raider) {
   _tileCityMapDirty = true;
 }
 
+// An empty city with an enemy army at its gates calls up a militia (once every ten turns): half-strength swordsmen from the townsfolk
+function tickMilitia() {
+  for (const city of cities) {
+    const n = nations[city.nationId];
+    if (!n || n.isBarbarian || n.eliminated) continue;
+    if (city._militiaTurn !== undefined && turnNumber - city._militiaTurn < 10) continue;
+    if (units.some(u => u.x === city.x && u.y === city.y)) continue;
+    const threat = units.some(u => u.nationId !== city.nationId && UNIT_DEFS[u.type]?.combat
+      && n.relations?.[u.nationId] === 'war' && hexDistance(u.x, u.y, city.x, city.y) <= 2);
+    if (!threat) continue;
+    const m = spawnUnit(n.isTribe ? 'tribal_warrior' : 'swordsman', city.nationId, city.x, city.y);
+    if (!m) continue;
+    m.hp = Math.max(1, Math.ceil(m.hp / 2));
+    m.movesLeft = 0;
+    city._militiaTurn = turnNumber;
+    if (city.nationId === playerNation) {
+      showToast(`${city.name} calls up its militia against the enemy at the gates!`);
+      addFloatingText(city.x, city.y, 'Militia!', '#e0c880', 2200, 15);
+    }
+  }
+}
+
 function tickCityCapture() {
   for (const city of [...cities]) {
 
@@ -6061,6 +6085,7 @@ function showDefeat(type, winnerId) {
 function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
+  if (!n.isBarbarian && !n.isTribe) aiUseMarket(nationId);
 
   const militaryByNation = new Map();
   for (const u of units) {
@@ -6731,7 +6756,16 @@ function aiTurn(nationId) {
         for (const k in costs) if ((n[k] || 0) < costs[k] * 0.5) { canAfford = false; break; }
         if (canAfford) { bestCombat = availCombat[ci]; break; }
       }
-      if (!bestCombat) bestCombat = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
+      if (!bestCombat) {
+        // nothing affordable yet: aim at the unit it's closest to paying for, not the dearest one
+        let bestRatio = -1;
+        for (const t of availCombat) {
+          const costs = getScaledCosts(nationId, PRODUCTION_COSTS[t]);
+          let ratio = Infinity;
+          for (const k in costs) ratio = Math.min(ratio, (n[k] || 0) / costs[k]);
+          if (ratio > bestRatio) { bestRatio = ratio; bestCombat = t; }
+        }
+      }
 
       const hasGenerals = units.filter(u => u.nationId === nationId && u.type === 'general').length;
       const wantsGeneral = nationHasTech(nationId, 'military_leadership') && hasGenerals < Math.max(1, Math.floor(combatCount / 6));
@@ -6748,11 +6782,14 @@ function aiTurn(nationId) {
       const workersHaveWork = unimprovedTiles > workers * 2;
 
       const hasFort = (c.buildings || []).includes('fortifications');
+      const poor = !availCombat.some(t => { const k = getScaledCosts(nationId, PRODUCTION_COSTS[t]); for (const r in k) if ((n[r] || 0) < k[r] * 0.5) return false; return true; });
       // early expansion: a young realm with a few soldiers sends out settlers even with raiders about, unless the threat outweighs its army
       const freeSites = citySites.filter(s => !s.settled).length;
       const settlerFood = getScaledCosts(nationId, PRODUCTION_COSTS.settler).food;
       const haveSettler = units.some(u => u.nationId === nationId && u.type === 'settler') || aiCities.some(ci => ci !== c && ci.producing === 'settler');
-      if (aiCities.length < 4 && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
+      if (poor && workers === 0 && workersHaveWork && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.worker).food) {
+        c.producing = 'worker'; // a broke realm with no one working its land: workers first, so mines and farms start paying
+      } else if (aiCities.length < 4 && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
           && n.food >= settlerFood && threatLevel <= combatCount * 6 && Math.random() < 0.6) {
         c.producing = 'settler';
       } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
@@ -7478,6 +7515,7 @@ function _finishEndTurnImpl() {
   try { tickPillaged(); } catch(e) { console.error('tickPillaged error:', e); }
   try { tickCityLoyalty(); } catch(e) { console.error('tickCityLoyalty error:', e); }
   try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
+  try { tickMilitia(); } catch(e) { console.error('tickMilitia error:', e); }
   try { tickCityCapture(); } catch(e) { console.error('tickCityCapture error:', e); }
   try { checkElimination(); } catch(e) { console.error('checkElimination error:', e); }
   if (window._gameOver) return; // the game ended this turn: no more turn, autosave or events
@@ -8793,6 +8831,110 @@ function getFogPattern() {
   return _fogPattern;
 }
 
+// A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
+function drawTown(city, cx, cy, w, faceH) {
+  let seed = (city.x * 73856093) ^ (city.y * 19349663);
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const pop = city.population || 1;
+  const count = Math.min(9, 3 + Math.floor(pop / 2));
+  const rx = w * 0.34, ry = faceH * 0.27;
+  const fortified = (city.buildings || []).includes('fortifications');
+  const col = nations[city.nationId]?.color || '#888';
+  ctx.save();
+  // trodden ground of the town
+  ctx.fillStyle = 'rgba(120, 98, 66, 0.55)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + faceH * 0.04, rx * 1.12, ry * 1.18, 0, 0, Math.PI * 2); ctx.fill();
+  if (fortified) {
+    ctx.strokeStyle = '#8d8778'; ctx.lineWidth = Math.max(1.5, w * 0.035);
+    ctx.beginPath(); ctx.ellipse(cx, cy + faceH * 0.04, rx * 1.22, ry * 1.3, 0, Math.PI, Math.PI * 2); ctx.stroke();
+  }
+  const houses = [];
+  for (let i = 0; i < count; i++) {
+    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 0.85;
+    houses.push({ x: cx + Math.cos(a) * rx * r, y: cy + Math.sin(a) * ry * r, s: 0.8 + rnd() * 0.4, roof: rnd(), wall: rnd() });
+  }
+  if (city.isCapital) houses.push({ x: cx + rx * 0.05, y: cy - ry * 0.35, church: true, s: 1 });
+  houses.sort((p, q) => p.y - q.y);
+  const roofs = ['#9a4330', '#7d3a2a', '#5f5a63', '#86563a'], walls = ['#e2d3b2', '#cdb894', '#d9c7a0'];
+  for (const h of houses) {
+    const hw = w * 0.12 * h.s, wh = hw * 0.62, rh = hw * 0.55;
+    if (h.church) {
+      const tw = w * 0.085, th = w * 0.3;
+      ctx.fillStyle = '#d6c6a2'; ctx.fillRect(h.x - tw / 2, h.y - th, tw, th);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(h.x, h.y - th, tw / 2, th);
+      ctx.fillStyle = '#4f5a66';
+      ctx.beginPath(); ctx.moveTo(h.x - tw * 0.62, h.y - th); ctx.lineTo(h.x, h.y - th - tw * 1.6); ctx.lineTo(h.x + tw * 0.62, h.y - th); ctx.closePath(); ctx.fill();
+      // the realm's flag on the spire
+      const fy = h.y - th - tw * 1.6;
+      ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.012);
+      ctx.beginPath(); ctx.moveTo(h.x, fy); ctx.lineTo(h.x, fy - tw * 1.1); ctx.stroke();
+      ctx.fillStyle = col; ctx.fillRect(h.x, fy - tw * 1.1, tw * 0.95, tw * 0.6);
+      continue;
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(h.x - hw / 2 + hw * 0.12, h.y - wh * 0.1, hw, wh * 0.25);
+    ctx.fillStyle = walls[Math.floor(h.wall * walls.length)];
+    ctx.fillRect(h.x - hw / 2, h.y - wh, hw, wh);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(h.x + hw * 0.15, h.y - wh, hw * 0.35, wh);
+    ctx.fillStyle = '#3c2e22'; ctx.fillRect(h.x - hw * 0.12, h.y - wh * 0.55, hw * 0.2, wh * 0.55);
+    const rc = roofs[Math.floor(h.roof * roofs.length)];
+    ctx.fillStyle = rc;
+    ctx.beginPath(); ctx.moveTo(h.x - hw * 0.62, h.y - wh); ctx.lineTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.62, h.y - wh); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath(); ctx.moveTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.62, h.y - wh); ctx.lineTo(h.x, h.y - wh); ctx.closePath(); ctx.fill();
+  }
+  if (fortified) {
+    ctx.strokeStyle = '#a39d8c'; ctx.lineWidth = Math.max(1.5, w * 0.04);
+    ctx.beginPath(); ctx.ellipse(cx, cy + faceH * 0.04, rx * 1.22, ry * 1.3, 0, 0, Math.PI); ctx.stroke();
+    ctx.fillStyle = '#a39d8c';
+    for (const t of [-0.95, 0, 0.95]) {
+      const tx = cx + rx * 1.22 * t, ty = cy + faceH * 0.04 + ry * 1.3 * Math.sqrt(1 - t * t * 0.98);
+      ctx.fillRect(tx - w * 0.03, ty - w * 0.07, w * 0.06, w * 0.08);
+    }
+  }
+  ctx.restore();
+}
+
+// A unit token: a lit, domed medallion in the nation's colour with a brass rim, standing on its own soft shadow
+const _shadeCache = new Map();
+function shadeHex(hex, t) { // t < 0 darkens toward black, t > 0 lightens toward warm white
+  const key = hex + t;
+  let v = _shadeCache.get(key);
+  if (v) return v;
+  const c = safeColor(hex, '#888888').replace('#', '');
+  const full = c.length === 3 ? c.split('').map(ch => ch + ch).join('') : c.slice(0, 6);
+  const rgb = [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
+  const tgt = t < 0 ? [0, 0, 0] : [255, 245, 225];
+  const k = Math.abs(t);
+  v = '#' + rgb.map((ch, i) => Math.round(ch + (tgt[i] - ch) * k).toString(16).padStart(2, '0')).join('');
+  _shadeCache.set(key, v);
+  return v;
+}
+function drawUnitMedallion(cx, cy, groundY, rad, col) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(cx + rad * 0.12, groundY + rad * 0.92, rad * 0.95, rad * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+  const g = ctx.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.05, cx, cy, rad * 1.05);
+  g.addColorStop(0, shadeHex(col, 0.45));
+  g.addColorStop(0.45, col);
+  g.addColorStop(1, shadeHex(col, -0.45));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+  if (rad >= 5) {
+    const rim = Math.max(1, rad * 0.11);
+    const rg = ctx.createLinearGradient(cx, cy - rad, cx, cy + rad);
+    rg.addColorStop(0, '#f2d68a'); rg.addColorStop(0.5, '#b08a3e'); rg.addColorStop(1, '#5e4520');
+    ctx.strokeStyle = rg; ctx.lineWidth = rim;
+    ctx.beginPath(); ctx.arc(cx, cy, rad - rim / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
@@ -9205,6 +9347,15 @@ function render() {
     }
   }
 
+  if (VIEW_TILE >= 18) {
+    for (const city of cities) {
+      if (!tiles[city.y * MAP_COLS + city.x].revealed.has(pId)) continue;
+      const pos = hexScreenPos(city.x, city.y);
+      if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
+      drawTown(city, pos.x + w / 2, pos.y + facePad + ch / 2, w, faceH);
+    }
+  }
+
   const sortedUnits = units.slice().sort((a, b) => (a === selectedUnit ? 1 : 0) - (b === selectedUnit ? 1 : 0));
   const flashPhase = (Date.now() % 800) / 800; // 0-1 pulsing cycle
   const flashAlpha = 0.4 + Math.sin(flashPhase * Math.PI * 2) * 0.35; // 0.05 to 0.75
@@ -9223,17 +9374,16 @@ function render() {
     const bobY = u._animating ? 0 : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
     const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2 + bobY;
     const rad = w * 0.32;
-    ctx.fillStyle = nCol;
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+    drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     if (VIEW_TILE >= 14) {
       const uSpriteKey = UNIT_SPRITES[u.type];
       const uSpriteImg = uSpriteKey ? hexImages[uSpriteKey] : null;
       if (uSpriteImg && uSpriteImg.complete && uSpriteImg.naturalWidth > 0) {
         ctx.save();
         ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(uSpriteImg, cx - rad, cy - rad, rad * 2, rad * 2);
+        const ir = rad * 0.8; // inside the rim
+        ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = rad * 0.12; ctx.shadowOffsetY = rad * 0.05;
+        ctx.drawImage(uSpriteImg, cx - ir, cy - ir, ir * 2, ir * 2);
         ctx.restore();
       } else {
         ctx.fillStyle = '#fff';
@@ -12110,6 +12260,7 @@ document.addEventListener('keydown', (e) => {
     if (eventModalOpen) return; // Can't ESC out of events, must choose
     if (document.getElementById('noResearchPopup')) { document.getElementById('noResearchPopup').remove(); return; }
     if (document.getElementById('idleCitiesPopup')) { window._closeIdlePopup(); return; }
+    for (const id of ['marketPanel', 'lawsPanel']) { const p = document.getElementById(id); if (p && p.style.display !== 'none') { p.style.display = 'none'; return; } }
     if (escMenuOpen) closeEscMenu();
     else if (planSelectUnit) { planSelectUnit = null; planReachable.clear(); planThreatTiles.clear(); render(); return; }
     else if (planningMode) { planningMode = false; const hadOrders = planOrders.size > 0; planOrders.clear(); planSelectUnit = null; planReachable.clear(); planThreatTiles.clear(); closePlanningPopup(); if (hadOrders) showToast('Orders discarded.'); updateUI(); render(); }
@@ -12140,6 +12291,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p') { togglePlanningMode(); e.preventDefault(); }
   if (e.key === 't') { showTechTree(); e.preventDefault(); }
   if (e.key === 'l') { toggleLawsPanel(); e.preventDefault(); }
+  if (e.key === 'm') { toggleMarketPanel(); e.preventDefault(); }
 
   if (e.key === 'n') { cycleToNextUnit(true); e.preventDefault(); }
 
@@ -12706,6 +12858,85 @@ window.toggleCourt = function() {
     panel.style.display = 'none';
   }
 };
+
+// ---- The market: sell a surplus for gold, or buy what you lack. Each lot sold this turn lowers the price, each bought raises it ----
+const MARKET_LOT = 10;
+const MARKET_GOODS = {
+  food:      { base: 1.0, icon: '\uD83C\uDF3E', name: 'Food' },
+  wood:      { base: 0.8, icon: '\uD83E\uDEB5', name: 'Wood' },
+  stone:     { base: 0.9, icon: '\uD83E\uDEA8', name: 'Stone' },
+  steel:     { base: 1.4, icon: '\u2692\uFE0F', name: 'Steel' },
+  gunpowder: { base: 2.0, icon: '\uD83D\uDCA5', name: 'Gunpowder' },
+};
+function marketBook(n) {
+  if (!n._market || n._market.turn !== turnNumber) n._market = { turn: turnNumber, sold: {}, bought: {} };
+  return n._market;
+}
+function marketSellPrice(nationId, res) {
+  const n = nations[nationId], book = marketBook(n);
+  return Math.max(1, Math.floor(MARKET_LOT * MARKET_GOODS[res].base * 0.6 * Math.pow(0.9, book.sold[res] || 0)));
+}
+function marketBuyPrice(nationId, res) {
+  const n = nations[nationId], book = marketBook(n);
+  return Math.ceil(MARKET_LOT * MARKET_GOODS[res].base * 1.5 * Math.pow(1.1, book.bought[res] || 0));
+}
+function marketSell(nationId, res) {
+  const n = nations[nationId];
+  if (!MARKET_GOODS[res] || (n[res] || 0) < MARKET_LOT) return false;
+  const price = marketSellPrice(nationId, res);
+  n[res] -= MARKET_LOT; n.gold = (n.gold || 0) + price;
+  const book = marketBook(n); book.sold[res] = (book.sold[res] || 0) + 1;
+  return price;
+}
+function marketBuy(nationId, res) {
+  const n = nations[nationId];
+  if (!MARKET_GOODS[res]) return false;
+  const price = marketBuyPrice(nationId, res);
+  if ((n.gold || 0) < price) return false;
+  n.gold -= price; n[res] = (n[res] || 0) + MARKET_LOT;
+  const book = marketBook(n); book.bought[res] = (book.bought[res] || 0) + 1;
+  return price;
+}
+// AI: a treasury running dry sells off whatever it has piled up beyond a working reserve
+function aiUseMarket(nationId) {
+  const n = nations[nationId];
+  let lots = 0;
+  for (const res of ['steel', 'wood', 'stone', 'gunpowder']) {
+    while ((n.gold || 0) < 120 && (n[res] || 0) > 150 + MARKET_LOT && lots < 6) { marketSell(nationId, res); lots++; }
+  }
+}
+window.toggleMarketPanel = function() {
+  const panel = document.getElementById('marketPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none') { renderMarketPanel(); panel.style.display = 'block'; }
+  else panel.style.display = 'none';
+};
+window.playerMarket = function(res, buy) {
+  const got = buy ? marketBuy(playerNation, res) : marketSell(playerNation, res);
+  if (!got) showToast(buy ? 'Not enough gold.' : `You need ${MARKET_LOT} ${MARKET_GOODS[res].name.toLowerCase()} to sell.`);
+  else playClick();
+  renderMarketPanel(); updateUI();
+};
+function renderMarketPanel() {
+  const panel = document.getElementById('marketPanel');
+  if (!panel) return;
+  const n = nations[playerNation];
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">`;
+  html += `<h3 style="color:#d4a856;margin:0;font-family:'Uncial Antiqua',cursive;">Market</h3>`;
+  html += `<button class="p-btn" onclick="document.getElementById('marketPanel').style.display='none'" style="font-size:11px;padding:2px 8px;">Close</button></div>`;
+  html += `<div style="font-size:11px;color:#a89878;margin-bottom:10px;">Trade in lots of ${MARKET_LOT}. Every lot you sell this turn lowers the price, every lot you buy raises it; prices settle again next turn. Treasury: <b style="color:#e0c880">${Math.floor(n.gold || 0)} gold</b></div>`;
+  for (const res in MARKET_GOODS) {
+    const g = MARKET_GOODS[res], have = Math.floor(n[res] || 0);
+    const sp = marketSellPrice(playerNation, res), bp = marketBuyPrice(playerNation, res);
+    const canSell = have >= MARKET_LOT, canBuy = (n.gold || 0) >= bp;
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(180,140,60,0.15);">`;
+    html += `<span style="width:110px;">${g.icon} ${g.name} <span style="color:#a89878;font-size:11px;">(${have})</span></span>`;
+    html += `<button class="p-btn" ${canSell ? '' : 'disabled'} onclick="playerMarket('${res}', false)" style="flex:1;font-size:11px;padding:4px 6px;${canSell ? '' : 'opacity:0.45;'}">Sell ${MARKET_LOT} → +${sp} gold</button>`;
+    html += `<button class="p-btn" ${canBuy ? '' : 'disabled'} onclick="playerMarket('${res}', true)" style="flex:1;font-size:11px;padding:4px 6px;${canBuy ? '' : 'opacity:0.45;'}">Buy ${MARKET_LOT} ← ${bp} gold</button>`;
+    html += `</div>`;
+  }
+  panel.innerHTML = html;
+}
 
 window.toggleLawsPanel = function() {
   const panel = document.getElementById('lawsPanel');
