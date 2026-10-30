@@ -5237,6 +5237,29 @@ function doAttack(attacker, tx, ty) {
   addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
 }
 
+// Barbarians don't raze a capital: they plunder it, burn a building and make off with the loot
+function sackCapital(city, raider) {
+  const owner = nations[city.nationId];
+  const gold = Math.floor((owner.gold || 0) * 0.4), food = Math.floor((owner.food || 0) * 0.3);
+  owner.gold = (owner.gold || 0) - gold; owner.food = (owner.food || 0) - food;
+  const burnable = (city.buildings || []).filter(b => !CITY_BUILDING_DEFS[b]?.wonder);
+  const burnt = burnable.length ? burnable[Math.floor(Math.random() * burnable.length)] : null;
+  if (burnt) city.buildings.splice(city.buildings.indexOf(burnt), 1);
+  for (const ti of city.ownedTiles) if (tiles[ti]?.improvement && Math.random() < 0.3) tiles[ti].improvement = null;
+  city.captureProgress = {};
+  city.contested = false;
+  city.sackedTurn = turnNumber;
+  if (!owner.isBarbarian) owner.legitimacy = Math.max(0, (owner.legitimacy ?? 50) - 8);
+  removeUnit(raider);
+  const burntName = burnt ? (CITY_BUILDING_DEFS[burnt]?.name || burnt) : null;
+  const what = [gold ? `${gold} gold` : '', food ? `${food} food` : ''].filter(Boolean).join(' and ') || 'what little there was';
+  if (city.nationId === playerNation) {
+    addFloatingText(city.x, city.y, 'Sacked!', '#ff6a3a', 2500, 18);
+    showToast(`Barbarians sacked ${city.name}! They carried off ${what}${burntName ? ' and burned the ' + burntName : ''}.`);
+  } else showToast(`Barbarians have sacked ${city.name}!`);
+  _tileCityMapDirty = true;
+}
+
 function tickCityCapture() {
   for (const city of [...cities]) {
 
@@ -5250,6 +5273,11 @@ function tickCityCapture() {
         city.contested = true;
         if (city.captureProgress[occupier.nationId] >= 4) {
           const oldOwner = city.nationId;
+
+          if (isBarbarianNation(occupier.nationId) && city.isCapital) {
+            sackCapital(city, occupier);
+            continue;
+          }
 
           if (isBarbarianNation(occupier.nationId)) {
             city.ruined = true;
