@@ -15,25 +15,29 @@
 
     /* Main Menu */
     #menu {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      height: 100vh; gap: 14px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center;
+      height: 100vh; gap: 14px; overflow-y: auto;
       position: relative;
       background: #0a0805;
     }
     .menu-bg {
-      position: absolute; inset: 0;
+      position: fixed; inset: 0;
       background-size: cover; background-position: center center; background-repeat: no-repeat;
       transition: opacity 2s ease-in-out;
     }
     #menuBgA { opacity: 1; z-index: 1; }
     #menuBgB { opacity: 0; z-index: 1; }
     #menu::before {
-      content: ''; position: absolute; inset: 0;
+      content: ''; position: fixed; inset: 0;
       background: rgba(10, 8, 5, 0.55);
       z-index: 2;
     }
     #menu > *:not(.menu-bg) { position: relative; z-index: 3; }
     #menu h1 { font-size: 86px; color: #f0e2c0; font-style: italic; text-shadow: 2px 3px 8px rgba(0,0,0,0.8), 0 0 30px rgba(180,140,60,0.4); margin-bottom: 6px; letter-spacing: 3px; }
+    #menu h1, #menu h2 { text-align: center; padding: 0 16px; }
+    #menu h1 { font-size: clamp(40px, 11vw, 86px); }
+    #menuMain { text-align: center; padding: 0 16px; max-width: 100%; }
+    @media (max-width: 600px) { #menuMain .menu-btn { display: block; margin: 8px auto; min-width: 0; width: min(260px, 80vw); } }
     #menu h2 { font-size: 18px; color: #c8b89a; font-weight: normal; margin-bottom: 12px; text-shadow: 1px 1px 3px #000; }
     .menu-btn {
       padding: 12px 32px; font-size: 18px;
@@ -372,7 +376,7 @@
     .end-turn-pulse { animation: pulseEndTurn 1.5s ease-in-out infinite; }
     body.mobile-mode #minimap { display: none; }
     body.mobile-mode #zoomInfo { display: none; }
-    body.mobile-mode #menu h1 { font-size: 48px; }
+    body.mobile-mode #menu h1 { font-size: clamp(36px, 11vw, 48px); }
     body.mobile-mode .menu-btn { min-width: 200px; padding: 14px 28px; font-size: 17px; }
   </style>
 </head>
