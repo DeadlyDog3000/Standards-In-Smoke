@@ -4053,10 +4053,12 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
   // (and the field is marked on the chart with crossed swords and the year, as the old maps marked their battles)
   if (seen && (defenderDied || attackerDied) && tiles[defenderY * MAP_COLS + defenderX]) {
     // (a fight near an old field is the same battle carried on: its mark takes the newer year)
-    let at = defenderY * MAP_COLS + defenderX;
+    let at = defenderY * MAP_COLS + defenderX, bd = 3;
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
       const x = defenderX + dx, y = defenderY + dy;
-      if (x >= 0 && y >= 0 && x < MAP_COLS && y < MAP_ROWS && tiles[y * MAP_COLS + x].battle && hexDistance(x, y, defenderX, defenderY) <= 2) at = y * MAP_COLS + x;
+      if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS || !tiles[y * MAP_COLS + x].battle) continue;
+      const d = hexDistance(x, y, defenderX, defenderY);
+      if (d < bd) { bd = d; at = y * MAP_COLS + x; }
     }
     tiles[at].battle = getCurrentYear();
   }
@@ -11029,7 +11031,7 @@ function featSprite(name) {
   let img = FEAT_IMGS[name];
   if (!img) {
     img = FEAT_IMGS[name] = new Image();
-    img.onload = () => { if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
+    img.onload = () => { OW.assetGen = (OW.assetGen || 0) + 1; if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
     img.onerror = () => { img._bad = true; };
     img.src = `tiles/${name}.png`;
   }
@@ -11869,7 +11871,9 @@ function drawUnitMedallion(cx, cy, groundY, rad, col) {
 
 // ---- The old-world chart: the whole map drawn once as an engraved, hand-coloured atlas sheet (relief shaded from a height field,
 // ink coasts with water-lining, tree and mountain symbols), then cut to the explored hexes each frame. Rebuilt when the season or the land changes.
-const OW = { canvas: null, key: '', K: 0, CS: 0, CH: 0, building: false };
+const OW = { canvas: null, key: '', K: 0, CS: 0, CH: 0, building: false, assetGen: 0 };
+// (the chart's lettering is set in EB Garamond: once the face has come, letter the cached sheet again)
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { OW.assetGen++; if (MAP_COLS) render(); });
 function owHash(x, y, s) { let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 function owNoise(x, y, s) {
   const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
@@ -12602,7 +12606,12 @@ setTimeout(function owPreload() {
 function owMasks(pId) {
   // (the whole map is looked over at most a few times a second, or at once when what's seen, the map or the chart changes)
   const now = Date.now();
-  if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) return OW.masks;
+  if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) {
+    // (a look is owed: take it once the pause is over, so land found just now isn't left blank)
+    if (!OW.maskLater) OW.maskLater = setTimeout(() => { OW.maskLater = 0; OW.maskCheck = 0; if (MAP_COLS) render(); }, 310);
+    return OW.masks;
+  }
+  const sameWorld = OW.maskTiles === tiles && OW.maskPid === pId;
   OW.maskCheck = now; OW.maskTiles = tiles; OW.maskVS = currentVisionSet; OW.maskChart = OW.key; OW.maskPid = pId;
   let sig = 0, vsig = 0;
   for (let i = 0; i < tiles.length; i++) {
@@ -12613,14 +12622,16 @@ function owMasks(pId) {
   const key = OW.key + '|' + pId + '|' + sig + '|' + vsig;
   if (OW.maskKey === key) return OW.masks;
   OW.maskKey = key;
+  const newLand = sameWorld && OW.maskSig !== undefined && OW.maskSig !== sig;
+  OW.maskSig = sig;
   const { K, CS, CH } = OW, sc = 24 / K, W = Math.ceil(OW.canvas.width * sc), H = Math.ceil(OW.canvas.height * sc);
   const mk = (old) => { const c = old && old.width === W && old.height === H ? old : document.createElement('canvas'); c.width = W; c.height = H; return c; };
   // keep what was known a moment ago, so newly found land can be inked in over it rather than appear at once
-  if (OW.masks && OW.masks.known.width === W && OW.masks.known.height === H) {
+  if (newLand && OW.masks && OW.masks.known.width === W && OW.masks.known.height === H) {
     const pk = OW.prevKnown && OW.prevKnown.width === W && OW.prevKnown.height === H ? OW.prevKnown : document.createElement('canvas');
     pk.width = W; pk.height = H; pk.getContext('2d').drawImage(OW.masks.known, 0, 0);
     OW.prevKnown = pk; OW.fadeStart = Date.now();
-  } else OW.prevKnown = null;
+  } else if (!newLand) OW.prevKnown = null;
   const known = mk(OW.masks && OW.masks.known), dim = mk(OW.masks && OW.masks.dim);
   const kg = known.getContext('2d'), dg = dim.getContext('2d');
   const kp = new Path2D(), dp = new Path2D(), qx = CS / 3 * sc + 0.4, hx2 = CS * 2 / 3 * sc + 0.4, hy = CH / 2 * sc + 0.4;
@@ -12647,7 +12658,7 @@ function owMasks(pId) {
 // each realm's name lettered across its land in spaced capitals, as the old chartmakers did (where it lies is worked out once a turn)
 let _realmNames = null, _realmNamesKey = '';
 function drawRealmNames(pId, w, ch, facePad) {
-  const key = turnNumber + '|' + cities.length + '|' + pId + '|' + discoveredNations.size;
+  const key = OW.key + '|' + turnNumber + '|' + cities.length + '|' + pId + '|' + discoveredNations.size;
   if (_realmNamesKey !== key) {
     _realmNamesKey = key;
     const by = new Map();
@@ -12688,7 +12699,7 @@ function drawRealmNames(pId, w, ch, facePad) {
 const _owLayer = { c: null, key: '' };
 function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
   const chart = getWorldChart();
-  if (!chart) return false;
+  if (!chart) { OW.prevKnown = null; return false; }
   const masks = owMasks(pId);
   if (!masks.any) return true;
   const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
@@ -12699,7 +12710,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const camKey = camX.toFixed(3) + ',' + camY.toFixed(3) + ',' + w, now = Date.now();
   if (OW.camKey !== camKey) { OW.camKey = camKey; OW.moveUntil = now + 180; if (!OW.restTimer) OW.restTimer = setTimeout(function rest() { if (Date.now() < OW.moveUntil) { OW.restTimer = setTimeout(rest, OW.moveUntil - Date.now() + 5); return; } OW.restTimer = 0; render(); }, 190); }
   const settled = now >= (OW.moveUntil || 0);
-  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
+  const key = [OW.maskKey, OW.assetGen || 0, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
     const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
@@ -13839,7 +13850,7 @@ function render() {
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
   updateWeather();
-  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime || !!OW.prevKnown;
+  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime || (!!OW.prevKnown && Date.now() - OW.fadeStart < 700);
   if (hasEffects && !selectionFlashRAF && !animationBlocking && !render._fx) {
     // one pending effects frame at a time (every outside render used to start another chain of its own)
     render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
@@ -18284,6 +18295,8 @@ function startGame(cols, rows, pName, pColor, opponents) {
 }
 
 function resetRuntimeState() {
+  // (the chart's masks and fade belong to the game that's ending; the new one starts with a clean sheet)
+  OW.prevKnown = null; OW.masks = null; OW.maskKey = ''; OW.maskSig = undefined; OW.maskTiles = null; _realmNamesKey = '';
   planOrders = new Map();
   planSelectUnit = null;
   planningMode = false;
