@@ -972,6 +972,7 @@
         - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
         - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
         - The title screen and its buttons in navy and gold too<br>
+        - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -2002,6 +2003,7 @@
           - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
           - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
           - The title screen and its buttons in navy and gold too<br>
+          - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -8317,7 +8319,23 @@ function ambitionOffer(nid) {
   }
   return pool.map(a => a.id);
 }
+// the rival crowns keep ambitions of their own: each fulfilled counts in their score and legitimacy as yours do (they don't win by them)
+function tickRivalAmbitions() {
+  for (const n of nations) {
+    if (n.id === playerNation || n.isBarbarian || n.isTribe || n.eliminated) continue;
+    if (!n.ambitionsDone) n.ambitionsDone = [];
+    const cur = n.ambition && ambitionById(n.ambition);
+    if (cur && ambitionProgress(n.id, cur).done) {
+      n.ambitionsDone.push(cur.id); n.ambition = null;
+      n.legitimacy = Math.min(100, (n.legitimacy ?? 50) + 10);
+      if (discoveredNations.has(n.id) && n.ambitionsDone.length % 3 === 0) logEvent(`${n.name} has fulfilled ${n.ambitionsDone.length} ambitions (the latest: ${cur.name}).`);
+    }
+    if (n.ambition && turnNumber - (n.ambitionSince || 0) > 25) n.ambition = null; // (one out of reach is let go for another)
+    if (!n.ambition) { const o = ambitionOffer(n.id); if (o.length) { n.ambition = o[Math.floor(Math.random() * o.length)]; n.ambitionSince = turnNumber; } }
+  }
+}
 function tickAmbitions() {
+  try { tickRivalAmbitions(); } catch (e) { console.error('tickRivalAmbitions error:', e); }
   const nid = playerNation, n = nations[nid];
   if (!n || n.eliminated) return;
   if (!n.ambitionsDone) n.ambitionsDone = [];
@@ -8337,6 +8355,15 @@ function tickAmbitions() {
   }
   updateAmbitionPlaque();
 }
+window.setAsideAmbition = function () {
+  const n = nations[playerNation]; if (!n.ambition) return;
+  const old = ambitionById(n.ambition);
+  n.legitimacy = Math.max(0, (n.legitimacy ?? 50) - 5);
+  n.ambition = null; n.ambitionOffer = ambitionOffer(playerNation).filter(id => id !== old?.id);
+  if (!n.ambitionOffer.length) n.ambitionOffer = ambitionOffer(playerNation);
+  logEvent(`The crown sets aside its ambition: ${old ? old.name : ''}. -5 legitimacy`);
+  openAmbitions(); updateAmbitionPlaque(); updateUI();
+};
 window.chooseAmbition = function (id) {
   const n = nations[playerNation];
   if (!n.ambitionOffer || !n.ambitionOffer.includes(id)) return;
@@ -8357,6 +8384,7 @@ function openAmbitions() {
     for (const a of offer) h += `<button class="event-choice amb-pick" onclick="chooseAmbition('${a.id}')"><b>${a.name}</b><span class="event-effect">${a.desc}</span>${bar(ambitionProgress(playerNation, a))}</button>`;
   } else if (cur) {
     h += `<div class="section-title">In hand</div><div class="amb-row amb-cur"><b>${cur.name}</b><span>${cur.desc}</span>${bar(ambitionProgress(playerNation, cur))}</div>`;
+    h += `<button class="event-choice" onclick="setAsideAmbition()">Set it aside and choose another<span class="event-effect">-5 \u269C</span></button>`;
   }
   if (done.length) {
     h += `<div class="section-title">Fulfilled</div>`;
@@ -16446,7 +16474,7 @@ function renderKingdoms() {
     const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
     html += `<div class="kcard ${rel}" style="--kc:${col}">
       <div class="kc-head">${(() => { const r = getNationRuler(n.id); return r ? `<img class="portrait kc-face" src="${portraitOf(r)}" alt="" title="${escHtml(r.name)}">` : '<span class="kc-crest"></span>'; })()}
-        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}</small></div>
+        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
         <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
     if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
     const loy = getLoyalty(n.id, playerNation);
