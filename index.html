@@ -713,7 +713,8 @@
         <b style="color:#b8a070;">The Pixel Map, Sharpened</b><br>
         - The map is back to its bright pixel look, redrawn at twice the detail: shaded hexes, grass tufts and flowers, ripples on the water and outlined trees and buildings<br>
         - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before, with snow on their roofs in winter and captured colours flying beside the capital's church<br>
-        - Soldiers, horsemen, guns and ships are small pixel figures to match the map
+        - Soldiers, horsemen, guns and ships are small pixel figures to match the map, each standing inside its own hex<br>
+        - No more emoji anywhere: the animals on the map, city-site flags, markers and messages are all drawn as painted icons
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.1</b></div>
       <div style="margin-bottom:12px;">
@@ -1660,7 +1661,8 @@
           <b style="color:#b8a070;">The Pixel Map, Sharpened</b><br>
           - The map is back to its bright pixel look, redrawn at twice the detail: shaded hexes, grass tufts and flowers, ripples on the water and outlined trees and buildings<br>
           - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before, with snow on their roofs in winter and captured colours flying beside the capital's church<br>
-          - Soldiers, horsemen, guns and ships are small pixel figures to match the map
+          - Soldiers, horsemen, guns and ships are small pixel figures to match the map, each standing inside its own hex<br>
+          - No more emoji anywhere: the animals on the map, city-site flags, markers and messages are all drawn as painted icons
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.1</b></div>
         <div style="margin-bottom:12px;">
@@ -11251,8 +11253,41 @@ function shadeHex(hex, t) { // t < 0 darkens toward black, t > 0 lightens toward
 const UNIT_FIGS = {};
 // Painted icons in place of emoji. The defs keep their emoji (the map canvas still draws them as text);
 // panels, toasts and lists get the painted image instead, swapped in as the text lands in the page.
-const EMOJI_ICONS = { '⚔': 'swords', '🛡': 'shield', '⚗': 'alembic', '🏛': 'columns', '📊': 'ledger', '📷': 'easel', '⚜': 'fleur', '⚒': 'hammerpick', '⚓': 'anchor', '🌾': 'wheat', '📜': 'scroll', '⚖': 'scales', '🐴': 'horsehead', '🐄': 'cow', '🏹': 'bow', '💥': 'blast', '♕': 'crown', '♛': 'crown', '👑': 'crown', '🪨': 'stone', '🏭': 'factory', '🏰': 'castle', '🏙': 'town', '🔥': 'fire', '🛠': 'tools', '🔒': 'lock', '⌛': 'hourglass', '☠': 'skull', '🌱': 'sprout', '☀': 'sun', '🍂': 'leaf', '❄': 'snow', '🦌': 'deer', '🐑': 'sheep', '🐗': 'boar', '🔭': 'telescope', '🔨': 'hammer', '🐎': 'horse', '🔫': 'musket', '🎯': 'target', '💢': 'grenade', '🏇': 'rider', '🪄': 'lance', '☄': 'fieldgun', '💣': 'bomb', '🧭': 'compass', '🚢': 'ship', '🗡': 'dagger', '🏪': 'market', '⛏': 'pick', '🏠': 'house', '🏚': 'barn', '🪓': 'axe', '🔬': 'microscope', '🏦': 'treasury', '⛊': 'redoubt', '📚': 'books', '⛪': 'church', '💰': 'moneybag', '⛓': 'chain', '✍': 'quill', '✝': 'cross', '⚙': 'gear', '⛰': 'mountain', '🏗': 'scaffold', '📈': 'rising', '🏳': 'whiteflag', '🌊': 'waves', '🌳': 'tree', '💎': 'gem', '🧂': 'salt', '✨': 'sparkle', '👁': 'eye', '⚡': 'lightning', '☮': 'olive', '🌿': 'herb', '🪵': 'log', '⚠': 'warning' };
+const EMOJI_ICONS = { '⚔': 'swords', '🛡': 'shield', '⚗': 'alembic', '🏛': 'columns', '📊': 'ledger', '📷': 'easel', '⚜': 'fleur', '⚒': 'hammerpick', '⚓': 'anchor', '🌾': 'wheat', '📜': 'scroll', '⚖': 'scales', '🐴': 'horsehead', '🐄': 'cow', '🏹': 'bow', '💥': 'blast', '♕': 'crown', '♛': 'crown', '👑': 'crown', '🪨': 'stone', '🏭': 'factory', '🏰': 'castle', '🏙': 'town', '🔥': 'fire', '🛠': 'tools', '🔒': 'lock', '⌛': 'hourglass', '☠': 'skull', '🌱': 'sprout', '☀': 'sun', '🍂': 'leaf', '❄': 'snow', '🦌': 'deer', '🐑': 'sheep', '🐗': 'boar', '🔭': 'telescope', '🔨': 'hammer', '🐎': 'horse', '🔫': 'musket', '🎯': 'target', '💢': 'grenade', '🏇': 'rider', '🪄': 'lance', '☄': 'fieldgun', '💣': 'bomb', '🧭': 'compass', '🚢': 'ship', '🗡': 'dagger', '🏪': 'market', '⛏': 'pick', '🏠': 'house', '🏚': 'barn', '🪓': 'axe', '🔬': 'microscope', '🏦': 'treasury', '⛊': 'redoubt', '📚': 'books', '⛪': 'church', '💰': 'moneybag', '⛓': 'chain', '✍': 'quill', '✝': 'cross', '⚙': 'gear', '⛰': 'mountain', '🏗': 'scaffold', '📈': 'rising', '🏳': 'whiteflag', '🌊': 'waves', '🌳': 'tree', '💎': 'gem', '🧂': 'salt', '✨': 'sparkle', '👁': 'eye', '⚡': 'lightning', '☮': 'olive', '🌿': 'herb', '🪵': 'log', '⚠': 'warning', '⚑': 'flag', '★': 'star' };
 const EMOJI_RE = new RegExp('(' + Object.keys(EMOJI_ICONS).sort((a, b) => b.length - a.length).map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\uFE0F?', 'gu');
+// the map is drawn with canvas text in places (animals, markers, floating messages): any emoji there is drawn as its painted icon instead
+const _canvasIcons = {};
+function canvasIcon(name) {
+  let img = _canvasIcons[name];
+  if (!img) { img = _canvasIcons[name] = new Image(); img.src = 'icons/' + name + '.png'; }
+  return img.complete && img.naturalWidth ? img : null;
+}
+(function () {
+  const P = CanvasRenderingContext2D.prototype, fill = P.fillText, stroke = P.strokeText;
+  function iconText(g, plain, t, x, y, maxW) {
+    if (typeof t !== 'string') return plain.call(g, t, x, y, maxW);
+    EMOJI_RE.lastIndex = 0;
+    if (!EMOJI_RE.test(t)) return plain.call(g, t, x, y, maxW);
+    const parts = []; let last = 0; EMOJI_RE.lastIndex = 0;
+    for (let m; (m = EMOJI_RE.exec(t)); ) { if (m.index > last) parts.push(t.slice(last, m.index)); parts.push({ icon: EMOJI_ICONS[m[1]] }); last = m.index + m[0].length; }
+    if (last < t.length) parts.push(t.slice(last));
+    const px = parseFloat((/(\d+(?:\.\d+)?)px/.exec(g.font) || [0, 12])[1]), isz = px * 1.15;
+    const widths = parts.map(q => typeof q === 'string' ? g.measureText(q).width : isz);
+    const total = widths.reduce((a, b) => a + b, 0);
+    const al = g.textAlign, bl = g.textBaseline;
+    let left = al === 'center' ? x - total / 2 : (al === 'right' || al === 'end') ? x - total : x;
+    const mid = bl === 'middle' ? y : bl === 'top' || bl === 'hanging' ? y + px * 0.5 : bl === 'bottom' ? y - px * 0.5 : y - px * 0.35;
+    g.save(); g.textAlign = 'left';
+    parts.forEach((q, k) => {
+      if (typeof q === 'string') plain.call(g, q, left, y);
+      else if (plain === fill) { const img = canvasIcon(q.icon); if (img) { const ih = isz, iw = ih * img.naturalWidth / img.naturalHeight; g.drawImage(img, left + (isz - iw) / 2, mid - ih / 2, iw, ih); } }
+      left += widths[k];
+    });
+    g.restore();
+  }
+  P.fillText = function (t, x, y, maxW) { return iconText(this, fill, t, x, y, maxW); };
+  P.strokeText = function (t, x, y, maxW) { return iconText(this, stroke, t, x, y, maxW); };
+})();
 function unitIco(type) { return UNIT_DEFS[type] ? `<img class="emo fig" src="units/${type}.png" alt="">` : ''; }
 function swapEmojiIn(root) {
   if (!root) return;
@@ -11298,7 +11333,7 @@ function unitFigure(type) {
 }
 function drawUnitFigure(img, cx, baseY, w, col, selected) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
-  const rx = w * 0.34, ry = w * 0.12;
+  const rx = w * 0.22, ry = w * 0.08;
   ctx.save();
   // its shadow, and the ring of its colours on the ground
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -11313,7 +11348,7 @@ function drawUnitFigure(img, cx, baseY, w, col, selected) {
     ctx.globalAlpha = 0.28; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
   }
   // the figure, standing on it
-  const maxD = w * (naval ? 1.25 : 1.12), sc = maxD / Math.max(img.width, img.height);
+  const maxD = w * (naval ? 0.78 : 0.6), sc = maxD / Math.max(img.width, img.height);
   const dw = img.width * sc, dh = img.height * sc;
   if (selected) { ctx.shadowColor = 'rgba(255, 230, 150, 0.9)'; ctx.shadowBlur = w * 0.12; }
   ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4), dw, dh);
