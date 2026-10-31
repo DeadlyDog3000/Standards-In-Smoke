@@ -11224,6 +11224,10 @@ function drawFishingBoats(city, w, facePad, ch, pId) {
     ctx.beginPath(); ctx.moveTo(bx, by - L * 0.05); ctx.lineTo(bx, by - L * 0.75); ctx.stroke();
     ctx.fillStyle = '#efe6d0';
     ctx.beginPath(); ctx.moveTo(bx + L * 0.02, by - L * 0.72); ctx.lineTo(bx + L * 0.38, by - L * 0.12); ctx.lineTo(bx + L * 0.02, by - L * 0.12); ctx.closePath(); ctx.fill();
+    if (OW.canvas) { // inked like the rest of the chart
+      ctx.strokeStyle = 'rgba(40, 24, 10, 0.85)'; ctx.lineWidth = Math.max(0.8, w * 0.01); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx - L * 0.5, by - L * 0.05); ctx.lineTo(bx + L * 0.5, by - L * 0.05); ctx.lineTo(bx + L * 0.32, by + L * 0.12); ctx.lineTo(bx - L * 0.36, by + L * 0.12); ctx.closePath(); ctx.stroke();
+    }
     ctx.restore();
   }
 }
