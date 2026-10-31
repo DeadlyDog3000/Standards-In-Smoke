@@ -9889,6 +9889,18 @@ function drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges) {
   }
 }
 
+// painted settlements: a village grows into a town at 5 people; a capital is a walled city
+const TOWN_IMGS = {};
+function townSprite(city) {
+  const k = !city ? 'village' : city.isCapital ? 'capital' : (city.population || 1) >= 5 ? 'town' : 'village';
+  let img = TOWN_IMGS[k];
+  if (!img) {
+    img = TOWN_IMGS[k] = new Image();
+    img.onload = () => { if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
+    img.src = `tiles/town_${k}.png`;
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
 function drawVillageOverlay(context, x, y, w, h) {
   const cx = x + w * 0.5;
   const baseY = y + h * 0.45; // sit buildings on the hex face area
@@ -10674,6 +10686,19 @@ function drawTown(city, cx, cy, w, faceH) {
     houses.push({ x: cx + rx * ax, y: cy + ry * ay, lm: b, s: 1 });
   }
   houses.sort((p, q) => p.y - q.y);
+  const painted = townSprite(city);
+  if (painted) {
+    // the painted settlement, with what the town has built standing round it and the realm's flag above
+    const tw = w * (city.isCapital ? 0.98 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
+    const top = cy + ry * 1.15 - th;
+    ctx.drawImage(painted, cx - tw / 2, top, tw, th);
+    for (const h of houses) if (h.lm) drawLandmark(h.lm, h.x, h.y, w);
+    const fx = cx + tw * 0.08, fy = top + th * 0.08, fh = w * 0.16;
+    ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
+    ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - fh); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(fx, fy - fh); ctx.lineTo(fx + w * 0.1, fy - fh + w * 0.025); ctx.lineTo(fx, fy - fh + w * 0.055); ctx.closePath(); ctx.fill();
+    houses.length = 0;
+  }
   const roofs = ['#9a4330', '#7d3a2a', '#5f5a63', '#86563a'], walls = ['#e2d3b2', '#cdb894', '#d9c7a0'];
   for (const h of houses) {
     const hw = w * 0.12 * h.s, wh = hw * 0.62, rh = hw * 0.55;
@@ -10893,7 +10918,7 @@ function render() {
           }
         }
         if (t.type === 4 && VIEW_TILE >= 12) {
-          drawVillageOverlay(ctx, sx, sy, drawW, drawH);
+          if (!townSprite(cities.find(c => c.x === mx && c.y === my))) drawVillageOverlay(ctx, sx, sy, drawW, drawH);
         }
 
       }
