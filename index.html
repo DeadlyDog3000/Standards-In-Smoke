@@ -12041,6 +12041,17 @@ function buildWorldChart(key) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   // water-lining: thin lines following the coast out to sea, fading as they go
   [0.5, 0.38, 0.27, 0.17].forEach((a, k) => { g.strokeStyle = 'rgba(40, 62, 70, ' + a + ')'; g.lineWidth = 0.9 * u; g.stroke(OW.F.waterLines[k]); });
+  // the shallows stippled in fine dots just off the shore, as the old engravers marked them
+  {
+    const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F;
+    g.fillStyle = 'rgba(36, 54, 60, 0.42)';
+    for (let y = 1; y < lh - 1; y += 1) for (let x = 1; x < lw - 1; x += 1) {
+      const i = y * lw + x, n = NR[i];
+      if (WT2[i] < 0.5 || n < 0.3 || n > 0.48) continue;
+      if (owHash(x, y, 77) > 0.22 + (n - 0.3) * 1.2) continue;
+      g.fillRect(x * rr + owHash(y, x, 3) * rr, y * rr + owHash(x, y, 5) * rr, 0.9 * u, 0.9 * u);
+    }
+  }
   // a pale shore wash and the coast itself in ink
   g.strokeStyle = 'rgba(232, 222, 190, 0.35)'; g.lineWidth = 4 * u; g.stroke(OW.F.coast);
   g.strokeStyle = ink + '0.9)'; g.lineWidth = 1.6 * u; g.stroke(OW.F.coast);
@@ -12742,7 +12753,8 @@ function render() {
         if (!t.hasRiver || !t.revealed.has(pId)) continue;
         const [cx, cy] = centre(i);
         // the meander: the curve bends a little to one side, the same way every time for this tile
-        const h = ((mx * 73856093) ^ (my * 19349663)) >>> 0, bend = ((h % 100) / 100 - 0.5) * w * 0.28;
+        // (on the chart, a wider swing: always some bend, and alternating along a straight run so it snakes rather than runs like a pipe)
+        const h = ((mx * 73856093) ^ (my * 19349663)) >>> 0, bend = charted ? (((my + mx) & 1) ? 1 : -1) * (0.16 + (h % 100) / 100 * 0.2) * w : ((h % 100) / 100 - 0.5) * w * 0.28;
         let out = null;
         if (t.riverTo !== undefined && tiles[t.riverTo]) { const [nx, ny] = centre(t.riverTo); out = [(cx + nx) / 2, (cy + ny) / 2]; }
         const ins = [];
