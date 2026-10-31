@@ -10368,7 +10368,9 @@ function drawHexLayer(pts, w, faceH, alpha, style, op, top, colors) {
   const g = _hexLayer.getContext('2d');
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const fast = w < 22, hw = w / 2, hh = faceH / 2;
+  let fast = w < 22, hw = w / 2, hh = faceH / 2;
+  // over the chart the hexes tile exactly (no sprite sides to cover)
+  if (OW.canvas) { hw = hexColStep() * 2 / 3; hh = hexCellH() / 2; top = 0; }
   const colW = hexColStep() + 0.75, rowH = Math.max(faceH, hexCellH()) + 0.75;
   let last = null;
   if (!colors) g.fillStyle = typeof style === 'string' ? style : '#fff';
@@ -11381,6 +11383,300 @@ function drawUnitMedallion(cx, cy, groundY, rad, col) {
   ctx.restore();
 }
 
+// ---- The old-world chart: the whole map drawn once as an engraved, hand-coloured atlas sheet (relief shaded from a height field,
+// ink coasts with water-lining, tree and mountain symbols), then cut to the explored hexes each frame. Rebuilt when the season or the land changes.
+const OW = { canvas: null, key: '', K: 0, CS: 0, CH: 0, building: false };
+function owHash(x, y, s) { let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function owNoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = owHash(xi, yi, s), b = owHash(xi + 1, yi, s), c = owHash(xi, yi + 1, s), d = owHash(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function owFbm(x, y, s, oct) { let t = 0, amp = 0.5, f = 1; for (let o = 0; o < oct; o++) { t += amp * owNoise(x * f, y * f, s + o * 17); f *= 2.03; amp *= 0.5; } return t; }
+const OW_WATER = t => t === 0 || t === 8;
+// the hand-colouring: a wash for each kind of ground, by season (rgb)
+const OW_WASH = {
+  spring: { 1: [196, 186, 128], 3: [150, 152, 112], 4: [196, 182, 128], 5: [134, 142, 92], 6: [190, 182, 124], 7: [190, 168, 118], 2: [172, 156, 128] },
+  summer: { 1: [204, 186, 120], 3: [152, 150, 108], 4: [204, 184, 124], 5: [128, 136, 86], 6: [200, 182, 118], 7: [196, 170, 116], 2: [174, 158, 128] },
+  autumn: { 1: [200, 180, 124], 3: [154, 146, 106], 4: [200, 180, 126], 5: [150, 116, 72], 6: [198, 178, 120], 7: [192, 166, 114], 2: [176, 158, 128] },
+  winter: { 1: [214, 210, 194], 3: [180, 182, 168], 4: [214, 208, 192], 5: [146, 150, 128], 6: [212, 208, 192], 7: [206, 200, 184], 2: [200, 196, 186] },
+};
+function worldChartKey() {
+  let h = 0;
+  for (let i = 0; i < tiles.length; i++) h = (Math.imul(h, 31) + tiles[i].type) | 0;
+  return MAP_COLS + 'x' + MAP_ROWS + ':' + h + ':' + currentSeason;
+}
+function getWorldChart() {
+  if (!tiles.length || !MAP_COLS) return null;
+  const key = worldChartKey();
+  if (OW.key !== key) { try { buildWorldChart(key); } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } }
+  return OW.canvas;
+}
+function buildWorldChart(key) {
+  OW.key = key;
+  const season = currentSeason in OW_WASH ? currentSeason : 'spring', wash = OW_WASH[season], winter = season === 'winter';
+  // resolution: as fine as the map's size allows (about 14 million pixels at most)
+  let K = 96;
+  while (K > 32 && ((MAP_COLS * 0.75 + 0.25) * K) * ((MAP_ROWS + 0.5) * 0.72 * K) > 14e6) K -= 8;
+  const CS = 0.75 * K, CH = 0.72 * K;
+  const TW = Math.ceil((MAP_COLS - 1) * CS + K), TH = Math.ceil((MAP_ROWS + 0.5) * CH);
+  const R = 3, LW = Math.ceil(TW / R) + 1, LH = Math.ceil(TH / R) + 1;
+  const N = LW * LH, H = new Float32Array(N), WAT = new Float32Array(N), COL = new Float32Array(N * 3), MNT = new Float32Array(N);
+  // past the edge of the map the land (or sea) runs on as it was at the edge
+  const typeAt = (c, r) => tiles[Math.min(MAP_ROWS - 1, Math.max(0, r)) * MAP_COLS + Math.min(MAP_COLS - 1, Math.max(0, c))].type;
+  const BASEH = { 0: -0.35, 8: -0.2, 1: 0.06, 3: 0.0, 4: 0.06, 5: 0.12, 6: 0.07, 7: 0.34, 2: 0.78 };
+  const ROUGH = { 0: 0.02, 8: 0.02, 1: 0.05, 3: 0.02, 4: 0.03, 5: 0.07, 6: 0.05, 7: 0.22, 2: 0.55 };
+  const sig2 = 0.36 * 0.36, sigW2 = 0.52 * 0.52; // the coast is smoothed more than the colours, so it doesn't follow the hexes' teeth
+  for (let ly = 0; ly < LH; ly++) {
+    const wy = ly * R;
+    for (let lx = 0; lx < LW; lx++) {
+      const wx = lx * R, X = wx / K, Y = wy / K;
+      const c0 = Math.round((wx - K / 2) / CS);
+      let sl = 0, sw = 0, swW = 0, sh = 0, swat = 0, sr = 0, sg = 0, sb = 0, smt = 0, srough = 0;
+      for (let dc = -1; dc <= 1; dc++) {
+        const c = c0 + dc, r0 = Math.round((wy - CH / 2 - (c & 1) * CH / 2) / CH);
+        for (let dr = -1; dr <= 1; dr++) {
+          const r = r0 + dr, cx = c * CS + K / 2, cy = r * CH + (c & 1) * CH / 2 + CH / 2;
+          const dx = (wx - cx) / K, dy = (wy - cy) / K, d2 = dx * dx + dy * dy, wgt = Math.exp(-d2 / sig2), ww = Math.exp(-d2 / sigW2);
+          const t = typeAt(c, r), water = OW_WATER(t);
+          sw += wgt; sh += wgt * BASEH[t]; swW += ww; swat += water ? ww : 0; srough += wgt * ROUGH[t];
+          if (t === 2) smt += wgt;
+          if (!water) { const col = wash[t] || wash[1]; sl += wgt; sr += wgt * col[0]; sg += wgt * col[1]; sb += wgt * col[2]; }
+        }
+      }
+      const i = ly * LW + lx, land = sl;
+      const wat = swat / swW + (owFbm(X * 1.7, Y * 1.7, 11, 3) - 0.5) * 0.34;
+      WAT[i] = wat;
+      const rough = srough / sw, mt = smt / sw;
+      // ridged noise for the mountains, soft rolls elsewhere
+      const ridge = 1 - Math.abs(owFbm(X * 2.2, Y * 2.2, 5, 4) * 2 - 1);
+      H[i] = sh / sw + rough * (mt > 0.15 ? ridge * ridge * 1.3 - 0.2 : (owFbm(X * 2.5, Y * 2.5, 3, 4) - 0.5) * 2);
+      MNT[i] = mt;
+      if (land > 0.0001) { COL[i * 3] = sr / land; COL[i * 3 + 1] = sg / land; COL[i * 3 + 2] = sb / land; }
+      else { const col = wash[1]; COL[i * 3] = col[0]; COL[i * 3 + 1] = col[1]; COL[i * 3 + 2] = col[2]; }
+    }
+  }
+  // how far each point of sea lies from the land (a blurred land mask), for the depth wash and the lines of water along the coast
+  const LAND = new Float32Array(N); for (let i = 0; i < N; i++) LAND[i] = WAT[i] < 0.5 ? 1 : 0;
+  const blur = (src, rad) => {
+    const tmp = new Float32Array(N), out = new Float32Array(N);
+    for (let pass = 0; pass < 3; pass++) {
+      const a = pass === 0 ? src : out;
+      for (let y = 0; y < LH; y++) { let acc = 0; const row = y * LW; for (let x = -rad; x <= rad; x++) acc += a[row + Math.min(LW - 1, Math.max(0, x))]; for (let x = 0; x < LW; x++) { tmp[row + x] = acc / (2 * rad + 1); acc += a[row + Math.min(LW - 1, x + rad + 1)] - a[row + Math.max(0, x - rad)]; } }
+      for (let x = 0; x < LW; x++) { let acc = 0; for (let y = -rad; y <= rad; y++) acc += tmp[Math.min(LH - 1, Math.max(0, y)) * LW + x]; for (let y = 0; y < LH; y++) { out[y * LW + x] = acc / (2 * rad + 1); acc += tmp[Math.min(LH - 1, y + rad + 1) * LW + x] - tmp[Math.max(0, y - rad) * LW + x]; } }
+    }
+    return out;
+  };
+  const NEAR = blur(LAND, Math.max(2, Math.round(K * 0.42 / R)));
+  // colour and shade it
+  const lowC = document.createElement('canvas'); lowC.width = LW; lowC.height = LH;
+  const lg = lowC.getContext('2d'), img = lg.createImageData(LW, LH), d = img.data;
+  const sea0 = winter ? [150, 168, 170] : [128, 156, 152], sea1 = winter ? [92, 112, 120] : [78, 108, 112];
+  for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) {
+    const i = y * LW + x;
+    const hx = H[Math.min(N - 1, i + 1)] - H[Math.max(0, i - 1)], hy = H[Math.min(N - 1, i + LW)] - H[Math.max(0, i - LW)];
+    let r, g, b;
+    if (WAT[i] >= 0.5) {
+      const k = Math.min(1, Math.max(0, 1 - NEAR[i] * 2.4)), n = owFbm(x * R / K * 0.8, y * R / K * 0.8, 23, 3) - 0.5;
+      r = sea0[0] + (sea1[0] - sea0[0]) * k + n * 14; g = sea0[1] + (sea1[1] - sea0[1]) * k + n * 14; b = sea0[2] + (sea1[2] - sea0[2]) * k + n * 12;
+      // winter: the shallows along the shore freeze white
+      if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; }
+    } else {
+      // relief: lit from the north-west, as an engraver shades a hill
+      const shade = Math.max(0.55, Math.min(1.4, 1 + (hx + hy) * 1.1));
+      r = COL[i * 3]; g = COL[i * 3 + 1]; b = COL[i * 3 + 2];
+      // the high peaks stay pale (snow and bare rock), in any season
+      const hi = Math.max(0, Math.min(1, (H[i] - 0.95) * 2.2)) * (MNT[i] > 0.3 ? 1 : 0) + (winter ? Math.max(0, Math.min(1, (H[i] - 0.25) * 2)) * 0.5 : 0);
+      r += (238 - r) * hi; g += (236 - g) * hi; b += (228 - b) * hi;
+      const n = owFbm(x * R / K * 3, y * R / K * 3, 31, 3) - 0.5;
+      r = r * shade + n * 16; g = g * shade + n * 16; b = b * shade + n * 12;
+    }
+    d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
+  }
+  lg.putImageData(img, 0, 0);
+  const c = document.createElement('canvas'); c.width = TW; c.height = TH;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(lowC, 0, 0, LW * R, LH * R);
+  // contour lines by marching squares over a field, in world pixels
+  const contour = (F, lvl) => {
+    const p = new Path2D();
+    for (let y = 0; y < LH - 1; y++) for (let x = 0; x < LW - 1; x++) {
+      const i = y * LW + x, a = F[i] - lvl, b = F[i + 1] - lvl, cc = F[i + LW + 1] - lvl, dd = F[i + LW] - lvl;
+      const m = (a > 0 ? 8 : 0) | (b > 0 ? 4 : 0) | (cc > 0 ? 2 : 0) | (dd > 0 ? 1 : 0);
+      if (m === 0 || m === 15) continue;
+      const e = [];
+      if ((a > 0) !== (b > 0)) e.push([(x + a / (a - b)) * R, y * R]);
+      if ((b > 0) !== (cc > 0)) e.push([(x + 1) * R, (y + b / (b - cc)) * R]);
+      if ((dd > 0) !== (cc > 0)) e.push([(x + dd / (dd - cc)) * R, (y + 1) * R]);
+      if ((a > 0) !== (dd > 0)) e.push([x * R, (y + a / (a - dd)) * R]);
+      for (let k = 0; k + 1 < e.length; k += 2) { p.moveTo(e[k][0], e[k][1]); p.lineTo(e[k + 1][0], e[k + 1][1]); }
+    }
+    return p;
+  };
+  const ink = 'rgba(52, 38, 24, ', u = K / 64;
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  // water-lining: thin lines following the coast out to sea, fading as they go
+  [[0.42, 0.5], [0.28, 0.38], [0.17, 0.27], [0.09, 0.17]].forEach(([lvl, a]) => { g.strokeStyle = 'rgba(40, 62, 70, ' + a + ')'; g.lineWidth = 0.9 * u; g.stroke(contour(NEAR, lvl)); });
+  // a pale shore wash and the coast itself in ink
+  g.strokeStyle = 'rgba(232, 222, 190, 0.35)'; g.lineWidth = 4 * u; g.stroke(contour(WAT, 0.5));
+  g.strokeStyle = ink + '0.9)'; g.lineWidth = 1.6 * u; g.stroke(contour(WAT, 0.5));
+  // symbols: trees, mountains, hills, marsh and sea strokes, from the back of the sheet to the front
+  const marks = [];
+  for (let r = 0; r < MAP_ROWS; r++) for (let cI = 0; cI < MAP_COLS; cI++) {
+    const t = tiles[r * MAP_COLS + cI].type, cx = cI * CS + K / 2, cy = r * CH + (cI & 1) * CH / 2 + CH / 2;
+    let s = (cI * 92821 + r * 68917) | 0; const rnd = () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) + 0x9e3779b9 | 0) >>> 0) / 4294967296;
+    const inHex = (fx, fy) => Math.abs(fy) < 0.34 && Math.abs(fx) < 0.48 - Math.abs(fy) * 0.7;
+    if (t === 5) {
+      for (let k = 0; k < 16; k++) { const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.72; if (inHex(fx, fy)) marks.push({ k: rnd() < 0.35 ? 'pine' : 'tree', x: cx + fx * K, y: cy + fy * K, s: 0.85 + rnd() * 0.35 }); }
+    } else if (t === 2) {
+      const n = 1 + (rnd() < 0.6 ? 1 : 0);
+      for (let k = 0; k < n; k++) marks.push({ k: 'peak', x: cx + (rnd() - 0.5) * K * 0.42, y: cy + (k ? 0.12 : -0.08) * K + (rnd() - 0.5) * K * 0.1, s: k ? 0.8 + rnd() * 0.3 : 1.15 + rnd() * 0.4 });
+    } else if (t === 7) {
+      for (let k = 0; k < 2; k++) marks.push({ k: 'hill', x: cx + (rnd() - 0.5) * K * 0.5, y: cy + (rnd() - 0.4) * K * 0.3, s: 0.8 + rnd() * 0.4 });
+    } else if (t === 3) {
+      for (let k = 0; k < 6; k++) { const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.7; if (inHex(fx, fy)) marks.push({ k: 'marsh', x: cx + fx * K, y: cy + fy * K, s: 0.8 + rnd() * 0.4 }); }
+    } else if (t === 1 || t === 6) {
+      if (rnd() < 0.55) for (let k = 0; k < 3; k++) { const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.7; if (inHex(fx, fy)) marks.push({ k: 'tuft', x: cx + fx * K, y: cy + fy * K, s: 1 }); }
+    } else if (t === 0) {
+      const i = Math.round(cy / R) * LW + Math.round(cx / R);
+      if (NEAR[i] < 0.05 && rnd() < 0.3) marks.push({ k: 'wave', x: cx + (rnd() - 0.5) * K * 0.4, y: cy + (rnd() - 0.5) * K * 0.3, s: 0.8 + rnd() * 0.4 });
+    }
+  }
+  marks.sort((a, b) => a.y - b.y);
+  const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(150, 104, 54)' : 'rgb(96, 112, 62)';
+  const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(196, 146, 80)' : 'rgb(140, 152, 92)';
+  for (const m of marks) {
+    const s = m.s * u, x = m.x, y = m.y;
+    g.lineWidth = 1.1 * u; g.strokeStyle = ink + '0.85)';
+    if (m.k === 'tree') {
+      const rr = 6.5 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, rr * 0.9, rr * 0.35, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 6 * s); g.stroke();
+      g.fillStyle = forestCol; g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.fill();
+      g.fillStyle = forestLit; g.beginPath(); g.arc(x - rr * 0.3, y - 6 * s - rr * 1.05, rr * 0.55, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.stroke();
+      if (winter) { g.fillStyle = 'rgba(248, 250, 252, 0.9)'; g.beginPath(); g.arc(x - rr * 0.2, y - 6 * s - rr * 1.3, rr * 0.5, Math.PI, 0); g.fill(); }
+    } else if (m.k === 'pine') {
+      const hh = 17 * s, ww = 5.5 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, ww, ww * 0.35, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = winter ? 'rgb(84, 100, 84)' : 'rgb(74, 92, 58)';
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.fill();
+      g.fillStyle = winter ? 'rgba(248,250,252,0.85)' : 'rgba(150, 160, 100, 0.8)';
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x - ww, y - 2 * s); g.lineTo(x - ww * 0.15, y - 2 * s); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.stroke();
+      g.beginPath(); g.moveTo(x, y - 2 * s); g.lineTo(x, y + 1 * s); g.stroke();
+    } else if (m.k === 'peak') {
+      // a little range: a jagged ridge with a main summit and a lower shoulder, lit on the west and hatched on the east
+      const hh = 24 * s, ww = 18 * s, j = owHash(x | 0, y | 0, 3), j2 = owHash(y | 0, x | 0, 5);
+      const sx = x + (j - 0.5) * 6 * s, side = j2 < 0.5 ? -1 : 1;
+      const pts = [[x - ww, y], [x - ww * 0.55, y - hh * (0.35 + j * 0.15)], [sx - ww * 0.12, y - hh * 0.8], [sx, y - hh], [sx + ww * 0.14, y - hh * 0.78],
+        [x + side * ww * 0.45, y - hh * (0.62 + j2 * 0.12)], [x + ww * 0.62, y - hh * 0.36], [x + ww, y]];
+      if (side < 0) pts.splice(5, 1);
+      g.fillStyle = 'rgba(40, 30, 18, 0.2)'; g.beginPath(); g.moveTo(sx + 3 * s, y - hh + 6 * s); g.lineTo(x + ww + 8 * s, y + 2 * s); g.lineTo(x - ww * 0.2, y + 2 * s); g.closePath(); g.fill();
+      g.fillStyle = winter ? 'rgb(226, 224, 216)' : 'rgb(212, 200, 172)';
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.closePath(); g.fill();
+      // the shaded east face: from the summit down to the foot
+      g.fillStyle = winter ? 'rgb(170, 172, 172)' : 'rgb(148, 132, 106)';
+      g.beginPath(); g.moveTo(sx, y - hh); for (let k = 4; k < pts.length; k++) g.lineTo(pts[k][0], pts[k][1]); g.lineTo(sx + ww * 0.1, y); g.lineTo(sx - ww * 0.05, y - hh * 0.45); g.closePath(); g.fill();
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
+      for (let k = 1; k < 6; k++) { const f = k / 6, ax = sx + (x + ww - sx) * f * 0.9, ay = y - hh + hh * f; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - 3 * s, ay + 5 * s * (1 - f) + 2 * s); g.stroke(); }
+      g.fillStyle = 'rgba(250, 250, 246, 0.95)';
+      g.beginPath(); g.moveTo(sx, y - hh); g.lineTo(sx - ww * 0.3, y - hh * 0.68); g.lineTo(sx - ww * 0.12, y - hh * 0.74); g.lineTo(sx, y - hh * 0.62); g.lineTo(sx + ww * 0.12, y - hh * 0.72); g.lineTo(sx + ww * 0.26, y - hh * 0.7); g.closePath(); g.fill();
+      g.lineWidth = 1.2 * u; g.strokeStyle = ink + '0.9)';
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.stroke();
+    } else if (m.k === 'hill') {
+      const ww = 15 * s, hh = 8 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.18)'; g.beginPath(); g.ellipse(x + 3 * s, y, ww, hh * 0.4, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(x - ww, y); g.quadraticCurveTo(x - ww * 0.2, y - hh * 2, x + ww, y); g.stroke();
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
+      for (let k = 0; k < 4; k++) { const ax = x + ww * (0.15 + k * 0.2); g.beginPath(); g.moveTo(ax, y - hh * (1 - k * 0.22) + 1 * s); g.lineTo(ax - 2 * s, y - 1 * s); g.stroke(); }
+    } else if (m.k === 'marsh') {
+      g.lineWidth = 0.9 * u; g.strokeStyle = 'rgba(52, 70, 70, 0.7)';
+      g.beginPath(); g.moveTo(x - 6 * s, y); g.lineTo(x + 6 * s, y); g.moveTo(x - 3 * s, y + 3 * s); g.lineTo(x + 4 * s, y + 3 * s); g.stroke();
+      g.strokeStyle = ink + '0.7)';
+      g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x, y - 7 * s); g.moveTo(x - 1 * s, y - 1); g.lineTo(x - 4 * s, y - 6 * s); g.moveTo(x + 1 * s, y - 1); g.lineTo(x + 4 * s, y - 6 * s); g.stroke();
+    } else if (m.k === 'tuft') {
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.4)';
+      g.beginPath(); g.moveTo(x - 2.5 * s, y - 3 * s); g.lineTo(x, y); g.lineTo(x + 2.5 * s, y - 3 * s); g.moveTo(x, y); g.lineTo(x, y - 4 * s); g.stroke();
+    } else if (m.k === 'wave') {
+      g.lineWidth = 1 * u; g.strokeStyle = 'rgba(36, 56, 64, 0.5)';
+      const ww = 7 * s;
+      g.beginPath(); g.moveTo(x - ww * 2, y); g.quadraticCurveTo(x - ww * 1.5, y - ww * 0.6, x - ww, y); g.quadraticCurveTo(x - ww * 0.5, y + ww * 0.6, x, y); g.quadraticCurveTo(x + ww * 0.5, y - ww * 0.6, x + ww, y); g.stroke();
+    }
+  }
+  // the survey grid: every hex outlined faintly in ink
+  const grid = new Path2D(), qx = CS / 3, hx2 = CS * 2 / 3, hy = CH / 2;
+  for (let r = 0; r < MAP_ROWS; r++) for (let cI = 0; cI < MAP_COLS; cI++) {
+    const cx = cI * CS + K / 2, cy = r * CH + (cI & 1) * CH / 2 + CH / 2;
+    grid.moveTo(cx - hx2, cy); grid.lineTo(cx - qx, cy - hy); grid.lineTo(cx + qx, cy - hy); grid.lineTo(cx + hx2, cy);
+    if (!(cI & 1) || r === MAP_ROWS - 1) { grid.moveTo(cx - hx2, cy); grid.lineTo(cx - qx, cy + hy); grid.lineTo(cx + qx, cy + hy); grid.lineTo(cx + hx2, cy); }
+  }
+  g.strokeStyle = 'rgba(60, 44, 26, 0.16)'; g.lineWidth = 1 * u; g.stroke(grid);
+  // paper: grain and foxing over everything
+  const pat = owPaperPattern(g);
+  if (pat) { g.globalCompositeOperation = 'multiply'; g.fillStyle = pat; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over'; }
+  OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
+}
+let _owPaper = null;
+function owPaperCanvas() {
+  if (_owPaper) return _owPaper;
+  const S = 384, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, S, S);
+  const im = g.getImageData(0, 0, S, S), d = im.data;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const n = owFbm(x / 48, y / 48, 41, 4), f = owHash(x, y, 9);
+    // wrap the blotches so the tile repeats without a seam
+    const v = 255 - Math.max(0, (n - 0.5)) * 46 - f * 16 - (f > 0.985 ? 30 : 0);
+    const i = (y * S + x) * 4; d[i] = v; d[i + 1] = v * 0.985; d[i + 2] = v * 0.95; d[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  return (_owPaper = c);
+}
+function owPaperPattern(g) { try { return g.createPattern(owPaperCanvas(), 'repeat'); } catch (e) { return null; } }
+// draw the chart under the hexes that have been explored
+function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
+  const chart = getWorldChart();
+  if (!chart) return false;
+  const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
+  const clip = new Path2D(), qx = cs / 3 + 0.6, hx2 = cs * 2 / 3 + 0.6, hy = ch / 2 + 0.6, halfCh = Math.round(ch / 2);
+  let any = false;
+  for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
+    if (!tiles[my * MAP_COLS + mx].revealed.has(pId)) continue;
+    const cx = mx * cs - camX * cs + w / 2, cy = my * ch + (mx & 1) * halfCh - camY * ch + facePad + ch / 2;
+    clip.moveTo(cx - hx2, cy); clip.lineTo(cx - qx, cy - hy); clip.lineTo(cx + qx, cy - hy); clip.lineTo(cx + hx2, cy); clip.lineTo(cx + qx, cy + hy); clip.lineTo(cx - qx, cy + hy); clip.closePath();
+    any = true;
+    // hexes on the edge of the world carry the sheet out to its border
+    if (mx === 0) clip.rect(ox - 1, cy - hy, cx - ox + 1, hy * 2);
+    if (mx === MAP_COLS - 1) clip.rect(cx, cy - hy, ox + chart.width * fx - cx + 1, hy * 2);
+    if (my === 0) clip.rect(cx - hx2, oy - 1, hx2 * 2, cy - oy + 1);
+    if (my === MAP_ROWS - 1) clip.rect(cx - hx2, cy, hx2 * 2, oy + chart.height * fy - cy + 1);
+  }
+  if (!any) return true;
+  // the visible part of the sheet only
+  const sx0 = Math.max(0, -ox / fx), sy0 = Math.max(0, -oy / fy);
+  const sx1 = Math.min(chart.width, (viewW - ox) / fx), sy1 = Math.min(chart.height, (viewH - oy) / fy);
+  if (sx1 <= sx0 || sy1 <= sy0) return true;
+  ctx.save(); ctx.clip(clip);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(chart, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * fx, oy + sy0 * fy, (sx1 - sx0) * fx, (sy1 - sy0) * fy);
+  ctx.restore();
+  // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
+  const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
+  ctx.save();
+  const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 5.2); margin.rect(bx, by, bw, bh);
+  ctx.fillStyle = '#c9b38a'; ctx.fill(margin, 'evenodd');
+  const paper = owPaperPattern(ctx); if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fill(margin, 'evenodd'); ctx.globalCompositeOperation = 'source-over'; }
+  ctx.strokeStyle = 'rgba(40, 28, 16, 0.95)'; ctx.lineWidth = Math.max(2, w * 0.06);
+  ctx.strokeRect(bx - gap * 1.6, by - gap * 1.6, bw + gap * 3.2, bh + gap * 3.2);
+  ctx.lineWidth = Math.max(1, w * 0.018); ctx.strokeRect(bx - gap * 0.4, by - gap * 0.4, bw + gap * 0.8, bh + gap * 0.8);
+  ctx.fillStyle = 'rgba(40, 28, 16, 0.85)';
+  const step = cs * 2;
+  for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
+  for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
+  ctx.restore();
+  return true;
+}
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
@@ -11414,6 +11710,7 @@ function render() {
   const endCol = Math.min(MAP_COLS, Math.floor(camX) + viewCols + 2);
   const camXcs = camX * cs, camYch = camY * ch;
   const halfCh = Math.round(ch / 2);
+  const charted = drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol);
 
   for (let my = startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
@@ -11433,7 +11730,7 @@ function render() {
         else if (t.type === 7) key = HILL_KEYS[(i * 5 + my) % 2];
         // winter: the sea along the shore freezes over
         if (winterIce && t.type === 0 && isShoreWater(i)) key = key === 'Water_Lilypads' ? 'FrosenWater_Lilypads' : 'FrosenWater';
-        const img = hexImages[key] || hexImages[t.spriteKey] || hexImages['Grass_Plants'];
+        const img = charted ? null : hexImages[key] || hexImages[t.spriteKey] || hexImages['Grass_Plants'];
         if (img && img.complete && img.naturalWidth > 0) {
           // every other hex (at random) is mirrored, so painted forests and hills don't repeat in a grid
           ctx.drawImage(((i * 2654435761) >>> 7) & 1 ? mirroredTile(img) : img, sx, sy, drawW, drawH);
@@ -11442,8 +11739,13 @@ function render() {
         if (t.improvement && VIEW_TILE >= 16) {
           const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
           const impKey = impSpriteMap[t.improvement] || t.improvement;
+          // on the chart, an engraved vignette standing in the middle of the hex
+          const vig = charted ? featSprite('v_' + impKey) : null;
           const impImg = hexImages[impKey];
-          if (impImg && impImg.complete && impImg.naturalWidth > 0) {
+          if (vig) {
+            const vw = w * 0.62, vh = vw * vig.naturalHeight / vig.naturalWidth;
+            ctx.drawImage(vig, sx + (w - vw) / 2, sy + facePad + ch * 0.62 - vh, vw, vh);
+          } else if (impImg && impImg.complete && impImg.naturalWidth > 0) {
             ctx.drawImage(impImg, sx, sy, drawW, drawH);
           }
         }
@@ -11492,7 +11794,7 @@ function render() {
   if (_roadsKey !== roadKey) { rebuildRoads(); _roadsKey = roadKey; }
 
   // the season on the land: snow lies in winter, the woods turn in autumn, spring greens
-  if (currentSeason !== 'summer') {
+  if (currentSeason !== 'summer' && !charted) {
     const land = [];
     for (let my = startRow; my < endRow; my++) {
       const baseWorldY = my * ch - camYch;
@@ -11517,7 +11819,7 @@ function render() {
   }
 
   // cloud shadows over the land: soft dark patches that scroll with the map and drift on with the wind from turn to turn
-  if (VIEW_TILE >= 12) {
+  if (VIEW_TILE >= 12 && !charted) {
     const cp = getCloudPattern();
     if (cp) {
       cp.setTransform(new DOMMatrix().translate(-((camX * cs - turnNumber * 37) % 1024), -((camY * ch - turnNumber * 11) % 1024))); // and the wind moves them on a little each turn
@@ -11564,8 +11866,8 @@ function render() {
     }
     drawHexLayer(pts, w, faceH, 0.13, null, null, 0, cols);
   }
-  // the sea: surf along every shore, and a few wave strokes on open water
-  if (VIEW_TILE >= 16) {
+  // the sea: surf along every shore, and a few wave strokes on open water (the chart has its own water-lining)
+  if (VIEW_TILE >= 16 && !charted) {
     const evenN = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]], oddN = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
     const edgeOf = [0, 3, 1, 2, 5, 4];
     const surf = new Path2D(), waves = new Path2D();
@@ -11634,9 +11936,10 @@ function render() {
       }
     }
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(40, 60, 50, 0.45)'; ctx.lineWidth = Math.max(2.5, w * 0.13); ctx.stroke(river);
-    ctx.strokeStyle = currentSeason === 'winter' ? '#b9d6ee' : '#4f86c6'; ctx.lineWidth = Math.max(1.5, w * 0.085); ctx.stroke(river);
-    if (w >= 24) { ctx.strokeStyle = 'rgba(200, 225, 255, 0.45)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(river); }
+    // on the chart a river is an inked line washed with the sea's colour
+    ctx.strokeStyle = charted ? 'rgba(44, 40, 30, 0.85)' : 'rgba(40, 60, 50, 0.45)'; ctx.lineWidth = Math.max(2.5, w * (charted ? 0.11 : 0.13)); ctx.stroke(river);
+    ctx.strokeStyle = currentSeason === 'winter' ? '#b9d6ee' : charted ? '#6f9396' : '#4f86c6'; ctx.lineWidth = Math.max(1.5, w * (charted ? 0.07 : 0.085)); ctx.stroke(river);
+    if (w >= 24 && !charted) { ctx.strokeStyle = 'rgba(200, 225, 255, 0.45)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(river); }
     ctx.restore();
   }
   if (VIEW_TILE >= 14) drawRoads(w, facePad, ch, pId);
@@ -11729,15 +12032,20 @@ function render() {
     if (VIEW_TILE >= 12) {
       const site = _citySiteMap && _citySiteMap.get(i);
       if (site) {
-        ctx.fillStyle = 'rgba(80, 180, 80, 0.3)';
-        drawHexPath(ctx, sx, fy, w, faceH);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.22, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#7f7';
-        ctx.font = `${Math.max(8, w * 0.35)}px system-ui`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('\u2691', sx + w / 2, fy + faceH / 2);
+        // a surveyor's mark: a staked pennant inside a dotted ring, as a good place for a town is marked on a chart
+        const cx = sx + w / 2, cy = fy + (charted ? ch / 2 : faceH / 2), r = w * 0.2;
+        ctx.save();
+        ctx.setLineDash([Math.max(1.5, w * 0.03), Math.max(1.5, w * 0.035)]);
+        ctx.strokeStyle = 'rgba(70, 44, 22, 0.8)'; ctx.lineWidth = Math.max(1, w * 0.022);
+        ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.3, r, r * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        const top = cy - w * 0.3;
+        ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = Math.max(1, w * 0.025);
+        ctx.beginPath(); ctx.moveTo(cx, cy + r * 0.3); ctx.lineTo(cx, top); ctx.stroke();
+        ctx.fillStyle = '#a3362a';
+        ctx.beginPath(); ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx + w * 0.1, top + w * 0.02, cx + w * 0.2, top + w * 0.05); ctx.quadraticCurveTo(cx + w * 0.1, top + w * 0.07, cx, top + w * 0.11); ctx.closePath(); ctx.fill();
+        ctx.lineWidth = Math.max(0.8, w * 0.012); ctx.stroke();
+        ctx.restore();
       }
     }
 
