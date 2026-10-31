@@ -11929,6 +11929,8 @@ function figureSilhouette(img) {
   _figSil.set(img, c);
   return c;
 }
+// regiments stand as small figures on the chart, well inside their hex, as a wargamer's miniatures on a map table
+const UNIT_FIG_SCALE = 0.76;
 function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
   const rx = w * 0.22, ry = w * 0.08;
@@ -13180,10 +13182,11 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
   const fadeT = OW.prevKnown ? Math.min(1, (Date.now() - OW.fadeStart) / 650) : 1;
   if (fadeT >= 1) OW.prevKnown = null;
-  // while the view is moving, the sharp re-inking waits: it's drawn once the view comes to rest
+  // while the view is moving, the sharp re-inking of a wide view waits: it's drawn once the view comes to rest
   const camKey = camX.toFixed(3) + ',' + camY.toFixed(3) + ',' + w, now = Date.now();
   if (OW.camKey !== camKey) { OW.camKey = camKey; OW.moveUntil = now + 180; if (!OW.restTimer) OW.restTimer = setTimeout(function rest() { if (Date.now() < OW.moveUntil) { OW.restTimer = setTimeout(rest, OW.moveUntil - Date.now() + 5); return; } OW.restTimer = 0; render(); }, 190); }
-  const settled = now >= (OW.moveUntil || 0);
+  // (close in, with few hexes in view, the re-inking is cheap enough to keep up with the view as it moves, so the chart never goes soft under a pan)
+  const settled = now >= (OW.moveUntil || 0) || (viewW / cs) * (viewH / ch) < 700;
   const key = [OW.maskKey, OW.assetGen || 0, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
@@ -14049,14 +14052,14 @@ function render() {
     // (on the chart a regiment in a town stands at its south-east gate, so the town itself can be seen)
     const atGate = townAt && !u._animating && townAt.has(u.y * MAP_COLS + u.x) && VIEW_TILE >= 34;
     const cx = pos.x + w / 2 + (atGate ? w * 0.26 : 0), cy = pos.y + facePad + ch / 2 + bobY + (atGate ? ch * 0.16 : 0);
-    const rad = w * 0.32;
+    const rad = w * 0.32 * UNIT_FIG_SCALE;
     const fig = VIEW_TILE >= 14 ? unitFigure(u.type) : null;
     if (charted && VIEW_TILE < 34) drawWargameBlock(u, cx, cy - bobY, w, safeColor(nCol), u === selectedUnit); // seen from afar: a wargame block
     else if (fig) {
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0);
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0);
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
