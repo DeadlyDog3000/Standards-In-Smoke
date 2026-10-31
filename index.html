@@ -10536,6 +10536,43 @@ function shadeHex(hex, t) { // t < 0 darkens toward black, t > 0 lightens toward
   _shadeCache.set(key, v);
   return v;
 }
+// ---- units as soldiers: each type a painted figure (units/<type>.png, our own), standing on a ring in its realm's colour.
+//  Zoomed far out, or before its picture has loaded, a unit is the old medallion ----
+const UNIT_FIGS = {};
+function unitFigure(type) {
+  let img = UNIT_FIGS[type];
+  if (!img) {
+    img = UNIT_FIGS[type] = new Image();
+    img.onload = () => { if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
+    img.src = `units/${type}.png`;
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+function drawUnitFigure(img, cx, baseY, w, col, selected) {
+  const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
+  const rx = w * 0.34, ry = w * 0.12;
+  ctx.save();
+  // its shadow, and the ring of its colours on the ground
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(cx + w * 0.04, baseY + ry * 0.35, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+  if (!naval) {
+    ctx.lineWidth = Math.max(1.5, w * 0.05);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.ellipse(cx, baseY, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = Math.max(1, w * 0.035);
+    ctx.strokeStyle = col;
+    ctx.beginPath(); ctx.ellipse(cx, baseY, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.28; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  // the figure, standing on it
+  const maxD = w * (naval ? 1.25 : 1.12), sc = maxD / Math.max(img.width, img.height);
+  const dw = img.width * sc, dh = img.height * sc;
+  if (selected) { ctx.shadowColor = 'rgba(255, 230, 150, 0.9)'; ctx.shadowBlur = w * 0.12; }
+  ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4), dw, dh);
+  ctx.restore();
+  return { top: baseY - dh, h: dh };
+}
+
 function drawUnitMedallion(cx, cy, groundY, rad, col) {
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
@@ -11159,7 +11196,9 @@ function render() {
     const bobY = u._animating ? 0 : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
     const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2 + bobY;
     const rad = w * 0.32;
-    drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
+    const fig = VIEW_TILE >= 14 ? unitFigure(u.type) : null;
+    if (fig) drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w, safeColor(nCol), u === selectedUnit);
+    else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
     if (currentSeason === 'winter' && rad >= 6 && !cities.some(c => c.x === u.x && c.y === u.y)) {
       ctx.save();
@@ -11174,7 +11213,7 @@ function render() {
       ctx.save(); ctx.fillStyle = '#f2c94c'; ctx.strokeStyle = 'rgba(40,25,5,0.8)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cx - rad * 0.78, cy - rad * 0.78, Math.max(2.5, rad * 0.17), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
     }
-    if (VIEW_TILE >= 14) {
+    if (VIEW_TILE >= 14 && !fig) {
       const uSpriteKey = UNIT_SPRITES[u.type];
       const uSpriteImg = uSpriteKey ? hexImages[uSpriteKey] : null;
       if (uSpriteImg && uSpriteImg.complete && uSpriteImg.naturalWidth > 0) {
