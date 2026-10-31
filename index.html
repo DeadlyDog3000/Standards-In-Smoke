@@ -13400,12 +13400,27 @@ function render() {
       }
     }
     const buy = buyTileMode || workerBuyMode;
+    if (charted) {
+      // on the chart, pencilled as a staff officer marks a day's march: the ground lightly hatched, ruled round in dashed sepia
+      ctx.save();
+      ctx.fillStyle = buy ? 'rgba(120, 170, 80, 0.12)' : 'rgba(255, 246, 220, 0.14)'; ctx.fill(area);
+      ctx.clip(area);
+      const sp = Math.max(5, w * 0.11); ctx.strokeStyle = buy ? 'rgba(40, 80, 30, 0.3)' : 'rgba(70, 46, 22, 0.26)'; ctx.lineWidth = Math.max(0.8, w * 0.012);
+      ctx.beginPath(); for (let q = -viewH; q < viewW; q += sp) { ctx.moveTo(q, viewH); ctx.lineTo(q + viewH, 0); } ctx.stroke();
+      ctx.restore();
+      ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(255, 246, 220, 0.5)'; ctx.lineWidth = Math.max(2, w * 0.055); ctx.stroke(rim);
+      ctx.setLineDash([Math.max(3, w * 0.09), Math.max(2, w * 0.05)]);
+      ctx.strokeStyle = buy ? 'rgba(36, 70, 26, 0.9)' : 'rgba(64, 38, 16, 0.9)'; ctx.lineWidth = Math.max(1.2, w * 0.03); ctx.stroke(rim);
+      ctx.restore();
+    } else {
     ctx.save();
     ctx.fillStyle = buy ? 'rgba(90, 150, 60, 0.16)' : 'rgba(70, 110, 190, 0.14)'; ctx.fill(area);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(20, 14, 8, 0.6)'; ctx.lineWidth = Math.max(2, w * 0.06); ctx.stroke(rim);
     ctx.strokeStyle = buy ? 'rgba(170, 220, 120, 0.95)' : 'rgba(150, 190, 250, 0.95)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke(rim);
     ctx.restore();
+    }
   }
 
   for (const [idxStr, ann] of Object.entries(tileAnnotations)) {
