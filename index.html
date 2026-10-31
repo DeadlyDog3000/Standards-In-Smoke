@@ -5433,8 +5433,12 @@ function showFirstContact(nation) {
     <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
   </div>`;
   // (held back while an event card is open, so the banner never lies over a choice being made)
+  const game = tiles; // (the banner belongs to this game: dropped if the player has quit or loaded another meanwhile)
   const show = (tries) => {
+    if (tiles !== game || !MAP_COLS) return;
     if (eventModalOpen && tries < 120) { setTimeout(() => show(tries + 1), 400); return; }
+    if (document.querySelector('[data-first-contact]')) { setTimeout(() => show(tries + 1), 600); return; } // (one at a time)
+    overlay.dataset.firstContact = '1';
     document.body.appendChild(overlay);
     setTimeout(() => overlay.remove(), 3000);
   };
@@ -12572,9 +12576,12 @@ function owDrawNames(g, w, cs, ch, facePad) {
     // (lettered only once the ground under both its ends is known, so a name is never cut off at the edge of the known world)
     const tw = g.measureText(l.text).width, lx = l.i % MAP_COLS, ly = (l.i - lx) / MAP_COLS, half = Math.ceil(tw / 2 / cs + 0.3);
     const sheetL = -camX * cs, sheetR = sheetL + MAP_COLS * cs + w / 4;
-    x = Math.max(sheetL + tw / 2 + 6, Math.min(sheetR - tw / 2 - 6, x)); // (kept within the sheet)
+    // (a level river name starts a little right of the stream: its middle lies that much further on)
+    const mid = l.kind === 'river' && l.steep ? w * 0.3 + tw / 2 : 0;
+    x = Math.max(sheetL + tw / 2 + 6 - mid, Math.min(sheetR - tw / 2 - 6 - mid, x)); // (kept within the sheet)
     const known = (c) => c < 0 || c >= MAP_COLS || tiles[ly * MAP_COLS + c].revealed.has(playerNation);
-    if (!known(lx - half) || !known(lx + half)) continue;
+    const lmid = Math.round(mid / cs);
+    if (!known(lx + lmid - half) || !known(lx + lmid + half)) continue;
     if (l.kind === 'river') { // (lettered along the stream, a little to one side of it, in the river's own ink)
       g.save(); g.translate(x, y); g.rotate(l.ang || 0);
       const tx = l.steep ? w * 0.3 : 0, ty = l.steep ? 0 : -ch * 0.32; if (l.steep) g.textAlign = 'left';
@@ -12944,7 +12951,10 @@ function owMasks(pId) {
   if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) {
     // (a look is owed: take it once the pause is over, so land found just now isn't left blank)
     //  (only when the view has gone still: while frames keep coming, the next one after the pause takes the look itself)
-    if (!OW.maskLater) OW.maskLater = setTimeout(() => { OW.maskLater = 0; if (MAP_COLS && Date.now() - (OW.lastDraw || 0) > 250) { OW.maskCheck = 0; requestAnimationFrame(render); } }, 310);
+    if (!OW.maskLater) OW.maskLater = setTimeout(function owe() {
+      if (MAP_COLS && Date.now() - (OW.lastDraw || 0) <= 250) { OW.maskLater = setTimeout(owe, 260); return; } // (frames still coming: look again shortly)
+      OW.maskLater = 0; if (MAP_COLS) { OW.maskCheck = 0; requestAnimationFrame(render); }
+    }, 310);
     return OW.masks;
   }
   const sameWorld = OW.maskTiles === tiles && OW.maskPid === pId;
