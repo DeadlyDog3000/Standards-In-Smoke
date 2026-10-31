@@ -705,6 +705,22 @@
     #menuTitle { background: var(--ow-corners), radial-gradient(ellipse at 50% 40%, rgba(50, 76, 104, 0.55), rgba(4, 8, 14, 0.88) 80%), var(--ow-leather);
       border-color: var(--owk-gold-2); box-shadow: inset 0 0 0 4px rgba(4, 8, 14, 0.85), inset 0 0 0 5px rgba(201, 164, 90, 0.55), inset 0 0 0 9px rgba(4, 8, 14, 0.6), inset 0 0 0 10px rgba(201, 164, 90, 0.3), 0 14px 40px rgba(0, 0, 0, 0.7); }
     .promo-card { background: rgba(8, 14, 22, 0.85); border-color: rgba(201, 164, 90, 0.4); }
+    /* the chronicle of the race: a line chart of the scores */
+    #chronicleOverlay { position: fixed; inset: 0; z-index: 230; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.6); }
+    #chronicleOverlay .chron-card { width: min(640px, 94vw); max-height: 90vh; overflow-y: auto; padding: 20px 22px; color: #e9dcc0; }
+    #chronicleOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 4px; font-size: 22px; font-weight: normal; }
+    .chron-wrap { position: relative; }
+    .chron-svg { width: 100%; height: auto; display: block; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.3); }
+    .chron-grid { stroke: rgba(201, 164, 90, 0.14); stroke-width: 1; }
+    .chron-ax { fill: #b8a888; font: 10px Georgia, serif; }
+    .chron-cross { stroke: rgba(240, 220, 174, 0.6); stroke-width: 1; }
+    .chron-tip { position: absolute; top: 8px; min-width: 150px; pointer-events: none; padding: 6px 8px; font-size: 11.5px; background: rgba(6, 12, 20, 0.95); border: 1px solid var(--owk-gold-2); color: #e9dcc0; }
+    .chron-tip div { display: flex; align-items: center; gap: 6px; } .chron-tip span { margin-left: auto; padding-left: 10px; color: #f0dcae; }
+    .chron-tip i, .chron-key i { display: inline-block; width: 10px; height: 3px; border-radius: 1px; }
+    .chron-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 12px; font-size: 12px; color: #c8b896; }
+    .chron-key { display: inline-flex; align-items: center; gap: 5px; cursor: default; } .chron-key:hover { color: #fff; } .chron-key b { color: #f0dcae; font-weight: normal; } .chron-key.me { color: #f4e4bc; } .chron-key em { color: #a08060; }
+    .kc-chron { float: right; font: 11px 'EB Garamond', Georgia, serif; padding: 2px 9px; margin-top: 3px; cursor: pointer; color: #f0dcae; background: rgba(201, 164, 90, 0.12); border: 1px solid rgba(201, 164, 90, 0.5); border-radius: 2px; }
+    .kc-chron:hover { background: rgba(201, 164, 90, 0.28); }
     /* promotions: those held as small gilt labels, those earned as choices */
     .promo-held { margin: 2px 0 6px; display: flex; flex-wrap: wrap; gap: 4px; }
     .promo-held span { font-size: 10.5px; color: #f0dcae; padding: 1px 7px; border: 1px solid rgba(201, 164, 90, 0.55); border-radius: 9px; background: rgba(201, 164, 90, 0.12); cursor: help; }
@@ -979,6 +995,7 @@
         - The title screen and its buttons in navy and gold too<br>
         - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
         - Promotions, as in Old World: every rank a regiment reaches earns it a promotion, chosen from two in its panel whenever you like (a gilt star over it says one is waiting): Drilled, Hardened, Iron Discipline, Field Surgeons, Forced Marches, Squares Against Horse for the foot, Pursuit for the horse, Gunnery for the guns. The other crowns promote theirs too<br>
+        - The Race for Europe: every crown's score turn by turn as a chart ("The race" in the Kingdoms panel, and on the victory and defeat screens), with the turn's standings under the pointer and a crown's line picked out from the legend<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -2011,6 +2028,7 @@
           - The title screen and its buttons in navy and gold too<br>
           - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
           - Promotions, as in Old World: every rank a regiment reaches earns it a promotion, chosen from two in its panel whenever you like (a gilt star over it says one is waiting): Drilled, Hardened, Iron Discipline, Field Surgeons, Forced Marches, Squares Against Horse for the foot, Pursuit for the horse, Gunnery for the guns. The other crowns promote theirs too<br>
+          - The Race for Europe: every crown's score turn by turn as a chart ("The race" in the Kingdoms panel, and on the victory and defeat screens), with the turn's standings under the pointer and a crown's line picked out from the legend<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -8483,6 +8501,67 @@ function updateAmbitionPlaque() {
   el.style.top = tb ? Math.round(tb.getBoundingClientRect().bottom + 6) + 'px' : '';
 }
 
+// ---- the chronicle of the race: every crown's score, turn by turn (kept on each nation, so saves carry it), drawn as a
+//  line for each in its own colour; the realms you haven't met stay off it until the game is over ----
+function recordScores() {
+  for (const n of nations) {
+    if (n.isBarbarian || n.isTribe) continue;
+    if (n.eliminated && n.scoreHist && n.scoreHist.out) continue;
+    if (!n.scoreHist) n.scoreHist = { t0: turnNumber, v: [] };
+    n.scoreHist.v.push(n.eliminated ? 0 : getScore(n.id));
+    if (n.eliminated) n.scoreHist.out = true;
+  }
+}
+function openChronicle(all) {
+  document.getElementById('chronicleOverlay')?.remove();
+  const shown = nations.filter(n => !n.isBarbarian && !n.isTribe && n.scoreHist && n.scoreHist.v.length && (all || n.id === playerNation || discoveredNations.has(n.id)));
+  const ov = document.createElement('div'); ov.id = 'chronicleOverlay';
+  if (!shown.length || shown.every(n => n.scoreHist.v.length < 2)) {
+    ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3><p class="amb-lede">The chronicle begins with the first turns: end a turn or two and come back.</p><button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
+    document.body.appendChild(ov); return;
+  }
+  const W = 560, H = 260, L = 40, R = 12, T = 12, B = 26;
+  const tMin = Math.min(...shown.map(n => n.scoreHist.t0)), tMax = Math.max(...shown.map(n => n.scoreHist.t0 + n.scoreHist.v.length - 1));
+  const vals = shown.flatMap(n => n.scoreHist.v), vMin = Math.min(0, ...vals), vMax = Math.max(10, ...vals);
+  const X = t => L + (tMax > tMin ? (t - tMin) / (tMax - tMin) : 0) * (W - L - R), Y = v => T + (1 - (v - vMin) / (vMax - vMin)) * (H - T - B);
+  // (a few round gridlines; the axis in the text colours, the lines in the crowns' own)
+  const step = Math.pow(10, Math.floor(Math.log10(Math.max(1, (vMax - vMin) / 4)))), gStep = [1, 2, 5, 10].map(k => k * step).find(k => (vMax - vMin) / k <= 5) || step * 10;
+  let grid = '';
+  for (let g = Math.ceil(vMin / gStep) * gStep; g <= vMax; g += gStep) grid += `<line x1="${L}" x2="${W - R}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}" class="chron-grid"/><text x="${L - 6}" y="${(Y(g) + 3).toFixed(1)}" class="chron-ax" text-anchor="end">${g}</text>`;
+  const tStep = Math.max(1, Math.ceil((tMax - tMin) / 8 / 5) * 5);
+  for (let t = Math.ceil(tMin / tStep) * tStep; t <= tMax; t += tStep) grid += `<text x="${X(t).toFixed(1)}" y="${H - 8}" class="chron-ax" text-anchor="middle">${t}</text>`;
+  const lines = shown.map(n => {
+    const pts = n.scoreHist.v.map((v, i) => `${X(n.scoreHist.t0 + i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    return `<polyline data-n="${n.id}" points="${pts}" fill="none" stroke="${safeColor(n.color)}" stroke-width="${n.id === playerNation ? 3 : 2}" stroke-linejoin="round" stroke-linecap="round"${n.eliminated ? ' stroke-dasharray="4 3"' : ''}/>`;
+  }).join('');
+  const last = n => n.scoreHist.v[n.scoreHist.v.length - 1];
+  const legend = shown.slice().sort((a, b) => last(b) - last(a)).map(n => `<span class="chron-key${n.id === playerNation ? ' me' : ''}" data-n="${n.id}"><i style="background:${safeColor(n.color)}"></i>${escHtml(n.name)} <b>${last(n)}</b>${n.eliminated ? ' <em>fallen</em>' : ''}</span>`).join('');
+  ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3>
+    <p class="amb-lede">Each crown's score, turn by turn${all ? '' : ' (the realms you have met)'}. Hover over the chart for the turn.</p>
+    <div class="chron-wrap"><svg viewBox="0 0 ${W} ${H}" class="chron-svg">${grid}${lines}<line class="chron-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" style="display:none"/></svg><div class="chron-tip" style="display:none"></div></div>
+    <div class="chron-legend">${legend}</div>
+    <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
+  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+  const svg = ov.querySelector('svg'), cross = ov.querySelector('.chron-cross'), tip = ov.querySelector('.chron-tip');
+  svg.addEventListener('mousemove', e => {
+    const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W;
+    const t = Math.max(tMin, Math.min(tMax, Math.round(tMin + (x - L) / (W - L - R) * (tMax - tMin))));
+    cross.setAttribute('x1', X(t)); cross.setAttribute('x2', X(t)); cross.style.display = '';
+    const rows = shown.map(n => ({ n, v: n.scoreHist.v[t - n.scoreHist.t0] })).filter(o => o.v !== undefined).sort((a, b) => b.v - a.v);
+    tip.innerHTML = `<b>Turn ${t}</b>` + rows.map(o => `<div><i style="background:${safeColor(o.n.color)}"></i>${escHtml(o.n.name)}<span>${o.v}</span></div>`).join('');
+    tip.style.display = ''; const px = X(t) / W * r.width;
+    tip.style.left = (px > r.width / 2 ? px - tip.offsetWidth - 12 : px + 12) + 'px';
+  });
+  svg.addEventListener('mouseleave', () => { cross.style.display = 'none'; tip.style.display = 'none'; });
+  // (crowns' colours can be near alike: a name in the legend picks out its line)
+  ov.querySelectorAll('.chron-key').forEach(k => {
+    const lit = on => ov.querySelectorAll('polyline').forEach(pl => { pl.style.opacity = on && pl.dataset.n !== k.dataset.n ? 0.12 : 1; if (pl.dataset.n === k.dataset.n && on) pl.parentNode.appendChild(pl); });
+    k.addEventListener('mouseenter', () => lit(true)); k.addEventListener('mouseleave', () => lit(false));
+  });
+}
+window.openChronicle = openChronicle;
+
 function showVictory(type) {
   window._gameOver = true;
   hidePanel();
@@ -8512,6 +8591,7 @@ function showVictory(type) {
       </div>
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
+    <button class="menu-btn" onclick="openChronicle(true)" style="font-size:15px;margin-bottom:10px;">The Race for Europe</button><br>
     <button class="menu-btn" onclick="document.getElementById('victoryOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
     <div style="margin-top:22px;display:flex;justify-content:center;"><a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a></div>
     ${type === 'score' || type === 'ambition' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('victoryOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
@@ -8614,6 +8694,7 @@ function showDefeat(type, winnerId) {
       </div>
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
+    <button class="menu-btn" onclick="openChronicle(true)" style="font-size:15px;margin-bottom:10px;">The Race for Europe</button><br>
     <button class="menu-btn" onclick="document.getElementById('defeatOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
     <div style="margin-top:22px;display:flex;justify-content:center;"><a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a></div>
     ${type === 'score' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('defeatOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
@@ -10301,6 +10382,7 @@ function _finishEndTurnImpl() {
     }
   }
   turnNumber++;
+  try { recordScores(); } catch (e) { console.error('recordScores error:', e); }
   // the alarm of Europe rising, a stage at a time, told once each
   try {
     const P = playerProgress(), stage = P >= 0.8 ? 3 : P >= 0.55 ? 2 : P >= 0.3 ? 1 : 0, me = nations[playerNation];
@@ -16536,7 +16618,7 @@ function toggleKingdoms() {
 
 function renderKingdoms() {
   const el = document.getElementById('kingdoms');
-  let html = '<h3>Kingdoms</h3>';
+  let html = '<h3>Kingdoms <button class="kc-chron" onclick="openChronicle()" title="Every crown\'s score, turn by turn">The race</button></h3>';
   // each realm a card: its colours and name, how it stands with you, what it thinks of you, what it asks; then what
   //  you can do, in one row, and your pacts with it as chips you can sign or tear up
   const myMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
