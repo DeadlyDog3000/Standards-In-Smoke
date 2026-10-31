@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Relief Columns</b><br>
+        - Rival troops marching to a threatened town now strike the besiegers they find at its gates when the fight looks good, instead of standing beside them
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Living Off the Land</b><br>
@@ -1527,6 +1532,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.1</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Relief Columns</b><br>
+          - Rival troops marching to a threatened town now strike the besiegers they find at its gates when the fight looks good, instead of standing beside them
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.0</b></div>
         <div style="margin-bottom:12px;">
@@ -7819,7 +7829,7 @@ function aiTurn(nationId) {
               if (d < nearDist) { nearDist = d; nearestThreat = c; }
             }
           }
-          if (nearestThreat) { moveAITowardHighGround(u, nearestThreat.x, nearestThreat.y, u.movesLeft); }
+          if (nearestThreat) { moveAITowardHighGround(u, nearestThreat.x, nearestThreat.y, u.movesLeft); aiStrikeAdjacent(u, n); }
           else if (!aiHuntCamp(u, nationId, aiCities, combatUnits)) moveAIUnitMultiple(u, u.movesLeft);
         } else {
 
@@ -10118,6 +10128,22 @@ function deriveRiverFlow() {
 // Enemies at the gates: each of your cities with a hostile army within three tiles (one you can see) is ringed in red,
 // and you're told once when the danger appears
 // ---- Sieges: enemy troops standing in a town's fields take their harvest; two or more at its gates cut its road trade ----
+// after marching to a threatened town: strike a besieger standing beside us, if the fight looks good
+function aiStrikeAdjacent(u, n) {
+  if (!units.includes(u) || !(u.movesLeft > 0)) return false;
+  let best = null, bestHp = Infinity;
+  for (const nb of hexNeighbors(u.x, u.y)) {
+    const e = units.find(v => v.x === nb.col && v.y === nb.row && v.nationId !== u.nationId);
+    if (!e || !(nations[e.nationId]?.isBarbarian || n.relations?.[e.nationId] === 'war') || !canAttack(u, e.x, e.y)) continue;
+    const est = estimateCombat(u, e.x, e.y);
+    if (!est || (est.estRetaliation > u.hp * 0.6 && e.hp > est.estDmg)) continue;
+    if (e.hp < bestHp) { bestHp = e.hp; best = e; }
+  }
+  if (!best) return false;
+  doAttack(u, best.x, best.y);
+  return true;
+}
+
 function updateSieges() {
   const hostile = (a, b) => a !== b && (nations[a]?.isBarbarian || nations[b]?.isBarbarian || nations[a]?.relations?.[b] === 'war');
   const at = new Map(), who = new Map();
@@ -13367,7 +13393,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.0';
+const CURRENT_VERSION = 'beta-9.1';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
