@@ -12390,19 +12390,36 @@ function drawSheetBorder(w, cs, ch, facePad) {
   ctx.lineWidth = Math.max(1, w * 0.018); ctx.strokeRect(bx - gap * 0.4, by - gap * 0.4, bw + gap * 0.8, bh + gap * 0.8);
   ctx.fillStyle = 'rgba(40, 28, 16, 0.85)';
   const step = cs * 2;
-  for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
-  for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
+  for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { const sw2 = Math.min(step, bx + bw - x); ctx.fillRect(x, by - gap * 1.6, sw2, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, sw2, gap * 1.2); }
+  for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { const sh2 = Math.min(step, by + bh - y); ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, sh2); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, sh2); }
   // the degrees, numbered along the frame (longitude above and below, latitude at the sides)
   if (gap >= 7) {
     ctx.font = `${Math.max(7, gap * 0.85)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(52, 36, 18, 0.85)'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
     for (let x = bx, k = 0; x <= bx + bw; x += step * 2, k++) { if (x < -40 || x > viewW + 40) continue; const deg = k * 5 - 10; const lab = Math.abs(deg) + '°' + (deg < 0 ? 'W' : deg > 0 ? 'E' : ''); ctx.fillText(lab, x, by - gap * 2.1); }
     for (let y = by, k = 0; y <= by + bh; y += step * 2, k++) { if (y < -40 || y > viewH + 40) continue; const deg = 60 - k * 5; const lab = Math.abs(deg) + '°'; ctx.save(); ctx.translate(bx - gap * 2.1, y); ctx.rotate(-Math.PI / 2); ctx.fillText(lab, 0, 0); ctx.restore(); ctx.save(); ctx.translate(bx + bw + gap * 2.1, y); ctx.rotate(Math.PI / 2); ctx.fillText(lab, 0, 0); ctx.restore(); }
   }
+  // the sheet's lower right corner has curled up a little off the desk
+  {
+    const kx = bx + bw + gap * 2.6, ky = by + bh + gap * 4.68, cs2 = Math.max(18, gap * 7);
+    if (kx > -cs2 && ky > -cs2 && kx - cs2 < viewW && ky - cs2 < viewH) {
+      ctx.save();
+      // the desk shows where the corner lifted
+      ctx.beginPath(); ctx.moveTo(kx - cs2, ky); ctx.lineTo(kx, ky); ctx.lineTo(kx, ky - cs2); ctx.closePath();
+      const desk = owDeskPattern(); ctx.fillStyle = desk || '#1a120a'; ctx.fill(); ctx.fillStyle = 'rgba(10, 6, 2, 0.45)'; ctx.fill();
+      // the curl itself, its underside lit, with a shadow on the sheet beside it
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; ctx.shadowBlur = cs2 * 0.35; ctx.shadowOffsetX = -cs2 * 0.08; ctx.shadowOffsetY = -cs2 * 0.08;
+      const g2 = ctx.createLinearGradient(kx - cs2, ky - cs2, kx - cs2 * 0.5, ky - cs2 * 0.5);
+      g2.addColorStop(0, '#efe2c2'); g2.addColorStop(1, '#b89c6a');
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.moveTo(kx - cs2, ky); ctx.quadraticCurveTo(kx - cs2 * 0.86, ky - cs2 * 0.86, kx, ky - cs2); ctx.lineTo(kx - cs2 * 0.78, ky - cs2 * 0.78); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.strokeStyle = 'rgba(60, 40, 18, 0.5)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    }
+  }
   // the engraver's line in the bottom margin, as the old sheets were signed
   if (gap >= 5) {
     ctx.font = `italic ${Math.max(9, gap * 1.45)}px 'EB Garamond', serif`; ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(52, 36, 18, 0.85)';
-    ctx.textAlign = 'right'; ctx.fillText('Cura et sumptibus DeadlyDog Productions', bx + bw - gap, by + bh + gap * 3.3);
+    ctx.textAlign = 'right'; ctx.fillText('Cura et sumptibus DeadlyDog Productions', bx + bw - Math.max(18, gap * 7) - gap * 0.5, by + bh + gap * 3.3);
     ctx.textAlign = 'left'; ctx.fillText('Cum Privilegio', bx + gap, by + bh + gap * 3.3);
   }
   ctx.restore();
