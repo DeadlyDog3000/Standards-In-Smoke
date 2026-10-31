@@ -12774,7 +12774,7 @@ function owMasks(pId) {
   }
   kg.clearRect(0, 0, W, H); kg.filter = 'blur(3px)'; kg.fillStyle = '#000'; kg.fill(kp); kg.fill(kp); kg.filter = 'none';
   // land known but not watched now: dimmed and browned, as an old survey not lately checked
-  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(34, 24, 12, 0.46)'; dg.fill(dp); dg.filter = 'none';
+  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(104, 94, 80, 0.44)'; dg.fill(dp); // (greyed rather than darkened, so it stays apart from the blank vellum) dg.filter = 'none';
   OW.masks = { known, dim, any, sc };
   return OW.masks;
 }
