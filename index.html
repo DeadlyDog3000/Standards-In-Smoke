@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Frozen Rivers</b><br>
+        - In winter the rivers freeze hard: troops behind a river lose its protection until the thaw (the tile tooltip says so)
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Hearth Smoke</b><br>
@@ -1539,6 +1544,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.3</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Frozen Rivers</b><br>
+          - In winter the rivers freeze hard: troops behind a river lose its protection until the thaw (the tile tooltip says so)
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.2</b></div>
         <div style="margin-bottom:12px;">
@@ -6030,6 +6040,7 @@ const REDOUBT_SHELTER = 0.75;
 function redoubtMult(x, y) { return tiles[y * MAP_COLS + x]?.improvement === 'redoubt' ? REDOUBT_SHELTER : 1; }
 function riverCrossingMult(attacker, tx, ty) {
   if (UNIT_DEFS[attacker.type]?.ranged) return 1;
+  if (currentSeason === 'winter') return 1; // the ice bears: a frozen river is no obstacle
   const dt = tiles[ty * MAP_COLS + tx], at = tiles[attacker.y * MAP_COLS + attacker.x];
   return dt?.hasRiver && !at?.hasRiver ? RIVER_CROSSING : 1;
 }
@@ -13426,7 +13437,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.2';
+const CURRENT_VERSION = 'beta-9.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13685,7 +13696,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     }
   }
   if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">Build lumbermill or chop for wood</div>`;
-  if (t.hasRiver) html += `<div class="tt-detail" style="color:#8bc4ff">\u301C River: +${RIVER_FOOD} food, +${RIVER_GOLD} gold in a city's lands; defenders here are hard to reach (-${Math.round((1 - RIVER_CROSSING) * 100)}% to blows from the bank)</div>`;
+  if (t.hasRiver) html += `<div class="tt-detail" style="color:#8bc4ff">\u301C River: +${RIVER_FOOD} food, +${RIVER_GOLD} gold in a city's lands; ${currentSeason === 'winter' ? 'frozen over, so blows from the bank land in full until the thaw' : `defenders here are hard to reach (-${Math.round((1 - RIVER_CROSSING) * 100)}% to blows from the bank)`}</div>`;
   if (t.ruins) html += `<div class="tt-detail" style="color:#e0c880">\uD83C\uDFDB Ancient ruins: the first unit to reach them finds something</div>`;
   if (t.wonder && NATURAL_WONDERS[t.wonder]) { const nw = NATURAL_WONDERS[t.wonder]; html += `<div class="tt-detail" style="color:#f2d68a">${nw.icon} <b>${nw.name}</b>, a wonder of nature: ${nw.desc}</div>`; }
   if (_scarMap && _scarMap.get(i)) html += `<div class="tt-detail" style="color:#a98">A field of recent battle</div>`;
