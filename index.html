@@ -13302,9 +13302,20 @@ function render() {
     if (u.nationId !== pId || u.gotoX === undefined) continue;
     const gp = hexScreenPos(u.gotoX, u.gotoY);
     const gcx = gp.x + w / 2, gcy = gp.y + facePad + ch / 2;
-    ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
-    ctx.beginPath(); ctx.arc(gcx, gcy, w * 0.25, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
+    if (charted) {
+      // where it marches to, marked in red ink: a dotted ring with a cross at its heart
+      ctx.save(); ctx.lineCap = 'round';
+      ctx.setLineDash([Math.max(2, w * 0.04), Math.max(2, w * 0.035)]);
+      ctx.strokeStyle = 'rgba(246, 236, 210, 0.7)'; ctx.lineWidth = Math.max(3, w * 0.045); ctx.beginPath(); ctx.arc(gcx, gcy, w * 0.24, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(150, 30, 20, 0.92)'; ctx.lineWidth = Math.max(1.4, w * 0.022); ctx.stroke();
+      ctx.setLineDash([]); const x = w * 0.07;
+      ctx.beginPath(); ctx.moveTo(gcx - x, gcy - x); ctx.lineTo(gcx + x, gcy + x); ctx.moveTo(gcx + x, gcy - x); ctx.lineTo(gcx - x, gcy + x); ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(gcx, gcy, w * 0.25, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 
   if (rangedMode && selectedUnit && UNIT_DEFS[selectedUnit.type].ranged) {
