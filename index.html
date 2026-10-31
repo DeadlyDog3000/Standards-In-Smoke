@@ -12217,6 +12217,15 @@ function drawSheetBorder(w, cs, ch, facePad) {
   // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
   const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
   ctx.save();
+  // the sheet lies on the table: its shadow falls on the wood around it (clipped to outside the sheet)
+  {
+    const ox0 = bx - gap * 2.6, oy0 = by - gap * 2.6, ow = bw + gap * 5.2, oh = bh + gap * 5.2;
+    const outside = new Path2D(); outside.rect(-viewW, -viewH, viewW * 3, viewH * 3); outside.rect(ox0, oy0, ow, oh);
+    ctx.save(); ctx.clip(outside, 'evenodd');
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)'; ctx.shadowBlur = Math.max(12, gap * 5); ctx.shadowOffsetX = gap * 0.8; ctx.shadowOffsetY = gap * 1.4;
+    ctx.fillStyle = '#000'; ctx.fillRect(ox0, oy0, ow, oh);
+    ctx.restore();
+  }
   const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 5.2); margin.rect(bx, by, bw, bh);
   ctx.fillStyle = '#c9b38a'; ctx.fill(margin, 'evenodd');
   const paper = owPaperPattern(ctx); if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fill(margin, 'evenodd'); ctx.globalCompositeOperation = 'source-over'; }
@@ -12228,6 +12237,15 @@ function drawSheetBorder(w, cs, ch, facePad) {
   for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
   for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
   ctx.restore();
+}
+// the desk the chart lies on: the leather of the panels, scrolled with the sheet
+let _owDesk = null, _owDeskImg = null;
+function owDeskPattern() {
+  if (_owDesk) return _owDesk;
+  if (!_owDeskImg) { _owDeskImg = new Image(); _owDeskImg.src = 'ui/leather.jpg'; }
+  if (!_owDeskImg.complete || !_owDeskImg.naturalWidth) return null;
+  try { _owDesk = ctx.createPattern(_owDeskImg, 'repeat'); } catch (e) { _owDesk = null; }
+  return _owDesk;
 }
 let _owCart = null;
 function owCartouche() {
@@ -12246,7 +12264,9 @@ function drawRhumbs(cs, ch) {
   if (OW.canvas) {
     const fx = cs / OW.CS, fy = ch / OW.CH, sx = ox, sy = oy + Math.round(hexWidth() * 1.5 * 4 / 48), sw = OW.canvas.width * fx, sh = OW.canvas.height * fy, pad = Math.max(4, hexWidth() * 0.12) * 2.6;
     const off = new Path2D(); off.rect(0, 0, viewW, viewH); off.rect(sx - pad, sy - pad, sw + pad * 2, sh + pad * 2);
-    ctx.fillStyle = 'rgba(6, 4, 2, 0.6)'; ctx.fill(off, 'evenodd');
+    const desk = owDeskPattern();
+    if (desk) { desk.setTransform(new DOMMatrix().translate(ox % 512, oy % 512)); ctx.fillStyle = desk; ctx.fill(off, 'evenodd'); }
+    ctx.fillStyle = desk ? 'rgba(10, 6, 2, 0.45)' : 'rgba(6, 4, 2, 0.6)'; ctx.fill(off, 'evenodd');
     ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
   }
   for (let band = 0; band < 3; band++) {
