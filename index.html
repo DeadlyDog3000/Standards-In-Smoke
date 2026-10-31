@@ -12458,6 +12458,26 @@ function owDrawNames(g, w, cs, ch, facePad) {
   }
   g.restore();
 }
+let _owLaid = null, _owLaidPat = null;
+function owLaidPattern(g) {
+  if (_owLaidPat) return _owLaidPat;
+  if (!_owLaid) {
+    const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+    const q = c.getContext('2d');
+    let sd = 977; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    // laid lines, faint and a little uneven
+    for (let y = 0; y < S; y += 3) { q.fillStyle = `rgba(60, 42, 20, ${0.025 + rnd() * 0.02})`; q.fillRect(0, y, S, 1); }
+    // chain lines, softer and wider apart, with the paper a touch thicker between them
+    for (const x of [0, 64, 128, 192]) {
+      const gr = q.createLinearGradient(x - 4, 0, x + 4, 0);
+      gr.addColorStop(0, 'rgba(60, 42, 20, 0)'); gr.addColorStop(0.5, 'rgba(60, 42, 20, 0.07)'); gr.addColorStop(1, 'rgba(60, 42, 20, 0)');
+      q.fillStyle = gr; q.fillRect(x - 4, 0, 8, S); if (x === 0) { q.save(); q.translate(S, 0); q.fillRect(-4, 0, 8, S); q.restore(); }
+    }
+    _owLaid = c;
+  }
+  try { _owLaidPat = g.createPattern(_owLaid, 'repeat'); } catch (e) { _owLaidPat = null; }
+  return _owLaidPat;
+}
 let _owPaper = null;
 function owPaperCanvas() {
   if (_owPaper) return _owPaper;
@@ -12846,6 +12866,9 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
         g.restore();
       }
       owDrawNames(g, w, cs, ch, facePad);
+      // the paper itself: laid lines close together, chain lines wider apart, as hand-made paper shows them
+      const lp = owLaidPattern(g);
+      if (lp && lp.setTransform) { const sc = Math.max(0.5, cs / 36); lp.setTransform(new DOMMatrix().translate(ox % (256 * sc), oy % (256 * sc)).scale(sc)); g.fillStyle = lp; g.fillRect(0, 0, viewW, viewH); }
       g.drawImage(masks.dim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       // the charted land lies a little proud of the blank sheet: a smoky shadow along the edge of the known world
       g.globalCompositeOperation = 'destination-over';
