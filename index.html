@@ -11324,22 +11324,22 @@ let battleScars = [], _scarMap = null;
 const SCAR_TURNS = 4;
 // a field of battle as the old maps mark it: two crossed swords in ink, and the year beneath
 function drawBattleMark(year, cx, cy, w) {
-  const L = Math.max(7, w * 0.17);
+  const L = Math.max(8, w * 0.21); // (in red ink, as the old maps marked their fields of battle)
   ctx.save();
   ctx.lineCap = 'round';
   for (const sgn of [-1, 1]) {
     const x0 = cx - sgn * L * 0.7, y0 = cy + L * 0.7, x1 = cx + sgn * L * 0.7, y1 = cy - L * 0.7;
-    ctx.strokeStyle = 'rgba(246, 236, 210, 0.75)'; ctx.lineWidth = Math.max(2.4, w * 0.04); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-    ctx.strokeStyle = 'rgba(40, 22, 10, 0.92)'; ctx.lineWidth = Math.max(1, w * 0.016); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.strokeStyle = 'rgba(246, 236, 210, 0.8)'; ctx.lineWidth = Math.max(3, w * 0.05); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.strokeStyle = 'rgba(138, 26, 16, 0.95)'; ctx.lineWidth = Math.max(1.4, w * 0.024); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
     // the hilt's guard, across the blade near the grip
     const gx = x0 + (x1 - x0) * 0.22, gy = y0 + (y1 - y0) * 0.22, px = (y1 - y0) / (2 * L * 0.7) * L * 0.22, py = -(x1 - x0) / (2 * L * 0.7) * L * 0.22;
     ctx.beginPath(); ctx.moveTo(gx - px, gy - py); ctx.lineTo(gx + px, gy + py); ctx.stroke();
   }
   if (w >= 30) {
-    const fpx = Math.max(8, w * 0.13);
-    ctx.font = `italic ${fpx}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const fpx = Math.max(9, w * 0.155);
+    ctx.font = `italic 600 ${fpx}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(246, 236, 210, 0.8)'; ctx.strokeText(String(year), cx, cy + L * 0.8);
-    ctx.fillStyle = 'rgba(70, 24, 12, 0.92)'; ctx.fillText(String(year), cx, cy + L * 0.8);
+    ctx.fillStyle = 'rgba(118, 24, 14, 0.95)'; ctx.fillText(String(year), cx, cy + L * 0.8);
   }
   ctx.restore();
 }
