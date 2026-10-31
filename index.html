@@ -704,6 +704,19 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Border Works</b><br>
+        - Rivals at war dig redoubts on the border facing their enemy<br>
+        <i style="color:#a89878;">Fixes</i><br>
+        - A city frees only an enemy's or raider's captive; a friendly worker or settler passing through is no longer taken<br>
+        - A worker you give an order (a move, a Go To, a build or auto-explore) is taken off automation, so it doesn't wander back to spending your gold<br>
+        - Rival settlers give up a site they can't get nearer to (across water or a closed border) and choose another, instead of stalling for twenty-five turns<br>
+        - A rival city that gives up on a build no longer carries its finished work into the next one (units used to appear at once)<br>
+        - Battle scars are left only where you could see the fighting<br>
+        - Raider camps, ruins, wonders of nature and city sites never share a tile; a new game starts with no roads left over from the last<br>
+        - Faster on big maps: science-lab counts are worked out once a turn
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Weather</b><br>
@@ -1405,7 +1418,20 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.1</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Border Works</b><br>
+        - Rivals at war dig redoubts on the border facing their enemy<br>
+        <i style="color:#a89878;">Fixes</i><br>
+        - A city frees only an enemy's or raider's captive; a friendly worker or settler passing through is no longer taken<br>
+        - A worker you give an order (a move, a Go To, a build or auto-explore) is taken off automation, so it doesn't wander back to spending your gold<br>
+        - Rival settlers give up a site they can't get nearer to (across water or a closed border) and choose another, instead of stalling for twenty-five turns<br>
+        - A rival city that gives up on a build no longer carries its finished work into the next one (units used to appear at once)<br>
+        - Battle scars are left only where you could see the fighting<br>
+        - Raider camps, ruins, wonders of nature and city sites never share a tile; a new game starts with no roads left over from the last<br>
+        - Faster on big maps: science-lab counts are worked out once a turn
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Weather</b><br>
         - Cloud shadows pass over the land and sea, drifting on with the wind from turn to turn<br>
@@ -3293,8 +3319,8 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
   const visible = aTile.revealed.has(playerNation) || dTile.revealed.has(playerNation);
   if (!playerInvolved && !visible) return;
   const seen = !currentVisionSet || currentVisionSet.has(attackerY * MAP_COLS + attackerX) || currentVisionSet.has(defenderY * MAP_COLS + defenderX);
-  if (defenderDied) battleScars.push({ ti: defenderY * MAP_COLS + defenderX, turn: turnNumber });
-  if (attackerDied) battleScars.push({ ti: attackerY * MAP_COLS + attackerX, turn: turnNumber });
+  if (seen && defenderDied) battleScars.push({ ti: defenderY * MAP_COLS + defenderX, turn: turnNumber });
+  if (seen && attackerDied) battleScars.push({ ti: attackerY * MAP_COLS + attackerX, turn: turnNumber });
   if (seen && particles.length < 400) spawnCombatSmoke(attackerX, attackerY, defenderX, defenderY, attackerType);
 
   if (attackerNationId === playerNation) {
@@ -5345,6 +5371,7 @@ function stallProduction(city, total) {
   if (city._stall >= patience) {
     if (city.producing === 'settler') city._noSettlerUntil = turnNumber + 12;
     city.producing = null;
+    city.productionProgress = 0; // the work done waiting doesn't carry over (it made the next unit appear at once)
     city._stall = 0;
   }
 }
@@ -5536,6 +5563,15 @@ function getImprovementCost(impKey, nationId) {
   return cost;
 }
 
+// labs per realm, counted once per turn (a whole-map scan on every check slowed workers on big maps)
+let _labCount = null;
+function scienceLabCount(nationId) {
+  if (!_labCount || _labCount.turn !== turnNumber || _labCount.tiles !== tiles) {
+    _labCount = { turn: turnNumber, tiles, by: new Map() };
+    for (const t of tiles) if (t.improvement === 'science_lab') _labCount.by.set(t.owner, (_labCount.by.get(t.owner) || 0) + 1);
+  }
+  return _labCount.by.get(nationId) || 0;
+}
 function canBuildImprovement(worker, impKey) {
   const n = nations[worker.nationId];
   const imp = IMPROVEMENT_DEFS[impKey];
@@ -5548,7 +5584,7 @@ function canBuildImprovement(worker, impKey) {
   if (imp.tech && !nationHasTech(worker.nationId, imp.tech)) return false;
   if (imp.coastal && !isCoastal(worker.x, worker.y)) return false;
   if (impKey === 'science_lab') {
-    const labCount = tiles.filter(t => t.improvement === 'science_lab' && t.owner === worker.nationId).length;
+    const labCount = scienceLabCount(worker.nationId);
     const cityCount = cities.filter(c => c.nationId === worker.nationId).length;
     if (labCount >= Math.max(1, Math.floor(cityCount / 2))) return false;
   }
@@ -5576,6 +5612,7 @@ function buildImprovement(worker, impKey) {
 }
 
 function finishBuild(worker, impKey) {
+  _labCount = null; // a new improvement may change the lab count
   const ti = worker.y * MAP_COLS + worker.x;
   const t = tiles[ti];
   const n = nations[worker.nationId];
@@ -6006,7 +6043,8 @@ function tickMilitia() {
     if (!n || n.isBarbarian || n.eliminated) continue;
     // a foreign civilian (often a worker the raiders carried off) inside the walls is taken back by the townsfolk
     for (const u of units) {
-      if (u.x === city.x && u.y === city.y && u.nationId !== city.nationId && !UNIT_DEFS[u.type]?.combat) {
+      if (u.x === city.x && u.y === city.y && u.nationId !== city.nationId && !UNIT_DEFS[u.type]?.combat
+          && (n.relations?.[u.nationId] === 'war' || nations[u.nationId]?.isBarbarian)) { // only an enemy's or raider's captive, not a friend's traveller
         u.nationId = city.nationId; u.movesLeft = 0; delete u.gotoX; delete u.gotoY; u.autoExplore = false;
         if (city.nationId === playerNation) showToast(`The people of ${city.name} free a captive ${u.type.replace(/_/g, ' ')}!`);
       }
@@ -6212,7 +6250,7 @@ function spawnCitySites(centerX, centerY, count) {
       if (rx < 0 || rx >= MAP_COLS || ry < 0 || ry >= MAP_ROWS) { attempts++; continue; }
       const ti = ry * MAP_COLS + rx;
       const t = tiles[ti];
-      if (t.type === 0 || t.type === 4 || t.type === 2) { attempts++; continue; }
+      if (t.type === 0 || t.type === 4 || t.type === 2 || t.ruins || t.wonder) { attempts++; continue; }
 
       const tooClose = cities.some(c => hexDistance(c.x, c.y, rx, ry) < 5) ||
                        citySites.some(s => hexDistance(s.x, s.y, rx, ry) < 5);
@@ -6231,7 +6269,7 @@ function spawnCitySitesAcrossMap(count) {
       const ry = Math.floor(Math.random() * MAP_ROWS);
       const ti = ry * MAP_COLS + rx;
       const t = tiles[ti];
-      if (t.type === 0 || t.type === 4 || t.type === 2) { attempts++; continue; }
+      if (t.type === 0 || t.type === 4 || t.type === 2 || t.ruins || t.wonder) { attempts++; continue; }
       const tooClose = cities.some(c => hexDistance(c.x, c.y, rx, ry) < 5) ||
                        citySites.some(s => hexDistance(s.x, s.y, rx, ry) < 5) ||
                        barbarianCamps.some(b => hexDistance(b.x, b.y, rx, ry) < 5);
@@ -6266,7 +6304,7 @@ function spawnBarbarianCamp() {
     const ry = Math.floor(Math.random() * MAP_ROWS);
     const ti = ry * MAP_COLS + rx;
     const t = tiles[ti];
-    if (t.type === 0 || t.type === 4 || t.type === 2) { attempts++; continue; }
+    if (t.type === 0 || t.type === 4 || t.type === 2 || t.ruins || t.wonder) { attempts++; continue; }
     if (t.revealed.has(playerNation)) { attempts++; continue; }
     if (t.owner >= 0) { attempts++; continue; }
 
@@ -7149,14 +7187,21 @@ function aiTurn(nationId) {
         let bestTarget = null, bestScore = -Infinity;
         // keep to the site it set out for (re-choosing each turn sent settlers wandering back and forth)
         const held = u._settleTarget;
-        if (held && canFoundCity(held.x, held.y, u.nationId).ok && !(held.turn && turnNumber - held.turn > 25)) {
+        const badSites = u._badSites || (u._badSites = []);
+        if (held) {
+          // no nearer for three turns (water or a closed border in the way): give the site up and look elsewhere
+          const d = hexDistance(u.x, u.y, held.x, held.y);
+          if (held.best === undefined || d < held.best) { held.best = d; held.stuck = 0; } else held.stuck = (held.stuck || 0) + 1;
+          if (held.stuck >= 3) { badSites.push(held.y * MAP_COLS + held.x); u._settleTarget = null; }
+        }
+        if (u._settleTarget && canFoundCity(held.x, held.y, u.nationId).ok && !(held.turn && turnNumber - held.turn > 25)) {
           moveAIToward(u, held.x, held.y, u.movesLeft);
           if (u.movesLeft > 0 && u.x === held.x && u.y === held.y && canFoundCity(u.x, u.y, u.nationId).ok) foundCity(u, getNextHistoricalCityName(u.nationId));
           continue;
         }
 
         for (const s of citySites) {
-          if (s.settled) continue;
+          if (s.settled || badSites.includes(s.y * MAP_COLS + s.x)) continue;
           const d = hexDistance(s.x, s.y, u.x, u.y);
           if (d > 40) continue;
           const q = scoreSettleSite(s.x, s.y) - d * 0.5;
@@ -7171,6 +7216,7 @@ function aiTurn(nationId) {
             const t = tiles[ty * MAP_COLS + tx];
             if (t.type === 0 || t.type === 4) continue; // ocean/village
             if (t.owner >= 0) continue; // already claimed
+            if (badSites.includes(ty * MAP_COLS + tx)) continue;
             const result = canFoundCity(tx, ty, u.nationId);
             if (!result.ok) continue;
             const d = hexDistance(tx, ty, u.x, u.y);
@@ -9860,7 +9906,7 @@ function placeNaturalWonders() {
     const def = NATURAL_WONDERS[key];
     for (let tries = 0; tries < 400; tries++) {
       const x = Math.floor(Math.random() * MAP_COLS), y = Math.floor(Math.random() * MAP_ROWS), t = tiles[y * MAP_COLS + x];
-      if (!def.on.includes(t.type) || t.owner >= 0 || t.ruins || t.wonder) continue;
+      if (!def.on.includes(t.type) || t.owner >= 0 || t.ruins || t.wonder || citySites.some(cs => cs.x === x && cs.y === y) || barbarianCamps.some(b => b.x === x && b.y === y)) continue;
       if (def.river && !t.hasRiver) continue;
       if (cities.some(c => hexDistance(c.x, c.y, x, y) < 5) || placed.some(p => hexDistance(p[0], p[1], x, y) < 8)) continue;
       t.wonder = key; placed.push([x, y]); break;
@@ -9911,7 +9957,7 @@ function scatterRuins() {
     const x = Math.floor(Math.random() * MAP_COLS), y = Math.floor(Math.random() * MAP_ROWS), t = tiles[y * MAP_COLS + x];
     if (t.type === 0 || t.type === 4 || t.owner >= 0 || t.ruins) continue;
     if (cities.some(c => hexDistance(c.x, c.y, x, y) < 4) || barbarianCamps.some(b => hexDistance(b.x, b.y, x, y) < 2)) continue;
-    if (units.some(u => u.x === x && u.y === y)) continue;
+    if (units.some(u => u.x === x && u.y === y) || citySites.some(cs => cs.x === x && cs.y === y)) continue;
     t.ruins = true; placed++;
   }
 }
@@ -12747,7 +12793,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.1';
+const CURRENT_VERSION = 'beta-7.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13356,7 +13402,7 @@ canvas.addEventListener('click', (e) => {
       const _gotoPath = bfsPath(selectedUnit.x, selectedUnit.y, mx, my, selectedUnit.type, selectedUnit.nationId);
       if (!_gotoPath || _gotoPath.length === 0) { showToast('No path to that destination.'); gotoMode = false; render(); return; }
       if (selectedUnit.nationId !== playerNation || !tryActivateUnit(selectedUnit)) { gotoMode = false; render(); return; }
-      selectedUnit.gotoX = mx; selectedUnit.gotoY = my;
+      selectedUnit.gotoX = mx; selectedUnit.gotoY = my; selectedUnit.automated = false;
       gotoMode = false;
 
       if (selectedUnit.movesLeft > 0) {
@@ -13429,7 +13475,7 @@ canvas.addEventListener('click', (e) => {
         const movedUnit = selectedUnit;
         const origX = selectedUnit.x, origY = selectedUnit.y;
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
-        selectedUnit.x = mx; selectedUnit.y = my;
+        selectedUnit.x = mx; selectedUnit.y = my; selectedUnit.automated = false; // your order: it's back in your hands
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
         revealAround(mx, my, getUnitVision(selectedUnit), selectedUnit.nationId);
 
@@ -13990,6 +14036,7 @@ window.toggleAutoExplore = function() {
   if (selectedUnit.fortified) { showToast('Unit is fortified. Wake it first.'); return; }
   if (selectedUnit.building) { showToast('This worker is busy building.'); return; }
   selectedUnit.autoExplore = !selectedUnit.autoExplore;
+  if (selectedUnit.autoExplore) selectedUnit.automated = false;
   if (selectedUnit.autoExplore) {
     delete selectedUnit.gotoX; delete selectedUnit.gotoY;
     showToast('Auto-explore enabled. Unit will seek unexplored territory.');
@@ -14322,6 +14369,7 @@ window.doBuild = function(key) {
   if (!selectedUnit || (selectedUnit.type !== 'worker' && selectedUnit.type !== 'veteran_worker')) return;
   if (selectedUnit.nationId !== playerNation) return;
   if (selectedUnit.building) return; // already building
+  selectedUnit.automated = false; // a build you chose: the worker is yours again
   if (!canBuildImprovement(selectedUnit, key)) return;
   if (selectedUnit.movesLeft <= 0) return;
   if (!tryActivateUnit(selectedUnit)) return;
@@ -15336,7 +15384,7 @@ function resetRuntimeState() {
   currentEventNation = null;
   window._endTurnBusy = false;
   window._gameOver = false;
-  battleScars = [];
+  battleScars = []; roads = []; _roadsKey = '';
   eventLogEntries = [];
   characters = []; nextCharId = 1;
   families = []; nextFamilyId = 1;
@@ -15375,12 +15423,12 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
   spawnCitySitesAcrossMap(extraSites);
-  scatterRuins();
-  placeNaturalWonders();
-
   if (barbarianDensity > 0) {
     spawnBarbarianCamp();
   }
+  // after the camps, so neither lands on a camp
+  scatterRuins();
+  placeNaturalWonders();
 
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
