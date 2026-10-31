@@ -13690,12 +13690,14 @@ function render() {
       if (!units.includes(unit)) continue;
       const fromPos = hexScreenPos(unit.x, unit.y);
       const toPos = hexScreenPos(order.destX, order.destY);
-      const color = order.isAttack ? 'rgba(255,90,60,0.9)' : 'rgba(80,200,255,0.9)';
+      // (on the chart, pencilled orders in ink: sepia for a march, red for an attack)
+      const color = charted ? (order.isAttack ? 'rgba(150, 30, 20, 0.92)' : 'rgba(56, 38, 18, 0.88)') : order.isAttack ? 'rgba(255,90,60,0.9)' : 'rgba(80,200,255,0.9)';
       const fx = fromPos.x + w / 2, fy2 = fromPos.y + facePad + faceH / 2;
       const tx2 = toPos.x + w / 2, ty3 = toPos.y + facePad + faceH / 2;
       ctx.save();
       ctx.strokeStyle = color; ctx.fillStyle = color;
-      ctx.lineWidth = Math.max(2.5, w * 0.08); ctx.setLineDash([6, 3]);
+      if (charted) { ctx.strokeStyle = 'rgba(250, 240, 214, 0.6)'; ctx.lineWidth = Math.max(3, w * 0.07); ctx.beginPath(); ctx.moveTo(fx, fy2); ctx.lineTo(tx2, ty3); ctx.stroke(); ctx.strokeStyle = color; }
+      ctx.lineWidth = charted ? Math.max(1.5, w * 0.035) : Math.max(2.5, w * 0.08); ctx.setLineDash([6, 3]);
       ctx.beginPath(); ctx.moveTo(fx, fy2); ctx.lineTo(tx2, ty3); ctx.stroke();
       ctx.setLineDash([]);
 
@@ -17871,8 +17873,8 @@ function renderLawsPanel() {
       const techGate = law.tech && !nationHasTech(playerNation, law.tech);
       const check = canAdoptLaw(playerNation, lawKey);
       const switching = adoptedKey && adoptedKey !== lawKey;
-      const bg = isActive ? 'rgba(108,198,244,0.15)' : techGate ? 'rgba(40,30,20,0.6)' : 'rgba(30,25,18,0.6)';
-      const border = isActive ? '2px solid rgba(108,198,244,0.6)' : '1px solid rgba(180,140,60,0.25)';
+      const bg = isActive ? 'rgba(158,196,188,0.15)' : techGate ? 'rgba(40,30,20,0.6)' : 'rgba(30,25,18,0.6)';
+      const border = isActive ? '2px solid rgba(158,196,188,0.6)' : '1px solid rgba(180,140,60,0.25)';
       html += `<div style="background:${bg};border:${border};border-radius:5px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;">`;
       html += `<div>`;
       html += `<div style="font-size:13px;color:${isActive ? '#9ec4bc' : '#e0c880'};margin-bottom:3px;"><span style="font-size:14px;">${law.icon}</span> <b>${escHtml(law.name)}</b>${isActive ? ' ✓' : ''}</div>`;
