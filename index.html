@@ -12084,11 +12084,11 @@ function buildWorldChart(key) {
   g.globalCompositeOperation = 'multiply'; g.fillStyle = edge; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over';
   const fold = (x0, y0, x1, y1, nx, ny) => {
     const w0 = 2.5 * u;
-    for (const [off, col] of [[-w0, 'rgba(255, 248, 225, 0.16)'], [w0 * 0.6, 'rgba(60, 40, 20, 0.16)']]) {
+    for (const [off, col] of [[-w0, 'rgba(255, 248, 225, 0.1)'], [w0 * 0.6, 'rgba(60, 40, 20, 0.1)']]) {
       g.strokeStyle = col; g.lineWidth = w0 * 1.6;
       g.beginPath(); g.moveTo(x0 + nx * off, y0 + ny * off); g.lineTo(x1 + nx * off, y1 + ny * off); g.stroke();
     }
-    g.strokeStyle = 'rgba(70, 50, 28, 0.22)'; g.lineWidth = 0.8 * u; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    g.strokeStyle = 'rgba(70, 50, 28, 0.14)'; g.lineWidth = 0.8 * u; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
   };
   fold(TW / 3, 0, TW / 3, TH, 1, 0); fold(TW * 2 / 3, 0, TW * 2 / 3, TH, 1, 0); fold(0, TH / 2, TW, TH / 2, 0, 1);
   // a scale of miles in the lower corner, as the engraver signed off the sheet
