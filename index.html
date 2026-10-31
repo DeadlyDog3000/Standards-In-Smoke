@@ -3919,8 +3919,10 @@ function renderParticles() {
     }
     ctx.save();
     ctx.globalAlpha = 1 - t;
-    ctx.fillStyle = p.color;
+    // on the chart: flecks of the fallen regiment's colour, inked round
+    ctx.fillStyle = OW.canvas ? shadeHex(safeColor(p.color, '#884422'), -0.3) : p.color;
     ctx.beginPath(); ctx.arc(sx, sy, p.size * (1 - t * 0.5), 0, Math.PI * 2); ctx.fill();
+    if (OW.canvas) { ctx.strokeStyle = 'rgba(30, 18, 8, 0.7)'; ctx.lineWidth = 0.8; ctx.stroke(); }
     ctx.restore();
   }
 }
