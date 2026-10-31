@@ -12880,7 +12880,9 @@ function drawRhumbs(cs, ch) {
     for (const [name, fxp, fyp, flip, motto] of [['beast_bear', 0.4, 0.2, false, ''], ['beast_lion', 0.6, 0.62, true, 'Hic sunt leones'], ['beast_elephant', 0.2, 0.56, false, '']]) {
       const img = owDeskProp(name); if (!img) continue;
       const bw2 = bs * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), bh2 = bs * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
-      const bx = ox + mw * fxp, by = oy + mh * fyp;
+      let bx = ox + mw * fxp, by = oy + mh * fyp;
+      // (stepped aside from any wind-rose it would stand on)
+      for (const [hx, hy] of hubs) if (Math.hypot(hx - bx, hy - (by - bh2 / 2)) < bs * 0.75) bx += (bx >= hx ? 1 : -1) * bs * 0.95;
       if (bx + bw2 < 0 || bx - bw2 > viewW || by + bh2 < 0 || by - bh2 > viewH) continue;
       // (gone as soon as any of the ground under it is surveyed, rather than peeking out from under the chart)
       const c0 = Math.floor((bx - bw2 / 2 - ox) / cs) - 1, c1 = Math.ceil((bx + bw2 / 2 - ox) / cs) + 1, r0 = Math.floor((by - bh2 - oy) / ch) - 1, r1 = Math.ceil((by - oy) / ch) + 1;
