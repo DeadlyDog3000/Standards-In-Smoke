@@ -929,6 +929,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Campaigns and Sieges</b><br>
+        - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
+        - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
@@ -1945,6 +1951,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Campaigns and Sieges</b><br>
+          - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
+          - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -8702,6 +8714,28 @@ function aiTurn(nationId) {
     }
   }
 
+  // who goes home when an enemy comes near a town: only the nearest few, about one for each foe and one more, so a
+  // border fight in one place no longer calls every regiment back from a campaign elsewhere
+  const homeGuard = new Set();
+  for (const c of aiCities) {
+    const foes = units.filter(eu => eu.nationId !== nationId && UNIT_DEFS[eu.type]?.combat && n.relations[eu.nationId] === 'war' && hexDistance(eu.x, eu.y, c.x, c.y) <= 5).length;
+    if (!foes) continue;
+    combatUnits.filter(cu => !homeGuard.has(cu) && !UNIT_DEFS[cu.type]?.naval).sort((a, b) => hexDistance(a.x, a.y, c.x, c.y) - hexDistance(b.x, b.y, c.x, c.y))
+      .slice(0, foes + 1).forEach(cu => homeGuard.add(cu));
+  }
+  // the campaign's object: one enemy town for the whole army (weakly held and near the army's middle), not one each
+  let campaignTarget = null;
+  if (combatUnits.length) {
+    const mx = combatUnits.reduce((a, cu) => a + cu.x, 0) / combatUnits.length, my = combatUnits.reduce((a, cu) => a + cu.y, 0) / combatUnits.length;
+    let best = -Infinity;
+    for (const c of cities) {
+      if (c.nationId === nationId || n.relations[c.nationId] !== 'war') continue;
+      const defenders = units.filter(eu => eu.nationId === c.nationId && UNIT_DEFS[eu.type]?.combat && hexDistance(eu.x, eu.y, c.x, c.y) <= 2).length;
+      const sc = 100 - hexDistance(Math.round(mx), Math.round(my), c.x, c.y) - defenders * 8 - cityWallLevel(c) * 6 + (c.siegeTurns || 0) * 3 + (c.captureProgress?.[nationId] || 0) * 20;
+      if (sc > best) { best = sc; campaignTarget = c; }
+    }
+  }
+
   let aiOrdersLeft = getMaxOrders(nationId) + getDifficultyModifiers().aiBonusOrders;
   // settlers act first: newly trained ones sit at the back of the list, and the soldiers ahead used up every order
   try { aiMergeRegiments(nationId); } catch (e) {}
@@ -8853,11 +8887,14 @@ function aiTurn(nationId) {
         u.ammo = (infantryNearby && ammoTypes.includes('grapeshot')) ? 'grapeshot' : ammoTypes[0];
       }
 
+      // a regiment standing in an enemy town holds it until it falls (a town is taken only by holding it some turns): it
+      // still fires from the walls at anything in reach, but it doesn't wander off
+      const holdingTown = !UNIT_DEFS[u.type]?.naval && cities.some(c => c.x === u.x && c.y === u.y && c.nationId !== nationId && n.relations[c.nationId] === 'war');
       const unitIdx = combatUnits.indexOf(u);
       const isReserve = unitIdx >= 0 && unitIdx >= Math.floor(combatUnits.length * 0.7);
       const reserveEngageThreshold = 8; // reserves only engage when enemies are very close to cities
       let reserveHold = false;
-      if (isReserve && threatLevel < reserveEngageThreshold) {
+      if (isReserve && threatLevel < reserveEngageThreshold && !holdingTown) {
 
         const nearOwnCity = aiCities.some(c => hexDistance(c.x, c.y, u.x, u.y) <= 4);
         if (!nearOwnCity) {
@@ -8946,6 +8983,7 @@ function aiTurn(nationId) {
         }
       }
 
+      if (holdingTown) { u.movesLeft = 0; continue; }
       if (!attacked) {
         let bestTarget = null, bestScore = -Infinity;
         for (const enemy of units) {
@@ -9070,7 +9108,7 @@ function aiTurn(nationId) {
           }
         }
 
-        if (threatLevel > 0) {
+        if (threatLevel > 0 && (homeGuard.has(u) || !atWar || !campaignTarget)) {
           let nearestThreat = null, nearDist = Infinity;
           for (const c of aiCities) {
             const threat = units.some(eu => eu.nationId !== nationId && UNIT_DEFS[eu.type]?.combat && n.relations[eu.nationId] === 'war' && hexDistance(eu.x, eu.y, c.x, c.y) <= 5);
@@ -9083,16 +9121,20 @@ function aiTurn(nationId) {
           else if (!aiHuntCamp(u, nationId, aiCities, combatUnits)) moveAIUnitMultiple(u, u.movesLeft);
         } else {
 
-          let target = null, bestScore = -Infinity;
+          let target = campaignTarget, bestScore = -Infinity;
+          // (a town close by that's barely held is worth taking on the way)
           for (const c of cities) {
             if (c.nationId === nationId) continue;
             if (n.relations[c.nationId] !== 'war') continue;
             const dist = hexDistance(c.x, c.y, u.x, u.y);
+            if (target && dist > 3) continue;
             const defenders = units.filter(eu => eu.nationId === c.nationId && UNIT_DEFS[eu.type]?.combat && hexDistance(eu.x, eu.y, c.x, c.y) <= 2).length;
+            if (target && defenders > 0) continue;
 
             const score = 100 - dist - defenders * 8;
             if (score > bestScore) { bestScore = score; target = c; }
           }
+          if (target && target.x === u.x && target.y === u.y) { u.movesLeft = 0; continue; }
           if (target) moveAITowardHighGround(u, target.x, target.y, u.movesLeft);
           else if (!aiHuntCamp(u, nationId, aiCities, combatUnits)) moveAIUnitMultiple(u, u.movesLeft);
         }
