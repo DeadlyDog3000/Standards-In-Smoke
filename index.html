@@ -160,6 +160,9 @@
     .p-btn:disabled { opacity: 0.35; cursor: default; }
     .p-btn:disabled:hover { background: rgba(220, 210, 190, 0.08); border-color: rgba(180, 160, 120, 0.3); }
     .p-btn .cost { float: right; color: #a89878; font-size: 11px; }
+    .p-btn-danger { border-color: rgba(170, 70, 50, 0.45); color: #e8c0b0; margin-top: 10px; }
+    .p-btn-danger:hover { background: rgba(150, 50, 30, 0.3); border-color: rgba(210, 90, 60, 0.8); }
+    .p-btn-danger[data-armed] { background: rgba(150, 50, 30, 0.45); color: #fff; }
     .section-title { color: #9a8a6a; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 5px; }
     .tab-bar { display: flex; gap: 4px; margin-bottom: 10px; }
     .tab-btn {
@@ -867,6 +870,7 @@
         <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
         - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
         - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
+        - Any regiment can be disbanded from its panel (two clicks, so a slip of the mouse loses nothing); a merged regiment goes whole, so split off a company first to keep it<br>
         - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn. Riflemen reach 3 hexes (4 from a hill)<br>
         - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
         - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
@@ -1881,6 +1885,7 @@
           <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
           - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
           - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
+          - Any regiment can be disbanded from its panel (two clicks, so a slip of the mouse loses nothing); a merged regiment goes whole, so split off a company first to keep it<br>
           - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn. Riflemen reach 3 hexes (4 from a hill)<br>
           - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
           - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
@@ -3361,6 +3366,25 @@ window.mergeSelectedWithNeighbour = function () {
   if (why) { SMK.deny(); showToast(why); return; }
   if (why === '') return;
   showUnitPanel(u); updateUI(); render();
+};
+window.disbandSelected = function (btn) {
+  const u = selectedUnit; if (!u || u.nationId !== playerNation || !units.includes(u)) return;
+  if (btn && !btn.dataset.armed) {
+    btn.dataset.armed = '1'; btn.textContent = 'Click again to disband';
+    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Disband'; } }, 3000);
+    return;
+  }
+  const name = unitTypeName(u.type);
+  units = units.filter(o => o !== u);
+  activatedUnits.delete(u);
+  if (u.characterId !== undefined && typeof characters !== 'undefined') { const ch = characters.find?.(c => c.id === u.characterId); if (ch) ch.unitId = undefined; }
+  selectedUnit = null; moveMode = false; rangedMode = false; gotoMode = false; reachableTiles.clear();
+  try { hidePanel(); } catch (e) {}
+  visionDirty = true;
+  logEvent(`The ${name}${u.merged && u.merged.length ? ` and its ${u.merged.length} companies` : ''} disbanded.`);
+  showToast(`The ${name} is disbanded; its men go home.`);
+  try { SMK.drum(0.25); } catch (e) {}
+  updateUI(); render();
 };
 window.splitSelected = function () {
   const u = selectedUnit; if (!u || u.nationId !== playerNation) return;
@@ -15487,6 +15511,10 @@ function showUnitPanel(unit) {
   if (unit.nationId === playerNation && mergeable(unit) && regimentSize(unit) < MERGE_MAX && unit.movesLeft > 0) {
     const mate = units.find(o => o !== unit && o.nationId === unit.nationId && mergeable(o) && regimentSize(unit) + regimentSize(o) <= MERGE_MAX && hexDistance(unit.x, unit.y, o.x, o.y) === 1);
     if (mate) html += `<button class="p-btn" onclick="mergeSelectedWithNeighbour()">Form up with the ${unitTypeName(mate.type)} beside it <span class="cost">1 order</span></button>`;
+  }
+  // disbanding: two clicks, so a regiment is never lost to a slip of the mouse (a merged one goes whole: split a company off first to keep it)
+  if (unit.nationId === playerNation) {
+    html += `<button class="p-btn p-btn-danger" id="disbandBtn" onclick="disbandSelected(this)">Disband${unit.merged && unit.merged.length ? ` all ${regimentSize(unit)} companies` : ''}</button>`;
   }
   if (unit.merged && unit.merged.length && unit.nationId === playerNation) {
     html += `<button class="p-btn" onclick="splitSelected()">Split off a company <span class="cost">${unitTypeName(unit.merged[unit.merged.length - 1])}</span></button>`;
