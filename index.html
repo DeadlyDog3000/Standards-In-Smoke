@@ -14349,7 +14349,7 @@ function render() {
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, u.nationId === pId && !u._animating && unitAwaitsOrders(u), u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
@@ -14375,7 +14375,7 @@ function render() {
       ctx.restore();
     }
     // ready for orders: a small gold pip on your units that can still act this turn
-    if (u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && !u.automated && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
+    if (!window.__film && u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && !u.automated && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
       if (charted) { // (on the chart, a brass pin stuck in the map beside it, as a staff officer marks a regiment awaiting orders)
         const pr = Math.max(2.4, rad * 0.16), px0 = cx - rad * 0.74, py0 = cy - rad * 0.72;
         ctx.save(); ctx.lineCap = 'round';
@@ -17574,7 +17574,7 @@ function animationTick(timestamp) {
   if (animatingUnits.length === 0) { animationBlocking = false; return; }
   const dt = lastAnimTime ? (timestamp - lastAnimTime) / 1000 : 0.016;
   lastAnimTime = timestamp;
-  const speed = 6;
+  const speed = window.__animSpeed || 6; // (hexes a second; slower when filming)
   for (let i = animatingUnits.length - 1; i >= 0; i--) {
     const a = animatingUnits[i];
     a.progress += dt * speed;
