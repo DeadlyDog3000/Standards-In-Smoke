@@ -5618,11 +5618,11 @@ function getShakeOffset() {
   };
 }
 
-// winter: snow drifting down over the map; autumn: a few leaves blowing across it (CSS layers, so they cost the map nothing to draw)
+// winter: snow drifting down over the map (a CSS layer, so it costs the map nothing to draw)
 let _weatherEl = null, _weatherSeason = '', _weatherImgs = null;
 function updateWeather() {
   const shown = document.getElementById('game')?.style.display !== 'none';
-  const want = shown && (currentSeason === 'winter' || currentSeason === 'autumn') ? currentSeason : '';
+  const want = shown && currentSeason === 'winter' ? currentSeason : '';
   if (want === _weatherSeason) return;
   _weatherSeason = want;
   if (!_weatherEl) {
@@ -13447,8 +13447,80 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     }
   }
   ctx.drawImage(_owLayer.c, 0, 0, viewW, viewH);
+  if (masks.any) owDrawWaterMotion(masks, fx, fy, ox, oy);
   return true;
 }
+// ---- the sea alive on the chart: rows of little engraved wave-marks drifting slowly with the wind, two sets crossing, and here
+//  and there a glint of light coming and going. Only on charted water; held a little off the shore; frozen water stays still ----
+let _owSea = { key: '', mask: null, pats: null, c: null };
+function owWaterMask() {
+  const F = OW.F; if (!F) return null;
+  const key = F.tileKey + '|' + F.LW + 'x' + F.LH + '|' + (OW.season || currentSeason);
+  if (_owSea.key === key) return _owSea.mask;
+  const { LW, LH, WAT, NEAR } = F, c = document.createElement('canvas'); c.width = LW; c.height = LH;
+  const g = c.getContext('2d'), img = g.createImageData(LW, LH), d = img.data, winter = (OW.season || currentSeason) === 'winter';
+  for (let i = 0; i < LW * LH; i++) {
+    let a = Math.max(0, Math.min(1, (WAT[i] - 0.55) * 4));
+    if (winter && NEAR && NEAR[i] > 0.3) a = 0; // (the frozen shallows)
+    d[i * 4 + 3] = a * 255;
+  }
+  g.putImageData(img, 0, 0);
+  _owSea.key = key; _owSea.mask = c;
+  return c;
+}
+function owWaterPatterns() {
+  if (_owSea.pats) return _owSea.pats;
+  const mk = (seed, n, ink, len) => {
+    const S = 256, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    let sd = seed; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    g.strokeStyle = ink; g.lineCap = 'round';
+    for (let k = 0; k < n; k++) {
+      const x = rnd() * S, y = rnd() * S, w = len * (0.6 + rnd() * 0.8);
+      g.lineWidth = 0.9 + rnd() * 0.5;
+      for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) { // (wrapped, so the tile repeats without a seam)
+        g.beginPath(); g.moveTo(x + dx - w, y + dy); g.quadraticCurveTo(x + dx - w / 2, y + dy - w * 0.32, x + dx, y + dy); g.quadraticCurveTo(x + dx + w / 2, y + dy - w * 0.32, x + dx + w, y + dy); g.stroke();
+      }
+    }
+    return c;
+  };
+  _owSea.pats = [mk(4021, 34, 'rgba(30, 52, 58, 0.8)', 8), mk(911, 18, 'rgba(236, 244, 236, 0.75)', 5)];
+  return _owSea.pats;
+}
+function owDrawWaterMotion(masks, fx, fy, ox, oy) {
+  const wm = owWaterMask(); if (!wm) return;
+  const k = fx * DPR; if (k < 0.18) return; // (too far out to see the waves)
+  const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
+  const c = _owSea.c || (_owSea.c = document.createElement('canvas'));
+  if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+  const g = c.getContext('2d'), t = performance.now() / 1000;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // two sets of wave-marks, fixed to the sea (they move with the chart when it's panned) and drifting slowly across it
+  const [dark, light] = owWaterPatterns(), sc = Math.max(0.55, fx * OW.K / 70);
+  const lay = (pat, vx, vy, alpha, s2) => {
+    const p = g.createPattern(pat, 'repeat'); if (!p || !p.setTransform) return;
+    const S = 256 * s2, px = ((ox + t * vx) % S + S) % S, py = ((oy + t * vy) % S + S) % S;
+    p.setTransform(new DOMMatrix().translate(px, py).scale(s2));
+    g.globalAlpha = alpha; g.fillStyle = p; g.fillRect(0, 0, viewW, viewH);
+  };
+  lay(dark, 7, 2.2, 0.7 + 0.15 * Math.sin(t * 0.7), sc);
+  lay(dark, -4.5, 1.2, 0.45, sc * 1.37);
+  lay(light, 5, 1.6, 0.35 + 0.35 * Math.sin(t * 1.3), sc * 1.13); // (the glints come and go)
+  g.globalAlpha = 1;
+  // only the charted sea
+  g.globalCompositeOperation = 'destination-in';
+  const R = OW.F.R; g.imageSmoothingEnabled = true;
+  g.drawImage(wm, ox, oy, wm.width * R * fx, wm.height * R * fy);
+  const km = masks.knownM[0], ks = masks.sc; g.drawImage(km, ox, oy, km.width / ks * fx, km.height / ks * fy);
+  g.globalCompositeOperation = 'source-over';
+  ctx.drawImage(c, 0, 0, viewW, viewH);
+}
+// (the sea keeps moving while it's in view: a gentle frame now and then, when nothing else is drawing)
+setInterval(() => {
+  if (!MAP_COLS || !OW.canvas || animationBlocking || document.hidden || selectionFlashRAF || render._fx) return;
+  if (document.getElementById('game')?.style.display === 'none' || VIEW_TILE < 14) return;
+  render();
+}, 70);
 function render() {
   // (a timer can call for a frame between games: after quitting, with no map, or before a new map's tiles are laid. Skip it)
   if (!MAP_COLS || tiles.length !== MAP_COLS * MAP_ROWS) return;
