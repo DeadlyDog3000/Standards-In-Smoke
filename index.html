@@ -12173,6 +12173,18 @@ function buildWorldChart(key) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   // water-lining: thin lines following the coast out to sea, fading as they go
   [0.5, 0.38, 0.27, 0.17].forEach((a, k) => { g.strokeStyle = 'rgba(40, 62, 70, ' + a + ')'; g.lineWidth = 0.9 * u; g.stroke(OW.F.waterLines[k]); });
+  // slopes turned from the light hatched in short strokes, as an engraver shades a hillside
+  {
+    const { SH: SH2, WAT: WT3, LW: lw, LH: lh, R: rr } = OW.F, hp = new Path2D(), L2 = 4.2 * u;
+    for (let ly = 1; ly < lh - 1; ly += 2) for (let lx = 1 + (ly & 2 ? 1 : 0); lx < lw - 1; lx += 2) {
+      const i = ly * lw + lx, sh = SH2[i];
+      if (WT3[i] >= 0.5 || sh >= 0.9) continue;
+      if (owHash(lx, ly, 91) > (0.9 - sh) * 3.2) continue;
+      const x = lx * rr + owHash(ly, lx, 4) * rr, y = ly * rr + owHash(lx, ly, 6) * rr;
+      hp.moveTo(x, y); hp.lineTo(x + L2 * 0.55, y + L2 * 0.8);
+    }
+    g.strokeStyle = 'rgba(52, 36, 18, 0.2)'; g.lineWidth = 0.65 * u; g.stroke(hp);
+  }
   // the open sea hatched in fine level lines, as a copperplate engraver shades deep water
   {
     const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F, gap2 = 3.4 * u, hatch = new Path2D();
