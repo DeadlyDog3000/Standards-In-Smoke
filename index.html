@@ -704,6 +704,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">No Death Spirals</b><br>
+        - A noble house that has risen in rebellion needs fifteen turns before it can rise again (a weak realm used to face a new rising every few turns and never recover)<br>
+        - A realm at its lowest ebb (legitimacy under 15) slowly recovers, +0.5 a turn
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Workers Keep Their Heads</b><br>
@@ -1428,7 +1434,13 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.4</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">No Death Spirals</b><br>
+        - A noble house that has risen in rebellion needs fifteen turns before it can rise again (a weak realm used to face a new rising every few turns and never recover)<br>
+        - A realm at its lowest ebb (legitimacy under 15) slowly recovers, +0.5 a turn
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Workers Keep Their Heads</b><br>
         - Automated workers, and your rivals', run for the nearest city of their realm when raiders or an enemy army come within two tiles, and won't take a job right beside the enemy (they used to be carried off one by one)
@@ -8171,9 +8183,11 @@ function tickFamilyOpinions() {
 
     if (family.opinion >= 80) n._legFamilyBonus = (n._legFamilyBonus || 0) + 2;
 
-    if (family.opinion < 25) {
+    // a house that has just risen needs time to gather men again (a weak realm used to face a new rising every few turns)
+    if (family.opinion < 25 && !(family._lastRising !== undefined && turnNumber - family._lastRising < 15)) {
       const chance = family.opinion < 5 ? 0.3 : family.opinion < 12 ? 0.15 : 0.05;
       if (Math.random() < chance) {
+        family._lastRising = turnNumber;
         triggerFamilyRebellion(family);
 
         family.opinion = Math.min(family.opinion + 10, 30);
@@ -8460,6 +8474,7 @@ function _finishEndTurnImpl() {
     if (legChange > 0) legChange *= lawLegitimacyGainMult(i);
     legChange += lawLegitimacyDelta(i);
     legChange += naturalWonderLegitimacy(i);
+    if ((nations[i].legitimacy ?? 50) < 15) legChange += 0.5; // a realm at its lowest still endures: the worst of it slowly passes
 
     nations[i].legitimacy = Math.min(100, Math.max(0, (nations[i].legitimacy ?? 50) + legChange));
 
@@ -12858,7 +12873,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.4';
+const CURRENT_VERSION = 'beta-7.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
