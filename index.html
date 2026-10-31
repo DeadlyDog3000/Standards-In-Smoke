@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Workers Keep Their Heads</b><br>
+        - Automated workers, and your rivals', run for the nearest city of their realm when raiders or an enemy army come within two tiles, and won't take a job right beside the enemy (they used to be carried off one by one)
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Growing Towns</b><br>
@@ -1423,7 +1428,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.3</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Workers Keep Their Heads</b><br>
+        - Automated workers, and your rivals', run for the nearest city of their realm when raiders or an enemy army come within two tiles, and won't take a job right beside the enemy (they used to be carried off one by one)
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Growing Towns</b><br>
         - A big town spills over into the country round it: hamlets of houses appear on its neighbouring land at 8 people, more at 12 and 16
@@ -6845,6 +6855,12 @@ function showDefeat(type, winnerId) {
 // improve the tile it stands on, or walk to the nearest land of the realm still bare. (Your own never fell a forest unasked.)
 // where a worker should head next: the nearest bare tile of its realm that it could actually improve (or clear, if allowed)
 const WORKER_JOBS = ['pasture', 'lumbermill', 'mine', 'farm', 'treasury', 'science_lab', 'market', 'quarry', 'port'];
+// a hostile fighting unit (an enemy at war, or raiders) within r tiles
+function workerInDanger(x, y, nationId, r) {
+  const n = nations[nationId];
+  return units.some(e => e.nationId !== nationId && UNIT_DEFS[e.type]?.combat && hexDistance(e.x, e.y, x, y) <= r
+    && (n.relations?.[e.nationId] === 'war' || nations[e.nationId]?.isBarbarian));
+}
 function workerSeekWork(u, nationId, opts = {}) {
   // bare tiles of the realm, nearest first; only the closest dozen are weighed (each check costs a little)
   const cand = [];
@@ -6859,6 +6875,7 @@ function workerSeekWork(u, nationId, opts = {}) {
   for (let k = 0; k < cand.length && k < 12 && !best; k++) {
     const [, x, y, type] = cand[k];
     if (units.some(o => o !== u && o.x === x && o.y === y)) continue;
+    if (workerInDanger(x, y, nationId, 1)) continue; // not a job beside the enemy
     const probe = { nationId, x, y, type: u.type };
     if ((type === 5 && opts.chop !== false) || WORKER_JOBS.some(j => IMPROVEMENT_DEFS[j] && canBuildImprovement(probe, j))) best = { x, y };
   }
@@ -6870,6 +6887,13 @@ function workerSeekWork(u, nationId, opts = {}) {
 function aiWorkerStep(u, nationId, opts = {}) {
 
   if (u.building) { u.movesLeft = 0; return; }
+
+  // raiders or an enemy army close by: run for the nearest city of the realm rather than be carried off
+  if (workerInDanger(u.x, u.y, nationId, 2) && !cities.some(c => c.x === u.x && c.y === u.y && c.nationId === nationId)) {
+    let home = null, hd = Infinity;
+    for (const c of cities) { if (c.nationId !== nationId) continue; const d = hexDistance(c.x, c.y, u.x, u.y); if (d < hd) { hd = d; home = c; } }
+    if (home) { moveAIToward(u, home.x, home.y, u.movesLeft); return; }
+  }
 
   if (canRepairTile(u, u.x, u.y)) { repairTile(u); }
   else {
@@ -12834,7 +12858,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.3';
+const CURRENT_VERSION = 'beta-7.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
