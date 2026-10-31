@@ -14110,7 +14110,7 @@ function showCityPanel(city) {
   const panel = document.getElementById('panel');
   const y = getCityYields(city);
   // (what the city makes a turn, as chips in the top bar's colours, each named on hover)
-  const Y_COL = { gold: '#d4a856', food: '#8bc34a', wood: '#8d6e3f', stone: '#9e9e9e', steel: '#607d8b', gunpowder: '#3a3a3a', science: '#7c4dff' };
+  const Y_COL = { gold: '#cfa844', food: '#86a04e', wood: '#9a744a', stone: '#9a968c', steel: '#6e7c88', gunpowder: '#4a4038', science: '#7a68a8' };
   const yStr = `<span class="ychips">${Object.entries(y).filter(([, v]) => v > 0).map(([k, v]) => `<span class="ychip" title="${k} a turn"><i style="background:${Y_COL[k] || '#888'}"></i>+${v.toFixed(1)}</span>`).join('')}</span>`;
   let prodStr = 'None';
   if (city.producing) {
@@ -14255,9 +14255,9 @@ function showCityTab(tab) {
   }
 }
 
-const RESOURCE_COLORS = {
-  food: '#7cc66c', gold: '#e0c44a', wood: '#a07a4a', stone: '#9098a8',
-  steel: '#c0c8d4', science: '#9c7ae0', gunpowder: '#c89060',
+const RESOURCE_COLORS = { // (the washes of a hand-coloured print: sap green, ochre, umber, slate, indigo)
+  food: '#86a04e', gold: '#cfa844', wood: '#9a744a', stone: '#9a968c',
+  steel: '#a8b0b8', science: '#7a68a8', gunpowder: '#b08456',
 };
 
 const RESOURCE_MAX = { food: 20, gold: 20, wood: 12, stone: 12, steel: 12, science: 15, gunpowder: 12 };
