@@ -491,6 +491,36 @@
     img.emo { height: 1.3em; width: auto; vertical-align: -0.28em; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.55)); pointer-events: none; }
     img.emo.fig { height: 1.75em; vertical-align: -0.5em; margin: -0.15em 0.05em -0.1em 0; }
     h3 img.emo.fig { height: 2.1em; }
+    /* ---- Old-world dress: tooled leather panels in gilt frames, a gilt-ruled top bar (over the earlier flat panel colours) ---- */
+    :root {
+      --ow-leather: url(ui/leather.jpg) 0 0 / 256px repeat;
+      --ow-corners: url(ui/c_tl.png) left 4px top 4px / 34px no-repeat, url(ui/c_tr.png) right 4px top 4px / 34px no-repeat,
+                    url(ui/c_bl.png) left 4px bottom 4px / 34px no-repeat, url(ui/c_br.png) right 4px bottom 4px / 34px no-repeat;
+      --ow-gilt: inset 0 0 0 2px rgba(16, 11, 6, 0.95), inset 0 0 0 3px rgba(198, 158, 80, 0.6), inset 0 0 0 5px rgba(16, 11, 6, 0.6), inset 0 0 34px rgba(0, 0, 0, 0.55), 0 10px 26px rgba(0, 0, 0, 0.7);
+    }
+    #panel, #kingdoms, #empirePanel, #escMenuBox, .event-card {
+      background: var(--ow-corners), radial-gradient(ellipse at 50% 35%, rgba(90, 66, 36, 0.28), rgba(0, 0, 0, 0.38)), var(--ow-leather);
+      border: 1px solid #7a5c2a; border-radius: 3px; box-shadow: var(--ow-gilt);
+    }
+    #panel { padding: 18px 18px 16px; }
+    #eventLog, #tileTooltip, #toast, #techBanner, #turnInfo, #zoomInfo {
+      background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), var(--ow-leather);
+      border: 1px solid #7a5c2a; border-radius: 2px;
+      box-shadow: inset 0 0 0 1px rgba(16, 11, 6, 0.9), inset 0 0 0 2px rgba(198, 158, 80, 0.35), 0 6px 16px rgba(0, 0, 0, 0.6);
+    }
+    #topbar {
+      background: linear-gradient(rgba(255, 220, 150, 0.05), rgba(0, 0, 0, 0.3)), var(--ow-leather);
+      border-bottom: 1px solid #a07c38; box-shadow: 0 1px 0 rgba(16, 11, 6, 0.95), 0 3px 0 rgba(198, 158, 80, 0.35), 0 6px 14px rgba(0, 0, 0, 0.55);
+    }
+    #minimap { border: 1px solid #a07c38; box-shadow: 0 0 0 2px rgba(16, 11, 6, 0.95), 0 0 0 3px rgba(198, 158, 80, 0.45), 0 6px 16px rgba(0, 0, 0, 0.6); border-radius: 1px; }
+    .p-btn, .esc-btn, .event-choice {
+      background: linear-gradient(rgba(255, 230, 170, 0.07), rgba(0, 0, 0, 0.18)); border-color: rgba(176, 138, 66, 0.45);
+      box-shadow: inset 0 1px 0 rgba(255, 235, 190, 0.08);
+    }
+    .p-btn:hover, .esc-btn:hover, .event-choice:hover { background: linear-gradient(rgba(255, 220, 140, 0.18), rgba(120, 80, 20, 0.12)); border-color: rgba(222, 180, 90, 0.8); }
+    #panel h3, .event-card h3, #kingdoms h3, #escMenuBox h2 { text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 12px rgba(212, 168, 86, 0.25); }
+    .section-title { color: #b49a64; border-bottom: 1px solid rgba(198, 158, 80, 0.25); padding-bottom: 2px; }
+
   </style>
 </head>
 <body>
@@ -10153,8 +10183,9 @@ function applyEventChoice(eventId, choiceIndex) {
 window.applyEventChoice = applyEventChoice;
 
 function drawHexPath(context, x, y, w, cellH) {
-  const cx = x + w / 2, cy = y + cellH / 2;
-  const hw = w / 2, hh = cellH / 2;
+  let cx = x + w / 2, cy = y + cellH / 2, hw = w / 2, hh = cellH / 2;
+  // over the chart, the hex the map is drawn with (tiling exactly, centred where units stand)
+  if (OW.canvas) { const ch = hexCellH(); cy = y + ch / 2; hh = ch / 2; hw = hexColStep() * 2 / 3; }
 
   context.beginPath();
   context.moveTo(cx - hw * 0.5, cy - hh);  // top-left
@@ -11634,33 +11665,108 @@ function owPaperCanvas() {
   return (_owPaper = c);
 }
 function owPaperPattern(g) { try { return g.createPattern(owPaperCanvas(), 'repeat'); } catch (e) { return null; } }
-// draw the chart under the hexes that have been explored
+// the unexplored sheet, as on a portolan chart: rhumb lines run out from wind-roses across the blank vellum (they scroll with the map)
+let _owRose = null;
+function owRoseCanvas() {
+  if (_owRose) return _owRose;
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'), m = S / 2;
+  g.translate(m, m);
+  const ring = (r, lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke(); };
+  ring(230, 3, 'rgba(196,160,90,0.9)'); ring(220, 1.5, 'rgba(196,160,90,0.7)');
+  // the degrees round the rim
+  g.strokeStyle = 'rgba(196,160,90,0.7)'; g.lineWidth = 1.2;
+  for (let k = 0; k < 128; k++) { const a = k / 128 * Math.PI * 2, r0 = k % 4 ? 222 : 212; g.beginPath(); g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); g.lineTo(Math.cos(a) * 230, Math.sin(a) * 230); g.stroke(); }
+  // sixteen points: the long ones for the eight winds, then the half-winds; each split light and dark
+  const point = (a, len, wid, light, dark) => {
+    const ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca;
+    g.fillStyle = light; g.beginPath(); g.moveTo(0, 0); g.lineTo(ca * len, sa * len); g.lineTo(px * wid, py * wid); g.closePath(); g.fill();
+    g.fillStyle = dark; g.beginPath(); g.moveTo(0, 0); g.lineTo(ca * len, sa * len); g.lineTo(-px * wid, -py * wid); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(20,14,8,0.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(px * wid, py * wid); g.lineTo(ca * len, sa * len); g.lineTo(-px * wid, -py * wid); g.stroke();
+  };
+  for (let k = 0; k < 8; k++) point((k + 0.5) / 8 * Math.PI * 2 - Math.PI / 2, 120, 16, 'rgba(120,150,110,0.95)', 'rgba(60,84,58,0.95)');
+  for (let k = 0; k < 4; k++) point((k / 4 + 0.125) * Math.PI * 2 - Math.PI / 2, 165, 22, 'rgba(200,170,110,0.95)', 'rgba(120,90,50,0.95)');
+  for (let k = 0; k < 4; k++) point(k / 4 * Math.PI * 2 - Math.PI / 2, 205, 28, 'rgba(232,214,170,0.98)', k === 0 ? 'rgba(150,40,30,0.98)' : 'rgba(80,60,36,0.98)');
+  ring(26, 2, 'rgba(196,160,90,0.95)'); g.fillStyle = 'rgba(150,40,30,0.95)'; g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.fill();
+  // a fleur-de-lis for the north
+  g.save(); g.translate(0, -214); g.fillStyle = 'rgba(206,170,96,0.95)'; g.strokeStyle = 'rgba(20,14,8,0.8)'; g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(0, -30); g.quadraticCurveTo(10, -14, 3, 2); g.lineTo(-3, 2); g.quadraticCurveTo(-10, -14, 0, -30); g.fill(); g.stroke();
+  for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(sd * 3, -2); g.quadraticCurveTo(sd * 22, -18, sd * 18, -2); g.quadraticCurveTo(sd * 12, 4, sd * 3, 2); g.fill(); g.stroke(); }
+  g.fillRect(-10, 2, 20, 4); g.strokeRect(-10, 2, 20, 4);
+  g.restore();
+  return (_owRose = c);
+}
+function drawRhumbs(cs, ch) {
+  if (!MAP_COLS) return;
+  const mw = MAP_COLS * cs, mh = MAP_ROWS * ch, ox = -camX * cs, oy = -camY * ch;
+  const R = Math.min(mw, mh) * 0.36, c0 = [ox + mw / 2, oy + mh / 2];
+  const hubs = [c0];
+  for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; hubs.push([c0[0] + Math.cos(a) * R * 1.25, c0[1] + Math.sin(a) * R]); }
+  const L = Math.hypot(mw, mh), cols = ['rgba(150, 120, 70, 0.20)', 'rgba(90, 130, 80, 0.17)', 'rgba(160, 60, 40, 0.15)'];
+  ctx.save(); ctx.lineWidth = 1;
+  for (let band = 0; band < 3; band++) {
+    ctx.strokeStyle = cols[band]; ctx.beginPath();
+    for (const [hx, hy] of hubs) for (let k = 0; k < 32; k++) {
+      const kind = k % 4 === 0 ? 0 : k % 2 === 0 ? 1 : 2;
+      if (kind !== band) continue;
+      const a = k / 32 * Math.PI * 2;
+      ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * L, hy + Math.sin(a) * L);
+    }
+    ctx.stroke();
+  }
+  // the great rose at the centre, and a small one at each hub
+  const rose = owRoseCanvas(), big = Math.min(mw, mh) * 0.22;
+  ctx.globalAlpha = 0.55; ctx.drawImage(rose, c0[0] - big / 2, c0[1] - big / 2, big, big);
+  ctx.globalAlpha = 0.35; for (let k = 1; k < hubs.length; k++) { const sm = big * 0.32; ctx.drawImage(rose, hubs[k][0] - sm / 2, hubs[k][1] - sm / 2, sm, sm); }
+  ctx.restore();
+}
+// draw the chart under the hexes that have been explored, feathered at the edge of the known world; the cut-out sheet is cached until the view or the map changes
+const _owLayer = { c: null, key: '' };
 function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
   const chart = getWorldChart();
   if (!chart) return false;
   const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
   const clip = new Path2D(), qx = cs / 3 + 0.6, hx2 = cs * 2 / 3 + 0.6, hy = ch / 2 + 0.6, halfCh = Math.round(ch / 2);
-  let any = false;
+  let any = false, sig = 0;
+  const unseen = new Path2D();
   for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
     if (!tiles[my * MAP_COLS + mx].revealed.has(pId)) continue;
+    const seen = !currentVisionSet || currentVisionSet.has(my * MAP_COLS + mx);
+    sig = (Math.imul(sig, 31) + my * MAP_COLS + mx + (seen ? 0 : 7919)) | 0;
     const cx = mx * cs - camX * cs + w / 2, cy = my * ch + (mx & 1) * halfCh - camY * ch + facePad + ch / 2;
+    if (!seen) { unseen.moveTo(cx - hx2, cy); unseen.lineTo(cx - qx, cy - hy); unseen.lineTo(cx + qx, cy - hy); unseen.lineTo(cx + hx2, cy); unseen.lineTo(cx + qx, cy + hy); unseen.lineTo(cx - qx, cy + hy); unseen.closePath(); }
     clip.moveTo(cx - hx2, cy); clip.lineTo(cx - qx, cy - hy); clip.lineTo(cx + qx, cy - hy); clip.lineTo(cx + hx2, cy); clip.lineTo(cx + qx, cy + hy); clip.lineTo(cx - qx, cy + hy); clip.closePath();
-    any = true;
     // hexes on the edge of the world carry the sheet out to its border
     if (mx === 0) clip.rect(ox - 1, cy - hy, cx - ox + 1, hy * 2);
     if (mx === MAP_COLS - 1) clip.rect(cx, cy - hy, ox + chart.width * fx - cx + 1, hy * 2);
     if (my === 0) clip.rect(cx - hx2, oy - 1, hx2 * 2, cy - oy + 1);
     if (my === MAP_ROWS - 1) clip.rect(cx - hx2, cy, hx2 * 2, oy + chart.height * fy - cy + 1);
+    any = true;
   }
   if (!any) return true;
-  // the visible part of the sheet only
-  const sx0 = Math.max(0, -ox / fx), sy0 = Math.max(0, -oy / fy);
-  const sx1 = Math.min(chart.width, (viewW - ox) / fx), sy1 = Math.min(chart.height, (viewH - oy) / fy);
-  if (sx1 <= sx0 || sy1 <= sy0) return true;
-  ctx.save(); ctx.clip(clip);
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(chart, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * fx, oy + sy0 * fy, (sx1 - sx0) * fx, (sy1 - sy0) * fy);
-  ctx.restore();
+  const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
+  const key = [OW.key, camX.toFixed(3), camY.toFixed(3), w, W, H, sig].join('|');
+  if (_owLayer.key !== key) {
+    _owLayer.key = key;
+    const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const g = c.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // the mask: the explored hexes, softened so the known world fades into the unknown
+    const feather = Math.max(1.5, w * 0.16);
+    g.filter = 'blur(' + feather + 'px)'; g.fillStyle = '#000'; g.fill(clip); g.fill(clip); g.filter = 'none';
+    g.globalCompositeOperation = 'source-in';
+    const sx0 = Math.max(0, -ox / fx), sy0 = Math.max(0, -oy / fy);
+    const sx1 = Math.min(chart.width, (viewW - ox) / fx), sy1 = Math.min(chart.height, (viewH - oy) / fy);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    if (sx1 > sx0 && sy1 > sy0) g.drawImage(chart, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * fx, oy + sy0 * fy, (sx1 - sx0) * fx, (sy1 - sy0) * fy);
+    // land known but not watched now: dimmed and browned, as an old survey not lately checked
+    g.globalCompositeOperation = 'source-atop';
+    g.filter = 'blur(' + Math.max(1, w * 0.1) + 'px)'; g.fillStyle = 'rgba(34, 24, 12, 0.46)'; g.fill(unseen); g.filter = 'none';
+    g.globalCompositeOperation = 'source-over';
+  }
+  ctx.drawImage(_owLayer.c, 0, 0, viewW, viewH);
   // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
   const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
   ctx.save();
@@ -11689,6 +11795,7 @@ function render() {
     ctx.fillStyle = fogPat;
   } else ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, viewW, viewH);
+  drawRhumbs(cs, ch);
 
   const shake = getShakeOffset();
   if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
@@ -11759,7 +11866,7 @@ function render() {
 
   const evenNbr = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]];
   const oddNbr  = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
-  if (currentVisionSet) {
+  if (currentVisionSet && !charted) { // (on the chart, the unseen land is dimmed in its own cached layer)
     // the dimmed hexes, as two even layers (a lighter band next to what you can see)
     const fogEdge = [], fogDeep = [];
     for (let my = startRow; my < endRow; my++) {
@@ -11848,7 +11955,7 @@ function render() {
         edge.push(sx, fy);
       }
     }
-    drawHexLayer(edge, w, faceH, 0.22, '#1a140c', null, facePad);
+    if (!charted) drawHexLayer(edge, w, faceH, 0.22, '#1a140c', null, facePad); // (the chart fades out by itself)
   }
 
   // territory tint: each realm's land in its colour, one even wash (per-hex fills overlapped into a darker grid)
@@ -12104,14 +12211,33 @@ function render() {
   } // end mx loop
   } // end my loop
 
-  if (moveMode || buyTileMode || workerBuyMode) for (const key of reachableTiles) {
-    const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
-    if (!tiles[key].revealed.has(pId)) continue;
-    const pos = hexScreenPos(rx, ry);
-    if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
-    ctx.fillStyle = (buyTileMode || workerBuyMode) ? 'rgba(100, 255, 100, 0.35)' : 'rgba(100, 150, 255, 0.4)';
-    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
-    ctx.fill();
+  // the ground a unit can reach: one light wash over it all, ruled round its outer edge
+  if (moveMode || buyTileMode || workerBuyMode) {
+    const area = new Path2D(), rim = new Path2D(), qx = cs / 3, hx2 = cs * 2 / 3, hy = ch / 2;
+    const NB = [[[0, -1], [1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1]], [[0, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]]; // N, NE, SE, S, SW, NW
+    for (const key of reachableTiles) {
+      const rx = key % MAP_COLS, ry = Math.floor(key / MAP_COLS);
+      if (!tiles[key].revealed.has(pId)) continue;
+      const pos = hexScreenPos(rx, ry);
+      if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
+      const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2;
+      const v = [[cx - hx2, cy], [cx - qx, cy - hy], [cx + qx, cy - hy], [cx + hx2, cy], [cx + qx, cy + hy], [cx - qx, cy + hy]];
+      area.moveTo(v[0][0], v[0][1]); for (let k = 1; k < 6; k++) area.lineTo(v[k][0], v[k][1]); area.closePath();
+      const dirs = NB[rx & 1];
+      for (let d = 0; d < 6; d++) {
+        const nx = rx + dirs[d][0], ny = ry + dirs[d][1];
+        if (nx >= 0 && ny >= 0 && nx < MAP_COLS && ny < MAP_ROWS && reachableTiles.has(ny * MAP_COLS + nx)) continue;
+        const a = v[(d + 1) % 6], b = v[(d + 2) % 6];
+        rim.moveTo(a[0], a[1]); rim.lineTo(b[0], b[1]);
+      }
+    }
+    const buy = buyTileMode || workerBuyMode;
+    ctx.save();
+    ctx.fillStyle = buy ? 'rgba(90, 150, 60, 0.26)' : 'rgba(70, 110, 190, 0.26)'; ctx.fill(area);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(20, 14, 8, 0.6)'; ctx.lineWidth = Math.max(2, w * 0.06); ctx.stroke(rim);
+    ctx.strokeStyle = buy ? 'rgba(170, 220, 120, 0.95)' : 'rgba(150, 190, 250, 0.95)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke(rim);
+    ctx.restore();
   }
 
   for (const [idxStr, ann] of Object.entries(tileAnnotations)) {
