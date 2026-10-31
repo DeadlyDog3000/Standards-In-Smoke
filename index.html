@@ -520,6 +520,15 @@
     .p-btn:hover, .esc-btn:hover, .event-choice:hover { background: linear-gradient(rgba(255, 220, 140, 0.18), rgba(120, 80, 20, 0.12)); border-color: rgba(222, 180, 90, 0.8); }
     #panel h3, .event-card h3, #kingdoms h3, #escMenuBox h2 { text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 12px rgba(212, 168, 86, 0.25); }
     .section-title { color: #b49a64; border-bottom: 1px solid rgba(198, 158, 80, 0.25); padding-bottom: 2px; }
+    /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
+    .city-label {
+      color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
+      background: linear-gradient(rgba(255, 240, 205, 0.25), rgba(120, 90, 40, 0.12)), url(ui/parch.jpg) 0 0 / 128px;
+      border: 1px solid #4a3418; border-bottom: 2px solid var(--nc); border-radius: 2px;
+      box-shadow: 0 0 0 1px rgba(240, 220, 170, 0.35), 0 2px 5px rgba(0, 0, 0, 0.55); padding: 0.1em 0.7em 0.1em 0.12em;
+    }
+    .city-label .cl-pop { font-style: normal; font-weight: bold; background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--nc) 70%, #fff), var(--nc) 55%, color-mix(in srgb, var(--nc) 60%, #000)); box-shadow: 0 0 0 1px rgba(30, 18, 8, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7); }
+    .city-label .cl-siege { color: #9a2a18; font-style: normal; }
 
   </style>
 </head>
@@ -10286,8 +10295,8 @@ function drawHexPath(context, x, y, w, cellH) {
 }
 
 function drawHexEdge(context, x, y, w, cellH, edgeIndex) {
-  const cx = x + w / 2, cy = y + cellH / 2;
-  const hw = w / 2, hh = cellH / 2;
+  let cx = x + w / 2, cy = y + cellH / 2, hw = w / 2, hh = cellH / 2;
+  if (OW.canvas) { const ch = hexCellH(); cy = y + ch / 2; hh = ch / 2; hw = hexColStep() * 2 / 3; } // the chart's hex
   const verts = [
     [cx - hw * 0.5, cy - hh],  // 0: top-left
     [cx + hw * 0.5, cy - hh],  // 1: top-right
@@ -10306,8 +10315,8 @@ function drawHexEdge(context, x, y, w, cellH, edgeIndex) {
 
 function drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges) {
   if (!borderEdges.length) return;
-  const cx = sx + w / 2, cy = fy + faceH / 2;
-  const hw = w / 2, hh = faceH / 2;
+  let cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
+  if (OW.canvas) { const ch = hexCellH(); cy = fy + ch / 2; hh = ch / 2; hw = hexColStep() * 2 / 3; } // the chart's hex
   const verts = [
     [cx - hw * 0.5, cy - hh],  // 0: top-left
     [cx + hw * 0.5, cy - hh],  // 1: top-right
@@ -11460,13 +11469,19 @@ function drawUnitFigure(img, cx, baseY, w, col, selected) {
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(cx + w * 0.04, baseY + ry * 0.35, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
   if (!naval) {
-    ctx.lineWidth = Math.max(1.5, w * 0.05);
-    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-    ctx.beginPath(); ctx.ellipse(cx, baseY, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.lineWidth = Math.max(1, w * 0.035);
-    ctx.strokeStyle = col;
-    ctx.beginPath(); ctx.ellipse(cx, baseY, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.globalAlpha = 0.28; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+    // a wargame miniature's base: a turned wooden disc with its rim painted in the realm's colour
+    const depth = Math.max(1.5, ry * 0.55);
+    ctx.fillStyle = 'rgba(20, 14, 8, 0.9)';
+    ctx.beginPath(); ctx.ellipse(cx, baseY + depth, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col; ctx.fillRect(cx - rx, baseY, rx * 2, depth);
+    ctx.beginPath(); ctx.ellipse(cx, baseY + depth, rx, ry, 0, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.beginPath(); ctx.ellipse(cx, baseY + depth, rx, ry, 0, 0, Math.PI); ctx.fill();
+    const top = ctx.createLinearGradient(cx - rx, baseY - ry, cx + rx, baseY + ry);
+    top.addColorStop(0, '#8a7048'); top.addColorStop(1, '#4e3c24');
+    ctx.fillStyle = top; ctx.beginPath(); ctx.ellipse(cx, baseY, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = Math.max(1, w * 0.02); ctx.strokeStyle = col; ctx.stroke();
+    ctx.lineWidth = Math.max(0.6, w * 0.008); ctx.strokeStyle = 'rgba(230, 200, 130, 0.7)';
+    ctx.beginPath(); ctx.ellipse(cx, baseY, rx * 0.86, ry * 0.8, 0, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
   }
   // the figure, standing on it
   const maxD = w * (naval ? 0.78 : 0.6), sc = maxD / Math.max(img.width, img.height);
@@ -11517,7 +11532,7 @@ const OW_WATER = t => t === 0 || t === 8;
 const OW_WASH = {
   spring: { 1: [196, 186, 128], 3: [150, 152, 112], 4: [196, 182, 128], 5: [134, 142, 92], 6: [190, 182, 124], 7: [190, 168, 118], 2: [172, 156, 128] },
   summer: { 1: [204, 186, 120], 3: [152, 150, 108], 4: [204, 184, 124], 5: [128, 136, 86], 6: [200, 182, 118], 7: [196, 170, 116], 2: [174, 158, 128] },
-  autumn: { 1: [200, 180, 124], 3: [154, 146, 106], 4: [200, 180, 126], 5: [150, 116, 72], 6: [198, 178, 120], 7: [192, 166, 114], 2: [176, 158, 128] },
+  autumn: { 1: [196, 184, 132], 3: [152, 148, 110], 4: [196, 184, 132], 5: [140, 124, 80], 6: [194, 182, 128], 7: [188, 170, 120], 2: [176, 160, 132] },
   winter: { 1: [214, 210, 194], 3: [180, 182, 168], 4: [214, 208, 192], 5: [146, 150, 128], 6: [212, 208, 192], 7: [206, 200, 184], 2: [200, 196, 186] },
 };
 function worldChartKey() {
@@ -11649,7 +11664,11 @@ function buildWorldChart(key) {
     if (t === 5) {
       for (let k = 0; k < 16; k++) { const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.72; if (inHex(fx, fy)) marks.push({ k: rnd() < 0.35 ? 'pine' : 'tree', x: cx + fx * K, y: cy + fy * K, s: 0.85 + rnd() * 0.35 }); }
     } else if (t === 2) {
-      const n = 1 + (rnd() < 0.6 ? 1 : 0);
+      // deep in a range, fewer and bigger peaks (the relief shading carries the rest); more along its edges
+      let inner = true;
+      for (const [dc, dr] of (cI & 1) ? [[0, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]] : [[0, -1], [1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1]]) if (typeAt(cI + dc, r + dr) !== 2) inner = false;
+      const n = inner ? (rnd() < 0.62 ? 1 : 0) : 1 + (rnd() < 0.55 ? 1 : 0);
+      if (inner && n) { marks.push({ k: 'peak', x: cx + (rnd() - 0.5) * K * 0.3, y: cy + (rnd() - 0.3) * K * 0.2, s: 1.35 + rnd() * 0.55 }); continue; }
       for (let k = 0; k < n; k++) marks.push({ k: 'peak', x: cx + (rnd() - 0.5) * K * 0.42, y: cy + (k ? 0.12 : -0.08) * K + (rnd() - 0.5) * K * 0.1, s: k ? 0.8 + rnd() * 0.3 : 1.15 + rnd() * 0.4 });
     } else if (t === 7) {
       for (let k = 0; k < 2; k++) marks.push({ k: 'hill', x: cx + (rnd() - 0.5) * K * 0.5, y: cy + (rnd() - 0.4) * K * 0.3, s: 0.8 + rnd() * 0.4 });
@@ -11663,8 +11682,10 @@ function buildWorldChart(key) {
     }
   }
   marks.sort((a, b) => a.y - b.y);
-  const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(150, 104, 54)' : 'rgb(96, 112, 62)';
-  const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(196, 146, 80)' : 'rgb(140, 152, 92)';
+  const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(136, 104, 58)' : 'rgb(96, 112, 62)';
+  const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(176, 140, 82)' : 'rgb(140, 152, 92)';
+  // in autumn not every tree has turned: some stay green
+  const autumnGreen = ['rgb(104, 112, 64)', 'rgb(146, 150, 92)'];
   for (const m of marks) {
     const s = m.s * u, x = m.x, y = m.y;
     g.lineWidth = 1.1 * u; g.strokeStyle = ink + '0.85)';
@@ -11672,8 +11693,9 @@ function buildWorldChart(key) {
       const rr = 6.5 * s;
       g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, rr * 0.9, rr * 0.35, 0, 0, Math.PI * 2); g.fill();
       g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 6 * s); g.stroke();
-      g.fillStyle = forestCol; g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.fill();
-      g.fillStyle = forestLit; g.beginPath(); g.arc(x - rr * 0.3, y - 6 * s - rr * 1.05, rr * 0.55, 0, Math.PI * 2); g.fill();
+      const green = season === 'autumn' && owHash(x | 0, y | 0, 7) < 0.4;
+      g.fillStyle = green ? autumnGreen[0] : forestCol; g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.fill();
+      g.fillStyle = green ? autumnGreen[1] : forestLit; g.beginPath(); g.arc(x - rr * 0.3, y - 6 * s - rr * 1.05, rr * 0.55, 0, Math.PI * 2); g.fill();
       g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.stroke();
       if (winter) { g.fillStyle = 'rgba(248, 250, 252, 0.9)'; g.beginPath(); g.arc(x - rr * 0.2, y - 6 * s - rr * 1.3, rr * 0.5, Math.PI, 0); g.fill(); }
     } else if (m.k === 'pine') {
@@ -11808,6 +11830,16 @@ function drawRhumbs(cs, ch) {
   ctx.globalAlpha = 0.35; for (let k = 1; k < hubs.length; k++) { const sm = big * 0.32; ctx.drawImage(rose, hubs[k][0] - sm / 2, hubs[k][1] - sm / 2, sm, sm); }
   ctx.restore();
 }
+// fetch every engraved sprite up front, so nothing is drawn first in a stand-in and then swapped
+setTimeout(function owPreload() {
+  for (const k of ['farm', 'market', 'mine', 'quarry', 'factory', 'urban', 'lumber_mill', 'barn', 'port', 'pasture', 'science_lab', 'treasury']) featSprite('v_' + k);
+  for (const k of ['ft_ruins', 'ft_camp', 'ft_redoubt']) featSprite(k);
+  for (const k in NATURAL_WONDERS) featSprite('nw_' + k);
+  for (const k in CITY_BUILDING_DEFS) landmarkSprite(k);
+  townSprite(null); townSprite({ isCapital: true }); townSprite({ population: 5 });
+  for (const k in UNIT_DEFS) unitFigure(k);
+  for (const k in ANIMAL_DATA) featSprite('an_' + k);
+}, 0);
 // draw the chart under the hexes that have been explored, feathered at the edge of the known world; the cut-out sheet is cached until the view or the map changes
 const _owLayer = { c: null, key: '' };
 function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
@@ -11940,7 +11972,7 @@ function render() {
           if (vig) {
             const vw = w * 0.62, vh = vw * vig.naturalHeight / vig.naturalWidth;
             ctx.drawImage(vig, sx + (w - vw) / 2, sy + facePad + ch * 0.62 - vh, vw, vh);
-          } else if (impImg && impImg.complete && impImg.naturalWidth > 0) {
+          } else if (!charted && impImg && impImg.complete && impImg.naturalWidth > 0) {
             ctx.drawImage(impImg, sx, sy, drawW, drawH);
           }
         }
@@ -12059,7 +12091,7 @@ function render() {
         pts.push(sx, fy); cols.push(nations[t.owner].color);
       }
     }
-    drawHexLayer(pts, w, faceH, 0.13, null, null, 0, cols);
+    drawHexLayer(pts, w, faceH, charted ? 0.08 : 0.13, null, null, 0, cols);
   }
   // the sea: surf along every shore, and a few wave strokes on open water (the chart has its own water-lining)
   if (VIEW_TILE >= 16 && !charted) {
@@ -12171,9 +12203,15 @@ function render() {
         const badgeSize = Math.max(8, w * 0.28);
         const bx = sx + w * 0.72;
         const by = fy + ch * 0.18;
-        ctx.font = `${badgeSize}px system-ui`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(ad.icon, bx, by);
+        const an = charted ? featSprite('an_' + t.animal) : null;
+        if (an) { // a little engraved herd grazing in the corner of the hex
+          const aw = w * 0.34, ah = aw * an.naturalHeight / an.naturalWidth;
+          ctx.drawImage(an, bx - aw / 2, by + w * 0.06 - ah, aw, ah);
+        } else {
+          ctx.font = `${badgeSize}px system-ui`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(ad.icon, bx, by);
+        }
       }
     }
 
@@ -12204,7 +12242,23 @@ function render() {
           }
         }
       }
-      if (borderEdges.length > 0) {
+      if (borderEdges.length > 0 && charted) {
+        // an atlas boundary: the realm's colour laid on in a broad wash just inside the line, and the line itself in dotted ink
+        const bw = Math.max(3, Math.min(w * 0.2, 16));
+        ctx.save();
+        drawHexPath(ctx, sx, fy, w, faceH); ctx.clip();
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.strokeStyle = isContested ? 'rgba(40, 30, 20, 0.5)' : nationColor; ctx.globalAlpha = 0.5; ctx.lineWidth = bw * 2;
+        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.5, bw * 0.45);
+        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        ctx.restore();
+        ctx.save();
+        ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(30, 20, 10, 0.85)'; ctx.lineWidth = Math.max(1, w * 0.022);
+        ctx.setLineDash([w * 0.07, w * 0.035, w * 0.012, w * 0.035]);
+        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        ctx.restore();
+      } else if (borderEdges.length > 0) {
         // a painted map border: dark ink beneath, the realm's colour, a lighter line along its inner edge
         const bw = Math.max(2.5, Math.min(VIEW_TILE / 8, 9));
         ctx.lineCap = 'round';
@@ -12852,7 +12906,14 @@ function renderMinimap() {
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     bctx.fillStyle = '#211d17'; bctx.fillRect(0, 0, mw, mh);
     const tw = Math.max(1, k * 0.8), th = Math.max(1, 0.75 * k);
-    for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
+    const chart = getWorldChart();
+    if (chart) {
+      // the atlas sheet in miniature, with the unexplored hexes left dark
+      bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
+      bctx.drawImage(chart, 0, 0, chart.width * k / OW.K, chart.height * k / OW.K);
+      bctx.fillStyle = '#211d17';
+      for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) if (!tiles[y * MAP_COLS + x].revealed.has(playerNation)) bctx.fillRect(tx(x) - 0.5, ty(x, y) - 0.5, tw + 1, th + 1);
+    } else for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
       const t = tiles[y * MAP_COLS + x];
       if (!t.revealed.has(playerNation)) continue;          // (unexplored: the dark chart beneath)
       bctx.fillStyle = t.color;
