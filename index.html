@@ -12480,7 +12480,11 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
   const fadeT = OW.prevKnown ? Math.min(1, (Date.now() - OW.fadeStart) / 650) : 1;
   if (fadeT >= 1) OW.prevKnown = null;
-  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2)].join('|');
+  // while the view is moving, the sharp re-inking waits: it's drawn once the view comes to rest
+  const camKey = camX.toFixed(3) + ',' + camY.toFixed(3) + ',' + w, now = Date.now();
+  if (OW.camKey !== camKey) { OW.camKey = camKey; OW.moveUntil = now + 180; if (!OW.restTimer) OW.restTimer = setTimeout(function rest() { if (Date.now() < OW.moveUntil) { OW.restTimer = setTimeout(rest, OW.moveUntil - Date.now() + 5); return; } OW.restTimer = 0; render(); }, 190); }
+  const settled = now >= (OW.moveUntil || 0);
+  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
     const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
@@ -12505,7 +12509,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
       g.globalCompositeOperation = 'source-atop';
       // shown larger than it was drawn: ink the coast and the trees, peaks and reeds again at the view's own sharpness
-      if (fx * DPR > 1.25 && OW.F) {
+      if (fx * DPR > 1.25 && OW.F && settled) {
         g.save(); g.translate(ox, oy); g.scale(fx, fy);
         g.lineCap = 'round'; g.lineJoin = 'round';
         g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.6 * OW.K / 64; g.stroke(OW.F.coast);
