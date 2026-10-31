@@ -12846,7 +12846,11 @@ function owMasks(pId) {
   kg.clearRect(0, 0, W, H); kg.filter = 'blur(3px)'; kg.fillStyle = '#000'; kg.fill(kp); kg.fill(kp); kg.filter = 'none';
   // land known but not watched now: dimmed and browned, as an old survey not lately checked
   dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(104, 94, 80, 0.44)'; dg.fill(dp); // (greyed rather than darkened, so it stays apart from the blank vellum) dg.filter = 'none';
-  OW.masks = { known, dim, any, sc };
+  // (and smaller copies of each, for a view from afar: scaling the whole mask down every frame is slow on a big sheet)
+  const half = (src, old) => { const m = mk2(old, Math.ceil(src.width / 2), Math.ceil(src.height / 2)); const q = m.getContext('2d'); q.clearRect(0, 0, m.width, m.height); q.imageSmoothingEnabled = true; q.drawImage(src, 0, 0, m.width, m.height); return m; };
+  const mk2 = (old, w2, h2) => { const c = old && old.width === w2 && old.height === h2 ? old : document.createElement('canvas'); c.width = w2; c.height = h2; return c; };
+  const om = OW.masks || {}, k1 = half(known, om.knownM && om.knownM[1]), k2 = half(k1, om.knownM && om.knownM[2]), d1 = half(dim, om.dimM && om.dimM[1]), d2 = half(d1, om.dimM && om.dimM[2]);
+  OW.masks = { known, dim, any, sc, knownM: [known, k1, k2], dimM: [dim, d1, d2] };
   return OW.masks;
 }
 // each realm's name lettered across its land in spaced capitals, as the old chartmakers did (where it lies is worked out once a turn)
@@ -12928,13 +12932,15 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     const sx0 = Math.max(0, -ox / fx), sy0 = Math.max(0, -oy / fy);
     const sx1 = Math.min(chart.width, (viewW - ox) / fx), sy1 = Math.min(chart.height, (viewH - oy) / fy);
     if (sx1 > sx0 && sy1 > sy0) {
-      const dx = ox + sx0 * fx, dy = oy + sy0 * fy, dw = (sx1 - sx0) * fx, dh = (sy1 - sy0) * fy, ks = masks.sc;
+      // (the mask copy nearest the scale it is shown at)
+      const ml = masks.sc / (fx * DPR) > 3.5 ? 2 : masks.sc / (fx * DPR) > 1.8 ? 1 : 0, mKnown = masks.knownM[ml], mDim = masks.dimM[ml];
+      const dx = ox + sx0 * fx, dy = oy + sy0 * fy, dw = (sx1 - sx0) * fx, dh = (sy1 - sy0) * fy, ks0 = masks.sc, ks = masks.sc / (1 << ml);
       // the explored part of the sheet only, from the copy nearest the scale it is shown at
       if (OW.prevKnown) { // newly found land comes up out of the blank sheet
-        g.drawImage(OW.prevKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+        g.drawImage(OW.prevKnown, sx0 * ks0, sy0 * ks0, (sx1 - sx0) * ks0, (sy1 - sy0) * ks0, dx, dy, dw, dh);
         g.globalAlpha = fadeT * fadeT * (3 - 2 * fadeT);
       }
-      g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-in';
       const lvl = fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
@@ -12952,12 +12958,12 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       // the paper itself: laid lines close together, chain lines wider apart, as hand-made paper shows them
       const lp = owLaidPattern(g);
       if (lp && lp.setTransform) { const sc = Math.max(0.5, cs / 36); lp.setTransform(new DOMMatrix().translate(ox % (256 * sc), oy % (256 * sc)).scale(sc)); g.fillStyle = lp; g.fillRect(0, 0, viewW, viewH); }
-      g.drawImage(masks.dim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      g.drawImage(mDim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       // the charted land lies a little proud of the blank sheet: a smoky shadow along the edge of the known world
       g.globalCompositeOperation = 'destination-over';
       const so = Math.max(2, Math.min(7, cs * 0.09));
-      g.globalAlpha = 0.34; g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx + so * 0.6, dy + so, dw, dh);
-      g.globalAlpha = 0.22; g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx - so * 0.4, dy - so * 0.3, dw, dh);
+      g.globalAlpha = 0.34; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx + so * 0.6, dy + so, dw, dh);
+      g.globalAlpha = 0.22; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx - so * 0.4, dy - so * 0.3, dw, dh);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
     }
