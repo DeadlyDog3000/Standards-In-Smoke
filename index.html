@@ -704,6 +704,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Workers at Work</b><br>
+        - <b>Automate workers</b> (<b>B</b>, or the button on a worker's panel): it mends what raiders spoiled, improves your land and moves on to the next bare tile by itself each turn. It never fells a forest unasked, and Next Unit passes it by<br>
+        - Workers, yours and your rivals', head for the nearest tile they can actually improve instead of wandering (rival lands now fill with farms and mines several times faster)<br>
+        - Saves keep each city's militia cooldown (reloading used to raise a fresh militia every turn)
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">On the March</b><br>
@@ -1361,7 +1368,14 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.5</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Workers at Work</b><br>
+        - <b>Automate workers</b> (<b>B</b>, or the button on a worker's panel): it mends what raiders spoiled, improves your land and moves on to the next bare tile by itself each turn. It never fells a forest unasked, and Next Unit passes it by<br>
+        - Workers, yours and your rivals', head for the nearest tile they can actually improve instead of wandering (rival lands now fill with farms and mines several times faster)<br>
+        - Saves keep each city's militia cooldown (reloading used to raise a fresh militia every turn)
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">On the March</b><br>
         - Columns on the march raise dust at each step (horse more than foot), and ships leave a white wake<br>
@@ -6649,6 +6663,30 @@ function showDefeat(type, winnerId) {
 
 // A worker's day, for a rival's workers and for your own when you set them to work by themselves: mend what raiders spoiled,
 // improve the tile it stands on, or walk to the nearest land of the realm still bare. (Your own never fell a forest unasked.)
+// where a worker should head next: the nearest bare tile of its realm that it could actually improve (or clear, if allowed)
+const WORKER_JOBS = ['pasture', 'lumbermill', 'mine', 'farm', 'treasury', 'science_lab', 'market', 'quarry', 'port'];
+function workerSeekWork(u, nationId, opts = {}) {
+  // bare tiles of the realm, nearest first; only the closest dozen are weighed (each check costs a little)
+  const cand = [];
+  for (let ti = 0; ti < tiles.length; ti++) {
+    const t = tiles[ti];
+    if (t.owner !== nationId || t.improvement || t.type === 4 || t.type === 0 || t.type === 2) continue;
+    const x = ti % MAP_COLS, y = (ti - x) / MAP_COLS, d = hexDistance(x, y, u.x, u.y);
+    if (d > 0) cand.push([d, x, y, t.type]);
+  }
+  cand.sort((p, q) => p[0] - q[0]);
+  let best = null;
+  for (let k = 0; k < cand.length && k < 12 && !best; k++) {
+    const [, x, y, type] = cand[k];
+    if (units.some(o => o !== u && o.x === x && o.y === y)) continue;
+    const probe = { nationId, x, y, type: u.type };
+    if ((type === 5 && opts.chop !== false) || WORKER_JOBS.some(j => IMPROVEMENT_DEFS[j] && canBuildImprovement(probe, j))) best = { x, y };
+  }
+  if (best) moveAIToward(u, best.x, best.y, u.movesLeft);
+  else if (opts.chop === false) u.movesLeft = 0; // nothing it can do yet: your worker waits rather than wander off
+  else moveAIUnitMultiple(u, u.movesLeft);
+}
+
 function aiWorkerStep(u, nationId, opts = {}) {
 
   if (u.building) { u.movesLeft = 0; return; }
@@ -6678,20 +6716,8 @@ function aiWorkerStep(u, nationId, opts = {}) {
         else if (canBuildImprovement(u, 'port') && !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port')) buildImprovement(u, 'port'); // a first harbour, so the realm can put to sea
         else if (canBuildImprovement(u, 'market')) buildImprovement(u, 'market');
         else if (canBuildImprovement(u, 'quarry')) buildImprovement(u, 'quarry');
-        else {
-
-          let bestTile = null, bestDist = Infinity;
-          for (let ti2 = 0; ti2 < tiles.length; ti2++) {
-            const t2 = tiles[ti2];
-            if (t2.owner !== nationId || t2.improvement || t2.type === 4 || t2.type === 0 || t2.type === 2) continue;
-            const tx2 = ti2 % MAP_COLS, ty2 = Math.floor(ti2 / MAP_COLS);
-            const d2 = hexDistance(tx2, ty2, u.x, u.y);
-            if (d2 > 0 && d2 < bestDist) { bestDist = d2; bestTile = { x: tx2, y: ty2 }; }
-          }
-          if (bestTile) moveAIToward(u, bestTile.x, bestTile.y, u.movesLeft);
-          else moveAIUnitMultiple(u, u.movesLeft);
-        }
-      } else moveAIUnitMultiple(u, u.movesLeft);
+        else workerSeekWork(u, nationId, opts);
+      } else workerSeekWork(u, nationId, opts);
     }
   }
 }
@@ -12438,7 +12464,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.5';
+const CURRENT_VERSION = 'beta-6.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
