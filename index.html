@@ -12864,6 +12864,8 @@ function owDrawScaleOfMiles(g, K, CS, TH, u) {
   }
   g.restore();
 }
+// (seen whole or nearly, the ornaments are printed over the chart; any closer they lie beneath it)
+function ornamentsOver() { return VIEW_TILE < Math.max(20, minTile() + 4); }
 function drawSheetOrnaments(cs, ch, facePad) {
   if (!MAP_COLS || !OW.canvas) return;
   const mw = MAP_COLS * cs, mh = MAP_ROWS * ch, ox = -camX * cs, oy = -camY * ch;
@@ -12992,7 +12994,7 @@ function drawRhumbs(cs, ch) {
       if (motto && bs > 60) { ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = `italic ${Math.max(9, bs * 0.085)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.6)'; ctx.fillText(motto, bx, by + 4); ctx.restore(); }
     }
   }
-  if (VIEW_TILE >= 20) { ctx.restore(); drawSheetOrnaments(cs, ch, Math.round(hexWidth() * 1.5 * 4 / 48)); ctx.save(); } // (close to: beneath the chart)
+  if (!ornamentsOver()) { ctx.restore(); drawSheetOrnaments(cs, ch, Math.round(hexWidth() * 1.5 * 4 / 48)); ctx.save(); } // (close to: beneath the chart)
   // the great rose at the centre, and a small one at each hub
   const rose = owRoseCanvas(), big = Math.min(mw, mh) * 0.22;
   ctx.globalAlpha = 0.55; ctx.drawImage(rose, c0[0] - big / 2, c0[1] - big / 2, big, big);
@@ -13230,7 +13232,7 @@ function render() {
   const camXcs = camX * cs, camYch = camY * ch;
   const halfCh = Math.round(ch / 2);
   const charted = drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol);
-  if (charted && VIEW_TILE < 20) drawSheetOrnaments(cs, ch, facePad); // (from afar, printed over the land; close to, they'd hide it)
+  if (charted && ornamentsOver()) drawSheetOrnaments(cs, ch, facePad); // (from afar, printed over the land; close to, they'd hide it)
   const buildAt = charted ? new Map(units.filter(u => u.building && u.nationId === pId).map(u => [u.y * MAP_COLS + u.x, u.building])) : null;
   if (!charted) loadHexTiles();
 
