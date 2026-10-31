@@ -12538,14 +12538,13 @@ function drawRhumbs(cs, ch) {
     const cx0 = ox + cs * 1.2, cy0 = oy + ch * 1.0, pcx = cx0 + cwid * 0.494, pcy = cy0 + chgt * 0.545;
     ctx.globalAlpha = 0.92; ctx.drawImage(cart, cx0, cy0, cwid, chgt); ctx.globalAlpha = 1;
     const n = nations[playerNation], year = getCurrentYear();
-    const roman = (v) => { let r = ''; for (const [k, ch2] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) while (v >= k) { r += ch2; v -= k; } return r; };
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
     const u = cwid / 100;
     ctx.font = `italic ${Math.max(8, u * 4.2)}px 'EB Garamond', serif`; ctx.fillText('Charta Novissima', pcx, pcy - u * 7);
     ctx.font = `${Math.max(10, u * 6.4)}px 'Uncial Antiqua', serif`; ctx.fillStyle = 'rgba(120, 30, 20, 0.95)';
     const name = n ? n.name : ''; ctx.fillText(name, pcx, pcy, cwid * 0.42);
     ctx.font = `italic ${Math.max(8, u * 3.8)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
-    ctx.fillText('Anno Domini ' + roman(year), pcx, pcy + u * 7.5);
+    ctx.fillText('Anno Domini ' + toRoman(year), pcx, pcy + u * 7.5);
   }
   // the key to the chart in its lower right corner, as the old maps explained their marks
   {
