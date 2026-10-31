@@ -11641,6 +11641,16 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost) {
   // its shadow, and the ring of its colours on the ground
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(cx + w * 0.04, baseY + ry * 0.35, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+  if (naval && OW.canvas) {
+    // a ship's wake, curling away astern in pale strokes, and a pennant of its realm at the masthead's foot
+    const dir = flip ? 1 : -1, wy = baseY + ry * 0.5;
+    ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(240, 246, 240, 0.85)'; ctx.lineWidth = Math.max(1, w * 0.018);
+    for (let k = 0; k < 3; k++) {
+      const x0 = cx + dir * rx * (0.5 + k * 0.38), y0 = wy + (k - 1) * ry * 0.5;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + dir * rx * 0.25, y0 - ry * 0.5, x0 + dir * rx * 0.5, y0); ctx.stroke();
+    }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(cx, wy + ry * 0.2, rx * 0.5, ry * 0.32, 0, 0, Math.PI * 2); ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
+  }
   if (!naval) {
     // a wargame miniature's base: a turned wooden disc with its rim painted in the realm's colour
     const depth = Math.max(1.5, ry * 0.55);
