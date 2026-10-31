@@ -11607,6 +11607,9 @@ const CAVALRY_TYPES = new Set(['cavalry', 'hussar', 'lancer', 'heavy_cavalry', '
 function drawWargameBlock(u, cx, cy, w, col, selected) {
   const def = UNIT_DEFS[u.type] || {};
   const bw = Math.max(9, w * 0.5), bh = bw * 0.62, x = cx - bw / 2, y = cy - bh / 2;
+  // raiders and tribesmen owe no crown: a black block, and a skull or a feather on it
+  const wild = isBarbarianNation(u.nationId) || nations[u.nationId]?.isTribe;
+  if (wild) col = nations[u.nationId]?.isTribe ? '#5a4632' : '#262019';
   ctx.save();
   // its depth and shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.fillRect(x + 1.5, y + 2, bw, bh);
@@ -11622,6 +11625,7 @@ function drawWargameBlock(u, cx, cy, w, col, selected) {
   ctx.beginPath();
   if (def.naval) { ctx.moveTo(ix + iw * 0.12, iy + ih * 0.45); ctx.lineTo(ix + iw * 0.88, iy + ih * 0.45); ctx.lineTo(ix + iw * 0.72, iy + ih * 0.8); ctx.lineTo(ix + iw * 0.28, iy + ih * 0.8); ctx.closePath(); ctx.fill(); }
   else if (def.siege || /field_gun|cannon|mortar/.test(u.type)) { ctx.arc(ix + iw / 2, iy + ih / 2, ih * 0.24, 0, Math.PI * 2); ctx.fill(); }
+  else if (wild) { ctx.lineWidth = Math.max(0.8, bw * 0.05); ctx.arc(ix + iw / 2, iy + ih * 0.42, ih * 0.26, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ix + iw * 0.42, iy + ih * 0.42, ih * 0.07, 0, Math.PI * 2); ctx.arc(ix + iw * 0.58, iy + ih * 0.42, ih * 0.07, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(255, 248, 230, 0.95)'; ctx.fillRect(ix + iw * 0.4, iy + ih * 0.66, iw * 0.2, ih * 0.14); }
   else if (u.type === 'general') { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k & 1 ? ih * 0.16 : ih * 0.38; k ? ctx.lineTo(ix + iw / 2 + Math.cos(a) * r, iy + ih / 2 + Math.sin(a) * r) : ctx.moveTo(ix + iw / 2, iy + ih / 2 - r); } ctx.closePath(); ctx.fill(); }
   else if (CAVALRY_TYPES.has(u.type)) { ctx.moveTo(ix, iy + ih); ctx.lineTo(ix + iw, iy); ctx.stroke(); }
   else if (def.combat) { ctx.moveTo(ix, iy); ctx.lineTo(ix + iw, iy + ih); ctx.moveTo(ix + iw, iy); ctx.lineTo(ix, iy + ih); ctx.stroke(); }
