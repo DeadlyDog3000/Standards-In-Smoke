@@ -10872,7 +10872,7 @@ function getFogPattern() {
       const x = rnd() * S, y = rnd() * S, r = 20 + rnd() * 90, dark = rnd() < 0.5;
       for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
         const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
-        gr.addColorStop(0, dark ? 'rgba(40,24,8,0.13)' : 'rgba(200,176,128,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        gr.addColorStop(0, dark ? 'rgba(40,24,8,0.085)' : 'rgba(200,176,128,0.06)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
       }
     }
