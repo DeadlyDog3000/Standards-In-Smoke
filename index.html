@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Battle Honours</b><br>
+        - Every regiment keeps count of the enemies it has destroyed, attacking or holding its ground; hover over it to see its honours beside its name
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Reckoning of a War</b><br>
@@ -1592,6 +1597,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.2</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Battle Honours</b><br>
+          - Every regiment keeps count of the enemies it has destroyed, attacking or holding its ground; hover over it to see its honours beside its name
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.1</b></div>
         <div style="margin-bottom:12px;">
@@ -6452,6 +6462,9 @@ function doAttack(attacker, tx, ty) {
     target.morale = Math.min(MORALE_MAX, (target.morale ?? MORALE_MAX) + MORALE_KILL_BONUS);
   }
 
+  // battle honours: every enemy a regiment destroys is remembered (shown with its name)
+  if (defenderDied && !attackerDied && units.includes(attacker)) attacker.honours = (attacker.honours || 0) + 1;
+  else if (attackerDied && !defenderDied && units.includes(target)) target.honours = (target.honours || 0) + 1;
   // the chronicle remembers your regiments' decisive fights by name
   if ((defenderDied || attackerDied) && (attackerNationId === playerNation || defenderNationId === playerNation)) {
     const label = (un, type, nid) => { const rn = un && un.regiment ? regimentName(un) : ''; const nn = nations[nid]; return rn ? (nid !== playerNation && nn?.name ? `${nn.name}'s ${rn}` : `the ${rn}`) : `${nn?.isBarbarian ? 'a raider' : `a${/^[aeiou]/i.test(nn?.name || '') ? 'n' : ''} ${nn?.name || ''}`} ${type.replace(/_/g, ' ')}`; };
@@ -13794,7 +13807,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.1';
+const CURRENT_VERSION = 'beta-10.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -14113,7 +14126,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
     html += `<div class="tt-detail">${unitIco(u.type)} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
     const regiment = regimentName(u);
-    if (regiment) html += `<div class="tt-detail" style="color:#e0c880;font-style:italic">${escHtml(regiment)}</div>`;
+    if (regiment) html += `<div class="tt-detail" style="color:#e0c880;font-style:italic">${escHtml(regiment)}${u.honours ? ` <span style="font-style:normal;color:#c8b070">\u2014 ${u.honours} battle honour${u.honours > 1 ? 's' : ''}</span>` : ''}</div>`;
     const ttMaxHp = getEffectiveMaxHp(u);
     const ttLevel = getUnitLevel(u);
     html += `<div class="tt-detail">HP: ${u.hp}/${ttMaxHp}${ttLevel.xp > 0 ? ` | <span style="color:${ttLevel.color}">${ttLevel.rank}</span>` : ''}</div>`;
