@@ -14488,6 +14488,7 @@ function serializeGame() {
   const sCities = cities.map(c => ({
     x: c.x, y: c.y, name: c.name, nationId: c.nationId,
     producing: c.producing, productionProgress: c.productionProgress,
+    _militiaTurn: c._militiaTurn, _stall: c._stall, _noSettlerUntil: c._noSettlerUntil, // cooldowns survive a reload (no free militia each load)
     ownedTiles: [...c.ownedTiles],
     captureProgress: c.captureProgress || {}, contested: c.contested || false,
     isCapital: c.isCapital || false,
