@@ -12201,7 +12201,7 @@ function owLandFields(tileKey) {
       // deep in a range, fewer and bigger peaks (the relief shading carries the rest); more along its edges
       let inner = true;
       for (const [dc, dr] of (cI & 1) ? [[0, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]] : [[0, -1], [1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1]]) if (typeAt(cI + dc, r + dr) !== 2) inner = false;
-      const n = inner ? (rnd() < 0.62 ? 1 : 0) : 1 + (rnd() < 0.55 ? 1 : 0);
+      const n = inner ? (rnd() < 0.45 ? 1 : 0) : 1 + (rnd() < 0.55 ? 1 : 0);
       if (inner && n) { marks.push({ k: 'peak', x: cx + (rnd() - 0.5) * K * 0.3, y: cy + (rnd() - 0.3) * K * 0.2, s: 1.35 + rnd() * 0.55 }); continue; }
       for (let k = 0; k < n; k++) marks.push({ k: 'peak', x: cx + (rnd() - 0.5) * K * 0.42, y: cy + (k ? 0.12 : -0.08) * K + (rnd() - 0.5) * K * 0.1, s: k ? 0.8 + rnd() * 0.3 : 1.15 + rnd() * 0.4 });
     } else if (t === 7) {
