@@ -3237,16 +3237,21 @@ const UNIT_SPRITES = {
   lancer: 'sun-spear',
   heavy_cavalry: 'cavalry',
 };
-let hexImagesLoaded = 0;
-for (const name of HEX_TILE_FILES) {
-  const img = new Image();
-  img.src = `tiles/${name}.png`;
-  img.onload = () => {
-    hexImagesLoaded++;
-    // a tile that arrives after the first frame: draw the map again once (batched) so it isn't left blank
-    if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; if (document.getElementById('game')?.style.display !== 'none') render(); });
-  };
-  hexImages[name] = img;
+let hexImagesLoaded = 0, _hexTilesRequested = false;
+// the old hex tiles are only the fallback for when the chart can't be drawn: fetched the first time they're wanted
+function loadHexTiles() {
+  if (_hexTilesRequested) return;
+  _hexTilesRequested = true;
+  for (const name of HEX_TILE_FILES) {
+    const img = new Image();
+    img.src = `tiles/${name}.png`;
+    img.onload = () => {
+      hexImagesLoaded++;
+      // a tile that arrives after the first frame: draw the map again once (batched) so it isn't left blank
+      if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; if (document.getElementById('game')?.style.display !== 'none') render(); });
+    };
+    hexImages[name] = img;
+  }
 }
 
 const MOUNT_KEYS = ['Mount_A', 'Mount_B', 'Mount_C'], HILL_KEYS = ['Hill_A', 'Hill_B'];
@@ -12570,6 +12575,7 @@ function render() {
   const camXcs = camX * cs, camYch = camY * ch;
   const halfCh = Math.round(ch / 2);
   const charted = drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol);
+  if (!charted) loadHexTiles();
 
   for (let my = startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
@@ -12828,7 +12834,7 @@ function render() {
       const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
       const impKey = impSpriteMap[t.improvement] || t.improvement;
       if (t.improvement === 'redoubt') drawRedoubt(sx + w / 2, fy + faceH / 2, w, t.owner);
-      else if (!hexImages[impKey] || !hexImages[impKey].complete || !hexImages[impKey].naturalWidth) {
+      else if (!charted && (!hexImages[impKey] || !hexImages[impKey].complete || !hexImages[impKey].naturalWidth)) {
 
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
@@ -17686,7 +17692,7 @@ function loadGame(slot) {
       'FrosenWater','FrosenWater_Lilypads',
     ]);
     for (const t of tiles) {
-      if (!hexImages[t.spriteKey] || !TERRAIN_SPRITES.has(t.spriteKey)) {
+      if (!HEX_TILE_FILES.includes(t.spriteKey) || !TERRAIN_SPRITES.has(t.spriteKey)) {
         const fallback = TILE_SPRITES[t.type];
         t.spriteKey = fallback ? fallback[0] : 'Grass_Plants';
       }
