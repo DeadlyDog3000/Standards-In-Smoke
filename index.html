@@ -866,7 +866,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, and the engineers at their fortresses have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -1853,7 +1853,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, and the engineers at their fortresses have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -10353,6 +10353,8 @@ const EVENT_THEMES = [
   ['conspiracy', /conspira|assassin|duel|spy|pretender|scandal|lavish/i],
   ['bandits', /bandit|brigand|smuggl|runaway/i],
   ['frontier', /nomad|refugee/i],
+  ['unrest', /^(rebellion|mutiny|deserters|war_fatigue|rebel_informant)\b|\briot|\brevolt/i],
+  ['fortress', /border_wall|fortification|siege_innovation/i],
   ['harbour', /naval|ship|pirate|harbou?r|\bsea\b|sea_|coast|fisher|pearl|\bport\b|whal|blockade|sailor|admiral/i],
   ['mine', /\bmines?\b|mine_|\biron\b|iron_|\bore\b|quarr|mountain_pass|\bcaves?\b|coal|deposit/i],
   ['camp', /desert(er|ion)|mutin|mercenar|general|\barms\b|arms_|gunpowder|\barmy\b|soldier|veteran|recruit|drill|barracks|\bfort|siege|\bwar\b|war_|\braid|bandit|militia|officer|rebel_informant|hospital/i],
