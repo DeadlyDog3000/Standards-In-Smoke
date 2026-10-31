@@ -7126,7 +7126,9 @@ function aiTurn(nationId) {
 
     const allCityCount = cities.length;
     const otherCityCount = otherCities.length;
-    if (allCityCount > 0 && otherCityCount / allCityCount >= 0.4) {
+    // a realm grown too great (40% of all cities) is resented, once there are enough cities for that to mean anything
+    // (with five cities in the world, the first to found a second was dog-piled by everyone at once)
+    if (allCityCount >= 8 && otherCityCount / allCityCount >= 0.4) {
       changeLoyalty(nationId, otherId, -3);
     }
 
