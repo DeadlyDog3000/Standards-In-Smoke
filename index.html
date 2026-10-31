@@ -12398,18 +12398,43 @@ function buildWorldChart(key) {
     g.fillStyle = 'rgba(150, 96, 44, 0.26)'; g.fill(core);
     g.globalCompositeOperation = 'source-over';
   }
-  // a scale of miles in the lower corner, as the engraver signed off the sheet
+  // a scale of miles in the lower corner, as the engraver signed off the sheet: a framed two-track bar with a pair of
+  //  dividers stepping it off above, its frame ruled twice and scrolled at the ends
   {
-    const seg = CS * 1.2, n = 5, x0 = K * 1.1, y0 = TH - K * 0.85, bh = 6 * u;
-    g.fillStyle = 'rgba(236, 224, 192, 0.85)'; g.fillRect(x0 - 10 * u, y0 - 26 * u, seg * n + 20 * u, bh + 44 * u);
-    g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.2 * u; g.strokeRect(x0 - 10 * u, y0 - 26 * u, seg * n + 20 * u, bh + 44 * u);
-    for (let k = 0; k < n; k++) { g.fillStyle = k & 1 ? 'rgba(244, 234, 206, 1)' : 'rgba(46, 32, 18, 0.95)'; g.fillRect(x0 + k * seg, y0, seg, bh); }
-    g.strokeRect(x0, y0, seg * n, bh);
+    const seg = CS * 1.5, n = 5, x0 = K * 1.45 + seg, y0 = TH - K * 0.95, bh = 7 * u, W2 = seg * n, fx0 = x0 - seg - 16 * u, fy0 = y0 - 46 * u, fw = W2 + seg + 32 * u, fh = bh + 70 * u;
+    g.fillStyle = 'rgba(238, 227, 196, 0.92)'; g.fillRect(fx0, fy0, fw, fh);
+    g.strokeStyle = 'rgba(52, 38, 24, 0.92)'; g.lineWidth = 1.6 * u; g.strokeRect(fx0, fy0, fw, fh);
+    g.lineWidth = 0.7 * u; g.strokeRect(fx0 + 4 * u, fy0 + 4 * u, fw - 8 * u, fh - 8 * u);
+    // the scrolls at either end of the frame
+    for (const sx of [fx0, fx0 + fw]) {
+      const d = sx === fx0 ? -1 : 1, cy = fy0 + fh / 2;
+      g.beginPath(); g.moveTo(sx, cy - 12 * u); g.bezierCurveTo(sx + d * 14 * u, cy - 16 * u, sx + d * 16 * u, cy + 2 * u, sx + d * 6 * u, cy + 4 * u);
+      g.bezierCurveTo(sx + d * 1 * u, cy + 5 * u, sx + d * 2 * u, cy - 3 * u, sx + d * 7 * u, cy - 2 * u); g.moveTo(sx, cy + 12 * u); g.quadraticCurveTo(sx + d * 9 * u, cy + 14 * u, sx + d * 6 * u, cy + 4 * u);
+      g.lineWidth = 1.1 * u; g.stroke();
+    }
+    // the bar: two tracks, the squares of each alternating, the first ten miles split into single miles
+    for (let k = 0; k < n; k++) for (let tr = 0; tr < 2; tr++) {
+      g.fillStyle = (k + tr) & 1 ? 'rgba(244, 234, 206, 1)' : 'rgba(46, 32, 18, 0.95)';
+      g.fillRect(x0 + k * seg, y0 + tr * bh / 2, seg, bh / 2);
+    }
+    for (let k = 1; k < 5; k++) { g.fillStyle = k & 1 ? 'rgba(244, 234, 206, 1)' : 'rgba(46, 32, 18, 0.95)'; g.fillRect(x0 - seg + k * seg / 5, y0, seg / 5, bh); }
+    g.fillStyle = 'rgba(46, 32, 18, 0.95)'; g.fillRect(x0 - seg, y0, seg / 5, bh);
+    g.lineWidth = 1 * u; g.strokeRect(x0 - seg, y0, W2 + seg, bh);
     g.fillStyle = 'rgba(46, 32, 18, 0.95)'; g.textAlign = 'center'; g.textBaseline = 'bottom';
     g.font = `${10 * u}px 'EB Garamond', serif`;
+    g.fillText('10', x0 - seg, y0 - 2 * u);
     for (let k = 0; k <= n; k++) g.fillText(String(k * 10), x0 + k * seg, y0 - 2 * u);
-    g.font = `italic ${11 * u}px 'EB Garamond', serif`; g.textBaseline = 'top';
-    g.fillText('Scala Milliarium Germanicorum', x0 + seg * n / 2, y0 + bh + 3 * u);
+    // the dividers above, their points set on the first ten miles
+    {
+      const px0 = x0, px1 = x0 + seg, top = y0 - 34 * u, hx = (px0 + px1) / 2;
+      g.strokeStyle = 'rgba(46, 32, 18, 0.95)'; g.lineWidth = 1.3 * u; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(hx, top); g.lineTo(px0, y0 - 13 * u); g.moveTo(hx, top); g.lineTo(px1, y0 - 13 * u); g.stroke();
+      g.beginPath(); g.arc(hx, top, 3 * u, 0, Math.PI * 2); g.fillStyle = 'rgba(176, 140, 70, 1)'; g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(hx - 4 * u, top - 3 * u); g.lineTo(hx, top - 9 * u); g.lineTo(hx + 4 * u, top - 3 * u); g.stroke();
+    }
+    g.fillStyle = 'rgba(46, 32, 18, 0.95)';
+    g.font = `italic ${12 * u}px 'EB Garamond', serif`; g.textBaseline = 'top';
+    g.fillText('Scala Milliarium Germanicorum', x0 + (W2 - seg) / 2, y0 + bh + 5 * u);
   }
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
   // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
