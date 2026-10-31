@@ -3022,7 +3022,7 @@ function checkMoraleBreak(unit, depth) {
   if (morale <= MORALE_ROUT_THRESHOLD) {
 
     if (unit.nationId === playerNation) {
-      addFloatingText(unit.x, unit.y, 'ROUTED!', '#f44', 1800, 14);
+      addFloatingText(unit.x, unit.y, 'ROUTED!', '#d0603e', 1800, 14);
     }
     spawnDeathParticles(unit.x, unit.y, nations[unit.nationId]?.color || '#888');
     removeUnit(unit);
@@ -3472,7 +3472,7 @@ function tickWinterAttrition() {
     if (!inCity && !inOwnTerritory) {
       u.hp -= 1;
       if (u.hp <= 0) {
-        if (u.nationId === playerNation) addFloatingText(u.x, u.y, 'Frozen!', '#8cf', 1500, 12);
+        if (u.nationId === playerNation) addFloatingText(u.x, u.y, 'Frozen!', '#94b4d8', 1500, 12);
         removeUnit(u);
       }
     }
@@ -4064,7 +4064,7 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
     if (dmgToDefender > 0) addFloatingText(defenderX, defenderY, `-${dmgToDefender}`, '#ff4444', 1400, 16);
     if (dmgToAttacker > 0) addFloatingText(attackerX, attackerY, `-${dmgToAttacker}`, '#ff8844', 1400, 14);
     if (defenderDied) {
-      spawnDeathParticles(defenderX, defenderY, nations[defenderNationId]?.color || '#f44');
+      spawnDeathParticles(defenderX, defenderY, nations[defenderNationId]?.color || '#d0603e');
       addFloatingText(defenderX, defenderY, 'Killed!', '#ff2222', 1000, 13);
     }
     if (attackerDied) {
@@ -4138,7 +4138,7 @@ async function replayBattleEvents() {
       }
 
       if (evt.defenderDied) {
-        spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#f44');
+        spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#d0603e');
         addFloatingText(evt.defenderX, evt.defenderY, 'Killed!', '#ff2222', 1000, 13);
       }
       if (evt.attackerDied) {
@@ -6221,7 +6221,7 @@ function tickProduction(city) {
           if (city.nationId === playerNation) {
             const isWonder = bld.wonder;
             showToast(`${city.name} built ${bld.name}!${isWonder ? ' A wonder of the world!' : ''}`);
-            addFloatingText(city.x, city.y, `${bld.icon} ${bld.name}!`, isWonder ? '#e0c880' : '#6f6', 2000, 14);
+            addFloatingText(city.x, city.y, `${bld.icon} ${bld.name}!`, isWonder ? '#e0c880' : '#9cc070', 2000, 14);
             playAchievement();
           }
         }
@@ -6257,7 +6257,7 @@ function tickProduction(city) {
             const unitDef = UNIT_DEFS[city.producing];
             const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
             showToast(`${city.name} produced a ${unitName}!`);
-            addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#6f6', 2000, 14);
+            addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#9cc070', 2000, 14);
             playAchievement();
           }
         }
@@ -7027,11 +7027,11 @@ function tickCityCapture() {
           if (occupier.nationId === playerNation) {
             showToast(`${city.name} has been captured!`);
             screenShake(6, 300);
-            addFloatingText(city.x, city.y, 'City Captured!', '#6f6', 2000, 16);
+            addFloatingText(city.x, city.y, 'City Captured!', '#9cc070', 2000, 16);
           } else if (oldOwner === playerNation) {
             showToast(`${city.name} has fallen to ${nations[occupier.nationId].name}!`);
             screenShake(8, 400);
-            addFloatingText(city.x, city.y, 'City Lost!', '#f44', 2000, 16);
+            addFloatingText(city.x, city.y, 'City Lost!', '#d0603e', 2000, 16);
           }
         } else {
           if (occupier.nationId === playerNation) showToast(`Occupying ${city.name}: ${city.captureProgress[occupier.nationId]}/4 turns`);
@@ -8877,7 +8877,7 @@ function getCityLoyaltyStatus(city) {
   const d = getCityDiscontent(city);
   const net = d.net;
   if (net <= 0) return { status: 'loyal', label: 'Loyal', color: '#6cc6f4', net, discontent: d };
-  if (net <= 1.5) return { status: 'content', label: 'Content', color: '#6a6', net, discontent: d };
+  if (net <= 1.5) return { status: 'content', label: 'Content', color: '#7ea056', net, discontent: d };
   if (net <= 3) return { status: 'uneasy', label: 'Uneasy', color: '#cc6', net, discontent: d };
   if (net <= 5) return { status: 'unhappy', label: 'Unhappy', color: '#c80', net, discontent: d };
   if (net <= 7.5) return { status: 'furious', label: 'Furious', color: '#c33', net, discontent: d };
@@ -8945,7 +8945,7 @@ function tryCityRebellion(city) {
       screenShake(6, 400);
     } else if (newOwner === playerNation) {
       showToast(`${city.name} has rebelled and rejoined our cause!`);
-      addFloatingText(city.x, city.y, 'Liberated!', '#6f6', 2500, 14);
+      addFloatingText(city.x, city.y, 'Liberated!', '#9cc070', 2500, 14);
     }
     _tileCityMapDirty = true;
     return true;
@@ -9120,7 +9120,7 @@ function triggerFamilyRebellion(family) {
   }
   if (nationId === playerNation) {
     showToast(`The ${family.name} family is in open revolt! ${spawned} rebels near ${spawnCity.name}!`);
-    addFloatingText(spawnCity.x, spawnCity.y, `${family.name} REBELS!`, '#f44', 2500, 14);
+    addFloatingText(spawnCity.x, spawnCity.y, `${family.name} REBELS!`, '#d0603e', 2500, 14);
     screenShake(6, 400);
   }
 
@@ -13211,7 +13211,7 @@ function render() {
           else {
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.28, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#f44';
+            ctx.fillStyle = '#d0603e';
             ctx.font = `bold ${Math.max(9, w * 0.4)}px 'EB Garamond', serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('\uD83D\uDD25', sx + w / 2, fy + faceH / 2);
@@ -13609,7 +13609,7 @@ function render() {
       ctx.fillStyle = charted ? '#efe0bc' : 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
       if (charted) { ctx.strokeStyle = 'rgba(60, 36, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.015); ctx.stroke(); }
-      ctx.fillStyle = '#8cf';
+      ctx.fillStyle = '#94b4d8';
       ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('\uD83D\uDEE1', cx + rad * 0.8, cy - rad * 0.8);
@@ -14207,7 +14207,7 @@ function showUnitPanel(unit) {
     const canRanged = unit.movesLeft >= (unit.turnStartMoves ?? unit.maxMoves) || (unit.type === 'dragoon' && unit.movesLeft > 0);
 
     if (def.artillery && unit.reloadTurns > 0) {
-      html += `<p style="font-size:11px;color:#fa0;margin:2px 0;">Reloading... ${unit.reloadTurns} turn${unit.reloadTurns > 1 ? 's' : ''} remaining</p>`;
+      html += `<p style="font-size:11px;color:#d8a040;margin:2px 0;">Reloading... ${unit.reloadTurns} turn${unit.reloadTurns > 1 ? 's' : ''} remaining</p>`;
     }
     html += `<button class="p-btn" onclick="enterRangedMode()" ${(!canRanged || (def.artillery && unit.reloadTurns > 0)) ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
     if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">Cannot attack after moving.</p>`;
@@ -14217,7 +14217,7 @@ function showUnitPanel(unit) {
     html += '<div class="section-title">Ammo Type</div><div style="display:flex;gap:4px;flex-wrap:wrap;">';
     for (const ammo of def.ammoTypes) {
       const active = unit.ammo === ammo;
-      const style = active ? 'border-color:#fa0;color:#fa0' : '';
+      const style = active ? 'border-color:#d8a040;color:#d8a040' : '';
       const ammoDesc = ammo === 'cannonball' ? 'High dmg vs cities' : 'Devastating vs infantry, huge morale dmg';
       html += `<button class="p-btn" onclick="setAmmo('${ammo}')" style="${style};flex:1;font-size:11px">${ammo.charAt(0).toUpperCase() + ammo.slice(1)}${active ? ' *' : ''}<br><span class="cost">${ammoDesc}</span></button>`;
     }
@@ -14314,7 +14314,7 @@ function showCityPanel(city) {
   const queueStr = queue.length > 0 ? `<br><span style="font-size:11px;color:#998;">Queue: ${queue.map(q => getProductionName(q)).join(' → ')}</span>` : '';
   html += `<div class="ycity">${yStr}</div><p>Producing: ${prodStr}${queueStr}</p>`;
   html += `<div style="background:rgba(40,35,25,0.5);border:1px solid rgba(160,140,100,0.2);border-radius:5px;padding:6px 8px;margin:4px 0 6px;">`;
-  html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#6a6' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
+  html += `<span style="color:#c8b8a0;font-size:12px;">Population: <b style="color:#e0c880">${pop}</b> &nbsp; Jobs: <b style="color:${jobs >= needed ? '#7ea056' : '#c80'}">${jobs}/${needed}</b> &nbsp; Mood: <b style="color:${loyalty.color}">${loyalty.label}</b></span>`;
   if (loyalty.discontent) {
     const d = loyalty.discontent;
     const dItems = (d.factors || []).filter(f => f.val > 0.05).map(f => `<div style="color:#c88">+${f.val.toFixed(1)} ${escHtml(f.label)}</div>`).join('');
@@ -14426,7 +14426,7 @@ function showCityTab(tab) {
       html += '<div class="section-title">Built</div>';
       for (const key of cityBuildings) {
         const bld = CITY_BUILDING_DEFS[key];
-        if (bld) html += `<p style="font-size:11px;color:#6a6;margin:2px 0;">${bld.icon} ${bld.name} — ${bld.desc}</p>`;
+        if (bld) html += `<p style="font-size:11px;color:#7ea056;margin:2px 0;">${bld.icon} ${bld.name} — ${bld.desc}</p>`;
       }
     }
     html += `<p style="font-size:11px;color:#888;margin-top:6px">Research the Tech Tree (T) to unlock more!</p>`;
@@ -14481,8 +14481,8 @@ function moodPipBar(discontent, order, max) {
   html += `<div style="flex:1;display:flex;gap:1px;">`;
   for (let i = 0; i < pips; i++) {
     const filled = i < oFilled;
-    const bg = filled ? (oOverflow ? 'linear-gradient(180deg,#6a6,#cfc)' : '#6a6') : 'rgba(255,255,255,0.05)';
-    const glow = (filled && oOverflow) ? 'box-shadow:0 0 4px #6a6;' : '';
+    const bg = filled ? (oOverflow ? 'linear-gradient(180deg,#7ea056,#cfc)' : '#7ea056') : 'rgba(255,255,255,0.05)';
+    const glow = (filled && oOverflow) ? 'box-shadow:0 0 4px #7ea056;' : '';
     html += `<div style="flex:1;background:${bg};${glow}border:1px solid rgba(0,0,0,0.4);border-radius:1px;"></div>`;
   }
   html += `</div></div>`;
@@ -14547,7 +14547,7 @@ function renderCityStatsPanel(city) {
   html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px;">`;
   html += `<span style="color:#c33;">Discontent <b>${d.value.toFixed(1)}</b></span>`;
   html += `<span><b style="color:${loyalty.color}">${loyalty.label}</b> &nbsp; <span style="font-size:10px;color:#887;">net ${d.net.toFixed(1)}</span></span>`;
-  html += `<span style="color:#6a6;">Order <b>${d.order.toFixed(1)}</b></span>`;
+  html += `<span style="color:#7ea056;">Order <b>${d.order.toFixed(1)}</b></span>`;
   html += `</div>`;
   html += moodPipBar(d.value, d.order, MOOD_MAX);
   html += `<div style="display:flex;justify-content:space-between;font-size:9px;color:#665;margin-top:1px;"><span>cap ${MOOD_MAX}</span><span>cap ${MOOD_MAX}</span></div>`;
@@ -14566,7 +14566,7 @@ function renderCityStatsPanel(city) {
     html += `<div style="margin-top:8px;font-size:11px;">`;
     for (const f of allFactors) {
       const isD = f.type === 'discontent';
-      const c = isD ? '#c66' : '#6a6';
+      const c = isD ? '#c66' : '#7ea056';
       const sign = isD ? '+' : '−';
       html += `<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">`;
       html += `<span style="color:${c};width:32px;text-align:right;flex-shrink:0;font-family:monospace;">${sign}${f.val.toFixed(1)}</span>`;
@@ -14599,13 +14599,13 @@ function renderCityStatsPanel(city) {
 
   html += `<div style="color:#e0c880;font-size:13px;margin:14px 0 4px;font-weight:bold;border-top:1px solid rgba(180,140,60,0.2);padding-top:10px;">Population</div>`;
   html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px;">`;
-  html += `<span>Citizens <b style="color:#e0c880">${pop}</b> / ${maxPop}${atCap ? ' <span style="color:#fff;font-size:10px;text-shadow:0 0 5px #6a6;">★ FULL</span>' : ''}</span>`;
+  html += `<span>Citizens <b style="color:#e0c880">${pop}</b> / ${maxPop}${atCap ? ' <span style="color:#fff;font-size:10px;text-shadow:0 0 5px #7ea056;">★ FULL</span>' : ''}</span>`;
   html += `<span style="font-size:11px;color:#c8b8a0;">Jobs ${jobs}/${needed}</span>`;
   html += `</div>`;
   html += pipBar(pop, maxPop, '#7cc66c');
 
   html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin:8px 0 2px;color:#c8b8a0;">`;
-  html += `<span>Food balance: <b style="color:${foodSurplus > 0 ? '#6a6' : '#c66'}">${foodSurplus > 0 ? '+' : ''}${foodSurplus.toFixed(1)}</b></span>`;
+  html += `<span>Food balance: <b style="color:${foodSurplus > 0 ? '#7ea056' : '#c66'}">${foodSurplus > 0 ? '+' : ''}${foodSurplus.toFixed(1)}</b></span>`;
   if (atCap) {
     html += `<span style="color:#c80;">Build improvements to expand!</span>`;
   } else if (city.producing === 'settler' && pop >= 2) {
@@ -14614,7 +14614,7 @@ function renderCityStatsPanel(city) {
     html += `<span style="color:#c66;">No spare food: no growth</span>`;
   } else {
     const pct = Math.round(growthChance * 100);
-    html += `<span>Growth: <b style="color:${pct > 20 ? '#6a6' : pct > 5 ? '#cc6' : '#c80'}">${pct}%</b>/turn (mood ×${moodMult.toFixed(2)})</span>`;
+    html += `<span>Growth: <b style="color:${pct > 20 ? '#7ea056' : pct > 5 ? '#cc6' : '#c80'}">${pct}%</b>/turn (mood ×${moodMult.toFixed(2)})</span>`;
   }
   html += `</div>`;
 
@@ -15230,7 +15230,7 @@ function _buildTechTreeOverlay() {
   topBar.innerHTML = `
     <div style="color:#d4a856;font-size:18px;font-weight:bold;letter-spacing:1px;">⚗ Tech Tree</div>
     <div style="font-size:12px;color:#a89878;text-align:center;">
-      <span style="color:#8cf;">+${sciPerTurn.toFixed(1)} science/turn</span>
+      <span style="color:#94b4d8;">+${sciPerTurn.toFixed(1)} science/turn</span>
       ${ct ? `&nbsp;·&nbsp;<span style="color:#d4a856;">Researching: ${ct.name}</span>
         &nbsp;<span style="color:#8a7a5a;">${Math.floor(prog)}/${ct.cost} · ${turnsLeft}t left</span>
         <div style="display:inline-block;vertical-align:middle;width:100px;height:6px;background:rgba(0,0,0,0.4);border-radius:3px;margin-left:6px;">
@@ -15242,7 +15242,7 @@ function _buildTechTreeOverlay() {
     </div>
     <button onclick="closeTechTree()" style="
       background:rgba(80,20,20,0.5);border:1px solid rgba(200,80,60,0.4);
-      color:#f88;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px;
+      color:#e0907a;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px;
     ">✕ Close</button>
   `;
   overlay.appendChild(topBar);
@@ -15494,10 +15494,10 @@ function _buildTechTreeOverlay() {
         const prereqStr = t.prereqs.length ? t.prereqs.map(p => TECHS[p]?.name || p).join(', ') : 'None';
         const statusStr = researched ? '<span style="color:#4a8">✓ Researched</span>' :
           found === currentRes ? `<span style="color:#d4a856">In progress (${pct}%)</span>` :
-          prereqsMet ? '<span style="color:#8cf">Available</span>' : '<span style="color:#a44">🔒 Locked</span>';
+          prereqsMet ? '<span style="color:#94b4d8">Available</span>' : '<span style="color:#a44">🔒 Locked</span>';
         tooltip.innerHTML = `
           <div style="font-weight:bold;color:#f0d890;margin-bottom:4px;">${t.name}</div>
-          <div style="color:#8cf;margin-bottom:2px;">${statusStr}</div>
+          <div style="color:#94b4d8;margin-bottom:2px;">${statusStr}</div>
           <div style="color:#a89878;margin-bottom:4px;font-size:11px;">${t.desc}</div>
           ${unlockStr ? `<div style="margin-bottom:2px;"><span style="color:#8a7">Unlocks:</span> ${unlockStr}</div>` : ''}
           ${t.prereqs.length ? `<div style="color:#a89878;font-size:11px;">Requires: ${prereqStr}</div>` : ''}
@@ -15930,7 +15930,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
       html += `<div class="tt-detail">${_ad.icon} ${_ad.name}</div>`;
       if (t.owner === playerNation) {
         const pY = Object.entries(_ad.baseYield).map(([k,v]) => `+${v} ${k}`).join(', ');
-        html += `<div class="tt-detail" style="color:#7f7">Build Pasture → ${pY}/turn</div>`;
+        html += `<div class="tt-detail" style="color:#a8c878">Build Pasture → ${pY}/turn</div>`;
       } else {
         const hY = Object.entries(_ad.huntYield).map(([k,v]) => `+${v} ${k}`).join(', ');
         html += `<div class="tt-detail" style="color:#fc8">Move unit here to Hunt (${hY})</div>`;
@@ -15949,12 +15949,12 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     }
   }
 
-  if (isCitySite(mx, my)) html += `<div class="tt-detail" style="color:#7f7">\u2691 City Site - can settle here</div>`;
+  if (isCitySite(mx, my)) html += `<div class="tt-detail" style="color:#a8c878">\u2691 City Site - can settle here</div>`;
 
   const campHere = getBarbarianCamp(mx, my);
   if (campHere) {
     if (!campHere.destroyed) {
-      html += `<div class="tt-detail" style="color:#f44">\uD83D\uDD25 Barbarian Camp</div>`;
+      html += `<div class="tt-detail" style="color:#d0603e">\uD83D\uDD25 Barbarian Camp</div>`;
       html += `<div class="tt-detail" style="color:#c88">Place a unit here to destroy, or settle with a settler</div>`;
     }
   }
@@ -15962,7 +15962,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (destroyedCampHere && destroyedCampHere.destroyedTurn > -100) {
     const turnsLeft = Math.max(0, barbRespawnTurns - (turnNumber - destroyedCampHere.destroyedTurn));
     if (turnsLeft > 0) html += `<div class="tt-detail" style="color:#c66">Destroyed camp - respawns in ${turnsLeft} turns</div>`;
-    html += `<div class="tt-detail" style="color:#7f7">Can settle here</div>`;
+    html += `<div class="tt-detail" style="color:#a8c878">Can settle here</div>`;
   }
 
   const pilHere = pillaged.find(p => p.tileIndex === (my * MAP_COLS + mx));
@@ -15992,13 +15992,13 @@ function updateTileTooltip(mx, my, screenX, screenY) {
           + (redoubtMult(mx, my) < 1 ? ` | <span style="color:#c9a86a">Redoubt -${Math.round((1 - REDOUBT_SHELTER) * 100)}%</span>` : '')
           + (starveMult(mx, my) > 1 ? ` | <span style="color:#ff9a4a">Starving garrison +15%</span>` : '');
         html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:${flankStr}${riverStr}</div>`;
-        html += `<div class="tt-detail" style="color:#f66;">Deal ~${est.estDmg} dmg (${est.targetHp}hp \u2192 ${Math.max(0, est.targetHp - est.estDmg)}hp)</div>`;
+        html += `<div class="tt-detail" style="color:#e0806a;">Deal ~${est.estDmg} dmg (${est.targetHp}hp \u2192 ${Math.max(0, est.targetHp - est.estDmg)}hp)</div>`;
         if (est.estRetaliation > 0) {
           html += `<div class="tt-detail" style="color:#fa4;">Take ~${est.estRetaliation} dmg (${est.attackerHp}hp \u2192 ${Math.max(0, est.attackerHp - est.estRetaliation)}hp)</div>`;
         } else if (est.isRanged) {
-          html += `<div class="tt-detail" style="color:#6f6;">No retaliation (ranged)</div>`;
+          html += `<div class="tt-detail" style="color:#9cc070;">No retaliation (ranged)</div>`;
         }
-        if (est.targetHp - est.estDmg <= 0) html += `<div class="tt-detail" style="color:#f44;font-weight:bold;">Likely kill!</div>`;
+        if (est.targetHp - est.estDmg <= 0) html += `<div class="tt-detail" style="color:#d0603e;font-weight:bold;">Likely kill!</div>`;
       }
     }
   }
@@ -16891,7 +16891,7 @@ window.doRangedAttack = function(tx, ty) {
 
   addFloatingText(tx, ty, `-${rDmgDealt}`, '#ff4444', 1400, 16);
   if (rTargetDied) {
-    spawnDeathParticles(tx, ty, nations[target.nationId]?.color || '#f44');
+    spawnDeathParticles(tx, ty, nations[target.nationId]?.color || '#d0603e');
     addFloatingText(tx, ty, 'Killed!', '#ff2222', 1000, 13);
   }
   selectedUnit.movesLeft = 0;
@@ -17118,7 +17118,7 @@ function closePlanningPopup() { window.closePlanningPopup(); }
 function openPlanningPopup(tileIdx, screenX, screenY) {
   closePlanningPopup();
   const ann = tileAnnotations[tileIdx] || { color: '#ffff00', label: '' };
-  const colors = ['#ff4444','#ff9900','#ffff00','#44ff44','#44aaff','#cc66ff','#ffffff'];
+  const colors = ['#ff4444','#ff9900','#ffff00','#8cbc5c','#44aaff','#cc66ff','#ffffff'];
   const swatches = colors.map(c => {
     const sel = ann.color === c ? 'outline:2px solid #fff;outline-offset:2px;' : '';
     return `<span onclick="window._planPickColor(${tileIdx},'${c}')" style="display:inline-block;width:18px;height:18px;background:${c};border-radius:3px;cursor:pointer;margin:1px;${sel}"></span>`;
@@ -17577,7 +17577,7 @@ function renderCourtPanel() {
     const pn = nations[playerNation];
     for (const f of playerFamilies) {
       const op = Math.round(f.opinion);
-      const opColor = op >= 60 ? '#6a6' : op >= 40 ? '#cc6' : op >= 25 ? '#c80' : '#c33';
+      const opColor = op >= 60 ? '#7ea056' : op >= 40 ? '#cc6' : op >= 25 ? '#c80' : '#c33';
       const opLabel = op >= 60 ? 'Loyal' : op >= 40 ? 'Content' : op >= 25 ? 'Restless' : 'Angry';
       const opPct = op;
       const appeaseCost = 30;
