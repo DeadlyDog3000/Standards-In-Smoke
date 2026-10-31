@@ -12360,6 +12360,12 @@ function drawSheetBorder(w, cs, ch, facePad) {
   const step = cs * 2;
   for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
   for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
+  // the degrees, numbered along the frame (longitude above and below, latitude at the sides)
+  if (gap >= 7) {
+    ctx.font = `${Math.max(7, gap * 0.85)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(52, 36, 18, 0.85)'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    for (let x = bx, k = 0; x <= bx + bw; x += step * 2, k++) { if (x < -40 || x > viewW + 40) continue; const deg = k * 5 - 10; const lab = Math.abs(deg) + '°' + (deg < 0 ? 'W' : deg > 0 ? 'E' : ''); ctx.fillText(lab, x, by - gap * 2.1); }
+    for (let y = by, k = 0; y <= by + bh; y += step * 2, k++) { if (y < -40 || y > viewH + 40) continue; const deg = 60 - k * 5; const lab = Math.abs(deg) + '°'; ctx.save(); ctx.translate(bx - gap * 2.1, y); ctx.rotate(-Math.PI / 2); ctx.fillText(lab, 0, 0); ctx.restore(); ctx.save(); ctx.translate(bx + bw + gap * 2.1, y); ctx.rotate(Math.PI / 2); ctx.fillText(lab, 0, 0); ctx.restore(); }
+  }
   // the engraver's line in the bottom margin, as the old sheets were signed
   if (gap >= 5) {
     ctx.font = `italic ${Math.max(9, gap * 1.45)}px 'EB Garamond', serif`; ctx.textBaseline = 'middle';
