@@ -794,6 +794,7 @@
         - Fields where a regiment fell are marked on the chart with crossed swords and the year, as the old maps marked their battles (and they stay marked)<br>
         - The route of march is a red dashed line with an arrowhead, roads are double-ruled, strength and morale are little ink-ruled gauges, and map messages are lettered in ink<br>
         - Every icon, every event picture and the pictures behind the menu are hand-coloured engravings; End Turn is a wax-red button; the tech tree is a set of parchment cards; all panels are leather in gilt frames<br>
+        - The chart lies on a leather desk, throwing a soft shadow, with the chartmaker's brass dividers and magnifying glass beside it; a town's garrison stands at its gate so the town can still be seen<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -1772,6 +1773,7 @@
           - Fields where a regiment fell are marked on the chart with crossed swords and the year, as the old maps marked their battles (and they stay marked)<br>
           - The route of march is a red dashed line with an arrowhead, roads are double-ruled, strength and morale are little ink-ruled gauges, and map messages are lettered in ink<br>
           - Every icon, every event picture and the pictures behind the menu are hand-coloured engravings; End Turn is a wax-red button; the tech tree is a set of parchment cards; all panels are leather in gilt frames<br>
+          - The chart lies on a leather desk, throwing a soft shadow, with the chartmaker's brass dividers and magnifying glass beside it; a town's garrison stands at its gate so the town can still be seen<br>
           - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -12217,6 +12219,21 @@ function drawSheetBorder(w, cs, ch, facePad) {
   // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
   const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
   ctx.save();
+  // the chartmaker's dividers and glass lying on the desk beside the sheet
+  {
+    const ow2 = bw + gap * 5.2, oh2 = bh + gap * 5.2, ox2 = bx - gap * 2.6, oy2 = by - gap * 2.6;
+    const props = [['desk_dividers', ox2 + ow2 + oh2 * 0.06, oy2 + oh2 * 0.5, oh2 * 0.42, -0.35], ['desk_glass', ox2 - oh2 * 0.06, oy2 + oh2 * 0.28, oh2 * 0.34, 0.5]];
+    for (const [name, px, py, size, rot] of props) {
+      const img = owDeskProp(name); if (!img) continue;
+      const iw = size * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), ih = size * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
+      const cx2 = name === 'desk_glass' ? px - iw * 0.55 : px + iw * 0.55;
+      if (cx2 + size < 0 || cx2 - size > viewW || py + size < 0 || py - size > viewH) continue;
+      ctx.save(); ctx.translate(cx2, py); ctx.rotate(rot);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = size * 0.04; ctx.shadowOffsetX = size * 0.025; ctx.shadowOffsetY = size * 0.04;
+      ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+      ctx.restore();
+    }
+  }
   // the sheet lies on the table: its shadow falls on the wood around it (clipped to outside the sheet)
   {
     const ox0 = bx - gap * 2.6, oy0 = by - gap * 2.6, ow = bw + gap * 5.2, oh = bh + gap * 5.2;
@@ -12237,6 +12254,12 @@ function drawSheetBorder(w, cs, ch, facePad) {
   for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
   for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
   ctx.restore();
+}
+const _owProps = {};
+function owDeskProp(name) {
+  let img = _owProps[name];
+  if (!img) { img = _owProps[name] = new Image(); img.src = 'ui/' + name + '.png'; }
+  return img.complete && img.naturalWidth ? img : null;
 }
 // the desk the chart lies on: the leather of the panels, scrolled with the sheet
 let _owDesk = null, _owDeskImg = null;
