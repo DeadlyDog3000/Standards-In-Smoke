@@ -866,7 +866,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -1853,7 +1853,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads have their own engraving; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -12773,6 +12773,18 @@ function drawRhumbs(cs, ch) {
   ctx.fillStyle = 'rgba(46, 30, 14, 0.34)';
   for (const [fxp, fyp] of [[0.27, 0.3], [0.73, 0.36], [0.3, 0.74], [0.7, 0.7]]) ctx.fillText('Terra Incognita', ox + mw * fxp, oy + mh * fyp);
   ctx.restore();
+  // and beasts in the empty interior, as the old chartmakers filled what they did not know (the survey covers them as it comes)
+  {
+    const bs = Math.min(mh * 0.15, cs * 6.5, 230);
+    for (const [name, fxp, fyp, flip, motto] of [['beast_bear', 0.4, 0.2, false, ''], ['beast_lion', 0.6, 0.62, true, 'Hic sunt leones'], ['beast_elephant', 0.2, 0.56, false, '']]) {
+      const img = owDeskProp(name); if (!img) continue;
+      const bw2 = bs * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), bh2 = bs * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
+      const bx = ox + mw * fxp, by = oy + mh * fyp;
+      if (bx + bw2 < 0 || bx - bw2 > viewW || by + bh2 < 0 || by - bh2 > viewH) continue;
+      ctx.save(); ctx.globalAlpha = 0.82; ctx.translate(bx, by); if (flip) ctx.scale(-1, 1); ctx.drawImage(img, -bw2 / 2, -bh2, bw2, bh2); ctx.restore();
+      if (motto && bs > 60) { ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = `italic ${Math.max(9, bs * 0.085)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.6)'; ctx.fillText(motto, bx, by + 4); ctx.restore(); }
+    }
+  }
   // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
   const cart = owCartouche();
   if (cart) {
