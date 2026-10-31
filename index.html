@@ -3376,8 +3376,16 @@ let camX = 0, camY = 0, viewCols, viewRows;
 // The camera may go half a screen past the map's edges, so every tile (a coastal capital, a corner of the map) can be brought to the middle
 function visibleCols() { return viewW / hexColStep(); }
 function visibleRows() { return viewH / hexCellH(); }
-function clampCamX(v) { const vc = visibleCols(); return Math.max(-vc / 2, Math.min(MAP_COLS - vc / 2, v)); }
-function clampCamY(v) { const vr = visibleRows(); return Math.max(-vr / 2, Math.min(MAP_ROWS - vr / 2, v)); }
+// (a sheet smaller than the view lies in the middle of the desk, with only a little play either way)
+function clampAxis(v, n, vis) { if (vis >= n) { const c = (n - vis) / 2; return Math.max(c - 1.5, Math.min(c + 1.5, v)); } return Math.max(-vis / 2, Math.min(n - vis / 2, v)); }
+function clampCamX(v) { return clampAxis(v, MAP_COLS + 0.35, visibleCols()); }
+function clampCamY(v) { return clampAxis(v, MAP_ROWS + 0.5, visibleRows()); }
+// zoomed out no further than a little past the whole sheet in view
+function minTile() {
+  if (!MAP_COLS) return MIN_TILE;
+  const rc = hexColStep() / VIEW_TILE, rr = hexCellH() / VIEW_TILE, fit = Math.min(viewW / ((MAP_COLS + 0.35) * rc), viewH / ((MAP_ROWS + 0.5) * rr));
+  return Math.max(MIN_TILE, Math.min(24, Math.floor(fit * 0.9)));
+}
 let nations = [];
 let playerNation = 0;
 let units = [];
@@ -4025,6 +4033,7 @@ function panCameraTo(col, row, callback) {
 let camPanActive = false;
 function camPanTick() {
   if (targetCamX === null) { camPanActive = false; return; }
+  targetCamX = clampCamX(targetCamX); targetCamY = clampCamY(targetCamY); // (the view may have been zoomed meanwhile)
   const dx = targetCamX - camX, dy = targetCamY - camY;
   if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
     camX = targetCamX; camY = targetCamY;
@@ -10748,23 +10757,23 @@ function getFogPattern() {
   try {
     const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
     const g = c.getContext('2d');
-    g.fillStyle = '#27231d'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#76603f'; g.fillRect(0, 0, S, S); // (blank vellum, browned by the smoke of years)
     // soft stains: tileable by drawing each blot at its wrapped positions
     let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let k = 0; k < 70; k++) {
       const x = rnd() * S, y = rnd() * S, r = 20 + rnd() * 90, dark = rnd() < 0.5;
       for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
         const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
-        gr.addColorStop(0, dark ? 'rgba(10,8,5,0.10)' : 'rgba(120,100,70,0.06)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        gr.addColorStop(0, dark ? 'rgba(40,24,8,0.13)' : 'rgba(200,176,128,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
       }
     }
     // paper grain
     const img = g.getImageData(0, 0, S, S), d = img.data;
-    for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 9; d[i] += n; d[i + 1] += n; d[i + 2] += n * 0.8; }
+    for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 11; d[i] += n; d[i + 1] += n; d[i + 2] += n * 0.8; }
     g.putImageData(img, 0, 0);
     // a faint chart grid, as on an old sea map
-    g.strokeStyle = 'rgba(150,125,85,0.07)'; g.lineWidth = 1;
+    g.strokeStyle = 'rgba(52,34,16,0.08)'; g.lineWidth = 1;
     g.beginPath(); g.moveTo(0, 0.5); g.lineTo(S, 0.5); g.moveTo(0.5, 0); g.lineTo(0.5, S);
     g.moveTo(0, S / 2 + 0.5); g.lineTo(S, S / 2 + 0.5); g.moveTo(S / 2 + 0.5, 0); g.lineTo(S / 2 + 0.5, S); g.stroke();
     _fogPattern = ctx.createPattern(c, 'repeat');
@@ -12358,6 +12367,10 @@ function owDrawNames(g, w, cs, ch, facePad) {
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
     g.font = `italic ${l.kind === 'sea' ? 500 : 600} ${px}px 'EB Garamond', serif`;
     if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : 0.18)) + 'px';
+    // (lettered only once the ground under both its ends is known, so a name is never cut off at the edge of the known world)
+    const lx = l.i % MAP_COLS, ly = (l.i - lx) / MAP_COLS, half = Math.ceil(g.measureText(l.text).width / 2 / cs + 0.3);
+    const known = (c) => c < 0 || c >= MAP_COLS || tiles[ly * MAP_COLS + c].revealed.has(playerNation);
+    if (!known(lx - half) || !known(lx + half)) continue;
     g.lineWidth = Math.max(2, px * 0.18); g.strokeStyle = l.kind === 'sea' ? 'rgba(150, 175, 170, 0.55)' : 'rgba(236, 226, 200, 0.75)'; g.strokeText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
     g.fillStyle = l.kind === 'sea' ? 'rgba(28, 44, 50, 0.85)' : 'rgba(58, 38, 18, 0.9)'; g.fillText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
   }
@@ -12508,7 +12521,7 @@ function drawRhumbs(cs, ch) {
   const R = Math.min(mw, mh) * 0.36, c0 = [ox + mw / 2, oy + mh / 2];
   const hubs = [c0];
   for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; hubs.push([c0[0] + Math.cos(a) * R * 1.25, c0[1] + Math.sin(a) * R]); }
-  const L = Math.hypot(mw, mh), cols = ['rgba(150, 120, 70, 0.17)', 'rgba(90, 130, 80, 0.12)', 'rgba(160, 60, 40, 0.11)'];
+  const L = Math.hypot(mw, mh), cols = ['rgba(48, 32, 16, 0.26)', 'rgba(38, 72, 40, 0.2)', 'rgba(128, 34, 20, 0.2)'];
   ctx.save(); ctx.lineWidth = 1;
   // off the sheet is the table it lies on, darker; the lines stay on the vellum
   if (OW.canvas) {
@@ -12518,6 +12531,13 @@ function drawRhumbs(cs, ch) {
     if (desk) { desk.setTransform(new DOMMatrix().translate(ox % 512, oy % 512)); ctx.fillStyle = desk; ctx.fill(off, 'evenodd'); }
     ctx.fillStyle = desk ? 'rgba(10, 6, 2, 0.45)' : 'rgba(6, 4, 2, 0.6)'; ctx.fill(off, 'evenodd');
     ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+    // the blank vellum darkens toward its edges, as a sheet long kept by the fire
+    const e = Math.min(sw, sh) * 0.22;
+    for (const [x0, y0, x1, y1] of [[sx, 0, sx + e, 0], [sx + sw, 0, sx + sw - e, 0], [0, sy, 0, sy + e], [0, sy + sh, 0, sy + sh - e]]) {
+      const gr = ctx.createLinearGradient(x0, y0, x1, y1);
+      gr.addColorStop(0, 'rgba(30, 18, 6, 0.42)'); gr.addColorStop(1, 'rgba(30, 18, 6, 0)');
+      ctx.fillStyle = gr; ctx.fillRect(sx, sy, sw, sh);
+    }
   }
   for (let band = 0; band < 3; band++) {
     ctx.strokeStyle = cols[band]; ctx.beginPath();
@@ -12535,7 +12555,7 @@ function drawRhumbs(cs, ch) {
   const tpx = Math.max(12, Math.min(cs * 0.9, 46));
   ctx.font = `italic ${tpx}px 'EB Garamond', serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = (tpx * 0.4) + 'px';
-  ctx.fillStyle = 'rgba(196, 170, 120, 0.22)';
+  ctx.fillStyle = 'rgba(46, 30, 14, 0.34)';
   for (const [fxp, fyp] of [[0.27, 0.3], [0.73, 0.36], [0.3, 0.74], [0.7, 0.7]]) ctx.fillText('Terra Incognita', ox + mw * fxp, oy + mh * fyp);
   ctx.restore();
   // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
@@ -12547,11 +12567,12 @@ function drawRhumbs(cs, ch) {
     const n = nations[playerNation], year = getCurrentYear();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
     const u = cwid / 100;
-    ctx.font = `italic ${Math.max(8, u * 4.2)}px 'EB Garamond', serif`; ctx.fillText('Charta Novissima', pcx, pcy - u * 7);
-    ctx.font = `${Math.max(10, u * 6.4)}px 'Uncial Antiqua', serif`; ctx.fillStyle = 'rgba(120, 30, 20, 0.95)';
+    // (the lettering keeps to the cartouche's own scale; too small to read, only the realm's name is kept)
+    if (u * 4 >= 6) { ctx.font = `italic ${u * 4.2}px 'EB Garamond', serif`; ctx.fillText('Charta Novissima', pcx, pcy - u * 7, cwid * 0.4); }
+    ctx.font = `${Math.max(5, u * 6.4)}px 'Uncial Antiqua', serif`; ctx.fillStyle = 'rgba(120, 30, 20, 0.95)';
     const name = n ? n.name : ''; ctx.fillText(name, pcx, pcy, cwid * 0.42);
-    ctx.font = `italic ${Math.max(8, u * 3.8)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
-    ctx.fillText('Anno Domini ' + toRoman(year), pcx, pcy + u * 7.5);
+    ctx.font = `italic ${u * 3.8}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
+    if (u * 3.8 >= 6) ctx.fillText('Anno Domini ' + toRoman(year), pcx, pcy + u * 7.5, cwid * 0.4);
   }
   // the key to the chart in its lower right corner, as the old maps explained their marks
   {
@@ -16107,7 +16128,7 @@ canvas.addEventListener('wheel', (e) => {
   const zoomIn = _wheelAcc < 0; _wheelAcc = 0;
   // (from wherever a glide in progress was heading, so quick notches add up)
   const base = _zoomGlide ? _zoomGlide.to : VIEW_TILE;
-  const to = zoomIn ? Math.min(MAX_TILE, base + Math.max(2, Math.round(base * 0.15))) : Math.max(MIN_TILE, base - Math.max(2, Math.round(base * 0.15)));
+  const to = zoomIn ? Math.min(MAX_TILE, base + Math.max(2, Math.round(base * 0.15))) : Math.max(minTile(), base - Math.max(2, Math.round(base * 0.15)));
   // the zoom glides over a few frames, the point under the pointer staying where it is
   _zoomGlide = { from: VIEW_TILE, to, t0: performance.now(), worldX, worldY, mx, my };
   if (!_zoomRaf) { _zoomRaf = true; requestAnimationFrame(zoomGlideStep); }
@@ -16161,7 +16182,7 @@ canvas.addEventListener('touchmove', (e) => {
       const oldCS = hexColStep(), oldCH = hexCellH();
       const worldX = camX + midX / oldCS, worldY = camY + midY / oldCH;
       if (dist > lastPinchDist * 1.05) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(1, Math.round(VIEW_TILE * 0.08)));
-      else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08)));
+      else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.max(minTile(), VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08)));
       const newCS = hexColStep(), newCH = hexCellH();
       camX = worldX - midX / newCS;
       camY = worldY - midY / newCH;
