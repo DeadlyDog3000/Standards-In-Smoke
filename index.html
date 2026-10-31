@@ -15395,7 +15395,7 @@ function resumeLastGame() {
   const data = localStorage.getItem('sis_save_auto');
   if (!data) { showToast('No saved game found'); return; }
   // (a big world: say the chartmaker is at work while its sheet is engraved again)
-  if (data.length > 1500000) { showChartmakerCard(); setTimeout(() => { try { loadGame('auto'); } finally { hideChartmakerCard(); } }, 60); }
+  if (data.length > 800000) { showChartmakerCard(); setTimeout(() => { try { loadGame('auto'); } finally { hideChartmakerCard(); } }, 60); }
   else loadGame('auto');
 }
 function showMenuOptions() {
