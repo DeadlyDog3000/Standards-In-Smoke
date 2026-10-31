@@ -558,6 +558,10 @@
     .top-btn:hover { background: linear-gradient(rgba(255, 220, 140, 0.22), rgba(120, 80, 20, 0.15)); border-color: #d8b060; }
     .top-btn.end-turn, #endTurnBtn { background: linear-gradient(#9a3020, #6a1c12); border-color: #d8a050; color: #fff2d8; font-weight: 600; letter-spacing: 0.04em; box-shadow: inset 0 1px 0 rgba(255, 200, 160, 0.3), 0 0 0 1px rgba(16, 11, 6, 0.9), 0 2px 6px rgba(0, 0, 0, 0.5); }
     .top-btn.end-turn:hover, #endTurnBtn:hover { background: linear-gradient(#b23a26, #7a2216); }
+    /* the title, ruled beneath with a gilt flourish as on a title page */
+    #menu h1 + h2::before { content: ''; display: block; width: min(420px, 70vw); height: 14px; margin: 0 auto 8px;
+      background: radial-gradient(circle at 50% 50%, #e8c870 0 3px, transparent 3.5px), linear-gradient(90deg, transparent, rgba(232, 200, 112, 0.85) 18%, rgba(232, 200, 112, 0.85) 46%, transparent 47%, transparent 53%, rgba(232, 200, 112, 0.85) 54%, rgba(232, 200, 112, 0.85) 82%, transparent) center / 100% 1.5px no-repeat; }
+    #menu h2 { font-style: italic; letter-spacing: 0.12em; }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
