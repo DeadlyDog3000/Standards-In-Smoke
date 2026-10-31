@@ -12503,8 +12503,10 @@ function render() {
           const vig = charted ? featSprite('v_' + impKey) : null;
           const impImg = hexImages[impKey];
           if (vig) {
-            const vw = w * 0.62, vh = vw * vig.naturalHeight / vig.naturalWidth;
-            ctx.drawImage(vig, sx + (w - vw) / 2, sy + facePad + ch * 0.62 - vh, vw, vh);
+            const vw = w * 0.62, vh = vw * vig.naturalHeight / vig.naturalWidth, gy = sy + facePad + ch * 0.62;
+            // set down on the sheet: a soft shadow thrown to the south-east
+            ctx.fillStyle = 'rgba(40, 28, 14, 0.22)'; ctx.beginPath(); ctx.ellipse(sx + w / 2 + vw * 0.06, gy - vh * 0.06, vw * 0.46, vh * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.drawImage(vig, sx + (w - vw) / 2, gy - vh, vw, vh);
           } else if (!charted && impImg && impImg.complete && impImg.naturalWidth > 0) {
             ctx.drawImage(impImg, sx, sy, drawW, drawH);
           }
