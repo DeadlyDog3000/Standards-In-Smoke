@@ -708,6 +708,15 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Siege Fixes</b><br>
+        - A town you capture no longer inherits its old owner's siege (your own troops at its gates counted as besiegers for a turn, and you were told a siege had lifted)<br>
+        - Driving the besiegers off during your turn frees the fields for that same turn's harvest; a siege carries over correctly when a game is loaded, without a repeated warning<br>
+        - Starting a new game clears the old map's roads at once<br>
+        <b style="color:#b8a070;">Harbours</b><br>
+        - Rivals who know Navigation send a worker to the shore to build a first harbour, and buy the stone for it if they are short
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Blockades</b><br>
@@ -1557,6 +1566,15 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.6</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Siege Fixes</b><br>
+          - A town you capture no longer inherits its old owner's siege (your own troops at its gates counted as besiegers for a turn, and you were told a siege had lifted)<br>
+          - Driving the besiegers off during your turn frees the fields for that same turn's harvest; a siege carries over correctly when a game is loaded, without a repeated warning<br>
+          - Starting a new game clears the old map's roads at once<br>
+          <b style="color:#b8a070;">Harbours</b><br>
+          - Rivals who know Navigation send a worker to the shore to build a first harbour, and buy the stone for it if they are short
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6520,6 +6538,7 @@ function tickCityCapture() {
           city.nationId = occupier.nationId;
           city.capturedTurn = turnNumber;
           city.burnTurn = turnNumber;
+          city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; // the old owner's siege is over
           city.captureProgress = {};
           city.contested = false;
           city.producing = null; city.productionProgress = 0;
@@ -7223,7 +7242,29 @@ function workerInDanger(x, y, nationId, r) {
   return units.some(e => e.nationId !== nationId && UNIT_DEFS[e.type]?.combat && hexDistance(e.x, e.y, x, y) <= r
     && (n.relations?.[e.nationId] === 'war' || nations[e.nationId]?.isBarbarian));
 }
+// a realm that knows Navigation but has no harbour (built or being built) wants one
+function aiNeedsPort(nationId) {
+  if (!nationHasTech(nationId, 'navigation')) return false;
+  if (units.some(o => o.nationId === nationId && o.building === 'port')) return false;
+  return !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port');
+}
+
 function workerSeekWork(u, nationId, opts = {}) {
+  // a rival with Navigation and no harbour sends a worker to the nearest shore of the realm to build one
+  if (opts.chop !== false && aiNeedsPort(nationId)) {
+    let shore = null, sd = Infinity;
+    for (const c of cities) {
+      if (c.nationId !== nationId) continue;
+      for (const ti of c.ownedTiles) {
+        const t = tiles[ti];
+        if (t.improvement || t.type === 0) continue;
+        const x = ti % MAP_COLS, y = (ti - x) / MAP_COLS, d = hexDistance(x, y, u.x, u.y);
+        if (d >= sd || units.some(o => o !== u && o.x === x && o.y === y)) continue;
+        if (canBuildImprovement({ nationId, x, y, type: u.type }, 'port')) { shore = { x, y }; sd = d; }
+      }
+    }
+    if (shore && sd > 0 && sd <= 15) { moveAIToward(u, shore.x, shore.y, u.movesLeft); return; }
+  }
   // bare tiles of the realm, nearest first; only the closest dozen are weighed (each check costs a little)
   const cand = [];
   for (let ti = 0; ti < tiles.length; ti++) {
@@ -7279,6 +7320,7 @@ function aiWorkerStep(u, nationId, opts = {}) {
         return o >= 0 && o !== nationId && nations[nationId].relations?.[o] === 'war' && !nations[o]?.isBarbarian;
       });
       if (facesFoe && canBuildImprovement(u, 'redoubt')) buildImprovement(u, 'redoubt');
+      else if (opts.chop !== false && aiNeedsPort(nationId) && canBuildImprovement(u, 'port')) buildImprovement(u, 'port'); // a first harbour comes before another farm
       else if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
         else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
         else if (t.type === 5 && opts.chop !== false) chopForest(u);
@@ -8401,6 +8443,7 @@ function tryCityRebellion(city) {
     const wasCapital = city.isCapital;
     city.nationId = newOwner;
     city.capturedTurn = turnNumber;
+    city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false;
     city.producing = null; city.productionProgress = 0; city.productionQueue = [];
     if (wasCapital) {
       city.isCapital = false;
@@ -8632,6 +8675,7 @@ function endTurn() {
   if (window._endTurnBusy) return;
   window._endTurnBusy = true;
   currentEventNation = null;
+  try { updateSieges(false); } catch(e) { console.error('updateSieges error:', e); } // the moves you just made count for this turn's harvest
 
   try {
     return _endTurnImpl();
@@ -10243,7 +10287,8 @@ function aiStrikeAdjacent(u, n) {
   return true;
 }
 
-function updateSieges() {
+// effects=false only recomputes who holds what (start of the turn's end, after a load); the end-of-turn pass also forages and tells you
+function updateSieges(effects = true) {
   const hostile = (a, b) => a !== b && (nations[a]?.isBarbarian || nations[b]?.isBarbarian || nations[a]?.relations?.[b] === 'war');
   const at = new Map(), who = new Map();
   for (const u of units) if (UNIT_DEFS[u.type]?.combat) { at.set(u.y * MAP_COLS + u.x, u.nationId); who.set(u.y * MAP_COLS + u.x, u); }
@@ -10255,8 +10300,8 @@ function updateSieges() {
       (held || (held = new Set())).add(ti);
       // the troops live off the land: a little food sent home and a night's rest for the men
       const occ = nations[nid], u = who.get(ti);
-      if (occ && !occ.isBarbarian) occ.food = (occ.food || 0) + 0.5;
-      if (u && u.hp < getEffectiveMaxHp(u)) u.hp = Math.min(getEffectiveMaxHp(u), u.hp + 1);
+      if (effects && occ && !occ.isBarbarian) occ.food = (occ.food || 0) + 0.5;
+      if (effects && u && u.hp < getEffectiveMaxHp(u)) u.hp = Math.min(getEffectiveMaxHp(u), u.hp + 1);
       if (hexDistance(ti % MAP_COLS, Math.floor(ti / MAP_COLS), city.x, city.y) === 1) gates++;
     }
     // blockade: a hostile warship lying off a port closes it (no trade, no catch)
@@ -10268,10 +10313,13 @@ function updateSieges() {
         return nid !== undefined && su && UNIT_DEFS[su.type]?.naval && hostile(nid, city.nationId); });
       if (ship) { (held || (held = new Set())).add(ti); blockaded = true; }
     }
-    const was = !!city._besieged, wasB = !!city._blockaded;
     city._occupied = held;
     city._besieged = gates >= 2;
     city._blockaded = blockaded;
+    if (!effects) continue;
+    // the toasts compare with what you were last told, so a quiet recompute never swallows or repeats one
+    const was = !!city._siegeShown, wasB = !!city._blockShown;
+    city._siegeShown = city._besieged; city._blockShown = blockaded;
     if (city.nationId !== playerNation) continue;
     if (blockaded && !wasB) showToast(`\u2693 Enemy warships blockade the port of ${city.name}: no trade or catch comes in while they stay.`);
     else if (!blockaded && wasB) showToast(`The blockade of ${city.name} is lifted.`);
@@ -13626,7 +13674,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.5';
+const CURRENT_VERSION = 'beta-9.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -15326,6 +15374,9 @@ function aiUseMarket(nationId) {
     else if (workers === 0 && (n.food || 0) < 30 && (n.gold || 0) >= marketBuyPrice(nationId, 'food') + 20) marketBuy(nationId, 'food');
     else break;
   }
+  // short of stone for a first harbour: buy it (wood piles up, stone runs short)
+  if (aiNeedsPort(nationId) && (n.stone || 0) < 15 && (n.gold || 0) >= marketBuyPrice(nationId, 'stone') + 20) marketBuy(nationId, 'stone');
+  else if (aiNeedsPort(nationId) && (n.stone || 0) < 15 && (n.wood || 0) > 150 + MARKET_LOT) { marketSell(nationId, 'wood'); if ((n.gold || 0) >= marketBuyPrice(nationId, 'stone')) marketBuy(nationId, 'stone'); }
   let lots = 0;
   for (const res of ['steel', 'wood', 'stone', 'gunpowder', 'food']) {
     const reserve = res === 'food' ? 300 : 150; // a granary's worth kept back for settlers
@@ -15856,6 +15907,7 @@ function deserializeGame(json) {
   // drop the previous game's map caches (camps, sites, territory, vision)
   invalidateRenderLookups(); _tileCityMapDirty = true; visionDirty = true; minimapDirty = true; _roadsKey = '';
   deriveRiverFlow();
+  try { updateSieges(false); for (const c of cities) { c._siegeShown = c._besieged; c._blockShown = c._blockaded; } } catch(e) { console.error('updateSieges error:', e); }
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
@@ -16237,7 +16289,7 @@ function resetRuntimeState() {
   currentEventNation = null;
   window._endTurnBusy = false;
   window._gameOver = false;
-  battleScars = []; roads = []; _roadsKey = '';
+  battleScars = []; roads = []; _roadsKey = ''; roadEdges = new Set();
   eventLogEntries = [];
   characters = []; nextCharId = 1;
   families = []; nextFamilyId = 1;
