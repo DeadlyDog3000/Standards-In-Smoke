@@ -18028,6 +18028,19 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { for
 // The keys glide the camera: a speed in screen pixels a second that eases up when a key goes down
 // and eases off when it comes up, stepped every frame. (It used to jump two whole hexes twenty times
 // a second, which is what made moving the camera feel janky.) Shift doubles the pace.
+// Time played, for the studio's own count: a beat a minute to the game server while a game is open (not on the menu,
+// not the pause menu, not with the tab hidden), with the same random number the website's visit counter keeps in this
+// browser. Only that and the minute. Never from a copy being tested on a computer, nor from the owner's own browser.
+setInterval(() => {
+  try {
+    const menuEl = document.getElementById('menu');
+    if (!MAP_COLS || escMenuOpen || document.hidden || (menuEl && menuEl.style.display !== 'none') || !/\.github\.io$/.test(location.hostname)) return;
+    if (localStorage.getItem('dd-admin') === '1') return;
+    let i = localStorage.getItem('dd-v');
+    if (!/^[0-9a-f]{8,32}$/.test(i || '')) { i = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => ('0' + b.toString(16)).slice(-2)).join(''); localStorage.setItem('dd-v', i); }
+    fetch('https://45-76-245-44.sslip.io/play?g=smoke&i=' + i, { mode: 'no-cors', keepalive: true, credentials: 'omit' }).catch(() => {});
+  } catch (e) {}
+}, 60000);
 const KEY_PAN = { vx: 0, vy: 0, last: 0, on: false, SPEED: 1100 };
 function keyPanStep(now) {
   const dt = Math.min(0.05, KEY_PAN.last ? (now - KEY_PAN.last) / 1000 : 1 / 60); KEY_PAN.last = now;
