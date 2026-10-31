@@ -12601,7 +12601,7 @@ function render() {
       const camp = _campMap && _campMap.get(i);
       if (camp) {
         if (!camp.destroyed) {
-          ctx.fillStyle = 'rgba(180, 50, 30, 0.35)';
+          ctx.fillStyle = charted ? 'rgba(120, 30, 16, 0.18)' : 'rgba(180, 50, 30, 0.35)';
           drawHexPath(ctx, sx, fy, w, faceH);
           ctx.fill();
           if (VIEW_TILE >= 18) drawCamp(camp, sx + w / 2, fy + faceH / 2, w, faceH);
