@@ -14380,14 +14380,19 @@ function updateUI() {
 
   const se = SEASON_EFFECTS[currentSeason];
   const seasonEl = document.getElementById('seasonIndicator');
-  if (seasonEl) seasonEl.innerHTML = `${se.icon} ${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} ${getCurrentYear()}`;
+  if (seasonEl) {
+    seasonEl.innerHTML = `${se.icon} ${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} ${getCurrentYear()}`;
+    // (the season in its own wash: sap green, harvest gold, russet, frost)
+    seasonEl.style.color = { spring: '#b4c47c', summer: '#dcc072', autumn: '#d0965a', winter: '#cdd6d6' }[currentSeason] || '#c8b89a';
+    seasonEl.style.fontStyle = 'italic';
+  }
 
   const planBtn = document.getElementById('planBtn');
   if (planBtn) {
     planBtn.style.display = nationHasTech(playerNation, 'cartography') ? '' : 'none';
     const hasOrders = planOrders.size > 0;
-    planBtn.style.background = planningMode ? 'rgba(100,180,255,0.25)' : (hasOrders ? 'rgba(80,200,120,0.18)' : '');
-    planBtn.style.borderColor = planningMode ? 'rgba(100,180,255,0.7)' : (hasOrders ? 'rgba(80,200,120,0.6)' : '');
+    planBtn.style.background = planningMode ? 'rgba(212, 168, 86, 0.28)' : (hasOrders ? 'rgba(150, 50, 30, 0.22)' : ''); // (gilt while planning, red ink when orders stand)
+    planBtn.style.borderColor = planningMode ? 'rgba(232, 196, 110, 0.85)' : (hasOrders ? 'rgba(190, 90, 60, 0.7)' : '');
     const label = hasOrders ? `Plan (${planOrders.size})` : 'Plan';
     planBtn.querySelector('.btn-full').textContent = label;
     planBtn.querySelector('.btn-short').textContent = label;
