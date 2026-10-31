@@ -698,6 +698,13 @@
     body.mobile-mode #owActions { display: none !important; }
     body:not(.mobile-mode) #zoomInfo { bottom: 78px; }   /* (clear of the action row) */
     @media (max-width: 1100px) { #owActions .owa-name { display: none; } }
+    /* the title and its buttons in the same navy and gold */
+    .menu-btn { background: linear-gradient(rgba(40, 62, 86, 0.55), rgba(6, 12, 20, 0.85)), var(--ow-leather); border-color: var(--owk-gold-2); color: #f0e2c0;
+      box-shadow: inset 0 0 0 2px rgba(4, 8, 14, 0.9), inset 0 0 0 3px rgba(201, 164, 90, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6); }
+    .menu-btn:hover { background: linear-gradient(rgba(70, 100, 134, 0.6), rgba(10, 20, 32, 0.85)), var(--ow-leather); border-color: var(--owk-gold); color: #fff4d8; }
+    #menuTitle { background: var(--ow-corners), radial-gradient(ellipse at 50% 40%, rgba(50, 76, 104, 0.55), rgba(4, 8, 14, 0.88) 80%), var(--ow-leather);
+      border-color: var(--owk-gold-2); box-shadow: inset 0 0 0 4px rgba(4, 8, 14, 0.85), inset 0 0 0 5px rgba(201, 164, 90, 0.55), inset 0 0 0 9px rgba(4, 8, 14, 0.6), inset 0 0 0 10px rgba(201, 164, 90, 0.3), 0 14px 40px rgba(0, 0, 0, 0.7); }
+    .promo-card { background: rgba(8, 14, 22, 0.85); border-color: rgba(201, 164, 90, 0.4); }
     /* ambitions: a gilt plaque under the turn, and the card where they're chosen */
     #ambitionPlaque { position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 25; min-width: 200px; padding: 5px 14px 6px; cursor: pointer; text-align: center; border-radius: 0 0 4px 4px; border-top: none !important;
       background: linear-gradient(rgba(16, 26, 38, 0.92), rgba(8, 14, 22, 0.95)), var(--ow-leather); border: 1px solid var(--owk-gold-2);
@@ -964,6 +971,7 @@
         - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
         - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
         - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
+        - The title screen and its buttons in navy and gold too<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -1993,6 +2001,7 @@
           - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
           - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
           - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
+          - The title screen and its buttons in navy and gold too<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
