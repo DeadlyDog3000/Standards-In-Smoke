@@ -698,6 +698,16 @@
     body.mobile-mode #owActions { display: none !important; }
     body:not(.mobile-mode) #zoomInfo { bottom: 78px; }   /* (clear of the action row) */
     @media (max-width: 1100px) { #owActions .owa-name { display: none; } }
+    /* the tech tree on the same navy, its bar in gold rules; the chronicle (event log) as an Old World log: pale ink on navy, the turn in gold */
+    #techTreeOverlay { background: radial-gradient(ellipse at 50% 30%, rgba(60, 90, 120, 0.22), rgba(0, 0, 0, 0) 70%), linear-gradient(rgba(10, 18, 28, 0.94), rgba(5, 10, 16, 0.97)), var(--ow-leather) !important; }
+    #techTreeOverlay > div:first-child { background: linear-gradient(rgba(30, 46, 64, 0.95), rgba(10, 16, 24, 0.97)), var(--ow-leather) !important;
+      border-bottom: 1px solid var(--owk-gold) !important; box-shadow: 0 1px 0 rgba(4, 8, 14, 0.95), 0 3px 0 rgba(201, 164, 90, 0.35) !important; }
+    #techTreeOverlay > div:nth-child(2) { background: rgba(6, 12, 20, 0.85) !important; border-bottom-color: rgba(201, 164, 90, 0.25) !important; }
+    body:not(.mobile-mode) #eventLog { background: linear-gradient(rgba(16, 26, 38, 0.86), rgba(8, 14, 22, 0.9)), var(--ow-leather) !important; color: #dccfb2 !important;
+      border: 1px solid var(--owk-gold-2) !important; box-shadow: inset 0 0 0 1px rgba(4, 8, 14, 0.9), inset 0 0 0 2px rgba(201, 164, 90, 0.3), 0 6px 16px rgba(0, 0, 0, 0.55) !important;
+      scrollbar-color: rgba(201, 164, 90, 0.45) transparent; }
+    body:not(.mobile-mode) #eventLog .log-entry { border-bottom: 1px solid rgba(201, 164, 90, 0.12); }
+    body:not(.mobile-mode) #eventLog .log-turn { color: #c9a45a; }
 </style>
 </head>
 <body>
@@ -8270,7 +8280,7 @@ function showVictoryHistory() {
         Military: ${v.military | 0} &nbsp; Conquests: ${v.conquests | 0}
       </div>
       <div style="font-size:10px;color:#666;margin-top:6px;">${escHtml(v.date || '')}</div>
-      <button onclick="deleteVictoryEntry(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#664;cursor:pointer;font-size:14px;" title="Delete">\u2716</button>
+      <button onclick="deleteVictoryEntry(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#664;cursor:pointer;font-size:14px;" title="Delete">&times;</button>
     </div>
   `;
   }).join('');
@@ -12395,7 +12405,7 @@ function shadeHex(hex, t) { // t < 0 darkens toward black, t > 0 lightens toward
 const UNIT_FIGS = {};
 // Painted icons in place of emoji. The defs keep their emoji (the map canvas still draws them as text);
 // panels, toasts and lists get the painted image instead, swapped in as the text lands in the page.
-const EMOJI_ICONS = { '⚔': 'swords', '🛡': 'shield', '⚗': 'alembic', '🏛': 'columns', '📊': 'ledger', '📷': 'easel', '⚜': 'fleur', '⚒': 'hammerpick', '⚓': 'anchor', '🌾': 'wheat', '📜': 'scroll', '⚖': 'scales', '🐴': 'horsehead', '🐄': 'cow', '🏹': 'bow', '💥': 'blast', '♕': 'crown', '♛': 'crown', '👑': 'crown', '🪨': 'stone', '🏭': 'factory', '🏰': 'castle', '🏙': 'town', '🔥': 'fire', '🛠': 'tools', '🔒': 'lock', '⌛': 'hourglass', '☠': 'skull', '🌱': 'sprout', '☀': 'sun', '🍂': 'leaf', '❄': 'snow', '🦌': 'deer', '🐑': 'sheep', '🐗': 'boar', '🔭': 'telescope', '🔨': 'hammer', '🐎': 'horse', '🔫': 'musket', '🎯': 'target', '💢': 'grenade', '🏇': 'rider', '🪄': 'lance', '☄': 'fieldgun', '💣': 'bomb', '🧭': 'compass', '🚢': 'ship', '🗡': 'dagger', '🏪': 'market', '⛏': 'pick', '🏠': 'house', '🏚': 'barn', '🪓': 'axe', '🔬': 'microscope', '🏦': 'treasury', '⛊': 'redoubt', '📚': 'books', '⛪': 'church', '💰': 'moneybag', '⛓': 'chain', '✍': 'quill', '✝': 'cross', '⚙': 'gear', '⛰': 'mountain', '🏗': 'scaffold', '📈': 'rising', '🏳': 'whiteflag', '🌊': 'waves', '🌳': 'tree', '💎': 'gem', '🧂': 'salt', '✨': 'sparkle', '👁': 'eye', '⚡': 'lightning', '☮': 'olive', '🌿': 'herb', '🪵': 'log', '⚠': 'warning', '⚑': 'flag', '★': 'star' };
+const EMOJI_ICONS = { '🏴': 'flag', '🕊': 'olive', '⚔': 'swords', '🛡': 'shield', '⚗': 'alembic', '🏛': 'columns', '📊': 'ledger', '📷': 'easel', '⚜': 'fleur', '⚒': 'hammerpick', '⚓': 'anchor', '🌾': 'wheat', '📜': 'scroll', '⚖': 'scales', '🐴': 'horsehead', '🐄': 'cow', '🏹': 'bow', '💥': 'blast', '♕': 'crown', '♛': 'crown', '👑': 'crown', '🪨': 'stone', '🏭': 'factory', '🏰': 'castle', '🏙': 'town', '🔥': 'fire', '🛠': 'tools', '🔒': 'lock', '⌛': 'hourglass', '☠': 'skull', '🌱': 'sprout', '☀': 'sun', '🍂': 'leaf', '❄': 'snow', '🦌': 'deer', '🐑': 'sheep', '🐗': 'boar', '🔭': 'telescope', '🔨': 'hammer', '🐎': 'horse', '🔫': 'musket', '🎯': 'target', '💢': 'grenade', '🏇': 'rider', '🪄': 'lance', '☄': 'fieldgun', '💣': 'bomb', '🧭': 'compass', '🚢': 'ship', '🗡': 'dagger', '🏪': 'market', '⛏': 'pick', '🏠': 'house', '🏚': 'barn', '🪓': 'axe', '🔬': 'microscope', '🏦': 'treasury', '⛊': 'redoubt', '📚': 'books', '⛪': 'church', '💰': 'moneybag', '⛓': 'chain', '✍': 'quill', '✝': 'cross', '⚙': 'gear', '⛰': 'mountain', '🏗': 'scaffold', '📈': 'rising', '🏳': 'whiteflag', '🌊': 'waves', '🌳': 'tree', '💎': 'gem', '🧂': 'salt', '✨': 'sparkle', '👁': 'eye', '⚡': 'lightning', '☮': 'olive', '🌿': 'herb', '🪵': 'log', '⚠': 'warning', '⚑': 'flag', '★': 'star' };
 const EMOJI_RE = new RegExp('(' + Object.keys(EMOJI_ICONS).sort((a, b) => b.length - a.length).map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\uFE0F?', 'gu');
 // the map is drawn with canvas text in places (animals, markers, floating messages): any emoji there is drawn as its painted icon instead
 const _canvasIcons = {};
