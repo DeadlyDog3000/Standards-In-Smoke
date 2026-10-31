@@ -12115,6 +12115,12 @@ function owDrawNames(g, w, cs, ch, facePad) {
     const [x, y] = at(d.i); if (x < -w * 2 || y < -w * 2 || x > viewW + w * 2 || y > viewH + w * 2) continue;
     const dw = w * 1.5, dh = dw * img.naturalHeight / img.naturalWidth;
     g.save(); g.globalAlpha = 0.9; g.translate(x, y); if (d.flip) g.scale(-1, 1); g.drawImage(img, -dw / 2, -dh * 0.6, dw, dh); g.restore();
+    if (d.img === 'sea_serpent' && w >= 28) { // here be dragons
+      const fp = Math.max(9, w * 0.17);
+      g.save(); g.font = `italic ${fp}px 'EB Garamond', serif`; g.textAlign = 'center'; g.textBaseline = 'top';
+      g.fillStyle = 'rgba(28, 44, 50, 0.8)'; g.fillText('Hic sunt dracones', x, y + dh * 0.45);
+      g.restore();
+    }
   }
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const l of OW.labels || []) {
