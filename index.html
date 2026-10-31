@@ -531,6 +531,7 @@
       border: 1px solid #7a5c2a !important; border-radius: 3px !important; box-shadow: var(--ow-gilt) !important;
     }
     #planningPopup { background: radial-gradient(ellipse at 50% 35%, rgba(90, 66, 36, 0.28), rgba(0, 0, 0, 0.38)), var(--ow-leather) !important; }
+    #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -14240,6 +14241,14 @@ window.doResearch = function(tKey) {
   }
 };
 
+let _ttParch = null, _ttParchImg = null;
+function _ttParchment(g) {
+  if (_ttParch) return _ttParch;
+  if (!_ttParchImg) { _ttParchImg = new Image(); _ttParchImg.src = 'ui/parch.jpg'; _ttParchImg.onload = () => { if (window._redrawTechTree) window._redrawTechTree(); }; }
+  if (!_ttParchImg.complete || !_ttParchImg.naturalWidth) return null;
+  try { _ttParch = g.createPattern(_ttParchImg, 'repeat'); } catch (e) { _ttParch = null; }
+  return _ttParch;
+}
 function _buildTechTreeOverlay() {
   if (_techTreeAbort) _techTreeAbort.abort();
   _techTreeAbort = new AbortController();
@@ -14381,7 +14390,7 @@ function _buildTechTreeOverlay() {
       _roundRect(ctx2, 6, y0, CANVAS_W - 12, h, 8); ctx2.fill();
       ctx2.save();
       ctx2.translate(LEFT / 2 - 6, y0 + h / 2);
-      ctx2.fillStyle = b.sec.color; ctx2.font = 'bold 14px Cinzel, serif'; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+      ctx2.fillStyle = b.sec.color; ctx2.font = "13px 'Uncial Antiqua', serif"; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
       ctx2.fillText(b.sec.label, 0, 0);
       ctx2.restore();
     }
@@ -14428,74 +14437,71 @@ function _buildTechTreeOverlay() {
       const sec = SECTIONS.find(s => s.key === tech.section);
       const secColor = sec ? sec.color : '#888';
 
-      let bgColor;
-      if (researched)      bgColor = 'rgba(30,60,30,0.9)';
-      else if (isActive)   bgColor = 'rgba(60,50,10,0.95)';
-      else if (prereqsMet && canDo) bgColor = 'rgba(30,25,15,0.95)';
-      else                 bgColor = 'rgba(18,15,10,0.85)';
-
-      ctx2.fillStyle = bgColor;
-      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
-      ctx2.fill();
-
-      let borderColor;
-      if (researched)     borderColor = '#4a8a4a';
-      else if (isActive)  borderColor = '#d4a856';
-      else if (prereqsMet && canDo) borderColor = secColor;
-      else                borderColor = 'rgba(60,50,35,0.5)';
-      ctx2.strokeStyle = borderColor;
-      ctx2.lineWidth = isActive ? 2.5 : 1.5;
-      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
-      ctx2.stroke();
+      // each advance is a parchment card: gilded when studied, bright while under study, faded while out of reach
+      const open = prereqsMet && canDo;
+      ctx2.save();
+      ctx2.shadowColor = 'rgba(0, 0, 0, 0.55)'; ctx2.shadowBlur = 6; ctx2.shadowOffsetY = 2;
+      ctx2.fillStyle = researched ? '#d8d0a4' : isActive ? '#f0deb0' : open ? '#ddc9a0' : '#ac9a78';
+      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 3); ctx2.fill();
+      ctx2.restore();
+      const parch = _ttParchment(ctx2);
+      if (parch) { ctx2.save(); ctx2.globalCompositeOperation = 'multiply'; ctx2.fillStyle = parch; _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 3); ctx2.fill(); ctx2.restore(); }
+      if (researched) { ctx2.fillStyle = 'rgba(70, 120, 60, 0.16)'; _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 3); ctx2.fill(); }
+      ctx2.strokeStyle = researched ? '#4e6a34' : isActive ? '#b8862e' : open ? '#5a4022' : 'rgba(40, 28, 14, 0.7)';
+      ctx2.lineWidth = isActive ? 2.5 : 1.3;
+      _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 3); ctx2.stroke();
+      ctx2.strokeStyle = 'rgba(60, 40, 20, 0.35)'; ctx2.lineWidth = 0.8;
+      _roundRect(ctx2, nx + 3, ny + 3, NODE_W - 6, NODE_H - 6, 2); ctx2.stroke();
       // (on the road lit: a dashed gold edge; the goal itself, a flag)
       if (lit && lit.has(key) && !isActive) {
         ctx2.save(); ctx2.setLineDash([5, 4]); ctx2.strokeStyle = '#e8c070'; ctx2.lineWidth = 1.6;
-        _roundRect(ctx2, nx - 3, ny - 3, NODE_W + 6, NODE_H + 6, 8); ctx2.stroke(); ctx2.restore();
+        _roundRect(ctx2, nx - 3, ny - 3, NODE_W + 6, NODE_H + 6, 5); ctx2.stroke(); ctx2.restore();
       }
       if (key === goal) {
-        ctx2.font = '11px sans-serif'; ctx2.fillStyle = '#f0c060'; ctx2.textAlign = 'right'; ctx2.textBaseline = 'top';
-        ctx2.fillText('⚑ goal', nx + NODE_W - 6, ny + 8);
+        ctx2.font = "italic 12px 'EB Garamond', serif"; ctx2.fillStyle = '#8a2a18'; ctx2.textAlign = 'right'; ctx2.textBaseline = 'top';
+        ctx2.fillText('\u2691 goal', nx + NODE_W - 8, ny + 8);
       }
 
       if (isActive) {
         ctx2.save();
-        ctx2.shadowColor = '#d4a856';
+        ctx2.shadowColor = '#e8b850';
         ctx2.shadowBlur = 16;
         ctx2.strokeStyle = '#d4a856';
         ctx2.lineWidth = 2;
-        _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 6);
+        _roundRect(ctx2, nx, ny, NODE_W, NODE_H, 3);
         ctx2.stroke();
         ctx2.restore();
       }
 
-      ctx2.fillStyle = researched ? '#4a8a4a' : isActive ? '#d4a856' : prereqsMet ? secColor : 'rgba(60,50,35,0.5)';
-      _roundRect(ctx2, nx, ny, 4, NODE_H, 4);
-      ctx2.fill();
+      // the field's colour as a ribbon down the card's edge
+      ctx2.fillStyle = researched ? '#4e6a34' : isActive ? '#b8862e' : prereqsMet ? secColor : 'rgba(60,44,26,0.6)';
+      ctx2.fillRect(nx + 3, ny + 3, 4, NODE_H - 6);
 
-      const alpha = (researched || prereqsMet || isActive) ? 1.0 : (lit && lit.has(key)) ? 0.85 : 0.6;
+      const alpha = (researched || prereqsMet || isActive) ? 1.0 : (lit && lit.has(key)) ? 0.95 : 0.85;
       ctx2.globalAlpha = alpha;
 
-      ctx2.font = 'bold 12px Cinzel, serif';
-      ctx2.fillStyle = researched ? '#8ecf8e' : isActive ? '#f0c060' : prereqsMet ? '#e8dcc8' : '#6a5a48';
+      ctx2.font = "600 14px 'EB Garamond', serif";
+      ctx2.fillStyle = researched ? '#2e3e1c' : isActive ? '#5a2e08' : open ? '#2a1c0e' : '#2a1e10';
       ctx2.textAlign = 'left';
       ctx2.textBaseline = 'top';
       let label = tech.name;
-      if (researched) label = '✓ ' + label;
-      else if (!prereqsMet) label = '🔒 ' + label;
-      ctx2.fillText(label, nx + 10, ny + 8, NODE_W - 20);
+      if (researched) label = '\u2713 ' + label;
+      ctx2.fillText(label, nx + 13, ny + 7, NODE_W - 24);
 
-      ctx2.font = '10px sans-serif';
-      ctx2.fillStyle = '#a89878';
+      ctx2.font = "italic 12px 'EB Garamond', serif";
+      ctx2.fillStyle = '#5a4628';
       const turnsEst = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '?';
-      ctx2.fillText(`${tech.cost} sci · ${turnsEst}t${tech.needsResource === 'horses' && !researched && !canDo ? ' · needs horses' : ''}`, nx + 10, ny + 26, NODE_W - 20);
+      ctx2.fillText(`${tech.cost} science · ${turnsEst} turns${tech.needsResource === 'horses' && !researched && !canDo ? ' · needs horses' : ''}${!prereqsMet && !researched ? ' · locked' : ''}`, nx + 13, ny + 25, NODE_W - 24);
 
-      const unlockIcons = tech.unlocks.map(u => {
-        const ud = UNIT_DEFS[u]; const id = IMPROVEMENT_DEFS[u];
-        return ud ? ud.icon : id ? id.icon : '?';
-      }).join(' ');
-      ctx2.font = '13px sans-serif';
-      ctx2.fillStyle = '#c8b870';
-      ctx2.fillText(unlockIcons || '', nx + 10, ny + 42, NODE_W - 20);
+      // what it brings: little engraved pictures of the troops, works and buildings
+      let ix = nx + 13;
+      for (const u of tech.unlocks) {
+        const img = UNIT_DEFS[u] ? unitFigure(u) : IMPROVEMENT_DEFS[u] ? featSprite('v_' + ({ steel_mill: 'factory', lumbermill: 'lumber_mill' }[u] || u)) : CITY_BUILDING_DEFS[u] ? landmarkSprite(u) : null;
+        if (!img) continue;
+        const sc = Math.min(20 / img.naturalHeight, 30 / img.naturalWidth), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+        ctx2.drawImage(img, ix, ny + 40 + (20 - ih), iw, ih);
+        ix += iw + 4;
+      }
 
       if (isActive) {
         const barX = nx + 8, barY = ny + NODE_H - 12, barW = NODE_W - 16;
@@ -14524,6 +14530,8 @@ function _buildTechTreeOverlay() {
   }
 
   drawTree();
+  window._redrawTechTree = () => { if (document.getElementById('techTreeOverlay')) drawTree(); };
+  setTimeout(window._redrawTechTree, 400); // (once the engravings have arrived)
 
   cvs.addEventListener('click', (e) => {
     const rect = cvs.getBoundingClientRect();
