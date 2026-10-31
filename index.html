@@ -11699,7 +11699,7 @@ function drawWargameBlock(u, cx, cy, w, col, selected) {
   else { ctx.moveTo(ix + iw * 0.2, iy + ih / 2); ctx.lineTo(ix + iw * 0.8, iy + ih / 2); ctx.stroke(); }
   ctx.restore();
 }
-function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost) {
+function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
   const rx = w * 0.22, ry = w * 0.08;
   ctx.save();
@@ -11757,7 +11757,7 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost) {
   // seen through a camera looking down on the table: what stands up leans a little away from the middle of the view
   if (OW.canvas) { const lean = Math.max(-0.22, Math.min(0.22, (cx - viewW / 2) / viewW * 0.3)); ctx.transform(1, 0, -lean, 1, lean * baseY, 0); }
   if (flip) { ctx.translate(cx * 2, 0); ctx.scale(-1, 1); }
-  ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4), dw, dh);
+  ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4) - (naval ? 0 : hop), dw, dh);
   ctx.restore();
   return { top: baseY - dh, h: dh };
 }
@@ -13345,7 +13345,8 @@ function render() {
     const nCol = nations[u.nationId].color;
 
     const bobHash = (u.x * 31 + u.y * 17) % 100;
-    const bobY = u._animating ? 0 : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
+    // on the march, a figure steps along (a little hop each pace); at rest it barely breathes
+    const bobY = u._animating ? -Math.abs(Math.sin(Date.now() / 85)) * Math.max(1.5, hexWidth() * 0.045) : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
     // (on the chart a regiment in a town stands at its south-east gate, so the town itself can be seen)
     const atGate = townAt && !u._animating && townAt.has(u.y * MAP_COLS + u.x) && VIEW_TILE >= 34;
     const cx = pos.x + w / 2 + (atGate ? w * 0.26 : 0), cy = pos.y + facePad + ch / 2 + bobY + (atGate ? ch * 0.16 : 0);
@@ -13356,7 +13357,7 @@ function render() {
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y));
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0);
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
