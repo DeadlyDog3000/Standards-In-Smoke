@@ -12380,9 +12380,9 @@ function render() {
         ctx.save();
         drawHexPath(ctx, sx, fy, w, faceH); ctx.clip();
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.strokeStyle = isContested ? 'rgba(40, 30, 20, 0.5)' : nationColor; ctx.globalAlpha = 0.5; ctx.lineWidth = bw * 2;
+        ctx.strokeStyle = isContested ? 'rgba(40, 30, 20, 0.5)' : nationColor; ctx.globalAlpha = 0.34; ctx.lineWidth = bw * 2;
         drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
-        ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.5, bw * 0.45);
+        ctx.globalAlpha = 0.7; ctx.lineWidth = Math.max(1.5, bw * 0.4);
         drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
         ctx.restore();
         ctx.save();
