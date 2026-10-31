@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Growing Towns</b><br>
+        - A big town spills over into the country round it: hamlets of houses appear on its neighbouring land at 8 people, more at 12 and 16
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Border Works</b><br>
@@ -1418,7 +1423,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.2</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Growing Towns</b><br>
+        - A big town spills over into the country round it: hamlets of houses appear on its neighbouring land at 8 people, more at 12 and 16
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Border Works</b><br>
         - Rivals at war dig redoubts on the border facing their enemy<br>
@@ -10068,6 +10078,36 @@ function drawCamp(camp, cx, cy, w, faceH) {
   ctx.restore();
 }
 
+// A big town spills over its walls: hamlets of houses on the land next to it (one at 8 people, two at 12, three at 16)
+function drawSuburbs(city, w, facePad, ch, pId) {
+  const pop = city.population || 1;
+  const n = pop >= 16 ? 3 : pop >= 12 ? 2 : pop >= 8 ? 1 : 0;
+  if (!n) return;
+  const spots = hexNeighbors(city.x, city.y).filter(nb => {
+    if (nb.col < 0 || nb.row < 0 || nb.col >= MAP_COLS || nb.row >= MAP_ROWS) return false;
+    const t = tiles[nb.row * MAP_COLS + nb.col];
+    return t.type !== 0 && t.type !== 2 && t.owner === city.nationId && t.revealed.has(pId) && !t.wonder;
+  }).sort((a, b) => ((a.col * 31 + a.row * 17) % 7) - ((b.col * 31 + b.row * 17) % 7)).slice(0, n);
+  for (const sp of spots) {
+    const p = hexScreenPos(sp.col, sp.row), cx = p.x + w / 2, cy = p.y + facePad + ch / 2;
+    let seed = sp.col * 7919 + sp.row * 104729;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const houses = [];
+    for (let i = 0; i < 3; i++) houses.push({ x: cx + (rnd() - 0.5) * w * 0.5, y: cy + (rnd() - 0.2) * w * 0.25 });
+    houses.sort((a, b) => a.y - b.y);
+    ctx.save();
+    for (const h of houses) {
+      const hw = w * 0.1, wh = hw * 0.6, rh = hw * 0.5;
+      ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(h.x - hw / 2 + hw * 0.1, h.y - wh * 0.1, hw, wh * 0.22);
+      ctx.fillStyle = '#dccca8'; ctx.fillRect(h.x - hw / 2, h.y - wh, hw, wh);
+      ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(h.x + hw * 0.12, h.y - wh, hw * 0.38, wh);
+      ctx.fillStyle = '#8f4030';
+      ctx.beginPath(); ctx.moveTo(h.x - hw * 0.6, h.y - wh); ctx.lineTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.6, h.y - wh); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
 // A building or wonder a town has raised, drawn small in the town
 function drawLandmark(kind, x, y, w) {
   const u = w * 0.01; // one hundredth of a tile
@@ -10796,6 +10836,7 @@ function render() {
       if (!tiles[city.y * MAP_COLS + city.x].revealed.has(pId)) continue;
       const pos = hexScreenPos(city.x, city.y);
       if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
+      drawSuburbs(city, w, facePad, ch, pId);
       drawTown(city, pos.x + w / 2, pos.y + facePad + ch / 2, w, faceH);
 
     }
@@ -12793,7 +12834,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.2';
+const CURRENT_VERSION = 'beta-7.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
