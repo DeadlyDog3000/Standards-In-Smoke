@@ -12574,7 +12574,7 @@ function drawRhumbs(cs, ch) {
   // a wind head puffing from the sheet's upper right corner, as on the old world maps
   const wh = owDeskProp('windhead');
   if (wh) {
-    const ws = Math.min(mh * 0.34, cs * 9), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
+    const ws = Math.min(mh * 0.34, cs * 6, 260), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
     ctx.globalAlpha = 0.9; ctx.drawImage(wh, ox + mw - ww2 - cs * 0.6, oy + ch * 0.9, ww2, ws); ctx.globalAlpha = 1;
   }
   // the great rose at the centre, and a small one at each hub
