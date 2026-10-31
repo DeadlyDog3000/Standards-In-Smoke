@@ -3802,8 +3802,9 @@ function renderFloatingTexts() {
     ctx.globalAlpha = Math.max(0, alpha);
     ctx.font = `bold ${ft.fontSize}px 'EB Garamond', serif`;
     ctx.textBaseline = 'middle';
-    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3;
-    ctx.fillStyle = ft.color;
+    // on the chart: lettered in ink of the message's colour, darkened, on a halo of paper
+    if (OW.canvas) { ctx.strokeStyle = 'rgba(246, 236, 210, 0.92)'; ctx.lineWidth = 4; ctx.fillStyle = shadeHex(safeColor(ft.color, '#5a2a10'), -0.4); }
+    else { ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3; ctx.fillStyle = ft.color; }
     // emoji in the text are drawn as their painted icons
     const parts = floatParts(ft.text), isz = ft.fontSize * 1.3;
     const widths = parts.map(p => p.icon ? (p.icon.complete && p.icon.naturalWidth ? isz * p.icon.naturalWidth / p.icon.naturalHeight : 0) + 2 : ctx.measureText(p.s).width);
