@@ -13664,7 +13664,7 @@ function showCityPanel(city) {
     html += `<button class="p-btn" onclick="rushProduce()" ${!canRush ? 'disabled' : ''}>Rush Produce <span class="cost">${rushCost} gold</span></button>`;
     if (queue.length > 0) html += `<button class="p-btn" onclick="clearQueue()" style="font-size:11px;">Clear Queue</button>`;
   }
-  html += `<button class="p-btn" onclick="toggleCityStats()" style="background:rgba(108,198,244,0.12);border-color:rgba(108,198,244,0.4);color:#bdf;font-size:12px;padding:5px 10px;margin-bottom:6px;">📊 Statistics</button>`;
+  html += `<button class="p-btn" onclick="toggleCityStats()" style="font-size:12px;padding:5px 10px;margin-bottom:6px;">📊 Statistics</button>`;
   html += `<div class="tab-bar">
     <button class="tab-btn active" id="tabProd" onclick="showCityTab('prod')">Production</button>
     <button class="tab-btn" id="tabTiles" onclick="showCityTab('tiles')">Tiles</button>
@@ -13838,7 +13838,7 @@ function renderCityStatsPanel(city) {
   const resourceOrder = ['food', 'gold', 'wood', 'stone', 'steel', 'science', 'gunpowder'];
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(180,140,60,0.25);padding-bottom:6px;">`;
-  html += `<h3 style="margin:0;color:#bdf;font-family:'Uncial Antiqua',cursive;">${escHtml(city.name)} — Statistics</h3>`;
+  html += `<h3 style="margin:0;color:#e0c880;font-family:'Uncial Antiqua',cursive;">${escHtml(city.name)} — Statistics</h3>`;
   html += `<button class="p-btn" onclick="document.getElementById('cityStatsPanel').style.display='none'" style="font-size:11px;padding:2px 10px;width:auto;margin:0;">Close</button>`;
   html += `</div>`;
 
