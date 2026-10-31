@@ -829,6 +829,7 @@
         <span style="font-size:15px;color:#c8b89a;">Music</span>
         <button class="menu-btn" id="menuMusicToggle" onclick="toggleMusic();this.textContent=musicEnabled?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
       </div>
+      <div style="text-align:right;margin:-4px 0 8px;"><a href="#" onclick="showMusicCredits();return false;" style="color:#b8a070;font-size:12px;">Music credits</a></div>
       <div class="vol-box" id="menuVolumes" style="color:#c8b89a;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:15px;color:#c8b89a;">Auto Next Unit</span>
@@ -4274,6 +4275,24 @@ const MUSIC_TRACKS = [
   'scott-buckley-permafrost(chosic.com).m4a',
   'nnchannel-church-choir-297898.m4a',
   'tunetank-church-choir-349262.m4a',
+  // music of the time, in recordings their players gave to everyone (credited in music/CREDITS.md and under Options)
+  'music/air.m4a',
+  'music/brandenburg3.m4a',
+  'music/canon_guitar.m4a',
+  'music/cello_prelude.m4a',
+  'music/corelli_1.m4a',
+  'music/goldberg_aria.m4a',
+  'music/goldberg_capo.m4a',
+  'music/innomine6.m4a',
+  'music/innomine7.m4a',
+  'music/lully_turcs.m4a',
+  'music/spring_allegro.m4a',
+  'music/spring_largo.m4a',
+  'music/summer_presto.m4a',
+  'music/te_deum.m4a',
+  'music/toccata.m4a',
+  'music/winter_allegro.m4a',
+  'music/winter_largo.m4a',
 ];
 // ---- volume, by kind: the music, the land's own sounds (birds, a town, a column on the march), and the effects (shots,
 //  clicks, fanfares). Every sound sets its volume as it always did; what reaches the ear is that times its kind's slider ----
@@ -4308,12 +4327,43 @@ function volumeSlidersHtml() {
     `<label class="vol-row"><span>${l}</span><input type="range" min="0" max="1" step="0.05" value="${SOUND_VOL[k]}" data-vol="${k}" oninput="setSoundVolume('${k}', this.value)"></label>`).join('');
 }
 
+const MUSIC_CREDITS = [
+  ['J. S. Bach', 'Air, from the Orchestral Suite No. 3, BWV 1068', 'United States Air Force Band, Air Force Strings', 'Public domain'],
+  ['J. S. Bach', 'Brandenburg Concerto No. 3, I. Allegro', 'Advent Chamber Orchestra', 'CC BY-SA 2.0'],
+  ['Johann Pachelbel', 'Canon in D (guitar)', 'Aitua', 'CC BY-SA 4.0'],
+  ['J. S. Bach', 'Prelude, Cello Suite No. 1, BWV 1007', 'Chris (Fopseh)', 'CC0'],
+  ['Arcangelo Corelli', 'Concerto Grosso Op. 6 No. 8, "Christmas" (part 1)', 'Advent Chamber Orchestra', 'CC BY-SA 2.0'],
+  ['J. S. Bach', 'Goldberg Variations, Aria', 'Kimiko Ishizaka', 'CC0'],
+  ['J. S. Bach', 'Goldberg Variations, Aria da capo', 'Kimiko Ishizaka', 'CC0'],
+  ['Henry Purcell', 'In Nomine à 6, Z. 746', 'Phillip W', 'Serna. CC BY-SA 4.0'],
+  ['Henry Purcell', 'In Nomine à 7, Z. 747', 'Phillip W', 'Serna. CC BY-SA 4.0'],
+  ['Jean-Baptiste Lully', 'Marche pour la cérémonie des Turcs', 'Advent Chamber Orchestra', 'CC BY-SA 2.0'],
+  ['Antonio Vivaldi', 'Spring, I. Allegro', 'John Harrison (violin)', 'CC BY-SA 4.0'],
+  ['Antonio Vivaldi', 'Spring, II. Largo', 'John Harrison (violin)', 'CC BY-SA 4.0'],
+  ['Antonio Vivaldi', 'Summer, III. Presto', 'John Harrison (violin)', 'CC BY-SA 4.0'],
+  ['Marc-Antoine Charpentier', 'Te Deum, Prelude', 'Ian Dollins (via Musopen)', 'CC0'],
+  ['J. S. Bach', 'Toccata and Fugue in D minor, BWV 565', 'Norbert Schenk', 'CC BY 4.0'],
+  ['Antonio Vivaldi', 'Winter, I. Allegro non molto', 'John Harrison (violin)', 'CC BY-SA 4.0'],
+  ['Antonio Vivaldi', 'Winter, II. Largo', 'John Harrison (violin)', 'CC BY-SA 4.0'],
+];
+window.showMusicCredits = function() {
+  document.getElementById('musicCredits')?.remove();
+  const d = document.createElement('div'); d.id = 'musicCredits';
+  d.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(10,8,5,0.72);display:flex;align-items:center;justify-content:center;';
+  d.innerHTML = `<div style="background:#2a2116;border:1px solid #8a7048;border-radius:8px;max-width:560px;width:92vw;max-height:80vh;overflow:auto;padding:18px 22px;color:#d8c8a0;font-size:13px;line-height:1.45;"><div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:18px;margin-bottom:10px;">The Music</div>` +
+    MUSIC_CREDITS.map(([c, p, by, l]) => `<div style="margin-bottom:7px;"><b>${escHtml(c)}</b> &mdash; ${escHtml(p)}<br><span style="color:#a89878;">Played by ${escHtml(by)}. ${escHtml(l)}. From Wikimedia Commons.</span></div>`).join('') +
+    `<div style="color:#a89878;margin-top:8px;">Also: Mozart, Serenade in G; Pachelbel, Canon in D (Kevin MacLeod); Scott Buckley, Permafrost; choir recordings by nnchannel and Tunetank.</div><div style="text-align:right;margin-top:10px;"><button class="menu-btn" onclick="document.getElementById('musicCredits').remove()">Close</button></div></div>`;
+  d.addEventListener('click', e => { if (e.target === d) d.remove(); });
+  document.body.appendChild(d);
+};
 let musicTrackIndex = Math.floor(Math.random() * MUSIC_TRACKS.length);
 const bgMusic = new Audio(MUSIC_TRACKS[musicTrackIndex]);
 bgMusic.loop = false; bgMusic.volume = 0.35;
 function playNextTrack() {
   if (!musicEnabled) return;
-  musicTrackIndex = (musicTrackIndex + 1) % MUSIC_TRACKS.length;
+  // (shuffled, never the same piece twice running)
+  let nx = Math.floor(Math.random() * (MUSIC_TRACKS.length - 1)); if (nx >= musicTrackIndex) nx++;
+  musicTrackIndex = nx;
   bgMusic.src = MUSIC_TRACKS[musicTrackIndex];
   bgMusic.play().catch(() => {});
 }
