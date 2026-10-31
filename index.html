@@ -786,7 +786,7 @@
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Old World</b><br>
         - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
-        - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
+        - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out; the sheet is browned at its edges and creased where it was folded<br>
         - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
@@ -1753,7 +1753,7 @@
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">The Old World</b><br>
           - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
-          - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
+          - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out; the sheet is browned at its edges and creased where it was folded<br>
           - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
@@ -11900,6 +11900,19 @@ function buildWorldChart(key) {
   // paper: grain and foxing over everything
   const pat = owPaperPattern(g);
   if (pat) { g.globalCompositeOperation = 'multiply'; g.fillStyle = pat; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over'; }
+  // an old sheet's age: browned toward its edges, and the creases where it was folded to fit a saddlebag
+  const edge = g.createRadialGradient(TW / 2, TH / 2, Math.min(TW, TH) * 0.42, TW / 2, TH / 2, Math.hypot(TW, TH) * 0.56);
+  edge.addColorStop(0, 'rgba(120, 80, 30, 0)'); edge.addColorStop(1, 'rgba(110, 70, 26, 0.32)');
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = edge; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over';
+  const fold = (x0, y0, x1, y1, nx, ny) => {
+    const w0 = 2.5 * u;
+    for (const [off, col] of [[-w0, 'rgba(255, 248, 225, 0.16)'], [w0 * 0.6, 'rgba(60, 40, 20, 0.16)']]) {
+      g.strokeStyle = col; g.lineWidth = w0 * 1.6;
+      g.beginPath(); g.moveTo(x0 + nx * off, y0 + ny * off); g.lineTo(x1 + nx * off, y1 + ny * off); g.stroke();
+    }
+    g.strokeStyle = 'rgba(70, 50, 28, 0.22)'; g.lineWidth = 0.8 * u; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+  };
+  fold(TW / 3, 0, TW / 3, TH, 1, 0); fold(TW * 2 / 3, 0, TW * 2 / 3, TH, 1, 0); fold(0, TH / 2, TW, TH / 2, 0, 1);
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
   // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
   OW.mips = [c];
