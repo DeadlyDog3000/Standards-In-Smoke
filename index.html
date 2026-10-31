@@ -786,7 +786,7 @@
         - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
         - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
         - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
-        - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
+        - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
@@ -1753,7 +1753,7 @@
           - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
           - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
           - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
-          - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
+          - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
@@ -10382,7 +10382,10 @@ function drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges) {
 // painted settlements: a village grows into a town at 5 people; a capital is a walled city
 const TOWN_IMGS = {};
 function townSprite(city) {
-  const k = !city ? 'village' : city.isCapital ? 'capital' : (city.population || 1) >= 5 ? 'town' : 'village';
+  const pop = city ? city.population || 1 : 1;
+  if (city && city._coastal === undefined) city._coastal = hexNeighbors(city.x, city.y).some(q => tiles[q.row * MAP_COLS + q.col]?.type === 0);
+  // a village grows into a market town, a harbour town on the coast, and at ten people a great walled city
+  const k = !city ? 'village' : city.isCapital ? 'capital' : pop >= 10 ? 'city' : city._coastal && pop >= 3 ? 'port' : pop >= 5 ? 'town' : 'village';
   let img = TOWN_IMGS[k];
   if (!img) {
     img = TOWN_IMGS[k] = new Image();
@@ -11332,7 +11335,7 @@ function drawTown(city, cx, cy, w, faceH) {
   let trophyX = cx - rx * 0.5, trophyY = cy - ry * 0.25; // beside the church when the town is drawn house by house
   if (painted) {
     // the painted settlement, with what the town has built standing round it and the realm's flag above
-    const tw = w * (city.isCapital ? 0.98 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
+    const tw = w * (city.isCapital ? 0.98 : pop >= 10 ? 1.02 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
     const top = cy + ry * 1.15 - th;
     for (const h of houses) if (h.lm && h.y < cy) drawLandmark(h.lm, h.x, h.y, w); // behind the town
     ctx.drawImage(currentSeason === 'winter' ? snowySprite(painted) : painted, cx - tw / 2, top, tw, th);
@@ -12069,7 +12072,7 @@ setTimeout(function owPreload() {
   for (const k of ['ft_ruins', 'ft_camp', 'ft_redoubt']) featSprite(k);
   for (const k in NATURAL_WONDERS) featSprite('nw_' + k);
   for (const k in CITY_BUILDING_DEFS) landmarkSprite(k);
-  townSprite(null); townSprite({ isCapital: true }); townSprite({ population: 5 });
+  townSprite(null); for (const k of ['capital', 'town', 'city', 'port']) { const img = TOWN_IMGS[k] = new Image(); img.src = `tiles/town_${k}.png`; }
   for (const k in UNIT_DEFS) unitFigure(k);
   for (const k in ANIMAL_DATA) featSprite('an_' + k);
   for (const k of ['serpent', 'whale', 'ship']) featSprite('sea_' + k);
