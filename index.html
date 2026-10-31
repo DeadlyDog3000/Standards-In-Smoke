@@ -1583,7 +1583,7 @@
     <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)"><span class="btn-ico">⚖</span><span class="btn-full">Market</span></button>
     <button class="top-btn" onclick="toggleEmpirePanel()" title="Empire: all your cities at a glance (O)"><span class="btn-ico">🏛</span><span class="btn-full">Empire</span></button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
-    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-ico">➜</span><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
+    <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-ico">→</span><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
     <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
     <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
   </div>
@@ -12476,7 +12476,7 @@ function showUnitPanel(unit) {
   const bar = (label, v, max, col) => `<div class="us-bar"><span>${label}</span><div><i style="width:${Math.max(0, Math.min(100, v / max * 100))}%;background:${col}"></i></div><b>${v}/${max}</b></div>`;
   const chip = (t, title, cls = '') => `<span class="us-chip ${cls}"${title ? ` title="${title}"` : ''}>${t}</span>`;
   const hpCol = unit.hp / effectiveMaxHp > 0.6 ? '#6ab04c' : unit.hp / effectiveMaxHp > 0.3 ? '#e0b040' : '#d05040';
-  let bars = bar('Health', unit.hp, effectiveMaxHp, hpCol), chips = chip(`➜ ${unit.movesLeft}/${unit.maxMoves}`, 'Moves left this turn') + chip(`👁 ${unit.vision}`, 'How far it sees');
+  let bars = bar('Health', unit.hp, effectiveMaxHp, hpCol), chips = chip(`→ ${unit.movesLeft}/${unit.maxMoves}`, 'Moves left this turn') + chip(`👁 ${unit.vision}`, 'How far it sees');
   if (def.combat) {
     const effAtk = getEffectiveAtk(unit);
     chips += chip(`⚔ ${effAtk}${effAtk > (def.atk || 4) ? ` <em style="color:${unitLevel.color}">(+${effAtk - (def.atk || 4)})</em>` : ''}`, `Attack (${def.atk || 4} base, with its rank, laws and general)`);
