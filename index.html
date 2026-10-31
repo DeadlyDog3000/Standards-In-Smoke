@@ -11726,6 +11726,8 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost) {
     ctx.restore();
     ctx.shadowColor = 'rgba(255, 230, 150, 0.9)'; ctx.shadowBlur = w * 0.12;
   }
+  // seen through a camera looking down on the table: what stands up leans a little away from the middle of the view
+  if (OW.canvas) { const lean = Math.max(-0.22, Math.min(0.22, (cx - viewW / 2) / viewW * 0.3)); ctx.transform(1, 0, -lean, 1, lean * baseY, 0); }
   if (flip) { ctx.translate(cx * 2, 0); ctx.scale(-1, 1); }
   ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4), dw, dh);
   ctx.restore();
