@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Taking the Colours</b><br>
+        - A regiment destroyed in battle may leave its colours on the field. Taking an enemy's colours raises your legitimacy a little and lowers theirs; losing your own does the reverse. The chronicle records each one
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Laurels</b><br>
@@ -1602,6 +1607,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.4</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Taking the Colours</b><br>
+          - A regiment destroyed in battle may leave its colours on the field. Taking an enemy's colours raises your legitimacy a little and lowers theirs; losing your own does the reverse. The chronicle records each one
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.3</b></div>
         <div style="margin-bottom:12px;">
@@ -6480,8 +6490,21 @@ function doAttack(attacker, tx, ty) {
     const label = (un, type, nid) => { const rn = un && un.regiment ? regimentName(un) : ''; const nn = nations[nid]; return rn ? (nid !== playerNation && nn?.name ? `${nn.name}'s ${rn}` : `the ${rn}`) : `${nn?.isBarbarian ? 'a raider' : `a${/^[aeiou]/i.test(nn?.name || '') ? 'n' : ''} ${nn?.name || ''}`} ${type.replace(/_/g, ' ')}`; };
     const a = label(attacker, attackerType, attackerNationId), d = label(target, defenderType, defenderNationId);
     // your victories (your losses are already recorded as 'Lost: …')
-    if (defenderDied && attackerNationId === playerNation) logEvent(`\u2694 ${a.charAt(0).toUpperCase() + a.slice(1)} destroyed ${d}.`);
-    else if (attackerDied && defenderNationId === playerNation) logEvent(`\u2694 ${d.charAt(0).toUpperCase() + d.slice(1)} threw back and destroyed ${a}.`);
+    // a regiment destroyed may leave its colours on the field: taken colours lift a realm's standing, lost ones shame it
+    const loserRegiment = defenderDied ? target?.regiment : attackerDied ? attacker?.regiment : null;
+    const loserNid = defenderDied ? defenderNationId : attackerNationId, winnerNid = defenderDied ? attackerNationId : defenderNationId;
+    const colours = loserRegiment && !nations[loserNid]?.isBarbarian && !nations[winnerNid]?.isBarbarian && Math.random() < 0.35;
+    if (colours) {
+      const wn = nations[winnerNid], ln = nations[loserNid];
+      wn.colours = (wn.colours || 0) + 1;
+      if (!wn.isTribe) wn.legitimacy = Math.min(100, (wn.legitimacy ?? 50) + 1);
+      if (!ln.isTribe) ln.legitimacy = Math.max(0, (ln.legitimacy ?? 50) - 1);
+    }
+    const took = colours ? ' and took its colours' : '';
+    if (colours && winnerNid === playerNation) addFloatingText(tx, ty, 'Colours taken!', '#ffd76a', 2200, 15);
+    if (defenderDied && attackerNationId === playerNation) logEvent(`\u2694 ${a.charAt(0).toUpperCase() + a.slice(1)} destroyed ${d}${took}.`);
+    else if (attackerDied && defenderNationId === playerNation) logEvent(`\u2694 ${d.charAt(0).toUpperCase() + d.slice(1)} threw back and destroyed ${a}${took}.`);
+    else if (colours && loserNid === playerNation) logEvent(`\uD83C\uDFF4 The colours of ${(loserRegiment && (defenderDied ? target : attacker)) ? 'the ' + regimentName(defenderDied ? target : attacker) : 'a regiment'} were taken by ${nations[winnerNid]?.name || 'the enemy'}.`);
     // the tally of this war, summed up in the chronicle when peace is made
     const foeId = attackerNationId === playerNation ? defenderNationId : attackerNationId;
     if (foeId !== playerNation && nations[foeId] && !nations[foeId].isBarbarian) {
@@ -13829,7 +13852,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.3';
+const CURRENT_VERSION = 'beta-10.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
