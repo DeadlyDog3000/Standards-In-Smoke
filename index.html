@@ -14679,15 +14679,15 @@ function _buildTechTreeOverlay() {
     position:fixed;inset:0;z-index:200;
     background:rgba(8,6,4,0.96);
     display:flex;flex-direction:column;
-    font-family:'Cinzel',serif;
+    font-family:'EB Garamond',serif;
     overflow:hidden;
   `;
 
   const topBar = document.createElement('div');
   topBar.style.cssText = `
     flex-shrink:0;padding:10px 20px;
-    background:rgba(20,15,8,0.95);
-    border-bottom:1px solid rgba(180,150,80,0.3);
+    background:linear-gradient(rgba(255, 220, 150, 0.05), rgba(0, 0, 0, 0.3)), url(ui/leather.jpg) 0 0 / 256px;
+    border-bottom:1px solid #a07c38; box-shadow:0 1px 0 rgba(16, 11, 6, 0.95), 0 3px 0 rgba(198, 158, 80, 0.3);
     display:flex;align-items:center;justify-content:space-between;
   `;
   const ct = currentRes && TECHS[currentRes];
