@@ -704,6 +704,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Better Lands</b><br>
+        - <b>Every map gets a like balance:</b> about 30% sea and 9% snowy heights whatever the dice (one map could be a third mountains), with woods on about 45% of the lowland and more open plains for farms and markets<br>
+        - A captive worker standing in a city is freed by its people; an undefended city calls up its militia even with a captive inside<br>
+        - Rival realms short of everything buy steel or food on the market to rebuild, and in an emergency raise only soldiers they can actually pay for (a realm could sit for years on a cannon it could never afford)<br>
+        - Fixed faint vertical stripes over the fog and borders when zoomed far out
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fords &amp; Fields of Battle</b><br>
@@ -1346,7 +1354,15 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.3</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Better Lands</b><br>
+        - <b>Every map gets a like balance:</b> about 30% sea and 9% snowy heights whatever the dice (one map could be a third mountains), with woods on about 45% of the lowland and more open plains for farms and markets<br>
+        - A captive worker standing in a city is freed by its people; an undefended city calls up its militia even with a captive inside<br>
+        - Rival realms short of everything buy steel or food on the market to rebuild, and in an emergency raise only soldiers they can actually pay for (a realm could sit for years on a cannon it could never afford)<br>
+        - Fixed faint vertical stripes over the fog and borders when zoomed far out
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fords &amp; Fields of Battle</b><br>
         - <b>River crossings:</b> a melee attack from off the river onto a defender standing on river land falls 15% lighter. The attack preview says so<br>
@@ -4624,16 +4640,23 @@ function generateMap() {
 
   const herdNoise = makeNoise(MAP_COLS, MAP_ROWS, seed + 99999, [[3,2],[7,5],[14,10]]);
 
+  // every map gets a like balance whatever its noise: the lowest 30% of the land's height is sea and the top 9% is
+  // snowy heights (fixed cut-offs gave anything from 4% to 36% mountains), and woods take about 45% of the lowland
+  const quantile = (arr, q) => { const a = Float32Array.from(arr).sort(); return a[Math.min(a.length - 1, Math.floor(q * a.length))]; };
+  const eSea = quantile(elev, 0.30), eHigh = quantile(elev, 0.91);
+  const remapE = e => 0.38 + (e - eSea) * (0.64 - 0.38) / Math.max(1e-6, eHigh - eSea);
+  const fCut = quantile(forest, 0.55);
+
   const spriteRand = mulberry32(seed + 12345);
   tiles = new Array(MAP_COLS * MAP_ROWS);
   for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
     const i = y * MAP_COLS + x;
-    const e = elev[i], m = moist[i], f = forest[i], h = herdNoise[i];
+    const e = remapE(elev[i]), m = moist[i], f = forest[i], h = herdNoise[i];
     let type, color;
     if (e < 0.38) { type = 0; color = TILE_COLORS.ocean; }
     else if (e < 0.64) {
       if (m > 0.6 && e < 0.5) { type = 3; color = TILE_COLORS.swamp; }
-      else if (f > 0.32 && e > 0.40) { type = 5; color = TILE_COLORS.forest; }
+      else if (f > fCut && e > 0.40) { type = 5; color = TILE_COLORS.forest; }
       else if (h > 0.75 && e > 0.42 && e < 0.58 && m < 0.55) { type = 6; color = TILE_COLORS.herd; }
       else if (e > 0.57) { type = 7; color = TILE_COLORS.hill; } // hills at high elevation
       else { type = 1; color = TILE_COLORS.land; }
@@ -4678,7 +4701,7 @@ function generateMap() {
     if (tiles[i].type !== 1) continue; // only on plains
     const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS);
     if (x < 3 || x >= MAP_COLS - 3 || y < 3 || y >= MAP_ROWS - 3) continue;
-    if (elev[i] < 0.41 || elev[i] > 0.50) continue; // low elevation but above ocean threshold
+    if (remapE(elev[i]) < 0.41 || remapE(elev[i]) > 0.50) continue; // low elevation but above ocean threshold
     if (moist[i] < 0.68) continue; // wet areas only
     lakeCandidates.push(i);
   }
@@ -5830,8 +5853,15 @@ function tickMilitia() {
   for (const city of cities) {
     const n = nations[city.nationId];
     if (!n || n.isBarbarian || n.eliminated) continue;
+    // a foreign civilian (often a worker the raiders carried off) inside the walls is taken back by the townsfolk
+    for (const u of units) {
+      if (u.x === city.x && u.y === city.y && u.nationId !== city.nationId && !UNIT_DEFS[u.type]?.combat) {
+        u.nationId = city.nationId; u.movesLeft = 0; delete u.gotoX; delete u.gotoY; u.autoExplore = false;
+        if (city.nationId === playerNation) showToast(`The people of ${city.name} free a captive ${u.type.replace(/_/g, ' ')}!`);
+      }
+    }
     if (city._militiaTurn !== undefined && turnNumber - city._militiaTurn < 10) continue;
-    if (units.some(u => u.x === city.x && u.y === city.y)) continue;
+    if (units.some(u => u.x === city.x && u.y === city.y && UNIT_DEFS[u.type]?.combat)) continue; // already garrisoned
     const threat = units.some(u => u.nationId !== city.nationId && UNIT_DEFS[u.type]?.combat
       && n.relations?.[u.nationId] === 'war' && hexDistance(u.x, u.y, city.x, city.y) <= 2);
     if (!threat) continue;
@@ -7266,8 +7296,9 @@ function aiTurn(nationId) {
   for (const c of aiCities) {
 
     if (threatLevel > 20 && c.producing && !UNIT_DEFS[c.producing]?.combat && !(c.producing === 'settler' && threatLevel <= combatUnits.length * 6)) {
-      const emergUnit = availCombat[topStart + Math.floor(Math.random() * (availCombat.length - topStart))];
-      c.producing = emergUnit; c.productionProgress = 0;
+      // the strongest unit the realm can actually pay for; if it can pay for none, it carries on (often a worker, so its mines can start)
+      const payable = availCombat.filter(t => { const k = getScaledCosts(nationId, PRODUCTION_COSTS[t]); for (const r in k) if ((n[r] || 0) < k[r]) return false; return true; });
+      if (payable.length) { c.producing = payable[payable.length - 1]; c.productionProgress = 0; }
     }
     if (!c.producing) {
       const workers = units.filter(u => u.nationId === nationId && (u.type === 'worker' || u.type === 'veteran_worker')).length;
@@ -9383,12 +9414,13 @@ function drawHexLayer(pts, w, faceH, alpha, style, op, top, colors) {
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
   const fast = w < 22, hw = w / 2, hh = faceH / 2;
+  const colW = hexColStep() + 0.75, rowH = Math.max(faceH, hexCellH()) + 0.75;
   let last = null;
   if (!colors) g.fillStyle = typeof style === 'string' ? style : '#fff';
   for (let k = 0, n = 0; k < pts.length; k += 2, n++) {
     const sx = pts[k], fy = pts[k + 1];
     if (colors && colors[n] !== last) { g.fillStyle = colors[n]; last = colors[n]; }
-    if (fast) { g.fillRect(sx + w * 0.12, fy - top, w * 0.76, faceH + top); continue; }
+    if (fast) { g.fillRect(sx + w / 2 - colW / 2, fy - top, colW, rowH + top); continue; } // a hair wider than a column step: the layer is opaque, so overlaps can't double up
     const cx = sx + hw, cy = fy + hh;
     g.beginPath();
     g.moveTo(cx - hw * 0.5, cy - hh - top); g.lineTo(cx + hw * 0.5, cy - hh - top);
@@ -12357,7 +12389,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.3';
+const CURRENT_VERSION = 'beta-6.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -14006,6 +14038,14 @@ function marketBuy(nationId, res) {
 // AI: a treasury running dry sells off whatever it has piled up beyond a working reserve
 function aiUseMarket(nationId) {
   const n = nations[nationId];
+  // a realm stripped bare buys what it needs to rebuild: steel for soldiers when it has none, food for a first worker
+  const soldiers = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
+  const workers = units.filter(u => u.nationId === nationId && /worker/.test(u.type)).length;
+  for (let i = 0; i < 3; i++) {
+    if (soldiers < 2 && (n.steel || 0) < 30 && (n.gold || 0) >= marketBuyPrice(nationId, 'steel') + 20) marketBuy(nationId, 'steel');
+    else if (workers === 0 && (n.food || 0) < 30 && (n.gold || 0) >= marketBuyPrice(nationId, 'food') + 20) marketBuy(nationId, 'food');
+    else break;
+  }
   let lots = 0;
   for (const res of ['steel', 'wood', 'stone', 'gunpowder', 'food']) {
     const reserve = res === 'food' ? 300 : 150; // a granary's worth kept back for settlers
