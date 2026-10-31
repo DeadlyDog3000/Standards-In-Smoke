@@ -798,7 +798,7 @@
         - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner, a compass rose is printed in the widest sea and a scale of miles in the lower corner<br>
-        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
+        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line, with their names lettered across their lands in spaced capitals; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
@@ -1765,7 +1765,7 @@
           - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner, a compass rose is printed in the widest sea and a scale of miles in the lower corner<br>
-        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
+        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line, with their names lettered across their lands in spaced capitals; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
@@ -12236,6 +12236,46 @@ function owMasks(pId) {
   OW.masks = { known, dim, any, sc };
   return OW.masks;
 }
+// each realm's name lettered across its land in spaced capitals, as the old chartmakers did (where it lies is worked out once a turn)
+let _realmNames = null, _realmNamesKey = '';
+function drawRealmNames(pId, w, ch, facePad) {
+  const key = turnNumber + '|' + cities.length + '|' + pId + '|' + discoveredNations.size;
+  if (_realmNamesKey !== key) {
+    _realmNamesKey = key;
+    const by = new Map();
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i];
+      if (t.owner < 0 || !t.revealed.has(pId) || isBarbarianNation(t.owner)) continue;
+      if (t.owner !== pId && !discoveredNations.has(t.owner)) continue;
+      let a = by.get(t.owner); if (!a) by.set(t.owner, a = []);
+      a.push(i);
+    }
+    _realmNames = [];
+    for (const [nid, cells] of by) {
+      if (cells.length < 8) continue;
+      let sx = 0, sy = 0; for (const i of cells) { sx += i % MAP_COLS; sy += Math.floor(i / MAP_COLS); }
+      sx /= cells.length; sy /= cells.length;
+      // set on the realm's own ground nearest its middle, a little below any town there
+      let best = cells[0], bd = 1e9;
+      for (const i of cells) { const d = Math.hypot(i % MAP_COLS - sx, Math.floor(i / MAP_COLS) - sy) + (tiles[i].type === 4 ? 2 : 0); if (d < bd) { bd = d; best = i; } }
+      const n = nations[nid];
+      _realmNames.push({ i: best, text: (n.name || '').toUpperCase(), col: safeColor(n.color), size: Math.min(1.1, 0.22 + Math.sqrt(cells.length) * 0.05) });
+    }
+  }
+  if (!_realmNames.length) return;
+  ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const r of _realmNames) {
+    const x0 = r.i % MAP_COLS, y0 = (r.i - x0) / MAP_COLS, p = hexScreenPos(x0, y0), px = Math.max(10, Math.min(46, w * r.size));
+    const x = p.x + w / 2, y = p.y + facePad + ch * 0.95;
+    if (x < -viewW || x > viewW * 2 || y < -px * 2 || y > viewH + px * 2) continue;
+    ctx.font = `600 ${px}px 'EB Garamond', serif`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (px * 0.45) + 'px';
+    ctx.globalAlpha = 0.74;
+    ctx.lineWidth = Math.max(2, px * 0.18); ctx.strokeStyle = 'rgba(244, 232, 200, 0.75)'; ctx.strokeText(r.text, x, y);
+    ctx.fillStyle = shadeHex(r.col, -0.35); ctx.fillText(r.text, x, y);
+  }
+  ctx.restore();
+}
 // draw the chart under the hexes that have been explored; the cut-out sheet is cached until the view or the map changes
 const _owLayer = { c: null, key: '' };
 function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
@@ -12946,6 +12986,8 @@ function render() {
       ctx.restore();
     }
   }
+
+  if (charted && VIEW_TILE <= 80) drawRealmNames(pId, w, ch, facePad);
 
   if (VIEW_TILE >= 18) {
     for (const city of cities) {
