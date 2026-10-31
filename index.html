@@ -532,6 +532,9 @@
     }
     #planningPopup { background: radial-gradient(ellipse at 50% 35%, rgba(90, 66, 36, 0.28), rgba(0, 0, 0, 0.38)), var(--ow-leather) !important; }
     #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
+    /* the edges of the view darken like an old print under a lamp */
+    #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
+    #game > canvas { image-rendering: auto; }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -10949,7 +10952,7 @@ function drawNaturalWonder(key, cx, cy, w) {
   ctx.strokeStyle = 'rgba(242, 214, 138, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.03); ctx.setLineDash([w * 0.06, w * 0.05]);
   ctx.beginPath(); ctx.arc(cx, cy, w * 0.36, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.font = `${Math.max(10, w * 0.42)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.max(10, w * 0.42)}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = w * 0.08;
   ctx.fillText(def.icon, cx, cy);
   ctx.restore();
@@ -12323,7 +12326,7 @@ function render() {
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(9, w * 0.4)}px system-ui`;
+        ctx.font = `${Math.max(9, w * 0.4)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
       }
@@ -12340,7 +12343,7 @@ function render() {
           const aw = w * 0.34, ah = aw * an.naturalHeight / an.naturalWidth;
           ctx.drawImage(an, bx - aw / 2, by + w * 0.06 - ah, aw, ah);
         } else {
-          ctx.font = `${badgeSize}px system-ui`;
+          ctx.font = `${badgeSize}px 'EB Garamond', serif`;
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(ad.icon, bx, by);
         }
@@ -12445,7 +12448,7 @@ function render() {
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.28, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#f44';
-            ctx.font = `bold ${Math.max(9, w * 0.4)}px system-ui`;
+            ctx.font = `bold ${Math.max(9, w * 0.4)}px 'EB Garamond', serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('\uD83D\uDD25', sx + w / 2, fy + faceH / 2);
           }
@@ -12460,7 +12463,7 @@ function render() {
               ctx.fillStyle = 'rgba(0,0,0,0.5)';
               ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.22, 0, Math.PI * 2); ctx.fill();
               ctx.fillStyle = '#c66';
-              ctx.font = `bold ${Math.max(7, w * 0.3)}px system-ui`;
+              ctx.font = `bold ${Math.max(7, w * 0.3)}px 'EB Garamond', serif`;
               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
               ctx.fillText(turnsLeft.toString(), sx + w / 2, fy + faceH / 2);
             }
@@ -12477,7 +12480,7 @@ function render() {
         drawHexPath(ctx, sx, fy, w, faceH);
         ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${Math.max(8, w * 0.35)}px system-ui`;
+        ctx.font = `bold ${Math.max(8, w * 0.35)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(`\uD83D\uDEE0\uFE0F${turnsLeft}`, sx + w / 2, fy + faceH / 2);
       }
@@ -12539,7 +12542,7 @@ function render() {
     if (ann.label) {
       const lx = pos.x + w / 2, ly = pos.y + facePad + faceH / 2;
       ctx.save();
-      ctx.font = `bold ${Math.max(8, w * 0.3)}px system-ui`;
+      ctx.font = `bold ${Math.max(8, w * 0.3)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 3;
       ctx.strokeText(ann.label, lx, ly);
@@ -12612,7 +12615,7 @@ function render() {
           const l2 = est.estRetaliation > 0 ? `Retaliation: ~${est.estRetaliation} dmg` : 'No retaliation';
           const pos = hexScreenPos(hoveredMX, hoveredMY);
           ctx.save();
-          ctx.font = `bold ${Math.max(10, w * 0.29)}px system-ui`;
+          ctx.font = `bold ${Math.max(10, w * 0.29)}px 'EB Garamond', serif`;
           const tw2 = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + 16;
           const bx = Math.min(Math.max(pos.x + w / 2 - tw2 / 2, 4), viewW - tw2 - 4);
           const by2 = Math.max(pos.y + facePad - 54, 4);
@@ -12654,7 +12657,7 @@ function render() {
       const costX = destPos.x + w * 0.75, costY = destPos.y + facePad + ch * 0.2;
       ctx.beginPath(); ctx.arc(costX, costY, w * 0.18, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = cost <= selectedUnit.movesLeft ? '#ffd' : '#f88';
-      ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
+      ctx.font = `bold ${Math.max(8, w * 0.28)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(cost, costX, costY);
       ctx.restore();
@@ -12755,7 +12758,7 @@ function render() {
         ctx.restore();
       } else {
         ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(10, w * 0.45)}px system-ui`;
+        ctx.font = `${Math.max(10, w * 0.45)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(UNIT_DEFS[u.type].icon, cx, cy);
       }
@@ -12785,7 +12788,7 @@ function render() {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#8cf';
-      ctx.font = `${Math.max(6, w * 0.22)}px system-ui`;
+      ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('\uD83D\uDEE1', cx + rad * 0.8, cy - rad * 0.8);
     }
@@ -12794,7 +12797,7 @@ function render() {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#da4';
-      ctx.font = `${Math.max(6, w * 0.22)}px system-ui`;
+      ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('\u2692', cx + rad * 0.8, cy - rad * 0.8);
     }
@@ -12836,7 +12839,7 @@ function render() {
       ctx.beginPath(); ctx.arc(ncx, ncy, nrad, 0, Math.PI * 2); ctx.stroke();
       if (VIEW_TILE >= 14) {
         ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(10, w * 0.45)}px system-ui`;
+        ctx.font = `${Math.max(10, w * 0.45)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(UNIT_DEFS[nudgeUnit.type]?.icon || '?', ncx, ncy);
       }
@@ -12863,7 +12866,7 @@ function render() {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.beginPath(); ctx.arc(bx, by, w * 0.16, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#ffd';
-      ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
+      ctx.font = `bold ${Math.max(8, w * 0.28)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(count, bx, by);
     }
