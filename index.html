@@ -13200,7 +13200,7 @@ function drawSheetOrnaments(cs, ch, facePad) {
   // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
   const cart = owCartouche();
   if (cart) {
-    const cwid = Math.min(mw * 0.3, cs * 10), chgt = cwid * cart.naturalHeight / cart.naturalWidth;
+    const cwid = window.__film ? mw * 0.13 : Math.min(mw * 0.3, cs * 10), chgt = cwid * cart.naturalHeight / cart.naturalWidth;
     const cx0 = ox + cs * 1.2, cy0 = oy + ch * 1.0, pcx = cx0 + cwid * 0.494, pcy = cy0 + chgt * 0.545;
     ctx.globalAlpha = 0.92; ctx.drawImage(cart, cx0, cy0, cwid, chgt); ctx.globalAlpha = 1;
     const n = nations[playerNation], year = getCurrentYear();
@@ -13215,7 +13215,7 @@ function drawSheetOrnaments(cs, ch, facePad) {
   }
   // the key to the chart in its lower right corner, as the old maps explained their marks
   {
-    const lw = Math.min(cs * 6.5, mw * 0.2), lh = lw * 0.82, lx = ox + mw - lw - cs * 0.7, ly = oy + mh - lh - ch * 0.9, u2 = lw / 200;
+    const lw = window.__film ? mw * 0.085 : Math.min(cs * 6.5, mw * 0.2), lh = lw * 0.82, lx = ox + mw - lw - cs * 0.7, ly = oy + mh - lh - ch * 0.9, u2 = lw / 200;
     if (lx < viewW && ly < viewH && lx + lw > 0 && ly + lh > 0) {
       ctx.save();
       ctx.fillStyle = 'rgba(232, 218, 182, 0.92)'; ctx.fillRect(lx, ly, lw, lh);
@@ -13252,7 +13252,7 @@ function drawSheetOrnaments(cs, ch, facePad) {
   // a wind head puffing from the sheet's upper right corner, as on the old world maps
   const wh = owDeskProp('windhead');
   if (wh) {
-    const ws = Math.min(mh * 0.34, cs * 6, 260), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
+    const ws = window.__film ? mh * 0.13 : Math.min(mh * 0.34, cs * 6, 260), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
     const wx = ox + mw - ww2 - cs * 0.6, wy = oy + ch * 0.9;
     ctx.globalAlpha = 0.9; ctx.drawImage(wh, wx, wy, ww2, ws); ctx.globalAlpha = 1;
     // in winter the wind blows snow: a few flakes inked in the breath streaming from its lips
@@ -13306,7 +13306,7 @@ function drawRhumbs(cs, ch) {
   // the blank places lettered as the old chartmakers did (the chart is laid over them as the land is found)
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const tpx = Math.max(12, Math.min(cs * 0.9, 46));
+  const tpx = window.__film ? mh * 0.022 : Math.max(12, Math.min(cs * 0.9, 46)); // (filming: at the sheet's own scale)
   ctx.font = `italic ${tpx}px 'EB Garamond', serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = (tpx * 0.4) + 'px';
   ctx.fillStyle = 'rgba(46, 30, 14, 0.34)';
@@ -13314,7 +13314,7 @@ function drawRhumbs(cs, ch) {
   ctx.restore();
   // and beasts in the empty interior, as the old chartmakers filled what they did not know (the survey covers them as it comes)
   {
-    const bs = Math.min(mh * 0.15, cs * 4.5, 170); // (a decoration: never larger than a few hexes)
+    const bs = window.__film ? mh * 0.11 : Math.min(mh * 0.15, cs * 4.5, 170); // (a decoration: never larger than a few hexes; filming, drawn on the sheet at its own scale)
     for (const [name, fxp, fyp, flip, motto] of [['beast_bear', 0.4, 0.2, false, ''], ['beast_lion', 0.6, 0.62, true, 'Hic sunt leones'], ['beast_elephant', 0.2, 0.56, false, '']]) {
       const img = owDeskProp(name); if (!img) continue;
       const bw2 = bs * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), bh2 = bs * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
@@ -13618,7 +13618,9 @@ function render() {
   // unexplored land: a dark, old chart that scrolls with the map
   const fogPat = getFogPattern();
   if (fogPat) {
-    fogPat.setTransform(new DOMMatrix().translate(-((camX * cs) % 512), -((camY * ch) % 512)));
+    // (filming: the vellum's stains are fixed to the sheet and grow with it, so the whole sheet zooms as one)
+    if (window.__film) fogPat.setTransform(new DOMMatrix().translate(-camX * cs, -camY * ch).scale(cs / 24));
+    else fogPat.setTransform(new DOMMatrix().translate(-((camX * cs) % 512), -((camY * ch) % 512)));
     ctx.fillStyle = fogPat;
   } else ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, viewW, viewH);
