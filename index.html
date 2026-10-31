@@ -12593,27 +12593,9 @@ function drawSheetBorder(w, cs, ch, facePad) {
       const cx2 = name === 'desk_glass' || name === 'desk_seal' ? px - iw * 0.55 : px + iw * 0.55; // (left of the sheet, or right of it)
       if (cx2 + size < 0 || cx2 - size > viewW || py + size < 0 || py - size > viewH) continue;
       ctx.save(); ctx.translate(cx2, py); ctx.rotate(rot);
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = size * 0.04; ctx.shadowOffsetX = size * 0.025; ctx.shadowOffsetY = size * 0.04;
       const lens = name === 'desk_glass' ? { x: (216.5 / 300 - 0.5) * iw, y: (89.5 / 298 - 0.5) * ih, rx: iw * 0.235, ry: ih * 0.25 } : null;
-      if (lens) {
-        // through the lens, the leather beneath it, magnified (the glass's own rim is laid over its edge)
-        const desk = owDeskPattern();
-        ctx.save(); ctx.shadowColor = 'transparent'; ctx.beginPath(); ctx.ellipse(lens.x, lens.y, lens.rx, lens.ry, 0, 0, Math.PI * 2); ctx.clip();
-        if (desk) { desk.setTransform(new DOMMatrix().translate(lens.x, lens.y).scale(1.6).translate(-lens.x, -lens.y)); ctx.fillStyle = desk; ctx.fillRect(lens.x - lens.rx, lens.y - lens.ry, lens.rx * 2, lens.ry * 2); }
-        ctx.fillStyle = 'rgba(10, 6, 2, 0.14)'; ctx.fillRect(lens.x - lens.rx, lens.y - lens.ry, lens.rx * 2, lens.ry * 2);
-        ctx.restore();
-      }
-      ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
-      if (lens) {
-        // and the window's light caught on the glass
-        const lx = lens.x, ly = lens.y, lr = lens.rx * 0.95;
-        ctx.save(); ctx.shadowColor = 'transparent'; ctx.beginPath(); ctx.ellipse(lx, ly, lr, lens.ry * 0.95, 0, 0, Math.PI * 2); ctx.clip();
-        const glint = ctx.createRadialGradient(lx - lr * 0.38, ly - lr * 0.42, lr * 0.05, lx - lr * 0.2, ly - lr * 0.2, lr * 1.1);
-        glint.addColorStop(0, 'rgba(255, 250, 235, 0.5)'); glint.addColorStop(0.35, 'rgba(255, 245, 225, 0.1)'); glint.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
-        ctx.fillStyle = glint; ctx.fillRect(lx - lr, ly - lr * 1.2, lr * 2, lr * 2.4);
-        ctx.strokeStyle = 'rgba(255, 248, 230, 0.35)'; ctx.lineWidth = Math.max(1, lr * 0.05); ctx.beginPath(); ctx.arc(lx, ly, lr * 0.8, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();
-        ctx.restore();
-      }
+      if (lens) { const lv = owLensView(); if (lv) ctx.drawImage(lv, lens.x - lens.rx, lens.y - lens.ry, lens.rx * 2, lens.ry * 2); } // (the glass's own rim is laid over its edge)
+      { const bk = owPropBaked(img), ps = iw / img.naturalWidth; ctx.drawImage(bk, -iw / 2 - bk.pad * ps, -ih / 2 - bk.pad * ps, bk.width * ps, bk.height * ps); }
       ctx.restore();
     }
   }
@@ -12625,9 +12607,10 @@ function drawSheetBorder(w, cs, ch, facePad) {
     ctx.save(); ctx.clip(outside, 'evenodd'); // (only where they show past the top sheet)
     for (const [rot, dx, dy, tone] of [[-0.011, -gap * 0.8, gap * 1.6, '#a8916a'], [0.008, gap * 1.4, gap * 0.6, '#b8a178']]) {
       ctx.save(); ctx.translate(mcx + dx, mcy + dy); ctx.rotate(rot);
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'; ctx.shadowBlur = Math.max(6, gap * 2); ctx.shadowOffsetX = gap * 0.4; ctx.shadowOffsetY = gap * 0.7;
+      // (its shadow a plain offset wash: a blurred shadow the size of the sheet is slow to draw every frame)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(-ow / 2 + gap * 0.5, -oh / 2 + gap * 0.8, ow, oh);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; ctx.fillRect(-ow / 2 + gap * 0.2, -oh / 2 + gap * 0.35, ow + gap * 0.6, oh + gap * 0.9);
       ctx.fillStyle = tone; ctx.fillRect(-ow / 2, -oh / 2, ow, oh);
-      ctx.shadowColor = 'transparent';
       if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fillRect(-ow / 2, -oh / 2, ow, oh); ctx.globalCompositeOperation = 'source-over'; }
       ctx.strokeStyle = 'rgba(60, 40, 20, 0.35)'; ctx.lineWidth = 1; ctx.strokeRect(-ow / 2, -oh / 2, ow, oh);
       ctx.restore();
@@ -12639,8 +12622,13 @@ function drawSheetBorder(w, cs, ch, facePad) {
     const ox0 = bx - gap * 2.6, oy0 = by - gap * 2.6, ow = bw + gap * 5.2, oh = bh + gap * 7.28;
     const outside = new Path2D(); outside.rect(-viewW, -viewH, viewW * 3, viewH * 3); outside.rect(ox0, oy0, ow, oh);
     ctx.save(); ctx.clip(outside, 'evenodd');
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)'; ctx.shadowBlur = Math.max(12, gap * 5); ctx.shadowOffsetX = gap * 0.8; ctx.shadowOffsetY = gap * 1.4;
-    ctx.fillStyle = '#000'; ctx.fillRect(ox0, oy0, ow, oh);
+    // (a soft shadow built of a few widening washes: a canvas blur the size of the whole sheet cost several milliseconds a frame)
+    const sb = Math.max(12, gap * 5);
+    for (let k = 6; k >= 1; k--) {
+      const e = sb * k / 6, a = 0.11 + (6 - k) * 0.02;
+      ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
+      ctx.fillRect(ox0 + gap * 0.8 - e * 0.5, oy0 + gap * 1.4 - e * 0.5, ow + e, oh + e);
+    }
     ctx.restore();
   }
   const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 7.28); margin.rect(bx, by, bw, bh);
@@ -12686,6 +12674,36 @@ function drawSheetBorder(w, cs, ch, facePad) {
   ctx.restore();
 }
 const _owProps = {};
+// what is seen through the reading glass, made once: the leather beneath it magnified, and the window's light caught on the glass
+let _owLens = null;
+function owLensView() {
+  if (_owLens) return _owLens;
+  if (!_owDeskImg || !_owDeskImg.complete || !_owDeskImg.naturalWidth) return null;
+  const W = 256, H = 272, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.beginPath(); g.ellipse(W / 2, H / 2, W / 2, H / 2, 0, 0, Math.PI * 2); g.clip();
+  g.drawImage(_owDeskImg, 60, 60, 125, 133, 0, 0, W, H); // (a small patch of the leather, spread over the lens)
+  g.fillStyle = 'rgba(10, 6, 2, 0.14)'; g.fillRect(0, 0, W, H);
+  const lx = W / 2, ly = H / 2, lr = W / 2 * 0.95;
+  const glint = g.createRadialGradient(lx - lr * 0.38, ly - lr * 0.42, lr * 0.05, lx - lr * 0.2, ly - lr * 0.2, lr * 1.1);
+  glint.addColorStop(0, 'rgba(255, 250, 235, 0.5)'); glint.addColorStop(0.35, 'rgba(255, 245, 225, 0.1)'); glint.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+  g.fillStyle = glint; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(255, 248, 230, 0.35)'; g.lineWidth = lr * 0.05; g.beginPath(); g.arc(lx, ly, lr * 0.8, Math.PI * 1.05, Math.PI * 1.45); g.stroke();
+  return (_owLens = c);
+}
+// a desk prop with its shadow already laid under it (a live blur on each, every frame, cost milliseconds)
+const _owBaked = new Map();
+function owPropBaked(img) {
+  let c = _owBaked.get(img);
+  if (c) return c;
+  const M = Math.max(img.naturalWidth, img.naturalHeight), pad = Math.ceil(M * 0.12);
+  c = document.createElement('canvas'); c.width = img.naturalWidth + pad * 2; c.height = img.naturalHeight + pad * 2; c.pad = pad;
+  const g = c.getContext('2d');
+  g.shadowColor = 'rgba(0, 0, 0, 0.6)'; g.shadowBlur = M * 0.04; g.shadowOffsetX = M * 0.025; g.shadowOffsetY = M * 0.04;
+  g.drawImage(img, pad, pad);
+  _owBaked.set(img, c);
+  return c;
+}
 function owDeskProp(name) {
   let img = _owProps[name];
   if (!img) { img = _owProps[name] = new Image(); img.src = 'ui/' + name + '.png'; }
