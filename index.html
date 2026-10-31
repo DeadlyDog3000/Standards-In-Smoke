@@ -797,7 +797,7 @@
         - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out; the sheet is browned at its edges and creased where it was folded<br>
         - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
-        - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
+        - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner, a compass rose is printed in the widest sea and a scale of miles in the lower corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
       </div>
@@ -1764,7 +1764,7 @@
           - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out; the sheet is browned at its edges and creased where it was folded<br>
           - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
-          - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
+          - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner, a compass rose is printed in the widest sea and a scale of miles in the lower corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
         </div>
@@ -11931,6 +11931,19 @@ function buildWorldChart(key) {
     g.strokeStyle = 'rgba(70, 50, 28, 0.22)'; g.lineWidth = 0.8 * u; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
   };
   fold(TW / 3, 0, TW / 3, TH, 1, 0); fold(TW * 2 / 3, 0, TW * 2 / 3, TH, 1, 0); fold(0, TH / 2, TW, TH / 2, 0, 1);
+  // a scale of miles in the lower corner, as the engraver signed off the sheet
+  {
+    const seg = CS * 1.2, n = 5, x0 = K * 1.1, y0 = TH - K * 0.85, bh = 6 * u;
+    g.fillStyle = 'rgba(236, 224, 192, 0.85)'; g.fillRect(x0 - 10 * u, y0 - 26 * u, seg * n + 20 * u, bh + 44 * u);
+    g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.2 * u; g.strokeRect(x0 - 10 * u, y0 - 26 * u, seg * n + 20 * u, bh + 44 * u);
+    for (let k = 0; k < n; k++) { g.fillStyle = k & 1 ? 'rgba(244, 234, 206, 1)' : 'rgba(46, 32, 18, 0.95)'; g.fillRect(x0 + k * seg, y0, seg, bh); }
+    g.strokeRect(x0, y0, seg * n, bh);
+    g.fillStyle = 'rgba(46, 32, 18, 0.95)'; g.textAlign = 'center'; g.textBaseline = 'bottom';
+    g.font = `${10 * u}px 'EB Garamond', serif`;
+    for (let k = 0; k <= n; k++) g.fillText(String(k * 10), x0 + k * seg, y0 - 2 * u);
+    g.font = `italic ${11 * u}px 'EB Garamond', serif`; g.textBaseline = 'top';
+    g.fillText('Scala Milliarium Germanicorum', x0 + seg * n / 2, y0 + bh + 3 * u);
+  }
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
   // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
   OW.mips = [c];
@@ -11968,7 +11981,9 @@ function owPlaceNames() {
       // lettered at the deepest water near the middle of the sea
       let cx = 0, cy = 0; for (const i of g.cells) { cx += i % MAP_COLS; cy += Math.floor(i / MAP_COLS); } cx /= n; cy /= n;
       let best = g.cells[0], bs = -1e9;
-      for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 - Math.hypot(x - cx, y - cy) * 0.5; if (sc > bs) { bs = sc; best = i; } }
+      // (well inside the sheet, so the lettering isn't cut off at its border)
+      const inset = (x, y) => Math.min(x - 5, MAP_COLS - 6 - x, (y - 2) * 2, (MAP_ROWS - 3 - y) * 2);
+      for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 - Math.hypot(x - cx, y - cy) * 0.5 + Math.min(0, inset(x, y)) * 4; if (sc > bs) { bs = sc; best = i; } }
       const big = n >= 60;
       labels.push({ i: best, text: big ? OW_SEA_NAMES[seaN++ % OW_SEA_NAMES.length] : OW_LAKE_NAMES[lakeN++ % OW_LAKE_NAMES.length], kind: 'sea', size: (big ? 0.42 : 0.3) * Math.min(4, Math.max(1, Math.sqrt(n) / 9)) });
       // the open sea gets a monster or a ship, well away from the shore and from each other
@@ -11989,12 +12004,27 @@ function owPlaceNames() {
       labels.push({ i: best, text: OW_HILL_NAMES[hillN++ % OW_HILL_NAMES.length], kind: 'mount', size: 0.3 * Math.min(3.2, Math.max(1, Math.sqrt(n) / 4)) });
     }
   }
+  // a compass rose printed in the widest sea, clear of its name and its beasts
+  const seas = groups.filter(g => g.kind === 'sea').sort((a, b) => b.cells.length - a.cells.length);
+  if (seas.length && seas[0].cells.length >= 40) {
+    const taken = labels.map(l => l.i).concat(decor.map(d => d.i));
+    const far = (i) => Math.min(...taken.map(j => Math.hypot(i % MAP_COLS - j % MAP_COLS, Math.floor(i / MAP_COLS) - Math.floor(j / MAP_COLS))), 99);
+    let best = -1, bs = -1;
+    for (const i of seas[0].cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS); if (depth[i] < 3 || x < 4 || y < 3 || x > MAP_COLS - 5 || y > MAP_ROWS - 4) continue; const sc = Math.min(depth[i], 6) * 2 + Math.min(far(i), 8); if (sc > bs) { bs = sc; best = i; } }
+    if (best >= 0) decor.push({ i: best, rose: true });
+  }
   OW.labels = labels; OW.decor = decor;
 }
 function owDrawNames(g, w, cs, ch, facePad) {
   const halfCh = Math.round(ch / 2), at = i => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return [x * cs - camX * cs + w / 2, y * ch + (x & 1) * halfCh - camY * ch + facePad + ch / 2]; };
   for (const d of OW.decor || []) {
     if (!tiles[d.i].revealed.has(playerNation)) continue;
+    if (d.rose) {
+      const [x, y] = at(d.i), rs = Math.max(48, Math.min(w * 2.6, 240));
+      if (x < -rs || y < -rs || x > viewW + rs || y > viewH + rs) continue;
+      g.save(); g.globalAlpha = 0.8; g.drawImage(owRoseCanvas(), x - rs / 2, y - rs / 2, rs, rs); g.restore();
+      continue;
+    }
     const img = featSprite(d.img); if (!img) continue;
     const [x, y] = at(d.i); if (x < -w * 2 || y < -w * 2 || x > viewW + w * 2 || y > viewH + w * 2) continue;
     const dw = w * 1.5, dh = dw * img.naturalHeight / img.naturalWidth;
