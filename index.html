@@ -704,6 +704,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Tidier Borders</b><br>
+        - A city's lands grow outward nearest-first into a compact shape, and natural growth reaches only so far: 2 tiles for a small town, 3 from 5 people, 4 from 10 (borders used to creep on for ever, one town ending with ninety tiles and swallowing the sites others might have settled). Bought tiles and Urban quarters can still push past it<br>
+        - Games started or loaded without the New Game screen's barbarian settings use the same defaults it shows (they were harsher)
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">No Death Spirals</b><br>
@@ -1434,7 +1440,13 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.5</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Tidier Borders</b><br>
+        - A city's lands grow outward nearest-first into a compact shape, and natural growth reaches only so far: 2 tiles for a small town, 3 from 5 people, 4 from 10 (borders used to creep on for ever, one town ending with ninety tiles and swallowing the sites others might have settled). Bought tiles and Urban quarters can still push past it<br>
+        - Games started or loaded without the New Game screen's barbarian settings use the same defaults it shows (they were harsher)
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">No Death Spirals</b><br>
         - A noble house that has risen in rebellion needs fifteen turns before it can rise again (a weak realm used to face a new rising every few turns and never recover)<br>
@@ -2769,12 +2781,13 @@ let barbarianCamps = []; // { x, y, nationId, destroyed: false, destroyedTurn: 0
 
 let agreements = {};
 let barbarianDensity = 0.4; // 0 to 1, default 40%
-let barbSpawnTurn = 5;      // turn barbarian camps start spawning from tick (initial camp at turn 1)
-let barbSpawnChance = 0.75; // base chance per turn to spawn a new camp (higher)
-let barbMaxUnits = 10;      // max units per camp (more)
-let barbRespawnTurns = 5;   // turns before destroyed camp respawns (faster)
-let barbRaidRange = 30;     // max distance barbarians will raid toward cities (farther)
-let barbRaiderInterval = 2; // spawn extra raider every N turns (faster)
+// the same as the New Game screen's defaults (these used to be harsher, for games started or loaded without it)
+let barbSpawnTurn = 3;      // turn barbarian camps start spawning from tick (initial camp at turn 1)
+let barbSpawnChance = 0.6;  // base chance per turn to spawn a new camp
+let barbMaxUnits = 6;       // max units per camp
+let barbRespawnTurns = 8;   // turns before destroyed camp respawns
+let barbRaidRange = 20;     // max distance barbarians will raid toward cities
+let barbRaiderInterval = 3; // spawn extra raider every N turns
 let barbCampSpacing = 6;    // minimum distance between camps
 let citySites = []; // { x, y, settled: false }
 let pillaged = []; // { tileIndex, originalImprovement, turnPillaged }
@@ -5035,7 +5048,11 @@ function setCityTiles(city) {
   }
 }
 
-function expandCityBorder(city) {
+// a city's lands grow outward from it, nearest ground first, and natural growth reaches only so far: 2 tiles, more as
+// the town grows (to 4). Bought tiles and urban quarters can push past it. (Borders used to creep on for ever, a lone
+// town ending with ninety tiles and swallowing the sites others might have settled.)
+function expandCityBorder(city, unlimited = false) {
+  const reach = Math.min(4, 2 + Math.floor((city.population || 1) / 5));
   const candidates = [];
   for (const ti of city.ownedTiles) {
     const cx = ti % MAP_COLS, cy = Math.floor(ti / MAP_COLS);
@@ -5044,11 +5061,16 @@ function expandCityBorder(city) {
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       const ni = ny * MAP_COLS + nx;
       if (tiles[ni].type === 0 || tiles[ni].owner >= 0) continue;
-      if (!city.ownedTiles.has(ni)) candidates.push(ni);
+      if (city.ownedTiles.has(ni) || candidates.includes(ni)) continue;
+      if (!unlimited && hexDistance(city.x, city.y, nx, ny) > reach) continue;
+      candidates.push(ni);
     }
   }
   if (candidates.length === 0) return;
-  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  const dist = ti => hexDistance(city.x, city.y, ti % MAP_COLS, Math.floor(ti / MAP_COLS));
+  const near = Math.min(...candidates.map(dist));
+  const ring = candidates.filter(ti => dist(ti) === near);
+  const pick = ring[Math.floor(Math.random() * ring.length)];
   tiles[pick].owner = city.nationId;
   city.ownedTiles.add(pick);
   _tileCityMapDirty = true;
@@ -5661,7 +5683,7 @@ function finishBuild(worker, impKey) {
   worker.movesLeft = 0;
   if (impKey === 'urban') {
     const city = cities.find(c => c.nationId === worker.nationId && c.ownedTiles.has(ti));
-    if (city) expandCityBorder(city);
+    if (city) expandCityBorder(city, true);
   }
   if (worker.nationId === playerNation) {
     showToast(`${IMPROVEMENT_DEFS[impKey].icon} ${IMPROVEMENT_DEFS[impKey].name} completed!`);
@@ -12873,7 +12895,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.5';
+const CURRENT_VERSION = 'beta-7.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -15025,12 +15047,12 @@ function deserializeGame(json) {
   citySites = d.citySites || [];
   pillaged = d.pillaged || [];
   barbarianDensity = d.barbarianDensity ?? 0.4;
-  barbSpawnTurn = d.barbSpawnTurn ?? 5;
-  barbSpawnChance = d.barbSpawnChance ?? 0.75;
-  barbMaxUnits = d.barbMaxUnits ?? 10;
-  barbRespawnTurns = d.barbRespawnTurns ?? 5;
-  barbRaidRange = d.barbRaidRange ?? 30;
-  barbRaiderInterval = d.barbRaiderInterval ?? 2;
+  barbSpawnTurn = d.barbSpawnTurn ?? 3;
+  barbSpawnChance = d.barbSpawnChance ?? 0.6;
+  barbMaxUnits = d.barbMaxUnits ?? 6;
+  barbRespawnTurns = d.barbRespawnTurns ?? 8;
+  barbRaidRange = d.barbRaidRange ?? 20;
+  barbRaiderInterval = d.barbRaiderInterval ?? 3;
   barbCampSpacing = d.barbCampSpacing ?? 6;
   gameDifficulty = d.gameDifficulty || 'normal';
 
