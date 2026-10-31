@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Hearth Smoke</b><br>
+        - In autumn and winter, pale smoke rises from the chimneys of every town, more of it from the larger towns
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">A Painted Map</b><br>
@@ -1534,6 +1539,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.2</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Hearth Smoke</b><br>
+          - In autumn and winter, pale smoke rises from the chimneys of every town, more of it from the larger towns
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.1</b></div>
         <div style="margin-bottom:12px;">
@@ -10580,6 +10590,23 @@ function drawLandmark(kind, x, y, w) {
 }
 
 // A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
+// hearth smoke: thin pale wisps from the chimneys in the cold months
+function drawChimneySmoke(cx, cy, w, n, seed) {
+  let sd = seed * 7 + 3; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+  const k = Math.min(1, n);
+  ctx.save();
+  for (let c = 0; c < Math.ceil(n); c++) {
+    const bx = cx + (rnd() - 0.5) * w * 0.45, by = cy - w * 0.12 - rnd() * w * 0.08;
+    for (let i = 0; i < 6; i++) {
+      const t = i / 6, x = bx + w * 0.022 * i * i, y = by - w * 0.11 * i, r = w * (0.05 + t * 0.1);
+      const a = (0.62 - t * 0.5) * k;
+      ctx.fillStyle = `rgba(${170 + i * 8}, ${168 + i * 8}, ${165 + i * 8}, ${a})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
 function drawTownFire(cx, cy, w, k, seed) {
   let sd = seed * 9301 + 49297; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
   const cols = 1 + Math.round(k * 2);
@@ -11608,11 +11635,13 @@ function render() {
 
   // towns taken or sacked in the last few turns still burn: smoke columns leaning downwind
   if (VIEW_TILE >= 14) for (const city of cities) {
-    const age = turnNumber - (city.burnTurn ?? -99);
-    if (age < 0 || age > 3 || !tiles[city.y * MAP_COLS + city.x].revealed.has(pId)) continue;
+    const age = turnNumber - (city.burnTurn ?? -99), burning = age >= 0 && age <= 3;
+    const hearths = !burning && VIEW_TILE >= 22 && (currentSeason === 'winter' || currentSeason === 'autumn');
+    if ((!burning && !hearths) || !tiles[city.y * MAP_COLS + city.x].revealed.has(pId)) continue;
     const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
     if (pos.x < -w * 3 || pos.y < -ch * 4 || pos.x > viewW + w * 2 || pos.y > viewH + ch) continue;
-    drawTownFire(pos.x + w / 2, pos.y + fp + ch / 2, w, 1 - age / 4, city.x * 31 + city.y * 17);
+    if (burning) drawTownFire(pos.x + w / 2, pos.y + fp + ch / 2, w, 1 - age / 4, city.x * 31 + city.y * 17);
+    else drawChimneySmoke(pos.x + w / 2, pos.y + fp + ch / 2, w, Math.min(3, 1 + Math.floor((city.population || 1) / 5)) * (currentSeason === 'winter' ? 1 : 0.6), city.x * 31 + city.y * 17);
   }
   renderFloatingTexts();
   // cities under threat: a red dashed ring around the tile, drawn above the garrison
@@ -13397,7 +13426,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.1';
+const CURRENT_VERSION = 'beta-9.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
