@@ -579,6 +579,8 @@
     #eventLog .log-entry { border-bottom: 1px dotted rgba(90, 60, 24, 0.35); }
     #eventLog .log-turn { color: #8a2a14; font-style: italic; }
     #eventLog img.emo { filter: none; }
+    .us-bar > div { background: #d8c8a0 !important; border: 1px solid rgba(30, 20, 10, 0.85); border-radius: 1px !important; height: 7px !important; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25); }
+    .us-bar i { border-radius: 0 !important; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.2); }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -13884,7 +13886,7 @@ function showUnitPanel(unit) {
   // (its state at a glance: health and morale as bars, then what it can do and what the ground gives it, as chips)
   const bar = (label, v, max, col) => `<div class="us-bar"><span>${label}</span><div><i style="width:${Math.max(0, Math.min(100, v / max * 100))}%;background:${col}"></i></div><b>${v}/${max}</b></div>`;
   const chip = (t, title, cls = '') => `<span class="us-chip ${cls}"${title ? ` title="${title}"` : ''}>${t}</span>`;
-  const hpCol = unit.hp / effectiveMaxHp > 0.6 ? '#6ab04c' : unit.hp / effectiveMaxHp > 0.3 ? '#e0b040' : '#d05040';
+  const hpCol = unit.hp / effectiveMaxHp > 0.6 ? '#6f9a42' : unit.hp / effectiveMaxHp > 0.3 ? '#c4962e' : '#ac442c'; // (sap green, ochre, madder)
   let bars = bar('Health', unit.hp, effectiveMaxHp, hpCol), chips = chip(`→ ${unit.movesLeft}/${unit.maxMoves}`, 'Moves left this turn') + chip(`👁 ${unit.vision}`, 'How far it sees');
   if (def.combat) {
     const effAtk = getEffectiveAtk(unit);
