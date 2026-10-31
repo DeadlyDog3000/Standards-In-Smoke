@@ -11728,6 +11728,15 @@ function drawWargameBlock(u, cx, cy, w, col, selected) {
   else { ctx.moveTo(ix + iw * 0.2, iy + ih / 2); ctx.lineTo(ix + iw * 0.8, iy + ih / 2); ctx.stroke(); }
   ctx.restore();
 }
+const _figSil = new WeakMap();
+function figureSilhouette(img) {
+  let c = _figSil.get(img);
+  if (c) return c;
+  c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#1e140a'; g.fillRect(0, 0, c.width, c.height);
+  _figSil.set(img, c);
+  return c;
+}
 function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
   const rx = w * 0.22, ry = w * 0.08;
@@ -11735,6 +11744,15 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0) 
   // its shadow, and the ring of its colours on the ground
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(cx + w * 0.04, baseY + ry * 0.35, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+  if (!naval && OW.canvas) {
+    // the figure's own shadow, thrown long to the south-east by the same low north-west light that shades the hills
+    const sil = figureSilhouette(img), maxD0 = w * 0.6, sc0 = maxD0 / Math.max(img.width, img.height), dw0 = img.width * sc0, dh0 = img.height * sc0;
+    ctx.save(); ctx.globalAlpha = 0.3;
+    ctx.transform(1, 0, -1.15, -0.34, cx, baseY + ry * 0.4);
+    if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(sil, -dw0 / 2, -dh0, dw0, dh0);
+    ctx.restore();
+  }
   if (naval && OW.canvas) {
     // a ship's wake, curling away astern in pale strokes, and a pennant of its realm at the masthead's foot
     const dir = flip ? 1 : -1, wy = baseY + ry * 0.5;
