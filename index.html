@@ -12783,6 +12783,8 @@ function drawSheetBorder(w, cs, ch, facePad) {
     ctx.fillStyle = 'rgba(52, 36, 18, 0.85)';
     ctx.textAlign = 'right'; ctx.fillText('Cura et sumptibus DeadlyDog Productions', bx + bw - Math.max(18, gap * 7) - gap * 0.5, by + bh + gap * 3.3);
     ctx.textAlign = 'left'; ctx.fillText('Cum Privilegio', bx + gap, by + bh + gap * 3.3);
+    // (and dated at the middle of the foot, as the plates were: the year of this survey)
+    if (MAP_COLS) { ctx.textAlign = 'center'; ctx.fillText('Anno ' + toRoman(getCurrentYear()), bx + bw / 2, by + bh + gap * 3.3); }
   }
   ctx.restore();
 }
