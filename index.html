@@ -12945,6 +12945,21 @@ function render() {
       }
     }
 
+    // settled country further out: here and there a hamlet's church, drawn small as the old maps dotted them
+    if (charted && VIEW_TILE >= 22 && (t.type === 1 || t.type === 6) && !t.improvement && !t.animal && t.owner >= 0 && !isBarbarianNation(t.owner) && ((i * 2654435761) >>> 0) % 7 === 0) {
+      const tc = getTileCityMap().get(i);
+      if (tc && hexDistance(mx, my, tc.x, tc.y) >= 2) {
+        const hx = sx + w * 0.62, hy = fy + ch * 0.62, k = w / 64;
+        ctx.save(); ctx.lineWidth = Math.max(0.7, k * 0.9); ctx.strokeStyle = 'rgba(52, 34, 16, 0.9)';
+        // a tiny church: nave, a tower with its spire, and a cross
+        ctx.fillStyle = 'rgba(230, 216, 180, 0.95)'; ctx.fillRect(hx - 6 * k, hy - 5 * k, 8 * k, 5 * k); ctx.strokeRect(hx - 6 * k, hy - 5 * k, 8 * k, 5 * k);
+        ctx.fillStyle = '#9a4a32'; ctx.beginPath(); ctx.moveTo(hx - 7 * k, hy - 5 * k); ctx.lineTo(hx - 2 * k, hy - 8 * k); ctx.lineTo(hx + 3 * k, hy - 5 * k); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(230, 216, 180, 0.95)'; ctx.fillRect(hx + 2 * k, hy - 8 * k, 3 * k, 8 * k); ctx.strokeRect(hx + 2 * k, hy - 8 * k, 3 * k, 8 * k);
+        ctx.fillStyle = '#5a5a62'; ctx.beginPath(); ctx.moveTo(hx + 1.6 * k, hy - 8 * k); ctx.lineTo(hx + 3.5 * k, hy - 14 * k); ctx.lineTo(hx + 5.4 * k, hy - 8 * k); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx + 3.5 * k, hy - 14 * k); ctx.lineTo(hx + 3.5 * k, hy - 17 * k); ctx.moveTo(hx + 2.5 * k, hy - 16 * k); ctx.lineTo(hx + 4.5 * k, hy - 16 * k); ctx.stroke();
+        ctx.restore();
+      }
+    }
     // the open country round a town is under the plough: faint strips of ploughland in ink
     if (charted && VIEW_TILE >= 30 && t.type === 1 && !t.improvement && !t.animal && t.owner >= 0 && !isBarbarianNation(t.owner)) {
       const tc = getTileCityMap().get(i);
