@@ -7668,7 +7668,7 @@ function showVictory(type) {
   overlay.id = 'victoryOverlay';
   overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,8,3,0.45),rgba(10,8,3,0.88) 70%),url('events/victory.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
-    <h1 style="color:#d4a856;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(212,168,86,0.5);">${typeLabel}!</h1>
+    <h1 style="color:#e0b860;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 26px rgba(212,168,86,0.45);">${typeLabel}!</h1>
     <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
     <div style="background:rgba(40,35,20,0.6);border:1px solid rgba(212,168,86,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Score Breakdown</h3>
@@ -7769,7 +7769,7 @@ function showDefeat(type, winnerId) {
   overlay.id = 'defeatOverlay';
   overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,5,3,0.5),rgba(10,5,3,0.9) 70%),url('events/defeat.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
-    <h1 style="color:#c44;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 0 30px rgba(200,60,40,0.5);">${title}</h1>
+    <h1 style="color:#d8553a;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 22px rgba(200,60,30,0.4);">${title}</h1>
     <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
     <div style="background:rgba(40,30,20,0.6);border:1px solid rgba(160,100,60,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Final Score: ${s.total}</h3>
