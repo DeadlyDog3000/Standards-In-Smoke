@@ -11852,6 +11852,7 @@ function render() {
     if (!city._occupied) continue;
     for (const ti of city._occupied) {
       if (!tiles[ti].revealed.has(pId) || (tiles[ti].improvement === 'port' && city._blockaded)) continue;
+      if (city.nationId !== pId && currentVisionSet && !currentVisionSet.has(ti)) continue; // a rival's fields under fog: you can't see who stands in them
       const pos = hexScreenPos(ti % MAP_COLS, Math.floor(ti / MAP_COLS));
       if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
       let sd = ti * 7919 + 13; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
@@ -12119,7 +12120,7 @@ function render() {
   // cities under threat: a red dashed ring around the tile, drawn above the garrison
   for (const city of cities) {
     // your towns under threat: red; any town under siege that you can see (yours or a rival's): a heavier orange ring
-    const sieged = city._besieged && VIEW_TILE >= 10 && tiles[city.y * MAP_COLS + city.x].revealed.has(pId);
+    const sieged = city._besieged && VIEW_TILE >= 10 && tiles[city.y * MAP_COLS + city.x].revealed.has(pId) && (city.nationId === pId || !currentVisionSet || currentVisionSet.has(city.y * MAP_COLS + city.x));
     if (!sieged && (!city._threatened || city.nationId !== pId)) continue;
     const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
     if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
@@ -14183,14 +14184,14 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (roads.some(r => r.path.includes(i))) html += `<div class="tt-detail" style="color:#c9a86a">Road to the capital: one move per step, whatever the ground</div>`;
   // the state of a town's war: siege, blockade, cut road, fields lost
   const ttCity = cities.find(c => c.x === mx && c.y === my);
-  if (ttCity) {
+  if (ttCity && (ttCity.nationId === playerNation || !currentVisionSet || currentVisionSet.has(i))) {
     const notes = [];
     if (ttCity._besieged) notes.push(ttCity.siegeTurns >= 2 ? `besieged for ${ttCity.siegeTurns} turns${ttCity.siegeTurns >= 4 ? ', starving' : ttCity.siegeTurns === 3 ? ', its stores nearly gone' : ''}` : 'besieged');
     if (ttCity._blockaded) notes.push('its harbour blockaded');
     if (ttCity._roadCut && !ttCity._besieged) notes.push('its road cut');
     if (ttCity._occupied && ttCity._occupied.size) notes.push(`${ttCity._occupied.size} of its tiles held by the enemy`);
     if (notes.length) html += `<div class="tt-detail" style="color:#ff9a4a">\u26D3 ${escHtml(ttCity.name)}: ${notes.join(', ')}</div>`;
-  } else if (tiles[i].owner >= 0) {
+  } else if (!ttCity && tiles[i].owner >= 0 && (tiles[i].owner === playerNation || !currentVisionSet || currentVisionSet.has(i))) {
     const holder = cities.find(c => c._occupied && c._occupied.has(i));
     if (holder) html += `<div class="tt-detail" style="color:#ff9a4a">Held by the enemy: ${escHtml(holder.name)} gets nothing from this tile</div>`;
   }
