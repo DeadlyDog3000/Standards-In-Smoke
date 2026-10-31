@@ -13082,6 +13082,8 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   return true;
 }
 function render() {
+  // (a timer can call for a frame between games: after quitting, with no map, or before a new map's tiles are laid. Skip it)
+  if (!MAP_COLS || tiles.length !== MAP_COLS * MAP_ROWS) return;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(viewW / cs) + 3;
