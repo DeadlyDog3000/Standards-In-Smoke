@@ -3340,10 +3340,11 @@ function mirroredTile(img) {
   return m;
 }
 
-// (whole pixels in play, so the hexes tile without seams; fractional when filming, so a zoom glides instead of stepping)
-function hexWidth() { return window.__film ? VIEW_TILE : Math.round(VIEW_TILE * 1.0); }
-function hexCellH() { return window.__film ? hexWidth() * 0.72 : Math.round(hexWidth() * 0.72); } // row step: tighter than face height so rows overlap and cover dirt
-function hexColStep() { return window.__film ? hexWidth() * 0.75 : Math.round(hexWidth() * 0.75); } // horizontal column spacing (3/4 width for edge-sharing)
+// (whole pixels at rest, so the hexes tile without seams; fractional while a zoom glides, and when filming, so it moves smoothly instead of stepping)
+let _fracHex = false;
+function hexWidth() { return window.__film || _fracHex ? VIEW_TILE : Math.round(VIEW_TILE * 1.0); }
+function hexCellH() { return window.__film || _fracHex ? hexWidth() * 0.72 : Math.round(hexWidth() * 0.72); } // row step: tighter than face height so rows overlap and cover dirt
+function hexColStep() { return window.__film || _fracHex ? hexWidth() * 0.75 : Math.round(hexWidth() * 0.75); } // horizontal column spacing (3/4 width for edge-sharing)
 function hexRowStep() { return hexCellH(); } // vertical row spacing = full cell height
 
 function hexToPixel(col, row) {
@@ -17071,7 +17072,8 @@ let _zoomGlide = null, _zoomRaf = false;
 function zoomGlideStep(now) {
   const g = _zoomGlide; if (!g) { _zoomRaf = false; return; }
   const k = Math.min(1, (now - g.t0) / 140), e = 1 - (1 - k) * (1 - k);
-  VIEW_TILE = Math.round(g.from + (g.to - g.from) * e);
+  _fracHex = k < 1; // (in between, the hexes take fractional sizes so the zoom glides; it comes to rest on a whole one)
+  VIEW_TILE = k < 1 ? g.from + (g.to - g.from) * e : g.to;
   const cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(viewW / cs) + 3; viewRows = Math.ceil(viewH / ch) + 3;
   camX = clampCamX(g.worldX - g.mx / cs); camY = clampCamY(g.worldY - g.my / ch);
