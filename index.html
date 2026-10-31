@@ -13444,7 +13444,19 @@ function render() {
     if (!sieged && (!city._threatened || city.nationId !== pId)) continue;
     const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
     if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
-    if (sieged) {
+    if (sieged && OW.canvas) {
+      // on the chart, as a siege is drawn on the old plans: a ring of earthworks round the town, a line of little saps facing in
+      const cx = pos.x + w / 2, cy = pos.y + fp + ch / 2, rx = w * 0.74, ry = ch * 0.74, n = 18;
+      ctx.save(); ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(246, 236, 210, 0.7)'; ctx.lineWidth = Math.max(4, w * 0.07);
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(140, 26, 16, 0.92)'; ctx.lineWidth = Math.max(1.6, w * 0.028);
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      for (let k = 0; k < n; k++) { const a2 = k / n * Math.PI * 2, x0 = cx + Math.cos(a2) * rx, y0 = cy + Math.sin(a2) * ry; ctx.moveTo(x0, y0); ctx.lineTo(cx + Math.cos(a2) * rx * 0.86, cy + Math.sin(a2) * ry * 0.86); }
+      ctx.stroke(); ctx.restore();
+      if (!city._threatened || city.nationId !== pId) continue;
+    } else if (sieged) {
       ctx.save(); ctx.strokeStyle = 'rgba(255, 140, 30, 0.95)'; ctx.lineWidth = Math.max(3, w * 0.09); ctx.setLineDash([Math.max(3, w * 0.06), Math.max(3, w * 0.06)]);
       ctx.beginPath(); ctx.ellipse(pos.x + w / 2, pos.y + fp + ch / 2, w * 0.74, ch * 0.74, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       if (!city._threatened || city.nationId !== pId) continue;
