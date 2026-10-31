@@ -535,7 +535,9 @@
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
     #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; background-size: 256px 256px, 180px 180px; animation: snowfall 22s linear infinite; }
+    #weather.autumn { opacity: 0.9; background-size: 420px 420px, 300px 300px; animation: leaffall 26s linear infinite; }
     @keyframes snowfall { from { background-position: 0 0, 0 0; } to { background-position: 60px 512px, -40px 360px; } }
+    @keyframes leaffall { from { background-position: 0 0, 0 0; } to { background-position: 840px 420px, 600px 600px; } }
     @media (prefers-reduced-motion: reduce) { #weather { animation: none; } }
     #game > canvas { image-rendering: auto; cursor: url(ui/quill32.png) 1 1, default; cursor: -webkit-image-set(url(ui/quill32.png) 1x, url(ui/quill64.png) 2x) 1 1, default; }
     #game::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 55% at 48% 45%, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0) 70%); }
@@ -789,7 +791,7 @@
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Atlas, Finished</b><br>
-        - Mountains rise in shaded relief and throw their shadows across the plains below; rivers start as fine lines in the hills and swell as streams join them on the way to the sea; pine woods grow in the north and under the mountains<br>
+        - Snow drifts down over the map in winter and leaves blow across it in autumn; mountains rise in shaded relief and throw their shadows across the plains below; rivers start as fine lines in the hills and swell as streams join them on the way to the sea; pine woods grow in the north and under the mountains<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year in the sheet's corner, a compass rose is printed in the widest sea, a scale of miles in the lower corner, and the blank places read Terra Incognita<br>
         - Realms are lettered across their lands in spaced capitals; their borders are a wash of their colour inside a dotted line; the sheet is browned at its edges and creased where it was folded<br>
         - A village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress; town names are on parchment ribbons<br>
@@ -1768,7 +1770,7 @@
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">The Atlas, Finished</b><br>
-          - Mountains rise in shaded relief and throw their shadows across the plains below; rivers start as fine lines in the hills and swell as streams join them on the way to the sea; pine woods grow in the north and under the mountains<br>
+          - Snow drifts down over the map in winter and leaves blow across it in autumn; mountains rise in shaded relief and throw their shadows across the plains below; rivers start as fine lines in the hills and swell as streams join them on the way to the sea; pine woods grow in the north and under the mountains<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year in the sheet's corner, a compass rose is printed in the widest sea, a scale of miles in the lower corner, and the blank places read Terra Incognita<br>
           - Realms are lettered across their lands in spaced capitals; their borders are a wash of their colour inside a dotted line; the sheet is browned at its edges and creased where it was folded<br>
           - A village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress; town names are on parchment ribbons<br>
@@ -5272,23 +5274,40 @@ function getShakeOffset() {
   };
 }
 
-// winter: snow drifting down over the map (a CSS layer, so it costs the map nothing to draw)
-let _weatherEl = null, _weatherSeason = '';
+// winter: snow drifting down over the map; autumn: a few leaves blowing across it (CSS layers, so they cost the map nothing to draw)
+let _weatherEl = null, _weatherSeason = '', _weatherImgs = null;
 function updateWeather() {
-  const want = currentSeason === 'winter' && document.getElementById('game')?.style.display !== 'none' ? 'winter' : '';
+  const shown = document.getElementById('game')?.style.display !== 'none';
+  const want = shown && (currentSeason === 'winter' || currentSeason === 'autumn') ? currentSeason : '';
   if (want === _weatherSeason) return;
   _weatherSeason = want;
   if (!_weatherEl) {
     _weatherEl = document.createElement('div'); _weatherEl.id = 'weather';
-    const mk = (n, rmin, rmax, seed) => {
-      const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+    const canvas = () => { const c = document.createElement('canvas'); c.width = c.height = 256; return c; };
+    const flakes = (n, rmin, rmax, seed) => {
+      const c = canvas(), g = c.getContext('2d');
       let sd = seed; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
       for (let k = 0; k < n; k++) { const x = rnd() * 256, y = rnd() * 256, r = rmin + rnd() * (rmax - rmin); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
       return c.toDataURL();
     };
-    _weatherEl.style.backgroundImage = `url(${mk(26, 1.6, 3.2, 7)}), url(${mk(40, 1, 2, 31)})`;
+    const leaves = (n, seed) => {
+      const c = canvas(), g = c.getContext('2d');
+      let sd = seed; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      const cols = ['#a2522a', '#c07a2e', '#8a3c20', '#b89038'];
+      for (let k = 0; k < n; k++) {
+        const x = 12 + rnd() * 232, y = 12 + rnd() * 232, r = 3 + rnd() * 3;
+        g.save(); g.translate(x, y); g.rotate(rnd() * Math.PI * 2);
+        g.fillStyle = cols[Math.floor(rnd() * cols.length)]; g.beginPath(); g.ellipse(0, 0, r, r * 0.45, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(50, 26, 10, 0.7)'; g.lineWidth = 0.6; g.stroke(); g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke();
+        g.restore();
+      }
+      return c.toDataURL();
+    };
+    _weatherImgs = { winter: `url(${flakes(26, 1.6, 3.2, 7)}), url(${flakes(40, 1, 2, 31)})`, autumn: `url(${leaves(3, 11)}), url(${leaves(2, 53)})` };
     document.getElementById('game')?.appendChild(_weatherEl);
   }
+  _weatherEl.className = want;
+  if (want) _weatherEl.style.backgroundImage = _weatherImgs[want];
   _weatherEl.style.display = want ? 'block' : 'none';
 }
 function toRoman(v) {
