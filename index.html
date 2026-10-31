@@ -16093,18 +16093,25 @@ canvas.addEventListener('wheel', (e) => {
   _wheelAcc = (Math.sign(_wheelAcc) === Math.sign(e.deltaY) ? _wheelAcc : 0) + e.deltaY;
   if (Math.abs(_wheelAcc) < 40 && Math.abs(e.deltaY) < 40) return;
   const zoomIn = _wheelAcc < 0; _wheelAcc = 0;
-  if (zoomIn) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(2, Math.round(VIEW_TILE * 0.15)));
-  else VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(2, Math.round(VIEW_TILE * 0.15)));
-
-  const newCS = hexColStep(), newCH = hexCellH();
-  camX = worldX - mx / newCS;
-  camY = worldY - my / newCH;
-  viewCols = Math.ceil(viewW / newCS) + 3;
-  viewRows = Math.ceil(viewH / newCH) + 3;
-  camX = clampCamX(camX);
-  camY = clampCamY(camY);
-  render(); updateUI();
+  // (from wherever a glide in progress was heading, so quick notches add up)
+  const base = _zoomGlide ? _zoomGlide.to : VIEW_TILE;
+  const to = zoomIn ? Math.min(MAX_TILE, base + Math.max(2, Math.round(base * 0.15))) : Math.max(MIN_TILE, base - Math.max(2, Math.round(base * 0.15)));
+  // the zoom glides over a few frames, the point under the pointer staying where it is
+  _zoomGlide = { from: VIEW_TILE, to, t0: performance.now(), worldX, worldY, mx, my };
+  if (!_zoomRaf) { _zoomRaf = true; requestAnimationFrame(zoomGlideStep); }
 }, { passive: false });
+let _zoomGlide = null, _zoomRaf = false;
+function zoomGlideStep(now) {
+  const g = _zoomGlide; if (!g) { _zoomRaf = false; return; }
+  const k = Math.min(1, (now - g.t0) / 140), e = 1 - (1 - k) * (1 - k);
+  VIEW_TILE = Math.round(g.from + (g.to - g.from) * e);
+  const cs = hexColStep(), ch = hexCellH();
+  viewCols = Math.ceil(viewW / cs) + 3; viewRows = Math.ceil(viewH / ch) + 3;
+  camX = clampCamX(g.worldX - g.mx / cs); camY = clampCamY(g.worldY - g.my / ch);
+  render();
+  if (k < 1) requestAnimationFrame(zoomGlideStep);
+  else { _zoomGlide = null; _zoomRaf = false; updateUI(); }
+}
 
 let touchStartX = 0, touchStartY = 0, touchCamStartX = 0, touchCamStartY = 0, touchMoved = false;
 let lastPinchDist = 0, isTouchDrag = false;
