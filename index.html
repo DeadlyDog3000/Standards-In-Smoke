@@ -704,6 +704,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Sieges</b><br>
+        - Enemy troops standing in a town's fields take their harvest: those fields bring in nothing while they stay (the city's yield breakdown shows what is lost)<br>
+        - Two or more at its gates put the town under siege and cut its road trade; you are told when a siege begins and when it is lifted<br>
+        <b style="color:#b8a070;">Rivers</b><br>
+        - Rivers no longer coil round flat country into a solid knot of river tiles (one town could have a river in every field); they run in a line and end where the ground stops falling
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Towns Ablaze</b><br>
@@ -1506,6 +1514,14 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Sieges</b><br>
+          - Enemy troops standing in a town's fields take their harvest: those fields bring in nothing while they stay (the city's yield breakdown shows what is lost)<br>
+          - Two or more at its gates put the town under siege and cut its road trade; you are told when a siege begins and when it is lifted<br>
+          <b style="color:#b8a070;">Rivers</b><br>
+          - Rivers no longer coil round flat country into a solid knot of river tiles (one town could have a river in every field); they run in a line and end where the ground stops falling
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.8</b></div>
         <div style="margin-bottom:12px;">
@@ -5020,10 +5036,14 @@ function generateMap() {
         if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
         const ni = nb.row * MAP_COLS + nb.col;
         if (visited.has(ni)) continue;
+        // never step beside its own earlier course: on flat land a river used to coil into a solid knot of river tiles
+        if (hexNeighbors(nb.col, nb.row).some(n2 => { const j = n2.row * MAP_COLS + n2.col; return j !== ci && visited.has(j); })) continue;
         const ne = elev[ni] + spriteRand() * 0.04; // small meander jitter
         if (ne < bestElev) { bestElev = ne; bestNb = ni; }
       }
       if (bestNb === null) break;
+      // a river that can only climb has reached a basin: it ends there (it used to wander round and round, flooding every field of a town)
+      if (elev[bestNb] > elev[ci] + 0.02 && tiles[ci].type !== 2) break;
       if (tiles[ci].hasRiver && tiles[ci].riverTo === undefined) tiles[ci].riverTo = bestNb; // which way the water runs
       ci = bestNb;
     }
@@ -5393,8 +5413,10 @@ function foundCity(unit, cityName) {
 
 function getCityYields(city) {
   const y = { gold: 2.5, food: 2.5, wood: 0.5, stone: 0.5, steel: 0.5, gunpowder: 0, science: 0.5 };
+  const held = city._occupied;
   for (const ti of city.ownedTiles) {
     const t = tiles[ti];
+    if (held && held.has(ti)) continue; // enemy troops stand in these fields: nothing comes in from them
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
 
       if (t.improvement === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) {
@@ -5415,7 +5437,7 @@ function getCityYields(city) {
   }
 
   if (nationHasWonder(city.nationId, 'great_library')) y.science += 1;
-  if (city._road) y.gold += ROAD_TRADE_GOLD;
+  if (city._road && !city._besieged) y.gold += ROAD_TRADE_GOLD;
 
   if (nationHasTech(city.nationId, 'banking')) {
     for (const ti of city.ownedTiles) {
@@ -5451,6 +5473,7 @@ function getCityYieldBreakdown(city) {
   for (const k in base) if (base[k] !== 0) sources[k].push({ label: 'City center', val: base[k] });
 
   let tileTotals = { gold: 0, food: 0, wood: 0, stone: 0, steel: 0, gunpowder: 0, science: 0 };
+  const held = city._occupied;
   for (const ti of city.ownedTiles) {
     const t = tiles[ti];
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) {
@@ -5470,9 +5493,24 @@ function getCityYieldBreakdown(city) {
 
   if (nationHasWonder(city.nationId, 'great_library')) sources.science.push({ label: 'Great Library', val: 1 });
   for (const ti of city.ownedTiles) { const nw = tiles[ti].wonder && NATURAL_WONDERS[tiles[ti].wonder]; if (nw) for (const k in nw.yields) if (sources[k]) sources[k].push({ label: nw.name.replace(/^the /, 'The '), val: nw.yields[k] }); }
-  if (city._road) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
+  if (city._road && !city._besieged) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
   const riverTiles = [...city.ownedTiles].filter(ti => tiles[ti].hasRiver).length;
   if (riverTiles) { sources.food.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_FOOD }); sources.gold.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_GOLD }); }
+  if (held && held.size) {
+    // what the fields under enemy boots would have brought in (getCityYields skips them)
+    const lost = {};
+    const add = (k, v) => { lost[k] = (lost[k] || 0) + v; };
+    for (const ti of held) {
+      const t = tiles[ti];
+      if (t.improvement === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) { const b = ANIMAL_DATA[t.animal].baseYield; for (const k in b) add(k, b[k]); }
+      else if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) { const b = IMPROVEMENT_DEFS[t.improvement].yields; for (const k in b) add(k, b[k]); }
+      else if (!t.improvement && (t.animal || t.type === 6)) add('food', 0.5);
+      if (t.hasRiver) { add('food', RIVER_FOOD); add('gold', RIVER_GOLD); }
+      if (t.wonder && NATURAL_WONDERS[t.wonder]) { const b = NATURAL_WONDERS[t.wonder].yields; for (const k in b) add(k, b[k]); }
+    }
+    const label = `Enemy troops in ${held.size} field${held.size > 1 ? 's' : ''}`;
+    for (const k in lost) if (lost[k] && sources[k]) sources[k].push({ label, val: -lost[k] });
+  }
   if (nationHasTech(city.nationId, 'banking')) {
     let mkt = 0;
     for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
@@ -8588,6 +8626,7 @@ function _finishEndTurnImpl() {
   try { tickCityLoyalty(); } catch(e) { console.error('tickCityLoyalty error:', e); }
   try { tickFamilyOpinions(); } catch(e) { console.error('tickFamilyOpinions error:', e); }
   try { tickMilitia(); } catch(e) { console.error('tickMilitia error:', e); }
+  try { updateSieges(); } catch(e) { console.error('updateSieges error:', e); }
   try { rebuildRoads(); } catch(e) { console.error('rebuildRoads error:', e); }
   try { updateCityThreats(); } catch(e) { console.error('updateCityThreats error:', e); }
   try { claimRuins(); } catch(e) { console.error('claimRuins error:', e); }
@@ -10056,6 +10095,30 @@ function deriveRiverFlow() {
 
 // Enemies at the gates: each of your cities with a hostile army within three tiles (one you can see) is ringed in red,
 // and you're told once when the danger appears
+// ---- Sieges: enemy troops standing in a town's fields take their harvest; two or more at its gates cut its road trade ----
+function updateSieges() {
+  const hostile = (a, b) => a !== b && (nations[a]?.isBarbarian || nations[b]?.isBarbarian || nations[a]?.relations?.[b] === 'war');
+  const at = new Map();
+  for (const u of units) if (UNIT_DEFS[u.type]?.combat) at.set(u.y * MAP_COLS + u.x, u.nationId);
+  for (const city of cities) {
+    let held = null, gates = 0;
+    for (const ti of city.ownedTiles) {
+      const nid = at.get(ti);
+      if (nid === undefined || !hostile(nid, city.nationId)) continue;
+      (held || (held = new Set())).add(ti);
+      if (hexDistance(ti % MAP_COLS, Math.floor(ti / MAP_COLS), city.x, city.y) === 1) gates++;
+    }
+    const was = !!city._besieged;
+    city._occupied = held;
+    city._besieged = gates >= 2;
+    if (city.nationId !== playerNation) continue;
+    if (city._besieged && !was) {
+      addFloatingText(city.x, city.y, 'Besieged!', '#ff6a3a', 2500, 16);
+      showToast(`\u26D3 ${city.name} is besieged: enemy troops hold ${held.size} of its fields and its road trade is cut.`);
+    } else if (!city._besieged && was) showToast(`${city.name}: the siege is lifted.`);
+  }
+}
+
 function updateCityThreats() {
   const pn = nations[playerNation];
   for (const city of cities) {
@@ -13218,7 +13281,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.8';
+const CURRENT_VERSION = 'beta-8.9';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
