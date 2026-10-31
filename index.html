@@ -12366,7 +12366,7 @@ setTimeout(function owPreload() {
   for (const k of ['farm', 'market', 'mine', 'quarry', 'factory', 'urban', 'lumber_mill', 'barn', 'port', 'pasture', 'science_lab', 'treasury']) featSprite('v_' + k);
   for (const k of ['ft_ruins', 'ft_camp', 'ft_redoubt']) featSprite(k);
   for (const k in NATURAL_WONDERS) featSprite('nw_' + k);
-  for (const k in CITY_BUILDING_DEFS) landmarkSprite(k);
+  for (const k in CITY_BUILDING_DEFS) if (k !== 'fortifications') landmarkSprite(k); // (walls are drawn, not pictured)
   townSprite(null); for (const k of ['capital', 'town', 'city', 'port']) { const img = TOWN_IMGS[k] = new Image(); img.src = `tiles/town_${k}.png`; }
   for (const k in UNIT_DEFS) unitFigure(k);
   for (const k in ANIMAL_DATA) featSprite('an_' + k);
