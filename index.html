@@ -13420,8 +13420,10 @@ function renderMinimap() {
   mctx.drawImage(minimapBaseCanvas, 0, 0);
   mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // what the screen shows, as a frame
-  mctx.strokeStyle = 'rgba(255,245,220,0.9)'; mctx.lineWidth = 1.2;
-  mctx.strokeRect(camX * 0.75 * k, camY * 0.72 * k, visibleCols() * 0.75 * k, visibleRows() * 0.72 * k);
+  // (an ink frame with a paper edge, so it reads on the light chart and the dark sheet alike)
+  const vx = camX * 0.75 * k, vy = camY * 0.72 * k, vw = visibleCols() * 0.75 * k, vh = visibleRows() * 0.72 * k;
+  mctx.strokeStyle = 'rgba(30, 18, 8, 0.85)'; mctx.lineWidth = 2.6; mctx.strokeRect(vx, vy, vw, vh);
+  mctx.strokeStyle = 'rgba(255, 238, 200, 0.95)'; mctx.lineWidth = 1.1; mctx.strokeRect(vx, vy, vw, vh);
 }
 
 let prevResources = null; // Track previous resource values for delta display
