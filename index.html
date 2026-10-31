@@ -866,6 +866,7 @@
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
         - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
+        - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
         - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn<br>
         - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
         - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
@@ -1877,6 +1878,7 @@
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
           - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
+          - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
           - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn<br>
           - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
           - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
@@ -3307,7 +3309,7 @@ function mergeRegiments(lead, other) {
   if (hexDistance(lead.x, lead.y, other.x, other.y) !== 1) return 'March up beside it first.';
   if (lead.movesLeft <= 0) return 'That regiment has no moves left this turn.';
   if (other.building || lead.building) return 'That regiment is busy.';
-  if (!tryActivateUnit(lead, true)) return '';
+  if (lead.nationId === playerNation && !tryActivateUnit(lead, true)) return '';   // (the AI's regiments do not spend your orders)
   const ox = lead.x, oy = lead.y, hpBefore = lead.hp;
   lead.merged = [...(lead.merged || []), other.type, ...(other.merged || [])];
   lead.hp = Math.min(getEffectiveMaxHp(lead), hpBefore + other.hp);
@@ -3326,6 +3328,43 @@ function mergeRegiments(lead, other) {
   }
   visionDirty = true;
   return null;
+}
+// a company split off again: the last formed in steps out onto the nearest free ground beside it, with its share of
+// the men; it has done its marching for the turn
+function splitRegiment(u) {
+  if (!u || !(u.merged && u.merged.length)) return 'There is no company to split off.';
+  const t = u.merged[u.merged.length - 1];
+  const spot = hexNeighbors(u.x, u.y).find(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS
+    && unitCanTraverse(t, tiles[nb.row * MAP_COLS + nb.col].type, u.nationId, nb.col, nb.row) && !units.some(o => o.x === nb.col && o.y === nb.row));
+  if (!spot) return 'There is no free ground beside it for the company to stand on.';
+  const maxBefore = getEffectiveMaxHp(u);
+  u.merged = u.merged.slice(0, -1); if (!u.merged.length) delete u.merged;
+  const c = spawnUnit(t, u.nationId, spot.col, spot.row);
+  if (!c) { (u.merged || (u.merged = [])).push(t); return 'The company could not be formed.'; }
+  const share = Math.max(1, Math.round(u.hp * (UNIT_DEFS[t]?.hp || 10) / maxBefore));
+  c.hp = Math.min(getEffectiveMaxHp(c), share); u.hp = Math.max(1, Math.min(getEffectiveMaxHp(u), u.hp - share));
+  c.xp = u.xp || 0; c.morale = u.morale ?? MORALE_MAX; c.movesLeft = 0;
+  startUnitAnimation(c, [{ x: spot.col, y: spot.row }], null, u.x, u.y);
+  if (u.nationId === playerNation) { addFloatingText(c.x, c.y, 'a company steps out', '#e0c880', 1600, 14); try { SMK.drum(0.3); } catch (e) {} }
+  visionDirty = true;
+  return null;
+}
+window.splitSelected = function () {
+  const u = selectedUnit; if (!u || u.nationId !== playerNation) return;
+  const why = splitRegiment(u); if (why) { SMK.deny(); showToast(why); return; }
+  showUnitPanel(u); updateUI(); render();
+};
+// the other crowns form their regiments up too: two of theirs that stand side by side with their moves unspent, and
+// no garrison duty, now and then become one
+function aiMergeRegiments(nationId) {
+  const n = nations[nationId]; if (!n || n.isBarbarian || n.isTribe) return;
+  const mine = units.filter(u => u.nationId === nationId && mergeable(u) && regimentSize(u) < MERGE_MAX && u.movesLeft >= (u.turnStartMoves ?? u.maxMoves) && !u.building);
+  const inTown = u => cities.some(c => c.x === u.x && c.y === u.y);
+  for (const a of mine) {
+    if (!units.includes(a) || inTown(a) || Math.random() > 0.2) continue;
+    const b = mine.find(o => o !== a && units.includes(o) && !inTown(o) && regimentSize(a) + regimentSize(o) <= MERGE_MAX && hexDistance(a.x, a.y, o.x, o.y) === 1 && (o.type === a.type || UNIT_DEFS[o.type].ranged === UNIT_DEFS[a.type].ranged));
+    if (b) mergeRegiments(a, b);
+  }
 }
 function awardXP(unit, amount) {
   if (!UNIT_DEFS[unit.type]?.combat) return;
@@ -8490,6 +8529,7 @@ function aiTurn(nationId) {
 
   let aiOrdersLeft = getMaxOrders(nationId) + getDifficultyModifiers().aiBonusOrders;
   // settlers act first: newly trained ones sit at the back of the list, and the soldiers ahead used up every order
+  try { aiMergeRegiments(nationId); } catch (e) {}
   const aiUnits = units.filter(u => u.nationId === nationId).sort((a, b) => (b.type === 'settler') - (a.type === 'settler'));
   for (const u of [...aiUnits]) {
     if (!units.includes(u)) continue;
@@ -12279,7 +12319,7 @@ const UNIFORMS = {
   'United States':       { coat: '#1f2c5c', facing: '#b8302a' },   // dark blue, red
   'Ottoman Empire':      { coat: '#9a2a1e', facing: '#2e6a3a' },   // a red coat, green
 };
-const UNIFORM_TYPES = new Set(['musketeer', 'grenadier']);
+const UNIFORM_TYPES = new Set(['musketeer', 'grenadier', 'general']);
 const _uniformCache = new Map();
 function uniformFigure(img, type, nid) {
   if (!img || !UNIFORM_TYPES.has(type)) return img;
@@ -12362,6 +12402,13 @@ function drawWargameBlock(u, cx, cy, w, col, selected) {
   else if (CAVALRY_TYPES.has(u.type)) { ctx.moveTo(ix, iy + ih); ctx.lineTo(ix + iw, iy); ctx.stroke(); }
   else if (def.combat) { ctx.moveTo(ix, iy); ctx.lineTo(ix + iw, iy + ih); ctx.moveTo(ix + iw, iy); ctx.lineTo(ix, iy + ih); ctx.stroke(); }
   else { ctx.moveTo(ix + iw * 0.2, iy + ih / 2); ctx.lineTo(ix + iw * 0.8, iy + ih / 2); ctx.stroke(); }
+  // a merged regiment's companies, as a staff map writes a regiment's strength: II or III above the block
+  if (u.merged && u.merged.length && bw >= 12) {
+    ctx.font = `bold ${Math.max(7, Math.round(bh * 0.55))}px Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    const label = regimentSize(u) === 3 ? 'III' : 'II';
+    ctx.lineWidth = Math.max(1.5, bh * 0.12); ctx.strokeStyle = 'rgba(246, 236, 210, 0.95)'; ctx.strokeText(label, x + bw / 2, y - 1);
+    ctx.fillStyle = 'rgba(30, 20, 10, 0.95)'; ctx.fillText(label, x + bw / 2, y - 1);
+  }
   ctx.restore();
 }
 const _figSil = new WeakMap();
@@ -15371,6 +15418,9 @@ function showUnitPanel(unit) {
     html += `<button class="p-btn" onclick="enterRangedMode()" ${(!canRanged || (def.artillery && unit.reloadTurns > 0)) ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">${getUnitRange(unit)} tile range</span></button>`;
     if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">The guns cannot fire after moving: they fire from where they began the turn.</p>`;
     else if (unit.movesLeft <= 0) html += `<p style="font-size:10px;color:#a66">No moves left this turn.</p>`;
+  }
+  if (unit.merged && unit.merged.length && unit.nationId === playerNation) {
+    html += `<button class="p-btn" onclick="splitSelected()">Split off a company <span class="cost">${UNIT_DEFS[unit.merged[unit.merged.length - 1]]?.name || ''}</span></button>`;
   }
 
   if (unit.nationId === playerNation && def.artillery && def.ammoTypes && def.ammoTypes.length > 1) {
