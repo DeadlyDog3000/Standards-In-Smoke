@@ -11792,8 +11792,9 @@ function owLandFields(tileKey) {
   // resolution: as fine as the map's size allows (about 14 million pixels at most)
   // (phones and tablets get a coarser sheet: the whole of it is kept in memory)
   const budget = document.body.classList.contains('mobile-mode') ? 5e6 : 14e6;
+  // (and never past what a browser will hold in one canvas: iPhones stop at about 16.7 million pixels)
   let K = 96;
-  while (K > 24 && ((MAP_COLS * 0.75 + 0.25) * K) * ((MAP_ROWS + 0.5) * 0.72 * K) > budget) K -= 8;
+  while (K > 12 && ((MAP_COLS * 0.75 + 0.25) * K) * ((MAP_ROWS + 0.5) * 0.72 * K) > budget) K -= K > 24 ? 8 : 4;
   const CS = 0.75 * K, CH = 0.72 * K;
   const TW = Math.ceil((MAP_COLS - 1) * CS + K), TH = Math.ceil((MAP_ROWS + 0.5) * CH);
   const R = 3, LW = Math.ceil(TW / R) + 1, LH = Math.ceil(TH / R) + 1;
