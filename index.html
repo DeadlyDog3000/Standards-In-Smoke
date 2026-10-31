@@ -708,6 +708,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Cut Roads</b><br>
+        - Enemy troops standing on a road cut it: the town at its end loses its trade with the capital until the road is clear, and you are told when one of yours is cut<br>
+        - Markets in fields held by the enemy no longer earn their Banking or Merchants' Guild bonus
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Siege Fixes</b><br>
@@ -1566,6 +1572,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.7</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Cut Roads</b><br>
+          - Enemy troops standing on a road cut it: the town at its end loses its trade with the capital until the road is clear, and you are told when one of yours is cut<br>
+          - Markets in fields held by the enemy no longer earn their Banking or Merchants' Guild bonus
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.6</b></div>
         <div style="margin-bottom:12px;">
@@ -5572,18 +5584,18 @@ function getCityYields(city) {
   }
 
   if (nationHasWonder(city.nationId, 'great_library')) y.science += 1;
-  if (city._road && !city._besieged) y.gold += ROAD_TRADE_GOLD;
+  if (city._road && !city._besieged && !city._roadCut) y.gold += ROAD_TRADE_GOLD;
 
   if (nationHasTech(city.nationId, 'banking')) {
     for (const ti of city.ownedTiles) {
-      if (tiles[ti].improvement === 'market') y.gold += 1;
+      if (tiles[ti].improvement === 'market' && !(held && held.has(ti))) y.gold += 1;
     }
   }
 
   if (nationHasWonder(city.nationId, 'merchants_guild')) {
     y.gold += 3;
     for (const ti of city.ownedTiles) {
-      if (tiles[ti].improvement === 'market') y.gold += 2;
+      if (tiles[ti].improvement === 'market' && !(held && held.has(ti))) y.gold += 2;
     }
   }
 
@@ -5628,7 +5640,7 @@ function getCityYieldBreakdown(city) {
 
   if (nationHasWonder(city.nationId, 'great_library')) sources.science.push({ label: 'Great Library', val: 1 });
   for (const ti of city.ownedTiles) { const nw = tiles[ti].wonder && NATURAL_WONDERS[tiles[ti].wonder]; if (nw) for (const k in nw.yields) if (sources[k]) sources[k].push({ label: nw.name.replace(/^the /, 'The '), val: nw.yields[k] }); }
-  if (city._road && !city._besieged) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
+  if (city._road && !city._besieged && !city._roadCut) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
   const riverTiles = [...city.ownedTiles].filter(ti => tiles[ti].hasRiver).length;
   if (riverTiles) { sources.food.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_FOOD }); sources.gold.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_GOLD }); }
   if (held && held.size) {
@@ -5648,13 +5660,13 @@ function getCityYieldBreakdown(city) {
   }
   if (nationHasTech(city.nationId, 'banking')) {
     let mkt = 0;
-    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
+    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market' && !(held && held.has(ti))) mkt++;
     if (mkt > 0) sources.gold.push({ label: `Banking (${mkt} markets)`, val: mkt });
   }
   if (nationHasWonder(city.nationId, 'merchants_guild')) {
     sources.gold.push({ label: 'Merchant\'s Guild', val: 3 });
     let mkt = 0;
-    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
+    for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market' && !(held && held.has(ti))) mkt++;
     if (mkt > 0) sources.gold.push({ label: `Guild markets bonus`, val: mkt * 2 });
   }
 
@@ -10292,6 +10304,17 @@ function updateSieges(effects = true) {
   const hostile = (a, b) => a !== b && (nations[a]?.isBarbarian || nations[b]?.isBarbarian || nations[a]?.relations?.[b] === 'war');
   const at = new Map(), who = new Map();
   for (const u of units) if (UNIT_DEFS[u.type]?.combat) { at.set(u.y * MAP_COLS + u.x, u.nationId); who.set(u.y * MAP_COLS + u.x, u); }
+  // a road with enemy troops standing on it carries no trade to the town at its end (path[0] is that town)
+  const cut = new Set();
+  for (const r of roads) if (r.path.some(ti => { const nid = at.get(ti); return nid !== undefined && hostile(nid, r.nationId); })) cut.add(r.path[0]);
+  for (const city of cities) {
+    const wasCut = !!city._cutShown;
+    city._roadCut = cut.has(city.y * MAP_COLS + city.x);
+    if (effects) {
+      city._cutShown = city._roadCut;
+      if (city.nationId === playerNation && city._roadCut && !wasCut && !city._besieged) showToast(`Enemy troops have cut the road to ${city.name}: its trade with the capital has stopped.`);
+    }
+  }
   for (const city of cities) {
     let held = null, gates = 0;
     for (const ti of city.ownedTiles) {
@@ -13674,7 +13697,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.6';
+const CURRENT_VERSION = 'beta-9.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
