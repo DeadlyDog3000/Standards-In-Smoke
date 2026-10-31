@@ -12942,7 +12942,17 @@ function drawSheetOrnaments(cs, ch, facePad) {
   const wh = owDeskProp('windhead');
   if (wh) {
     const ws = Math.min(mh * 0.34, cs * 6, 260), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
-    ctx.globalAlpha = 0.9; ctx.drawImage(wh, ox + mw - ww2 - cs * 0.6, oy + ch * 0.9, ww2, ws); ctx.globalAlpha = 1;
+    const wx = ox + mw - ww2 - cs * 0.6, wy = oy + ch * 0.9;
+    ctx.globalAlpha = 0.9; ctx.drawImage(wh, wx, wy, ww2, ws); ctx.globalAlpha = 1;
+    // in winter the wind blows snow: a few flakes inked in the breath streaming from its lips
+    if (currentSeason === 'winter' && ws > 50) {
+      ctx.save(); ctx.fillStyle = 'rgba(252, 253, 255, 0.95)'; ctx.strokeStyle = 'rgba(52, 38, 24, 0.7)'; ctx.lineWidth = Math.max(0.6, ws * 0.004);
+      for (let k = 0; k < 14; k++) {
+        const fx = wx + ww2 * (0.05 + owHash(k, 1, 77) * 0.45), fy = wy + ws * (0.45 + owHash(k, 2, 77) * 0.4), r = ws * (0.008 + owHash(k, 3, 77) * 0.012);
+        ctx.beginPath(); ctx.arc(fx, fy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
   // the scale of miles, drawn in the sheet's own measure
   if (OW.canvas) { const fx = cs / OW.CS, fy = ch / OW.CH; ctx.translate(ox, oy + facePad); ctx.scale(fx, fy); owDrawScaleOfMiles(ctx, OW.K, OW.CS, OW.canvas.height, OW.K / 64); }
