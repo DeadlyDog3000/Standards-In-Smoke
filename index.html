@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The Edge of the Known World</b><br>
+        - The frontier of what you've explored is softly shaded, so your map fades into the unexplored chart instead of ending in a hard edge
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Smoother Hands</b><br>
@@ -1471,7 +1476,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.1</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The Edge of the Known World</b><br>
+        - The frontier of what you've explored is softly shaded, so your map fades into the unexplored chart instead of ending in a hard edge
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Smoother Hands</b><br>
         - Moving the mouse while smoke or floating numbers are on screen no longer stacks up extra redraws (it could stutter badly after a battle)<br>
@@ -10608,6 +10618,30 @@ function render() {
     }
   }
 
+  // the frontier of the known world: revealed tiles beside unexplored ones are shaded, so the map fades into the chart
+  {
+    const edge = [];
+    const evenN = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]], oddN = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
+    for (let my = startRow; my < endRow; my++) {
+      const baseWorldY = my * ch - camYch;
+      for (let mx = startCol; mx < endCol; mx++) {
+        const t = tiles[my * MAP_COLS + mx];
+        if (!t.revealed.has(pId)) continue;
+        const dirs = (mx & 1) ? oddN : evenN;
+        let frontier = false;
+        for (let d = 0; d < 6 && !frontier; d++) {
+          const nc = mx + dirs[d][0], nr = my + dirs[d][1];
+          if (nc >= 0 && nr >= 0 && nc < MAP_COLS && nr < MAP_ROWS && !tiles[nr * MAP_COLS + nc].revealed.has(pId)) frontier = true;
+        }
+        if (!frontier) continue;
+        const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
+        if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
+        edge.push(sx, fy);
+      }
+    }
+    drawHexLayer(edge, w, faceH, 0.22, '#1a140c', null, facePad);
+  }
+
   // territory tint: each realm's land in its colour, one even wash (per-hex fills overlapped into a darker grid)
   {
     const pts = [], cols = [];
@@ -13017,7 +13051,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.1';
+const CURRENT_VERSION = 'beta-8.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
