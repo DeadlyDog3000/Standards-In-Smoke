@@ -13090,22 +13090,44 @@ function render() {
     const pos = hexScreenPos(rx, ry);
     if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
 
-    ctx.save();
-    ctx.globalAlpha = 0.38;
-    ctx.fillStyle = ann.color;
-    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
-    ctx.fill();
-    ctx.restore();
+    if (charted) {
+      // a pencilled note on the chart: the hex hatched in the note's colour and ruled round with a dashed line
+      ctx.save();
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.clip();
+      ctx.globalAlpha = 0.16; ctx.fillStyle = ann.color; ctx.fill();
+      ctx.globalAlpha = 0.55; ctx.strokeStyle = ann.color; ctx.lineWidth = Math.max(1, w * 0.018);
+      ctx.beginPath(); const step = Math.max(4, w * 0.09);
+      for (let d = -w; d < w * 2; d += step) { ctx.moveTo(pos.x + d, pos.y + facePad + ch * 1.2); ctx.lineTo(pos.x + d + ch * 1.2, pos.y + facePad - ch * 0.1); }
+      ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.setLineDash([Math.max(3, w * 0.07), Math.max(2, w * 0.04)]); ctx.globalAlpha = 0.9; ctx.strokeStyle = ann.color; ctx.lineWidth = Math.max(1.4, w * 0.03);
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.stroke(); ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.38;
+      ctx.fillStyle = ann.color;
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
+      ctx.fill();
+      ctx.restore();
 
-    ctx.save();
-    ctx.globalAlpha = 0.7;
-    ctx.strokeStyle = ann.color;
-    ctx.lineWidth = Math.max(1.5, w * 0.06);
-    drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
-    ctx.stroke();
-    ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = ann.color;
+      ctx.lineWidth = Math.max(1.5, w * 0.06);
+      drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH);
+      ctx.stroke();
+      ctx.restore();
+    }
 
-    if (ann.label) {
+    if (ann.label && charted) {
+      // lettered in a hand, in ink, on a scrap of paper
+      const lx = pos.x + w / 2, ly = pos.y + facePad + ch / 2;
+      ctx.save();
+      ctx.font = `italic 600 ${Math.max(9, w * 0.26)}px 'EB Garamond', serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.strokeStyle = 'rgba(246, 236, 210, 0.9)'; ctx.lineWidth = 3.5; ctx.strokeText(ann.label, lx, ly);
+      ctx.fillStyle = '#2a1a0c'; ctx.fillText(ann.label, lx, ly);
+      ctx.restore();
+    } else if (ann.label) {
       const lx = pos.x + w / 2, ly = pos.y + facePad + faceH / 2;
       ctx.save();
       ctx.font = `bold ${Math.max(8, w * 0.3)}px 'EB Garamond', serif`;
