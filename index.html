@@ -704,6 +704,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Battle Honours</b><br>
+        - The chronicle records your regiments' victories by name, such as "The 1st Regiment of Foot destroyed Austria's 3rd Regiment of Foot"<br>
+        - Promotions now name the regiment that earned them
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Towns Before Colonies</b><br>
@@ -1495,6 +1501,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.7</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Battle Honours</b><br>
+          - The chronicle records your regiments' victories by name, such as "The 1st Regiment of Foot destroyed Austria's 3rd Regiment of Foot"<br>
+          - Promotions now name the regiment that earned them
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2706,7 +2718,7 @@ function awardXP(unit, amount) {
     }
     if (unit.nationId === playerNation) {
       addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
-      showToast(`${UNIT_DEFS[unit.type].icon} promoted to ${newLevel.rank}!`);
+      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : UNIT_DEFS[unit.type].name} promoted to ${newLevel.rank}!`);
     }
   }
 }
@@ -6203,6 +6215,14 @@ function doAttack(attacker, tx, ty) {
     target.morale = Math.min(MORALE_MAX, (target.morale ?? MORALE_MAX) + MORALE_KILL_BONUS);
   }
 
+  // the chronicle remembers your regiments' decisive fights by name
+  if ((defenderDied || attackerDied) && (attackerNationId === playerNation || defenderNationId === playerNation)) {
+    const label = (un, type, nid) => { const rn = un && un.regiment ? regimentName(un) : ''; const nn = nations[nid]; return rn ? (nid !== playerNation && nn?.name ? `${nn.name}'s ${rn}` : `the ${rn}`) : `${nn?.isBarbarian ? 'a raider' : `a${/^[aeiou]/i.test(nn?.name || '') ? 'n' : ''} ${nn?.name || ''}`} ${type.replace(/_/g, ' ')}`; };
+    const a = label(attacker, attackerType, attackerNationId), d = label(target, defenderType, defenderNationId);
+    // your victories (your losses are already recorded as 'Lost: …')
+    if (defenderDied && attackerNationId === playerNation) logEvent(`\u2694 ${a.charAt(0).toUpperCase() + a.slice(1)} destroyed ${d}.`);
+    else if (attackerDied && defenderNationId === playerNation) logEvent(`\u2694 ${d.charAt(0).toUpperCase() + d.slice(1)} threw back and destroyed ${a}.`);
+  }
   addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
 }
 
@@ -13114,7 +13134,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.6';
+const CURRENT_VERSION = 'beta-8.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
