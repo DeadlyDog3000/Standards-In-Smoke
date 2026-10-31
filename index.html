@@ -13675,12 +13675,13 @@ function render() {
       if (!tiles[key]?.revealed.has(pId)) continue;
       const pos = hexScreenPos(rx, ry);
       if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
-      ctx.save(); ctx.globalAlpha = 0.3; ctx.fillStyle = '#44ffaa';
+      // (on the chart, a planning unit's reach is a pale wash, as a pencilled plan; the sea-green belongs to the old tiles)
+      ctx.save(); ctx.globalAlpha = charted ? 0.22 : 0.3; ctx.fillStyle = charted ? '#f4e8c8' : '#44ffaa';
       drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
     }
 
     const selPos = hexScreenPos(planSelectUnit.x, planSelectUnit.y);
-    ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = '#44ffaa';
+    ctx.save(); ctx.globalAlpha = 0.7; ctx.strokeStyle = charted ? '#7a2a18' : '#44ffaa';
     ctx.lineWidth = Math.max(2, w * 0.07);
     drawHexPath(ctx, selPos.x, selPos.y + facePad, w, faceH); ctx.stroke(); ctx.restore();
   }
