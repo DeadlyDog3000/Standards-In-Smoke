@@ -12032,6 +12032,15 @@ function drawRhumbs(cs, ch) {
     }
     ctx.stroke();
   }
+  // the blank places lettered as the old chartmakers did (the chart is laid over them as the land is found)
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const tpx = Math.max(12, Math.min(cs * 0.9, 46));
+  ctx.font = `italic ${tpx}px 'EB Garamond', serif`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = (tpx * 0.4) + 'px';
+  ctx.fillStyle = 'rgba(196, 170, 120, 0.22)';
+  for (const [fxp, fyp] of [[0.27, 0.3], [0.73, 0.36], [0.3, 0.74], [0.7, 0.7]]) ctx.fillText('Terra Incognita', ox + mw * fxp, oy + mh * fyp);
+  ctx.restore();
   // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
   const cart = owCartouche();
   if (cart) {
