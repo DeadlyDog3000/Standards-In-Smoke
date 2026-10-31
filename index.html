@@ -13131,6 +13131,7 @@ function render() {
   const sortedUnits = units.slice().sort((a, b) => (a === selectedUnit ? 1 : 0) - (b === selectedUnit ? 1 : 0));
   const flashPhase = (Date.now() % 800) / 800; // 0-1 pulsing cycle
   const flashAlpha = 0.4 + Math.sin(flashPhase * Math.PI * 2) * 0.35; // 0.05 to 0.75
+  const townAt = charted ? new Set(cities.map(c => c.y * MAP_COLS + c.x)) : null;
   for (const u of sortedUnits) {
     if (u.nationId !== pId) {
       const tIdx = u.y * MAP_COLS + u.x;
@@ -13144,7 +13145,9 @@ function render() {
 
     const bobHash = (u.x * 31 + u.y * 17) % 100;
     const bobY = u._animating ? 0 : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
-    const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2 + bobY;
+    // (on the chart a regiment in a town stands at its south-east gate, so the town itself can be seen)
+    const atGate = townAt && !u._animating && townAt.has(u.y * MAP_COLS + u.x) && VIEW_TILE >= 34;
+    const cx = pos.x + w / 2 + (atGate ? w * 0.26 : 0), cy = pos.y + facePad + ch / 2 + bobY + (atGate ? ch * 0.16 : 0);
     const rad = w * 0.32;
     const fig = VIEW_TILE >= 14 ? unitFigure(u.type) : null;
     if (charted && VIEW_TILE < 34) drawWargameBlock(u, cx, cy - bobY, w, safeColor(nCol), u === selectedUnit); // seen from afar: a wargame block
