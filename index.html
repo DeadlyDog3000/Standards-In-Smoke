@@ -12431,7 +12431,7 @@ function drawRealmNames(pId, w, ch, facePad) {
     }
     _realmNames = [];
     for (const [nid, cells] of by) {
-      if (cells.length < 18) continue; // (a one-town realm is named by its town's ribbon)
+      if (cells.length < 18 || cities.filter(c => c.nationId === nid).length < 2) continue; // (a one-town realm is named by its town's ribbon)
       let sx = 0, sy = 0; for (const i of cells) { sx += i % MAP_COLS; sy += Math.floor(i / MAP_COLS); }
       sx /= cells.length; sy /= cells.length;
       // set on the realm's own ground nearest its middle, a little below any town there
