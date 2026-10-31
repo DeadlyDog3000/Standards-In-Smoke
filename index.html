@@ -704,6 +704,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">On the March</b><br>
+        - Columns on the march raise dust at each step (horse more than foot), and ships leave a white wake<br>
+        - In winter, units caught outside a city wear a ring of frost, so you can see who is suffering the cold
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Better Lands</b><br>
@@ -1354,7 +1360,13 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.4</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">On the March</b><br>
+        - Columns on the march raise dust at each step (horse more than foot), and ships leave a white wake<br>
+        - In winter, units caught outside a city wear a ring of frost, so you can see who is suffering the cold
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Better Lands</b><br>
         - <b>Every map gets a like balance:</b> about 30% sea and 9% snowy heights whatever the dice (one map could be a third mountains), with woods on about 45% of the lowland and more open plains for farms and markets<br>
@@ -3103,6 +3115,18 @@ function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
       vx: (Math.random() - 0.5) * 16, vy: -6 - Math.random() * 6, size: 10 + Math.random() * 6, tone: 150 + Math.floor(Math.random() * 25), startTime: now + 120, duration: 900 });
   }
   if (!animationBlocking) requestAnimationFrame(() => render());
+}
+// a column on the march raises a little dust at each step (horse more than foot); a ship leaves a white wake
+function spawnStepDust(col, row, unit) {
+  if (particles.length > 300) return;
+  if (currentVisionSet && !currentVisionSet.has(row * MAP_COLS + col)) return;
+  const naval = !!UNIT_DEFS[unit.type]?.naval, mounted = /cavalry|hussar|lancer|dragoon|scout/.test(unit.type);
+  const now = Date.now(), n = naval ? 3 : mounted ? 4 : 2;
+  for (let i = 0; i < n; i++) {
+    particles.push({ kind: 'smoke', col, row, ox: (Math.random() - 0.5) * 16, oy: 10 + Math.random() * 5,
+      vx: (Math.random() - 0.5) * 14, vy: -3 - Math.random() * 5, size: (naval ? 6 : 5) + Math.random() * 4,
+      tone: naval ? 240 : 170 + Math.floor(Math.random() * 25), startTime: now + i * 40, duration: 650 + Math.random() * 300 });
+  }
 }
 function renderParticles() {
   const now = Date.now();
@@ -10436,6 +10460,15 @@ function render() {
     const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2 + bobY;
     const rad = w * 0.32;
     drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
+    // winter in the open: a rime of frost on units outside a city (they suffer the cold)
+    if (currentSeason === 'winter' && rad >= 6 && !cities.some(c => c.x === u.x && c.y === u.y)) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(20, 40, 70, 0.6)'; ctx.lineWidth = Math.max(2, rad * 0.2);
+      ctx.beginPath(); ctx.arc(cx, cy, rad * 1.04, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(190, 228, 255, 0.95)'; ctx.lineWidth = Math.max(1.2, rad * 0.12); ctx.setLineDash([rad * 0.2, rad * 0.1]);
+      ctx.beginPath(); ctx.arc(cx, cy, rad * 1.04, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
     // ready for orders: a small gold pip on your units that can still act this turn
     if (u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
       ctx.save(); ctx.fillStyle = '#f2c94c'; ctx.strokeStyle = 'rgba(40,25,5,0.8)'; ctx.lineWidth = 1;
@@ -12389,7 +12422,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.4';
+const CURRENT_VERSION = 'beta-6.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13318,6 +13351,7 @@ function animationTick(timestamp) {
     a.progress += dt * speed;
     if (a.progress >= 1) {
       const target = a.path[a.step];
+      if (target) spawnStepDust(target.x, target.y, a.unit);
       a.unit._animX = undefined; a.unit._animY = undefined;
       a.step++;
       a.progress = 0;
@@ -13358,6 +13392,7 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   unit._animY = startScreenPos.y;
   unit._animating = true;
   animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
+  spawnStepDust(sx, sy, unit);
   if (!animationBlocking) {
     animationBlocking = true; animBlockStart = Date.now(); lastAnimTime = 0;
     requestAnimationFrame(animationTick);
