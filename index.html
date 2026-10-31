@@ -12851,6 +12851,14 @@ function drawRhumbs(cs, ch) {
       ctx.fillStyle = 'rgba(232, 218, 182, 0.92)'; ctx.fillRect(lx, ly, lw, lh);
       ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)'; ctx.lineWidth = 2 * u2; ctx.strokeRect(lx, ly, lw, lh);
       ctx.lineWidth = 0.8 * u2; ctx.strokeRect(lx + 5 * u2, ly + 5 * u2, lw - 10 * u2, lh - 10 * u2);
+      // (scrolled at its sides, like the scale of miles)
+      for (const sx of [lx, lx + lw]) {
+        const d = sx === lx ? -1 : 1, cy = ly + lh / 2;
+        ctx.beginPath(); ctx.moveTo(sx, cy - 14 * u2); ctx.bezierCurveTo(sx + d * 15 * u2, cy - 18 * u2, sx + d * 17 * u2, cy + 2 * u2, sx + d * 6 * u2, cy + 4 * u2);
+        ctx.bezierCurveTo(sx + d * 1 * u2, cy + 5 * u2, sx + d * 2 * u2, cy - 3 * u2, sx + d * 7 * u2, cy - 2 * u2); ctx.moveTo(sx, cy + 14 * u2); ctx.quadraticCurveTo(sx + d * 10 * u2, cy + 16 * u2, sx + d * 6 * u2, cy + 4 * u2);
+        ctx.lineWidth = 3.4 * u2; ctx.strokeStyle = 'rgba(232, 218, 182, 0.92)'; ctx.stroke();
+        ctx.lineWidth = 1.2 * u2; ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)'; ctx.stroke();
+      }
       ctx.fillStyle = 'rgba(46, 30, 14, 0.95)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = `italic 600 ${15 * u2}px 'EB Garamond', serif`; ctx.fillText('Explicatio Notarum', lx + lw / 2, ly + 20 * u2);
       const rows = ['Urbs regia', 'Oppidum', 'Via regia', 'Flumen', 'Proelium'], rx0 = lx + 22 * u2, tx0 = lx + 52 * u2;
@@ -12863,7 +12871,10 @@ function drawRhumbs(cs, ch) {
         else if (k === 1) { ctx.arc(rx0, ry, 6 * u2, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(rx0, ry, 2 * u2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(46, 30, 14, 0.95)'; ctx.fill(); }
         else if (k === 2) { ctx.moveTo(rx0 - 12 * u2, ry - 2 * u2); ctx.lineTo(rx0 + 12 * u2, ry - 2 * u2); ctx.moveTo(rx0 - 12 * u2, ry + 2 * u2); ctx.lineTo(rx0 + 12 * u2, ry + 2 * u2); ctx.stroke(); }
         else if (k === 3) { ctx.strokeStyle = '#5f8a90'; ctx.lineWidth = 2.4 * u2; ctx.moveTo(rx0 - 12 * u2, ry + 3 * u2); ctx.bezierCurveTo(rx0 - 4 * u2, ry - 6 * u2, rx0 + 4 * u2, ry + 6 * u2, rx0 + 12 * u2, ry - 3 * u2); ctx.stroke(); }
-        else { ctx.moveTo(rx0 - 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 + 7 * u2, ry - 7 * u2); ctx.moveTo(rx0 + 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 - 7 * u2, ry - 7 * u2); ctx.stroke(); }
+        else { // (crossed swords in red ink, as the fields are marked on the chart)
+          ctx.strokeStyle = 'rgba(138, 26, 16, 0.95)'; ctx.lineWidth = 1.5 * u2;
+          ctx.moveTo(rx0 - 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 + 7 * u2, ry - 7 * u2); ctx.moveTo(rx0 + 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 - 7 * u2, ry - 7 * u2);
+          ctx.moveTo(rx0 - 6 * u2, ry + 2.5 * u2); ctx.lineTo(rx0 - 2.5 * u2, ry + 6 * u2); ctx.moveTo(rx0 + 6 * u2, ry + 2.5 * u2); ctx.lineTo(rx0 + 2.5 * u2, ry + 6 * u2); ctx.stroke(); }
       });
       ctx.restore();
     }
