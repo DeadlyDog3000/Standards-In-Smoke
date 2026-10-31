@@ -720,6 +720,20 @@
     .emp-tabs button { font: 12px 'EB Garamond', Georgia, serif; padding: 2px 10px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
     .emp-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
     #empirePanel .emp-ready { color: #e8c070; } #empirePanel .emp-promo { color: #f2c94c; }
+    /* the Field Manual */
+    #manualOverlay { position: fixed; inset: 0; z-index: 215; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.6); }
+    #manualOverlay .man-card { width: min(680px, 94vw); max-width: none !important; height: min(80vh, 760px); display: flex; flex-direction: column; padding: 18px 20px; color: #e9dcc0; }
+    #manualOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 8px; font-size: 22px; font-weight: normal; }
+    .man-tabs { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-bottom: 8px; }
+    .man-tabs button { font: 13px 'EB Garamond', Georgia, serif; padding: 3px 12px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
+    .man-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
+    .man-body { flex: 1; overflow-y: auto; padding-right: 6px; margin-bottom: 10px; text-align: left; scrollbar-color: rgba(201, 164, 90, 0.45) transparent; }
+    .man-row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid rgba(201, 164, 90, 0.14); }
+    .man-row img { width: 54px; height: 64px; object-fit: contain; flex: none; filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.6)); }
+    .man-row p { margin: 2px 0; font-size: 12.5px; color: #cdbf9f; }
+    .man-name { font-size: 14.5px; color: #f0dcae; font-weight: normal; }
+    .man-stats b { color: #f0dcae; font-weight: normal; } .man-dim { color: #9c8e72 !important; font-size: 11.5px !important; }
+    .man-tag { font-size: 10.5px; color: #c9a45a; font-style: italic; } .man-lede { font-size: 12.5px; color: #c8b896; margin: 0 0 8px; }
     /* the chronicle of the race: a line chart of the scores */
     #chronicleOverlay { position: fixed; inset: 0; z-index: 230; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.6); }
     #chronicleOverlay .chron-card { width: min(640px, 94vw); max-height: 90vh; overflow-y: auto; padding: 20px 22px; color: #e9dcc0; }
@@ -1013,6 +1027,7 @@
         - The Race for Europe: every crown's score turn by turn as a chart ("The race" in the Kingdoms panel, and on the victory and defeat screens), with the turn's standings under the pointer and a crown's line picked out from the legend<br>
         - Your ruler's likeness in the top-left corner, as in Old World: a gilt ring round it fills with your legitimacy, and a click opens the Court<br>
         - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
+        - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -1988,6 +2003,7 @@
       <button class="esc-btn" onclick="showSavePanel()">Save Game</button>
       <button class="esc-btn" onclick="closeEscMenu()">Resume</button>
       <button class="esc-btn" onclick="showOptionsPanel()">Options</button>
+      <button class="esc-btn" onclick="closeEscMenu(); openManual()">Field Manual</button>
       <button class="esc-btn" onclick="showHotkeyPanel()">Hotkeys</button>
       <button class="esc-btn" onclick="showUpdateLog()">Update Log</button>
       <button class="esc-btn" onclick="quitToMenu()">Quit to Menu</button>
@@ -2001,6 +2017,7 @@
         <b>M</b> &mdash; Market<br>
         <b>O</b> &mdash; Empire: all your cities at a glance<br>
         <b>K</b> &mdash; Kingdoms Panel<br>
+        <b>I</b> &mdash; Field Manual<br>
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
         <b>R</b> &mdash; Ranged Attack<br>
@@ -2048,6 +2065,7 @@
           - The Race for Europe: every crown's score turn by turn as a chart ("The race" in the Kingdoms panel, and on the victory and defeat screens), with the turn's standings under the pointer and a crown's line picked out from the legend<br>
           - Your ruler's likeness in the top-left corner, as in Old World: a gilt ring round it fills with your legitimacy, and a click opens the Court<br>
           - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
+          - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -3477,6 +3495,7 @@ function getEffectiveMaxHp(unit) {
 //  takes the other into its ranks: up to three companies under one colour, their men and their fire added together,
 //  all of them seen on the base and all of them firing at once ----
 const unitTypeName = t => UNIT_DEFS[t]?.name || String(t).replace(/_/g, ' ');
+const unitTitle = t => unitTypeName(t).replace(/\b\w/g, c => c.toUpperCase());   // (as a heading: Heavy Cavalry)
 const MERGE_MAX = 3;
 const mergeable = u => { const d = UNIT_DEFS[u.type]; return !!d && d.combat && !d.naval && u.type !== 'general'; };
 const regimentSize = u => 1 + (u.merged || []).length;
@@ -3685,7 +3704,7 @@ function awardXP(unit, amount) {
     }
     if (unit.nationId === playerNation) {
       addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
-      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : UNIT_DEFS[unit.type].name} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
+      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : unitTitle(unit.type)} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
     } else aiTakePromos(unit);
   }
 }
@@ -8599,6 +8618,54 @@ function openChronicle(all) {
   });
 }
 window.openChronicle = openChronicle;
+
+// ---- the Field Manual: what every regiment, building, improvement, promotion and ambition does, as an Old World
+//  encyclopedia; from the pause menu or the I key ----
+window._manTab = window._manTab || 'regiments';
+function openManual(tab) {
+  if (tab) window._manTab = tab;
+  document.getElementById('manualOverlay')?.remove();
+  const costStr = c => Object.entries(c || {}).map(([k, v]) => `${v} ${k}`).join(', ') || 'nothing';
+  const techName = k => k && TECHS[k] ? TECHS[k].name : '';
+  const T = window._manTab;
+  let body = '';
+  if (T === 'regiments') {
+    const order = ['swordsman', 'crossbowman', 'musketeer', 'grenadier', 'rifleman', 'cavalry', 'hussar', 'dragoon', 'lancer', 'heavy_cavalry', 'field_gun', 'cannon', 'mortar', 'general', 'frigate', 'galleon', 'man_of_war', 'scout', 'veteran_scout', 'worker', 'veteran_worker', 'settler'];
+    body = order.filter(t => UNIT_DEFS[t]).map(t => {
+      const d = UNIT_DEFS[t], tech = unitRequiresTech(t), up = UNIT_UPGRADES[t];
+      const range = d.ranged ? (d.artillery ? 4 : t === 'rifleman' ? 3 : 2) : 0;
+      const stats = d.combat ? `Attack <b>${d.atk || 4}</b> · Men <b>${d.hp || 10}</b> · Moves <b>${d.moves}</b>${range ? ` · Range <b>${range}</b> (+1 from a hill)` : ''}` : `Moves <b>${d.moves}</b> · Sight <b>${d.vision}</b>`;
+      return `<div class="man-row"><img src="units/${t}.png" alt=""><div><b class="man-name">${escHtml(unitTitle(t))}</b>
+        <p>${escHtml(d.desc || '')}${d.ability ? ' ' + escHtml(d.ability) : ''}</p>
+        <p class="man-stats">${stats}</p>
+        <p class="man-dim">Costs ${costStr(PRODUCTION_COSTS[t])}${tech ? ` · needs ${escHtml(techName(tech))}` : ''}${up ? ` · can be upgraded to ${escHtml(unitTitle(up.to))} with ${escHtml(techName(up.tech))}` : ''}</p></div></div>`;
+    }).join('');
+  } else if (T === 'buildings') {
+    body = Object.entries(CITY_BUILDING_DEFS).map(([k, b]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(b.name)}</b>${b.wonder ? ' <span class="man-tag">wonder, one in all the world</span>' : ''}
+      <p>${escHtml(b.desc)}</p><p class="man-dim">Costs ${costStr(PRODUCTION_COSTS[k])}${b.requires ? ` · needs ${escHtml(CITY_BUILDING_DEFS[b.requires]?.name || b.requires)}` : ''}</p></div></div>`).join('');
+  } else if (T === 'improvements') {
+    body = Object.entries(IMPROVEMENT_DEFS).map(([k, d]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(d.name)}</b>
+      <p>Yields ${Object.entries(d.yields || {}).map(([r, v]) => `+${v} ${r}`).join(', ') || 'no goods'} a turn${d.desc ? '. ' + escHtml(d.desc) : ''}</p>
+      <p class="man-dim">Costs ${costStr(d.cost)} · ${d.buildTurns || 1} turns for a worker · on ${(d.validOn || []).map(v => TILE_NAMES[v]).filter(Boolean).join(', ').toLowerCase()}</p></div></div>`).join('');
+  } else if (T === 'promotions') {
+    body = `<p class="man-lede">A regiment earns a promotion at each rank (Trained, Veteran, Elite, Legendary) and chooses it from two in its panel.</p>` +
+      Object.entries(PROMOTIONS).map(([k, p]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(p.name)}</b><p>${escHtml(p.desc)}</p></div></div>`).join('');
+  } else if (T === 'ambitions') {
+    body = `<p class="man-lede">Your crown sets itself one ambition at a time, from three offered. Each fulfilled gives +10 legitimacy and 15 score; the tenth wins the game.</p>` +
+      [1, 2, 3].map(tier => `<div class="section-title">${['', 'First ambitions', 'Grander ambitions', 'The grandest'][tier]}</div>` +
+        AMBITIONS.filter(a => a.tier === tier).map(a => `<div class="man-row man-text"><div><b class="man-name">${escHtml(a.name)}</b><p>${escHtml(a.desc)}</p></div></div>`).join('')).join('');
+  }
+  const tabs = [['regiments', 'Regiments'], ['buildings', 'Buildings'], ['improvements', 'Improvements'], ['promotions', 'Promotions'], ['ambitions', 'Ambitions']];
+  const ov = document.createElement('div'); ov.id = 'manualOverlay';
+  ov.innerHTML = `<div class="event-card man-card"><h3>Field Manual</h3>
+    <div class="man-tabs">${tabs.map(([k, l]) => `<button class="${k === T ? 'on' : ''}" onclick="openManual('${k}')">${l}</button>`).join('')}</div>
+    <div class="man-body">${body}</div>
+    <button class="event-choice" onclick="this.closest('#manualOverlay').remove()">Close</button></div>`;
+  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+  if (!window._manEsc) { window._manEsc = true; document.addEventListener('keydown', e => { const m = document.getElementById('manualOverlay'); if (m && e.key === 'Escape') { m.remove(); e.stopImmediatePropagation(); e.preventDefault(); } }, true); }
+}
+window.openManual = openManual;
 
 function showVictory(type) {
   window._gameOver = true;
@@ -18728,6 +18795,7 @@ document.addEventListener('keydown', (e) => {
   // Z wakes a fortified unit (W pans the camera, and must never cancel a worker's build)
   if (e.key === 'z' && selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.fortified && !selectedUnit.building) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'k') { toggleKingdoms(); e.preventDefault(); }
+  if (e.key === 'i') { if (document.getElementById('manualOverlay')) document.getElementById('manualOverlay').remove(); else openManual(); e.preventDefault(); }
   if (e.key === 'b' && selectedUnit && /worker/.test(selectedUnit.type)) { toggleAutomate(); e.preventDefault(); }
   if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: (e.key === '-' || e.key === '_') ? 100 : -100, clientX: viewW / 2, clientY: viewH / 2, bubbles: true, cancelable: true }));
