@@ -15471,8 +15471,24 @@ function confirmSetupAndStart() {
   barbRaidRange = parseInt(document.getElementById('setupBarbRaidRange').value) || 20;
   barbRaiderInterval = parseInt(document.getElementById('setupBarbRaiderInterval').value) || 3;
   barbCampSpacing = parseInt(document.getElementById('setupBarbCampSpacing').value) || 6;
-  startGame(cols, rows, name, color, opponents);
+  // a big world takes the chartmaker a moment to engrave: say so, then begin once the card has been painted
+  if (cols * rows >= 20000) {
+    showChartmakerCard();
+    setTimeout(() => { try { startGame(cols, rows, name, color, opponents); } finally { hideChartmakerCard(); } }, 60);
+  } else startGame(cols, rows, name, color, opponents);
 }
+function showChartmakerCard() {
+  if (document.getElementById('chartmakerCard')) return;
+  const el = document.createElement('div');
+  el.id = 'chartmakerCard';
+  el.style.cssText = "position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%, rgba(20,14,8,0.6), rgba(8,6,3,0.92) 70%),url('menu_art5.jpg') center/cover;";
+  el.innerHTML = `<div style="text-align:center;padding:26px 40px;background:radial-gradient(ellipse at 50% 30%, rgba(90,66,36,0.28), rgba(0,0,0,0.4)), url(ui/leather.jpg) 0 0 / 256px;border:1px solid #7a5c2a;border-radius:3px;box-shadow:var(--ow-gilt);">
+    <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:6px;">The chartmaker is at work</div>
+    <div style="font-family:'EB Garamond',serif;font-style:italic;color:#c8b8a0;font-size:15px;">engraving the coasts, the rivers and the hills of a new world…</div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function hideChartmakerCard() { document.getElementById('chartmakerCard')?.remove(); }
 window.showNewGame = showNewGame;
 window.resumeLastGame = resumeLastGame;
 window.showMenuOptions = showMenuOptions;
