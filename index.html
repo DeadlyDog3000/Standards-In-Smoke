@@ -9577,6 +9577,20 @@ function getFogPattern() {
   return _fogPattern;
 }
 
+// sea touching land (cached per map; the coast doesn't move)
+let _shoreCache = null, _shoreFor = null;
+function isShoreWater(i) {
+  if (_shoreFor !== tiles) {
+    _shoreFor = tiles; _shoreCache = new Uint8Array(tiles.length);
+    for (let k = 0; k < tiles.length; k++) {
+      if (tiles[k].type !== 0) continue;
+      const x = k % MAP_COLS, y = (k - x) / MAP_COLS;
+      if (hexNeighbors(x, y).some(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS && tiles[nb.row * MAP_COLS + nb.col].type !== 0)) _shoreCache[k] = 1;
+    }
+  }
+  return _shoreCache[i] === 1;
+}
+
 // Older saves don't say which way their rivers run: walk upstream from every mouth so each river tile flows toward the sea
 function deriveRiverFlow() {
   if (!tiles.some(t => t.hasRiver) || tiles.some(t => t.riverTo !== undefined)) return;
@@ -9991,6 +10005,7 @@ function render() {
   if (visionDirty) { currentVisionSet = computeCurrentVision(); visionDirty = false; }
   ensureRenderLookups();
   const pId = playerNation;
+  const winterIce = currentSeason === 'winter';
 
   const drawW = w;
   const drawH = w * 1.5; // maintain sprite aspect ratio
@@ -10018,7 +10033,10 @@ function render() {
         if (sx < -w * 2 || sy < -ch * 2 || sx > viewW + w || sy > viewH + ch) continue;
         if (!t.revealed.has(pId)) continue;
 
-        const img = hexImages[t.spriteKey] || hexImages['Grass_Plants'];
+        let key = t.spriteKey;
+        // winter: the sea along the shore freezes over
+        if (winterIce && t.type === 0 && isShoreWater(i)) key = key === 'Water_Lilypads' ? 'FrosenWater_Lilypads' : 'FrosenWater';
+        const img = hexImages[key] || hexImages[t.spriteKey] || hexImages['Grass_Plants'];
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.drawImage(img, sx, sy, drawW, drawH);
         }
@@ -10186,7 +10204,7 @@ function render() {
     }
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(40, 60, 50, 0.45)'; ctx.lineWidth = Math.max(2.5, w * 0.13); ctx.stroke(river);
-    ctx.strokeStyle = '#4f86c6'; ctx.lineWidth = Math.max(1.5, w * 0.085); ctx.stroke(river);
+    ctx.strokeStyle = currentSeason === 'winter' ? '#b9d6ee' : '#4f86c6'; ctx.lineWidth = Math.max(1.5, w * 0.085); ctx.stroke(river);
     if (w >= 24) { ctx.strokeStyle = 'rgba(200, 225, 255, 0.45)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(river); }
     ctx.restore();
   }
