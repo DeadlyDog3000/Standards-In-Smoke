@@ -12485,6 +12485,10 @@ setTimeout(function owPreload() {
 // the explored hexes (and those not watched now) as masks in the sheet's own coordinates, softened at their edges;
 // made again only when the known world or the watched part of it changes, not as the view moves
 function owMasks(pId) {
+  // (the whole map is looked over at most a few times a second, or at once when what's seen, the map or the chart changes)
+  const now = Date.now();
+  if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) return OW.masks;
+  OW.maskCheck = now; OW.maskTiles = tiles; OW.maskVS = currentVisionSet; OW.maskChart = OW.key; OW.maskPid = pId;
   let sig = 0, vsig = 0;
   for (let i = 0; i < tiles.length; i++) {
     if (!tiles[i].revealed.has(pId)) continue;
