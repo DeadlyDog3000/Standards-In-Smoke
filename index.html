@@ -12173,6 +12173,19 @@ function buildWorldChart(key) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   // water-lining: thin lines following the coast out to sea, fading as they go
   [0.5, 0.38, 0.27, 0.17].forEach((a, k) => { g.strokeStyle = 'rgba(40, 62, 70, ' + a + ')'; g.lineWidth = 0.9 * u; g.stroke(OW.F.waterLines[k]); });
+  // the open sea hatched in fine level lines, as a copperplate engraver shades deep water
+  {
+    const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F, gap2 = 3.4 * u, hatch = new Path2D();
+    for (let y = gap2; y < TH; y += gap2) {
+      const ly = Math.min(lh - 1, Math.round(y / rr)); let run = -1;
+      for (let lx = 0; lx <= lw; lx++) {
+        const i = ly * lw + lx, deep = lx < lw && WT2[i] >= 0.5 && NR[i] < 0.2 + 0.03 * Math.sin(lx * 0.21 + ly * 0.13);
+        if (deep && run < 0) run = lx;
+        else if (!deep && run >= 0) { hatch.moveTo(run * rr, y); hatch.lineTo(lx * rr, y); run = -1; }
+      }
+    }
+    g.strokeStyle = 'rgba(30, 48, 56, 0.13)'; g.lineWidth = 0.7 * u; g.stroke(hatch);
+  }
   // the shallows stippled in fine dots just off the shore, as the old engravers marked them
   {
     const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F;
