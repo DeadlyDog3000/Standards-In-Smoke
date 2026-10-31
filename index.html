@@ -708,6 +708,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Living Off the Land</b><br>
+        - Troops standing in an enemy town's fields forage: each sends a little food home and its men recover a little strength every turn<br>
+        - Fields held by the enemy are drawn trampled and stripped, with the rings of their campfires
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Look</b><br>
@@ -1521,6 +1527,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.0</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Living Off the Land</b><br>
+          - Troops standing in an enemy town's fields forage: each sends a little food home and its men recover a little strength every turn<br>
+          - Fields held by the enemy are drawn trampled and stripped, with the rings of their campfires
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
         <div style="margin-bottom:12px;">
@@ -10108,14 +10120,18 @@ function deriveRiverFlow() {
 // ---- Sieges: enemy troops standing in a town's fields take their harvest; two or more at its gates cut its road trade ----
 function updateSieges() {
   const hostile = (a, b) => a !== b && (nations[a]?.isBarbarian || nations[b]?.isBarbarian || nations[a]?.relations?.[b] === 'war');
-  const at = new Map();
-  for (const u of units) if (UNIT_DEFS[u.type]?.combat) at.set(u.y * MAP_COLS + u.x, u.nationId);
+  const at = new Map(), who = new Map();
+  for (const u of units) if (UNIT_DEFS[u.type]?.combat) { at.set(u.y * MAP_COLS + u.x, u.nationId); who.set(u.y * MAP_COLS + u.x, u); }
   for (const city of cities) {
     let held = null, gates = 0;
     for (const ti of city.ownedTiles) {
       const nid = at.get(ti);
       if (nid === undefined || !hostile(nid, city.nationId)) continue;
       (held || (held = new Set())).add(ti);
+      // the troops live off the land: a little food sent home and a night's rest for the men
+      const occ = nations[nid], u = who.get(ti);
+      if (occ && !occ.isBarbarian) occ.food = (occ.food || 0) + 0.5;
+      if (u && u.hp < getEffectiveMaxHp(u)) u.hp = Math.min(getEffectiveMaxHp(u), u.hp + 1);
       if (hexDistance(ti % MAP_COLS, Math.floor(ti / MAP_COLS), city.x, city.y) === 1) gates++;
     }
     const was = !!city._besieged;
@@ -11310,6 +11326,28 @@ function render() {
       ctx.font = `bold ${Math.max(8, w * 0.28)}px system-ui`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(cost, costX, costY);
+      ctx.restore();
+    }
+  }
+
+  // fields trampled and stripped by enemy troops (sieges)
+  if (VIEW_TILE >= 14) for (const city of cities) {
+    if (!city._occupied) continue;
+    for (const ti of city._occupied) {
+      if (!tiles[ti].revealed.has(pId)) continue;
+      const pos = hexScreenPos(ti % MAP_COLS, Math.floor(ti / MAP_COLS));
+      if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
+      let sd = ti * 7919 + 13; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+      const cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2;
+      ctx.save();
+      for (let i = 0; i < 4; i++) {
+        const x = cx + (rnd() - 0.5) * w * 0.6, y = cy + (rnd() - 0.5) * ch * 0.5, rx = w * (0.1 + rnd() * 0.08);
+        ctx.fillStyle = `rgba(${55 + rnd() * 20 | 0}, ${40 + rnd() * 12 | 0}, 25, 0.45)`;
+        ctx.beginPath(); ctx.ellipse(x, y, rx, rx * 0.5, rnd() * 0.6 - 0.3, 0, Math.PI * 2); ctx.fill();
+      }
+      // a cold campfire ring
+      ctx.strokeStyle = 'rgba(30, 24, 18, 0.6)'; ctx.lineWidth = Math.max(1, w * 0.025);
+      ctx.beginPath(); ctx.arc(cx + w * 0.18, cy + ch * 0.12, w * 0.05, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
   }
@@ -13329,7 +13367,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.9';
+const CURRENT_VERSION = 'beta-9.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
