@@ -704,6 +704,17 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Smoother Hands</b><br>
+        - Moving the mouse while smoke or floating numbers are on screen no longer stacks up extra redraws (it could stutter badly after a battle)<br>
+        - Lifting the last finger after a pinch-zoom no longer counts as a tap (it could select, move or attack)<br>
+        - A sideways swipe doesn't zoom, and a trackpad's small nudges add up to one zoom step instead of each zooming a full step<br>
+        - Keys held when the window loses focus (or pressed with Cmd/Ctrl) no longer leave the map panning on its own<br>
+        - A long chain of planned moves or a long battle replay isn't cut off by a click; if something really is stuck, units are let go cleanly<br>
+        - Resizing the window keeps the view in range; move previews no longer wrap round at the map's right edge<br>
+        - Rivals resent a realm with 40% of the cities only once there are at least eight in the world (the first to found a second city was set upon by everyone)
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Harbour Life</b><br>
@@ -1460,7 +1471,18 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.0</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Smoother Hands</b><br>
+        - Moving the mouse while smoke or floating numbers are on screen no longer stacks up extra redraws (it could stutter badly after a battle)<br>
+        - Lifting the last finger after a pinch-zoom no longer counts as a tap (it could select, move or attack)<br>
+        - A sideways swipe doesn't zoom, and a trackpad's small nudges add up to one zoom step instead of each zooming a full step<br>
+        - Keys held when the window loses focus (or pressed with Cmd/Ctrl) no longer leave the map panning on its own<br>
+        - A long chain of planned moves or a long battle replay isn't cut off by a click; if something really is stuck, units are let go cleanly<br>
+        - Resizing the window keeps the view in range; move previews no longer wrap round at the map's right edge<br>
+        - Rivals resent a realm with 40% of the cities only once there are at least eight in the world (the first to found a second city was set upon by everyone)
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Harbour Life</b><br>
         - Coastal towns keep fishing boats on the water beside them (one for a small place, two from 6 people), drawn up out of the ice in winter
@@ -3460,6 +3482,7 @@ async function replayBattleEvents() {
   const fast = events.length > 4; // a busy turn of fighting plays out briskly
   try {
     for (const evt of events) {
+      animBlockStart = Date.now(); // still replaying, not stuck
 
       // pan only when the fight is off screen (or near its edge)
       const sp = hexScreenPos(evt.defenderX, evt.defenderY), m = hexWidth() * 1.5;
@@ -10928,7 +10951,7 @@ function render() {
     }
   }
 
-  if (planningMode && planSelectUnit && hoveredMX >= 0 && hoveredMY >= 0 && UNIT_DEFS[planSelectUnit.type]?.combat) {
+  if (planningMode && planSelectUnit && hoveredMX >= 0 && hoveredMY >= 0 && hoveredMX < MAP_COLS && hoveredMY < MAP_ROWS && UNIT_DEFS[planSelectUnit.type]?.combat) {
     const hi = hoveredMY * MAP_COLS + hoveredMX;
     if (planReachable.has(hi)) {
       const hovEnemy = units.find(u => u.x === hoveredMX && u.y === hoveredMY && u.nationId !== playerNation && nations[playerNation].relations[u.nationId] === 'war');
@@ -10959,7 +10982,7 @@ function render() {
     }
   }
 
-  if (moveMode && selectedUnit && hoveredMX >= 0 && hoveredMY >= 0 && reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX)) {
+  if (moveMode && selectedUnit && hoveredMX >= 0 && hoveredMY >= 0 && hoveredMX < MAP_COLS && hoveredMY < MAP_ROWS && reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX)) {
     const previewPath = bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId);
     if (previewPath && previewPath.length > 0) {
       ctx.save();
@@ -11234,8 +11257,9 @@ function render() {
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
   const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime;
-  if (hasEffects && !selectionFlashRAF && !animationBlocking) {
-    requestAnimationFrame(() => render());
+  if (hasEffects && !selectionFlashRAF && !animationBlocking && !render._fx) {
+    // one pending effects frame at a time (every outside render used to start another chain of its own)
+    render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
   }
 }
 
@@ -12993,7 +13017,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.0';
+const CURRENT_VERSION = 'beta-8.1';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13408,6 +13432,7 @@ document.addEventListener('mouseup', (e) => {
 });
 canvas.addEventListener('mouseleave', () => { hoveredMX = -1; hoveredMY = -1; isDragging = false; canvas.style.cursor = 'default'; if (tooltipEl) tooltipEl.style.display = 'none'; render(); });
 
+let _wheelAcc = 0;
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   const oldTile = VIEW_TILE;
@@ -13416,7 +13441,12 @@ canvas.addEventListener('wheel', (e) => {
   const worldX = camX + mx / oldCS;
   const worldY = camY + my / oldCH;
 
-  if (e.deltaY < 0) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(2, Math.round(VIEW_TILE * 0.15)));
+  // a sideways swipe doesn't zoom; a trackpad's many small nudges add up to one step
+  if (!e.deltaY) return;
+  _wheelAcc = (Math.sign(_wheelAcc) === Math.sign(e.deltaY) ? _wheelAcc : 0) + e.deltaY;
+  if (Math.abs(_wheelAcc) < 40 && Math.abs(e.deltaY) < 40) return;
+  const zoomIn = _wheelAcc < 0; _wheelAcc = 0;
+  if (zoomIn) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(2, Math.round(VIEW_TILE * 0.15)));
   else VIEW_TILE = Math.max(MIN_TILE, VIEW_TILE - Math.max(2, Math.round(VIEW_TILE * 0.15)));
 
   const newCS = hexColStep(), newCH = hexCellH();
@@ -13480,6 +13510,7 @@ canvas.addEventListener('touchmove', (e) => {
   }
 }, { passive: false });
 canvas.addEventListener('touchend', (e) => {
+  if (e.touches.length > 0) { touchMoved = true; return; } // a finger still down (the end of a pinch): neither a tap nor done
   if (!touchMoved && e.changedTouches.length === 1) {
 
     dragMoved = false;
@@ -13493,7 +13524,12 @@ canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
 
   if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive) animationBlocking = false;
-  if (animationBlocking && Date.now() - animBlockStart > 8000) { animationBlocking = false; battleReplayActive = false; animatingUnits.length = 0; }
+  if (animationBlocking && Date.now() - animBlockStart > 8000) {
+    // something really is stuck: let go cleanly (the units drawn where they stand, the march sound stopped)
+    for (const a of animatingUnits) { a.unit._animating = false; a.unit._animX = undefined; a.unit._animY = undefined; }
+    animationBlocking = false; battleReplayActive = false; animatingUnits.length = 0;
+    try { stopMarchSound(); } catch (err) {}
+  }
   if (eventModalOpen && !document.getElementById('eventModal').classList.contains('active')) eventModalOpen = false;
   if (escMenuOpen && !document.getElementById('escMenu').classList.contains('show')) escMenuOpen = false;
   if (animationBlocking || eventModalOpen) return;
@@ -13969,6 +14005,7 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   unit._animY = startScreenPos.y;
   unit._animating = true;
   animatingUnits.push({ unit, path, step: 0, progress: 0, startX: sx, startY: sy, onComplete: wrappedComplete });
+  animBlockStart = Date.now(); // a long chain of moves isn't 'stuck' while it is still moving
   spawnStepDust(sx, sy, unit);
   if (!animationBlocking) {
     animationBlocking = true; animBlockStart = Date.now(); lastAnimTime = 0;
@@ -14087,9 +14124,13 @@ document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented) return;
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.metaKey || e.ctrlKey) return; // Cmd+S and the like: macOS never sends the letter's keyup
   keysDown[e.key.toLowerCase()] = true;
 });
 document.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = false; });
+// keys held when the window loses focus never send their keyup: forget them, or the map would pan on its own
+window.addEventListener('blur', () => { for (const k in keysDown) keysDown[k] = false; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) for (const k in keysDown) keysDown[k] = false; });
 setInterval(() => {
   if (!MAP_COLS || escMenuOpen || eventModalOpen || techTreeOpen) return;
   const menuEl = document.getElementById('menu');
@@ -15664,6 +15705,7 @@ window.addEventListener('resize', () => {
   sizeMapCanvas();
   viewCols = Math.ceil(viewW / hexColStep()) + 3;
   viewRows = Math.ceil(viewH / hexCellH()) + 3;
+  camX = clampCamX(camX); camY = clampCamY(camY); // a narrower window has a different allowed range
   updateTopbarOffset();
   render();
 });
