@@ -10800,6 +10800,24 @@ function rebuildRoads() {
     }
   }
 }
+// how many river hexes drain through each one (worked out once per map): a spring is 1, a great river near the sea many
+let _riverFlow = null, _riverFlowKey = '';
+function riverFlow() {
+  const key = OW.key.replace(/:[a-z]+$/, '') + '|' + tiles.length;
+  if (_riverFlowKey === key && _riverFlow) return _riverFlow;
+  _riverFlowKey = key;
+  const f = new Uint16Array(tiles.length), indeg = new Uint16Array(tiles.length);
+  for (let i = 0; i < tiles.length; i++) if (tiles[i].hasRiver && tiles[i].riverTo !== undefined && tiles[tiles[i].riverTo]?.hasRiver) indeg[tiles[i].riverTo]++;
+  const q = [];
+  for (let i = 0; i < tiles.length; i++) if (tiles[i].hasRiver) { f[i] = 1; if (!indeg[i]) q.push(i); }
+  for (let h = 0; h < q.length; h++) {
+    const i = q[h], to = tiles[i].riverTo;
+    if (to === undefined || !tiles[to]?.hasRiver) continue;
+    f[to] = Math.min(65000, f[to] + f[i]);
+    if (--indeg[to] === 0) q.push(to);
+  }
+  return (_riverFlow = f);
+}
 function drawRoads(w, facePad, ch, pId) {
   if (!roads.length) return;
   const centre = (ti) => { const x = ti % MAP_COLS, y = (ti - x) / MAP_COLS, p = hexScreenPos(x, y); return [p.x + w / 2, p.y + facePad + ch / 2]; };
@@ -11993,7 +12011,7 @@ function owPlaceNames() {
         for (const i of cand) {
           if (picked.length >= want) break;
           const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), bx = best % MAP_COLS, by = Math.floor(best / MAP_COLS);
-          if (Math.hypot(x - bx, y - by) < 4 || picked.some(j => Math.hypot(x - j % MAP_COLS, y - Math.floor(j / MAP_COLS)) < 8)) continue;
+          if ((Math.abs(x - bx) < 8 && Math.abs(y - by) < 3) || picked.some(j => Math.hypot(x - j % MAP_COLS, y - Math.floor(j / MAP_COLS)) < 8)) continue;
           picked.push(i); decor.push({ i, img: ['sea_serpent', 'sea_whale', 'sea_ship'][Math.floor(owHash(i, 3, 5) * 3)], flip: owHash(i, 4, 6) < 0.5 });
         }
       }
@@ -12491,9 +12509,12 @@ function render() {
     ctx.strokeStyle = 'rgba(225, 238, 255, 0.35)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke(waves);
     ctx.restore();
   }
-  // rivers: each river tile carries its water on to the next (or into the sea), in a gentle meander
+  // rivers: each river tile carries its water on to the next (or into the sea), in a gentle meander;
+  // on the chart a river is a fine inked line that swells as streams join it on the way to the sea
   if (VIEW_TILE >= 10) {
-    const river = new Path2D();
+    const flow = charted ? riverFlow() : null;
+    const BANDS = 4, river = Array.from({ length: BANDS }, () => new Path2D());
+    const band = (i) => flow ? Math.min(BANDS - 1, Math.floor(Math.log2(flow[i] || 1))) : 1;
     const centre = (i) => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS, p = hexScreenPos(x, y); return [p.x + w / 2, p.y + facePad + ch / 2]; };
     const r0 = Math.max(0, startRow - 1), r1 = Math.min(MAP_ROWS, endRow + 1), c0 = Math.max(0, startCol - 1), c1 = Math.min(MAP_COLS, endCol + 1);
     for (let my = r0; my < r1; my++) {
@@ -12513,18 +12534,22 @@ function render() {
         }
         if (!ins.length) ins.push([cx, cy]); // a spring
         if (!out) out = [cx, cy];
+        const p = river[band(i)];
         for (const a of ins) {
           const dx = out[0] - a[0], dy = out[1] - a[1], len = Math.hypot(dx, dy) || 1;
-          river.moveTo(a[0], a[1]);
-          river.quadraticCurveTo(cx - dy / len * bend, cy + dx / len * bend, out[0], out[1]);
+          p.moveTo(a[0], a[1]);
+          p.quadraticCurveTo(cx - dy / len * bend, cy + dx / len * bend, out[0], out[1]);
         }
       }
     }
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    // on the chart a river is an inked line washed with the sea's colour
-    ctx.strokeStyle = charted ? 'rgba(44, 40, 30, 0.85)' : 'rgba(40, 60, 50, 0.45)'; ctx.lineWidth = Math.max(2.5, w * (charted ? 0.11 : 0.13)); ctx.stroke(river);
-    ctx.strokeStyle = currentSeason === 'winter' ? '#b9d6ee' : charted ? '#6f9396' : '#4f86c6'; ctx.lineWidth = Math.max(1.5, w * (charted ? 0.07 : 0.085)); ctx.stroke(river);
-    if (w >= 24 && !charted) { ctx.strokeStyle = 'rgba(200, 225, 255, 0.45)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(river); }
+    for (let b = 0; b < BANDS; b++) {
+      const k = charted ? 0.5 + b * 0.38 : 1;
+      // on the chart a river is an inked line washed with the sea's colour
+      ctx.strokeStyle = charted ? 'rgba(44, 40, 30, 0.85)' : 'rgba(40, 60, 50, 0.45)'; ctx.lineWidth = Math.max(1.6, w * (charted ? 0.075 : 0.13) * k); ctx.stroke(river[b]);
+      ctx.strokeStyle = currentSeason === 'winter' ? '#b9d6ee' : charted ? '#6f9396' : '#4f86c6'; ctx.lineWidth = Math.max(0.9, w * (charted ? 0.045 : 0.085) * k); ctx.stroke(river[b]);
+      if (w >= 24 && !charted) { ctx.strokeStyle = 'rgba(200, 225, 255, 0.45)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(river[b]); }
+    }
     ctx.restore();
   }
   if (VIEW_TILE >= 14) drawRoads(w, facePad, ch, pId);
