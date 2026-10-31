@@ -12373,6 +12373,12 @@ function drawRhumbs(cs, ch) {
     ctx.font = `italic ${Math.max(8, u * 3.8)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
     ctx.fillText('Anno Domini ' + roman(year), pcx, pcy + u * 7.5);
   }
+  // a wind head puffing from the sheet's upper right corner, as on the old world maps
+  const wh = owDeskProp('windhead');
+  if (wh) {
+    const ws = Math.min(mh * 0.34, cs * 9), ww2 = ws * wh.naturalWidth / wh.naturalHeight;
+    ctx.globalAlpha = 0.9; ctx.drawImage(wh, ox + mw - ww2 - cs * 0.6, oy + ch * 0.9, ww2, ws); ctx.globalAlpha = 1;
+  }
   // the great rose at the centre, and a small one at each hub
   const rose = owRoseCanvas(), big = Math.min(mw, mh) * 0.22;
   ctx.globalAlpha = 0.55; ctx.drawImage(rose, c0[0] - big / 2, c0[1] - big / 2, big, big);
