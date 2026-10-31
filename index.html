@@ -5430,8 +5430,13 @@ function showFirstContact(nation) {
     <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${sc}60;">The <span style="color:${sc}">${escHtml(nation.name)}</span></div>
     <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
   </div>`;
-  document.body.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 3000);
+  // (held back while an event card is open, so the banner never lies over a choice being made)
+  const show = (tries) => {
+    if (eventModalOpen && tries < 120) { setTimeout(() => show(tries + 1), 400); return; }
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 3000);
+  };
+  show(0);
 }
 
 let shakeIntensity = 0, shakeEndTime = 0;
