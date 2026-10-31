@@ -867,10 +867,12 @@
         <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
         - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
         - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
-        - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn<br>
+        - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn. Riflemen reach 3 hexes (4 from a hill)<br>
         - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
         - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
         - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
+        - The rival crowns want land: they send out more settlers, two at a time once they have three towns, from smaller towns early on, and fund their colonists' food; each crown has its own appetite for expansion<br>
+        - The further ahead you get (your share of the technologies, your towns, the length of the game, your lead in score), the harder Europe pushes back: rivals gain richer treasuries, steadier soldiers and more orders, raiders grow bolder, and the crowns trust you less each turn. You are told as each stage of their alarm is reached<br>
         - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
@@ -1879,10 +1881,12 @@
           <b style="color:#b8a070;">Merged Regiments, Fire on the March, and Every Nation in its Own Coat</b><br>
           - Regiments can be merged: right-click one of your own beside the one you have chosen and it marches in and takes it into its ranks, up to three companies under one colour. Their men and fire add up, every company stands on the field, and all of them fire at once<br>
           - A merged regiment can split a company off again (the unit panel), the other crowns merge theirs too, a merged regiment is marked II or III on the chart from afar, and generals wear their nation's coat<br>
-          - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn<br>
+          - Musketeers, riflemen and the other ranged foot and horse can fire after marching, as long as they have a move left (firing ends their turn). The guns still fire only from where they began the turn. Riflemen reach 3 hexes (4 from a hill)<br>
           - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
           - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
           - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
+          - The rival crowns want land: they send out more settlers, two at a time once they have three towns, from smaller towns early on, and fund their colonists' food; each crown has its own appetite for expansion<br>
+          - The further ahead you get (your share of the technologies, your towns, the length of the game, your lead in score), the harder Europe pushes back: rivals gain richer treasuries, steadier soldiers and more orders, raiders grow bolder, and the crowns trust you less each turn. You are told as each stage of their alarm is reached<br>
           - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
@@ -3407,13 +3411,42 @@ const CITY_VISION_MAX_BONUS = 3; // Max extra vision from population
 const FREE_MIL_PER_CITY = 2;  // Free military units before maintenance costs
 const UNIT_MAINTENANCE = 0.5; // Gold per excess military unit per turn
 
-function getDifficultyModifiers() {
+function baseDifficultyModifiers() {
   switch (gameDifficulty) {
     case 'easy':   return { aiResourceMult: 0.7, aiCombatMult: 0.85, aiBonusOrders: 0, playerBonusResources: 5, barbMult: 0.7 };
     case 'normal': return { aiResourceMult: 1.0, aiCombatMult: 1.0,  aiBonusOrders: 0, playerBonusResources: 0, barbMult: 1.0 };
     case 'hard':   return { aiResourceMult: 1.3, aiCombatMult: 1.15, aiBonusOrders: 2, playerBonusResources: 0, barbMult: 1.3 };
     default:       return { aiResourceMult: 1.0, aiCombatMult: 1.0,  aiBonusOrders: 0, playerBonusResources: 0, barbMult: 1.0 };
   }
+}
+// ---- the alarm of Europe: the further ahead the player gets, the harder the world pushes back ----
+// How advanced the player's realm is, 0..1: its share of the technologies, its towns, the length of the game, and how
+// far its score stands above the rivals'. The crowns' treasuries, their soldiers' resolve, their orders, the raiders and
+// their mistrust of the player all rise with it, so a game is never won by the middle of it.
+let _progress = { turn: -1, v: 0 };
+function playerProgress() {
+  if (_progress.turn === turnNumber && _progress.n === nations.length) return _progress.v;
+  const me = nations[playerNation];
+  let v = 0;
+  if (me && !me.eliminated) {
+    const techShare = (me.researched ? me.researched.size : 0) / Math.max(1, Object.keys(TECHS).length);
+    const myCities = cities.filter(c => c.nationId === playerNation).length;
+    const rivals = nations.filter((n, i) => i !== playerNation && !n.eliminated && !n.isBarbarian && !n.isTribe);
+    const avg = rivals.length ? rivals.reduce((a, n) => a + getScore(nations.indexOf(n)), 0) / rivals.length : 0;
+    const lead = avg > 0 ? Math.max(0, Math.min(1, (getScore(playerNation) / avg - 1) / 1.5)) : 0;
+    v = 0.4 * Math.min(1, techShare * 1.4) + 0.25 * Math.min(1, myCities / 10) + 0.15 * Math.min(1, turnNumber / 200) + 0.2 * lead;
+  }
+  _progress = { turn: turnNumber, n: nations.length, v: Math.max(0, Math.min(1, v)) };
+  return _progress.v;
+}
+function getDifficultyModifiers() {
+  const m = baseDifficultyModifiers(), P = playerProgress();
+  return { ...m,
+    aiResourceMult: m.aiResourceMult * (1 + 0.6 * P),
+    aiCombatMult: m.aiCombatMult * (1 + 0.25 * P),
+    aiBonusOrders: m.aiBonusOrders + Math.floor(P * 3.5),
+    barbMult: m.barbMult * (1 + 0.8 * P),
+    alarm: P };
 }
 
 const HEX_IMG_W = 32, HEX_IMG_H = 48; // native sprite size
@@ -6630,8 +6663,11 @@ function getCityScaleFactor(nationId) {
 function getScaledCosts(nationId, costs) {
   const s = getCityScaleFactor(nationId);
   const out = {};
+  // (the rival crowns fund their colonists: a settler costs them two-fifths less food, or most never left home, their
+  //  granaries eaten by their own towns before they could fill)
+  const grant = costs === PRODUCTION_COSTS.settler && nationId !== playerNation && !nations[nationId]?.isBarbarian ? 0.6 : 1;
   for (const k in costs) {
-    let v = costs[k] * s;
+    let v = costs[k] * s * grant;
     v *= lawBuildingCostMult(nationId, k);
     out[k] = Math.ceil(v);
   }
@@ -6661,7 +6697,7 @@ function stallProduction(city, total) {
   // a settler is worth waiting for while the granaries fill (the city doesn't grow meanwhile, so the food piles up)
   const patience = city.producing === 'settler' ? 8 : 3;
   if (city._stall >= patience) {
-    if (city.producing === 'settler') city._noSettlerUntil = turnNumber + 12;
+    if (city.producing === 'settler') city._noSettlerUntil = turnNumber + (city.nationId === playerNation ? 12 : 6);
     city.producing = null; prodPaidSync(city); // (and what was paid for it comes back)
     city.productionProgress = 0; // the work done waiting doesn't carry over (it made the next unit appear at once)
     city._stall = 0;
@@ -7065,7 +7101,7 @@ function canAttack(attacker, tx, ty) {
   if (!def.ranged) return adjacent;
   // a ranged unit fires at most two tiles off (the guns only from where they began the turn); at close quarters it can always fight
   if (adjacent) return true;
-  if (hexDistance(attacker.x, attacker.y, tx, ty) > 2) return false;
+  if (hexDistance(attacker.x, attacker.y, tx, ty) > getUnitRange(attacker)) return false;
   return canFireNow(attacker);
 }
 
@@ -8411,6 +8447,8 @@ function aiTurn(nationId) {
       changeLoyalty(nationId, otherId, -3);
     }
 
+    // (the alarm of Europe: a realm far ahead is mistrusted by every crown, a little more each turn)
+    if (otherId === playerNation && !n.isBarbarian && !n.isTribe) { const P = playerProgress(); if (P > 0.2) changeLoyalty(nationId, otherId, -(P - 0.2) * 1.6); }
     const updatedLoy = getLoyalty(nationId, otherId);
     if (otherId === playerNation && n.relations[otherId] !== 'war') {
       if (!n._warWarned) n._warWarned = {};
@@ -8430,7 +8468,7 @@ function aiTurn(nationId) {
       const aiCityCount = aiCitiesAll.length;
 
       const minArmyForWar = otherId === playerNation
-        ? Math.max(4, aiCityCount * 3)
+        ? Math.max(3, Math.round(aiCityCount * (3 - 1.5 * playerProgress())))   // (bolder against a realm far ahead)
         : Math.max(2, aiCityCount);
 
       const peaceUntil = n._peaceCooldown?.[otherId] || 0;
@@ -9009,12 +9047,18 @@ function aiTurn(nationId) {
       // early expansion: a young realm with a few soldiers sends out settlers even with raiders about, unless the threat outweighs its army
       const freeSites = citySites.filter(s => !s.settled).length;
       const settlerFood = getScaledCosts(nationId, PRODUCTION_COSTS.settler).food;
-      const haveSettler = units.some(u => u.nationId === nationId && u.type === 'settler') || aiCities.some(ci => ci !== c && ci.producing === 'settler');
+      // (a crown's appetite for land: each its own, made once; a realm with room to grow wants to fill it)
+      if (n._expand === undefined) n._expand = 0.8 + Math.random() * 0.6;
+      const settlersOut = units.filter(u => u.nationId === nationId && u.type === 'settler').length + aiCities.filter(ci => ci !== c && ci.producing === 'settler').length;
+      const settlersAllowed = aiCities.length >= 3 ? 2 : 1;
+      const haveSettler = settlersOut >= settlersAllowed;
+      const cityCap = Math.min(14, Math.round((5 + Math.floor(turnNumber / 12)) * n._expand) + (n.food >= settlerFood * 2 ? 2 : 0));
+      const popForSettler = aiCities.length < 3 ? 2 : 3;   // (a young realm sends out its second family sooner)
       if (poor && workers === 0 && workersHaveWork && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.worker).food) {
         c.producing = 'worker'; // a broke realm with no one working its land: workers first, so mines and farms start paying
-      } else if ((c.population || 1) >= 3 && aiCities.length < (n.food >= settlerFood * 2 ? 8 : 4) && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
+      } else if ((c.population || 1) >= popForSettler && aiCities.length < cityCap && freeSites > 0 && combatCount >= Math.min(2, aiCities.length) && !haveSettler && !(c._noSettlerUntil > turnNumber)
           && n.food >= settlerFood * 0.5
-          && threatLevel <= combatCount * (n.food >= settlerFood * 2 ? 10 : 6) && (n.food >= settlerFood * 2 || Math.random() < 0.6)) {
+          && threatLevel <= Math.max(1, combatCount) * (n.food >= settlerFood * 2 ? 10 : 6) && (n.food >= settlerFood * 2 || Math.random() < 0.6 + 0.25 * n._expand)) {
         c.producing = 'settler';
       } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.wood >= 20 && Math.random() < 0.35) {
         c.producing = 'fortifications';
@@ -9057,13 +9101,13 @@ function aiTurn(nationId) {
         } else {
           const availSites = citySites.filter(s => !s.settled).length + barbarianCamps.filter(b => !b.destroyed).length;
 
-          const maxCities = Math.min(availSites + aiCities.length, Math.max(4, Math.floor(turnNumber / 15) + 2 + Math.floor(combatCount / 3)));
+          const maxCities = Math.min(availSites + aiCities.length, Math.max(cityCap, Math.floor(turnNumber / 15) + 2 + Math.floor(combatCount / 3)));
           const existingSettlers = units.filter(u => u.nationId === nationId && u.type === 'settler').length;
           const roll = Math.random();
 
           if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
 
-          else if ((c.population || 1) >= 3 && aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
+          else if ((c.population || 1) >= popForSettler && aiCities.length < maxCities && existingSettlers < settlersAllowed && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55 + 0.2 * n._expand) c.producing = 'settler';
           else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
           else c.producing = bestCombat; // default: keep building army
         }
@@ -9803,6 +9847,17 @@ function _finishEndTurnImpl() {
     }
   }
   turnNumber++;
+  // the alarm of Europe rising, a stage at a time, told once each
+  try {
+    const P = playerProgress(), stage = P >= 0.8 ? 3 : P >= 0.55 ? 2 : P >= 0.3 ? 1 : 0, me = nations[playerNation];
+    if (me && stage > (me._alarmStage || 0)) {
+      me._alarmStage = stage;
+      const say = ['', 'The courts of Europe take note of your rise. Rival crowns arm a little faster, and raiders grow bolder.',
+                   'Europe is alarmed by your power. The crowns spend freely on their armies, trust you less each turn, and will fight you sooner.',
+                   'All Europe stands against you. Every rival fields stronger armies with more orders, and none will long stay at peace with you.'][stage];
+      logEvent(say); showToast(say);
+    }
+  } catch (e) {}
   tickSeason();
   try { tickWinterAttrition(); } catch(e) { console.error('tickWinterAttrition error:', e); }
   try { tickSupply(); } catch(e) { console.error('tickSupply error:', e); }
@@ -17916,7 +17971,7 @@ function getUnitRange(unit) {
   const def = UNIT_DEFS[unit.type];
   if (!def || !def.ranged) return 1;
   const onHills = tiles[unit.y * MAP_COLS + unit.x].type === 7;
-  const base = def.artillery ? 4 : 2;
+  const base = def.artillery ? 4 : unit.type === 'rifleman' ? 3 : 2;   // (the Baker rifle carries a hex further than the musket)
   return onHills ? base + 1 : base;
 }
 
