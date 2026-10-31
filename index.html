@@ -534,7 +534,7 @@
     #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
-    #game > canvas { image-rendering: auto; }
+    #game > canvas { image-rendering: auto; cursor: url(ui/quill32.png) 1 1, default; cursor: -webkit-image-set(url(ui/quill32.png) 1x, url(ui/quill64.png) 2x) 1 1, default; }
     #game::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 55% at 48% 45%, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0) 70%); }
     /* the top bar's stores as painted tokens, not coloured squares */
     #topbar .res[title^="Gold"] .res-icon { background: url(icons/moneybag.png) center / contain no-repeat !important; width: 17px; height: 17px; border-radius: 0; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7)); }
@@ -15552,9 +15552,9 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseup', (e) => {
-  if (e.button === 0) { isDragging = false; canvas.style.cursor = 'default'; }
+  if (e.button === 0) { isDragging = false; canvas.style.cursor = ''; }
 });
-canvas.addEventListener('mouseleave', () => { hoveredMX = -1; hoveredMY = -1; isDragging = false; canvas.style.cursor = 'default'; if (tooltipEl) tooltipEl.style.display = 'none'; render(); });
+canvas.addEventListener('mouseleave', () => { hoveredMX = -1; hoveredMY = -1; isDragging = false; canvas.style.cursor = ''; if (tooltipEl) tooltipEl.style.display = 'none'; render(); });
 
 let _wheelAcc = 0;
 canvas.addEventListener('wheel', (e) => {
