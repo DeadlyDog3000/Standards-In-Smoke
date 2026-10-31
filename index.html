@@ -4075,6 +4075,21 @@ function renderParticles() {
       ctx.restore();
       continue;
     }
+    if (p.kind === 'fall') {
+      // a broken regiment: its figure tipping over on its base, lying a moment, and fading off the chart
+      if (elapsed < 0) continue;
+      const k = w / 48 * UNIT_FIG_SCALE, x = pos.x + w / 2, y = pos.y + facePad + ch / 2 + w * 0.32 * UNIT_FIG_SCALE * 0.62;
+      const tip = Math.min(1, t / 0.32), ang = (tip * tip) * 1.45 * (p.fallRight ? 1 : -1);
+      const a = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+      const maxD = w * 0.6 * UNIT_FIG_SCALE, sc = maxD / Math.max(p.img.width, p.img.height), dw = p.img.width * sc, dh = p.img.height * sc;
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x + (p.fallRight ? 1 : -1) * dh * 0.45 * tip, y, w * 0.18 * UNIT_FIG_SCALE + dh * 0.4 * tip, w * 0.06, 0, 0, Math.PI * 2); ctx.fill(); // (its shadow lengthening as it falls)
+      ctx.translate(x, y); ctx.rotate(ang); if (!p.fallRight) ctx.scale(-1, 1);
+      ctx.filter = 'grayscale(0.5) brightness(0.85)';
+      ctx.drawImage(p.img, -dw / 2, -dh, dw, dh);
+      ctx.restore();
+      continue;
+    }
     if (p.kind === 'smoke' || p.kind === 'flash') {
       if (elapsed < 0) continue;
       const k = w / 48; // effects scale with the zoom
@@ -4147,6 +4162,62 @@ function camPanTick() {
 }
 
 let battleEvents = []; // collected during AI turns, replayed visually after
+// ---- regiments in action: a lunge into the enemy for a charge or the bayonet (and back), a kick of recoil for a shot,
+//  the enemy flinching and flushed red where the blow lands, and a broken regiment's figure toppling over and fading ----
+let _unitFxUntil = 0;
+const UNIT_FX_DUR = { lunge: 560, recoil: 420, hit: 460 };
+function unitFxStart(u, kind, tx, ty, delay = 0) {
+  if (!u) return;
+  (u._fxs || (u._fxs = [])).push({ kind, tx, ty, start: Date.now() + delay });
+  _unitFxUntil = Math.max(_unitFxUntil, Date.now() + delay + UNIT_FX_DUR[kind] + 30);
+  if (!animationBlocking && !render._fx) render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
+}
+// where a regiment is drawn out of its place by what it's doing, and how red it's flushed
+function unitFxOffset(u, w) {
+  if (!u._fxs || !u._fxs.length) return null;
+  const now = Date.now(), ease = x => x * x * (3 - 2 * x);
+  let ox = 0, oy = 0, flash = 0;
+  u._fxs = u._fxs.filter(f => now - f.start < UNIT_FX_DUR[f.kind]);
+  for (const f of u._fxs) {
+    const p = (now - f.start) / UNIT_FX_DUR[f.kind]; if (p < 0) continue;
+    const a = hexScreenPos(u.x, u.y), b = hexScreenPos(f.tx, f.ty);
+    let dx = b.x - a.x, dy = b.y - a.y; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+    if (f.kind === 'lunge') { // (in fast, a beat at the enemy's front, back steadily)
+      const k = p < 0.28 ? ease(p / 0.28) : p < 0.4 ? 1 : 1 - ease((p - 0.4) / 0.6);
+      const reach = Math.min(len, w * 1.2) * 0.45;
+      ox += dx * reach * k; oy += dy * reach * k - Math.sin(Math.min(1, p / 0.28) * Math.PI) * w * 0.05;
+    } else if (f.kind === 'recoil') { // (a sharp kick back, then eased up to the line again)
+      const big = UNIT_DEFS[u.type]?.artillery ? 0.13 : 0.06;
+      const k = p < 0.1 ? p / 0.1 : 1 - ease((p - 0.1) / 0.9);
+      ox -= dx * w * big * k; oy -= dy * w * big * k;
+    } else if (f.kind === 'hit') { // (shaken where it stands, and flushed red)
+      ox += Math.sin(p * 46) * (1 - p) * w * 0.045;
+      flash = Math.max(flash, 1 - p);
+    }
+  }
+  return { x: ox, y: oy, flash };
+}
+// the whole of an attack, seen: the powder, the attacker's lunge or recoil, the blow landing a moment later, the fallen
+function attackFx(ax, ay, dx, dy, aType, dType, aNid, dNid, ranged, defDied, atkDied) {
+  if (particles.length < 400) spawnCombatSmoke(ax, ay, dx, dy, aType);
+  const A = units.find(u => u.x === ax && u.y === ay && u.nationId === aNid);
+  const D = units.find(u => u.x === dx && u.y === dy && u.nationId === dNid);
+  const shot = ranged || FIREARM_UNITS.has(aType) && !!UNIT_DEFS[aType]?.ranged;
+  // (a regiment that broke the enemy and took their ground is seen going in, not found there already)
+  const won = !A && !shot && units.find(u => u.x === dx && u.y === dy && u.nationId === aNid && u.type === aType);
+  if (won && !won._animating) startUnitAnimation(won, [{ x: dx, y: dy }], null, ax, ay);
+  unitFxStart(A, shot ? 'recoil' : 'lunge', dx, dy);
+  unitFxStart(D, 'hit', ax, ay, shot ? 110 : 150);
+  if (defDied) spawnFallenFigure(dx, dy, dType, dNid, ax < dx, shot ? 120 : 170);
+  if (atkDied) spawnFallenFigure(ax, ay, aType, aNid, dx < ax, 260);
+}
+function spawnFallenFigure(col, row, type, nid, fallRight, delay = 0) {
+  const img = VIEW_TILE >= 14 ? unitFigure(type) : null;
+  if (!img) return;
+  particles.push({ kind: 'fall', col, row, img, color: safeColor(nations[nid]?.color, '#888'), fallRight, vx: 0, vy: 0, startTime: Date.now() + delay, duration: 1000 });
+  if (!animationBlocking && !render._fx) render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
+}
+
 let battleReplayActive = false;
 function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged) {
 
@@ -4170,9 +4241,8 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
     tiles[at].battle = getCurrentYear();
   }
   if (seen && attackerDied) battleScars.push({ ti: attackerY * MAP_COLS + attackerX, turn: turnNumber });
-  if (seen && particles.length < 400) spawnCombatSmoke(attackerX, attackerY, defenderX, defenderY, attackerType);
-
   if (attackerNationId === playerNation) {
+    if (seen) attackFx(attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, attackerNationId, defenderNationId, isRanged, defenderDied, attackerDied);
     if (dmgToDefender > 0) addFloatingText(defenderX, defenderY, `-${dmgToDefender}`, '#ff4444', 1400, 16);
     if (dmgToAttacker > 0) addFloatingText(attackerX, attackerY, `-${dmgToAttacker}`, '#ff8844', 1400, 14);
     if (defenderDied) {
@@ -4187,32 +4257,6 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
 
   if (!playerInvolved && !seen) return; // a skirmish in the fog isn't replayed: you can't see it
   battleEvents.push({ attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged });
-}
-
-let nudgeUnit = null, nudgeFromX = 0, nudgeFromY = 0, nudgeToX = 0, nudgeToY = 0, nudgeProgress = 0, nudgeCallback = null;
-function startNudgeAnimation(fromCol, fromRow, toCol, toRow, callback) {
-  nudgeFromX = fromCol; nudgeFromY = fromRow; nudgeToX = toCol; nudgeToY = toRow;
-  nudgeProgress = 0; nudgeCallback = callback;
-  requestAnimationFrame(nudgeTick);
-}
-function nudgeTick(ts) {
-  nudgeProgress += 0.07;
-  if (nudgeProgress >= 1) {
-    nudgeUnit = null; nudgeProgress = 0;
-    render();
-    if (nudgeCallback) { const cb = nudgeCallback; nudgeCallback = null; cb(); }
-    return;
-  }
-  render();
-  requestAnimationFrame(nudgeTick);
-}
-function getNudgeOffset() {
-  if (!nudgeUnit || nudgeProgress === 0) return null;
-
-  const t = nudgeProgress < 0.5 ? nudgeProgress * 2 : 2 - nudgeProgress * 2;
-  const fromPos = hexScreenPos(nudgeFromX, nudgeFromY);
-  const toPos = hexScreenPos(nudgeToX, nudgeToY);
-  return { x: (toPos.x - fromPos.x) * t * 0.4, y: (toPos.y - fromPos.y) * t * 0.4 };
 }
 
 async function replayBattleEvents() {
@@ -4241,13 +4285,9 @@ async function replayBattleEvents() {
         addFloatingText(evt.attackerX, evt.attackerY, `-${evt.dmgToAttacker}`, '#ff8844', 1400, 14);
       }
 
-      if (!evt.isRanged) {
-
-        nudgeUnit = { col: evt.attackerX, row: evt.attackerY, type: evt.attackerType, nationId: evt.attackerNationId };
-        await new Promise(resolve => {
-          startNudgeAnimation(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, resolve);
-        });
-      }
+      // (the attack itself, played out where it was fought)
+      attackFx(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, evt.attackerType, evt.defenderType, evt.attackerNationId, evt.defenderNationId, evt.isRanged, evt.defenderDied, evt.attackerDied);
+      await new Promise(r => setTimeout(r, fast ? 300 : 560));
 
       if (evt.defenderDied) {
         spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#d0603e');
@@ -12143,6 +12183,7 @@ function figureSilhouette(img) {
 }
 // regiments stand as small figures on the chart, well inside their hex, as a wargamer's miniatures on a map table
 const UNIT_FIG_SCALE = 0.76;
+let _unitFlush = 0; // (how red the figure being drawn is flushed by a blow, 0..1)
 function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0, ready = false, spent = false) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
   const rx = w * 0.22, ry = w * 0.08;
@@ -12218,6 +12259,10 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0, 
   if (OW.canvas) { const lean = Math.max(-0.22, Math.min(0.22, (cx - viewW / 2) / viewW * 0.3)); ctx.transform(1, 0, -lean, 1, lean * baseY, 0); }
   if (flip) { ctx.translate(cx * 2, 0); ctx.scale(-1, 1); }
   ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4) - (naval ? 0 : hop), dw, dh);
+  if (_unitFlush > 0.02) { // (struck: the figure flushed red for a moment)
+    ctx.shadowBlur = 0; ctx.globalAlpha = Math.min(1, _unitFlush * 0.85); ctx.filter = 'sepia(1) saturate(7) hue-rotate(-45deg) brightness(0.95)';
+    ctx.drawImage(img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4) - (naval ? 0 : hop), dw, dh);
+  }
   ctx.restore();
   return { top: baseY - dh, h: dh };
 }
@@ -14336,7 +14381,9 @@ function render() {
       if (!tiles[tIdx].revealed.has(pId)) continue;
       if (currentVisionSet && !currentVisionSet.has(tIdx)) continue;
     }
-    const pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
+    let pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
+    const fxo = unitFxOffset(u, w); if (fxo) pos = { x: pos.x + fxo.x, y: pos.y + fxo.y };
+    _unitFlush = fxo ? fxo.flash : 0;
     if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
     if (u.nationId !== pId) discoverNation(u.nationId);
     const nCol = nations[u.nationId].color;
@@ -14478,25 +14525,6 @@ function render() {
       ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(cx, cy, rad + 2, 0, Math.PI * 2); ctx.stroke();
       ctx.lineWidth = 1;
-    }
-  }
-
-  if (nudgeUnit && nudgeProgress > 0) {
-    const nOff = getNudgeOffset();
-    if (nOff) {
-      const nPos = hexScreenPos(nudgeUnit.col, nudgeUnit.row);
-      const ncx = nPos.x + w / 2 + nOff.x, ncy = nPos.y + facePad + ch / 2 + nOff.y;
-      const nrad = w * 0.32;
-      ctx.fillStyle = nations[nudgeUnit.nationId]?.color || '#888';
-      ctx.beginPath(); ctx.arc(ncx, ncy, nrad, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(ncx, ncy, nrad, 0, Math.PI * 2); ctx.stroke();
-      if (VIEW_TILE >= 14) {
-        ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(10, w * 0.45)}px 'EB Garamond', serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(UNIT_DEFS[nudgeUnit.type]?.icon || '?', ncx, ncy);
-      }
     }
   }
 
@@ -14695,7 +14723,7 @@ function render() {
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
   updateWeather();
-  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime || (!!OW.prevKnown && Date.now() - OW.fadeStart < 700);
+  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < _unitFxUntil || Date.now() < shakeEndTime || (!!OW.prevKnown && Date.now() - OW.fadeStart < 700);
   if (hasEffects && !selectionFlashRAF && !animationBlocking && !render._fx) {
     // one pending effects frame at a time (every outside render used to start another chain of its own)
     render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
@@ -17865,6 +17893,7 @@ window.doRangedAttack = function(tx, ty) {
     awardXP(selectedUnit, XP_PER_HIT);
   }
 
+  attackFx(selectedUnit.x, selectedUnit.y, tx, ty, selectedUnit.type, target.type, selectedUnit.nationId, target.nationId, true, rTargetDied, false);
   addFloatingText(tx, ty, `-${rDmgDealt}`, '#ff4444', 1400, 16);
   if (rTargetDied) {
     spawnDeathParticles(tx, ty, nations[target.nationId]?.color || '#d0603e');
