@@ -2827,6 +2827,8 @@ let units = [];
 function removeUnit(u) {
   const idx = units.indexOf(u);
   if (idx >= 0) units.splice(idx, 1);
+  // a regiment of yours is lost: a line in the chronicle (no pop-up), with its name
+  if (idx >= 0 && u.nationId === playerNation && u.regiment && MAP_COLS) { const rn = regimentName(u); if (rn) logEvent(`\u2620 Lost: the ${rn}.`); }
   if (selectedUnit === u) {
     selectedUnit = null;
     moveMode = false; gotoMode = false; rangedMode = false;
