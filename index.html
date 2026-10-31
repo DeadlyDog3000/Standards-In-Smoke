@@ -12637,13 +12637,17 @@ function render() {
       const pil = _pillagedMap && _pillagedMap.get(i);
       if (pil) {
         const turnsLeft = Math.max(0, 2 - (turnNumber - pil.turnPillaged));
-        ctx.fillStyle = 'rgba(200, 50, 0, 0.4)';
+        // pillaged: the ground scorched brown, and the turns to put it right in a small roundel
+        ctx.fillStyle = 'rgba(70, 36, 14, 0.38)';
         drawHexPath(ctx, sx, fy, w, faceH);
         ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${Math.max(8, w * 0.35)}px 'EB Garamond', serif`;
+        const rx = sx + w / 2, ry = fy + (charted ? ch / 2 : faceH / 2), rr = Math.max(7, w * 0.15);
+        ctx.fillStyle = '#efe0bc'; ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(120, 40, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke();
+        ctx.fillStyle = '#7a2a12';
+        ctx.font = `bold ${Math.max(8, w * 0.24)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`\uD83D\uDEE0\uFE0F${turnsLeft}`, sx + w / 2, fy + faceH / 2);
+        ctx.fillText(String(turnsLeft), rx, ry + 1);
       }
     }
   } // end mx loop
