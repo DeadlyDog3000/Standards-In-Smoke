@@ -12431,7 +12431,7 @@ function drawRealmNames(pId, w, ch, facePad) {
     }
     _realmNames = [];
     for (const [nid, cells] of by) {
-      if (cells.length < 8) continue;
+      if (cells.length < 18) continue; // (a one-town realm is named by its town's ribbon)
       let sx = 0, sy = 0; for (const i of cells) { sx += i % MAP_COLS; sy += Math.floor(i / MAP_COLS); }
       sx /= cells.length; sy /= cells.length;
       // set on the realm's own ground nearest its middle, a little below any town there
@@ -12445,7 +12445,7 @@ function drawRealmNames(pId, w, ch, facePad) {
   ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const r of _realmNames) {
     const x0 = r.i % MAP_COLS, y0 = (r.i - x0) / MAP_COLS, p = hexScreenPos(x0, y0), px = Math.max(10, Math.min(46, w * r.size));
-    const x = p.x + w / 2, y = p.y + facePad + ch * 0.95;
+    const x = p.x + w / 2, y = p.y + facePad + ch * 1.35;
     if (x < -viewW || x > viewW * 2 || y < -px * 2 || y > viewH + px * 2) continue;
     ctx.font = `600 ${px}px 'EB Garamond', serif`;
     if ('letterSpacing' in ctx) ctx.letterSpacing = (px * 0.45) + 'px';
@@ -13005,7 +13005,7 @@ function render() {
     }
     const buy = buyTileMode || workerBuyMode;
     ctx.save();
-    ctx.fillStyle = buy ? 'rgba(90, 150, 60, 0.26)' : 'rgba(70, 110, 190, 0.26)'; ctx.fill(area);
+    ctx.fillStyle = buy ? 'rgba(90, 150, 60, 0.16)' : 'rgba(70, 110, 190, 0.14)'; ctx.fill(area);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(20, 14, 8, 0.6)'; ctx.lineWidth = Math.max(2, w * 0.06); ctx.stroke(rim);
     ctx.strokeStyle = buy ? 'rgba(170, 220, 120, 0.95)' : 'rgba(150, 190, 250, 0.95)'; ctx.lineWidth = Math.max(1, w * 0.025); ctx.stroke(rim);
