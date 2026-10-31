@@ -870,6 +870,7 @@
         - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
         - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
         - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
+        - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
       <div style="margin-bottom:12px;">
@@ -1880,6 +1881,7 @@
           - The line infantry wear their own nation's coats of 1805&ndash;1812: Prussian blue, the British red coat, the Austrian white, Russian green and the rest, facings and all<br>
           - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
           - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
+          - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
         <div style="margin-bottom:12px;">
@@ -4524,12 +4526,6 @@ function playHover() { SMK.hover(); }
 function playAchievement() { SMK.chime(); }
 function playChop() { SMK.chop(); }
 function playWarHorn() { SMK.drum(1.6, true); }
-const musketSound = new Audio('musket_shot.m4a');
-musketSound.volume = 0.5;
-const cannonShotSound = new Audio('cannon_shot.m4a');
-cannonShotSound.volume = 0.5;
-const fieldGunSound = new Audio('field_gun_shot.m4a');
-fieldGunSound.volume = 0.5;
 // A town heard from above: a market's crowd as the bed (recorded, CC0, BigSoundBank: "Outdoor Market #1", trimmed of its
 // rumble and made to loop), and now and then one sound of the place: a church bell swinging, a peal, a few bars of a
 // carillon, a horse walking by (all CC0, BigSoundBank). They replace the old loop and the synthesised street sounds.
@@ -4719,16 +4715,19 @@ function logEvent(msg) {
   el.scrollTop = el.scrollHeight;
 }
 
-function fireVolley(baseSound, count, intervalMs, vol) {
-  SMK.echo(baseSound !== musketSound);
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      const s = baseSound.cloneNode();
-      s.volume = vol * (0.85 + Math.random() * 0.15);
-      s.playbackRate = 0.95 + Math.random() * 0.1;
-      s.play().catch(() => {});
-    }, i * intervalMs);
-  }
+// The shots as the trailer has them: its line volley (eight muskets inside a tenth of a second, with the boom and the
+// echo off the country) and its cannon, rendered from tools/score.py into shot_*.m4a
+const SHOTS = {
+  volley: ['shot_musket_volley_1.m4a', 'shot_musket_volley_2.m4a', 'shot_musket_volley_3.m4a'].map(f => new Audio(f)),
+  cannon: ['shot_cannon_1.m4a', 'shot_cannon_2.m4a'].map(f => new Audio(f)),
+  fieldGun: ['shot_field_gun_1.m4a', 'shot_field_gun_2.m4a'].map(f => new Audio(f)),
+};
+for (const k in SHOTS) for (const a of SHOTS[k]) a.preload = 'auto';
+function playShot(list, vol) {
+  const s = list[Math.floor(Math.random() * list.length)].cloneNode();
+  s.volume = vol * (0.9 + Math.random() * 0.1);
+  s.playbackRate = 0.97 + Math.random() * 0.06;
+  s.play().catch(() => {});
 }
 function canPlayerSee(x, y) {
   if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS) return false;
@@ -4740,14 +4739,15 @@ function playCombatSound(unitType, x, y) {
   const cannonTypes = ['cannon', 'mortar'];
   const fieldGunTypes = ['field_gun'];
   const navalGunTypes = ['galleon', 'man_of_war'];
+  // (the same volleys and guns as the trailer: rendered from its own sound script, a few of each so no two are alike)
   if (gunpowderRanged.includes(unitType)) {
-    fireVolley(musketSound, 6, 45, 0.4);
+    playShot(SHOTS.volley, 0.55);
   } else if (cannonTypes.includes(unitType)) {
-    fireVolley(cannonShotSound, 3, 400, 0.5);
+    playShot(SHOTS.cannon, 0.6);
   } else if (fieldGunTypes.includes(unitType)) {
-    fireVolley(fieldGunSound, 3, 300, 0.5);
+    playShot(SHOTS.fieldGun, 0.58);
   } else if (navalGunTypes.includes(unitType)) {
-    fireVolley(cannonShotSound, 4, 350, 0.45);
+    playShot(SHOTS.cannon, 0.55); setTimeout(() => playShot(SHOTS.cannon, 0.45), 380); // (a broadside: gun after gun)
   } else {
     SMK.melee();
   }
