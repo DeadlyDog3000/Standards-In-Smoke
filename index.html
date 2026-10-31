@@ -12368,6 +12368,22 @@ function buildWorldChart(key) {
     g.strokeStyle = 'rgba(70, 50, 28, 0.14)'; g.lineWidth = 0.8 * u; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
   };
   fold(TW / 3, 0, TW / 3, TH, 1, 0); fold(TW * 2 / 3, 0, TW * 2 / 3, TH, 1, 0); fold(0, TH / 2, TW, TH / 2, 0, 1);
+  // foxing: the rust-brown spots that come up in old paper, in loose clusters (one pass for the halos, one for the cores)
+  {
+    const halo = new Path2D(), core = new Path2D(), n = Math.round(MAP_COLS * MAP_ROWS * 0.22);
+    for (let k = 0; k < n; k++) {
+      const x = owHash(k, 7, 301) * TW, y = owHash(k, 11, 302) * TH;
+      if (owFbm(x / (K * 5), y / (K * 5), 71, 2) < 0.42) continue;
+      if (WAT[Math.min(LH - 1, Math.floor(y / R)) * LW + Math.min(LW - 1, Math.floor(x / R))] >= 0.3) continue; // (not on the sea, where a spot would read as a rock)
+      const r = (0.6 + Math.pow(owHash(k, 13, 303), 3) * 3.2) * u * 2;
+      halo.moveTo(x + r * 1.9, y); halo.arc(x, y, r * 1.9, 0, Math.PI * 2);
+      core.moveTo(x + r, y); core.arc(x, y, r, 0, Math.PI * 2);
+    }
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = 'rgba(176, 128, 70, 0.16)'; g.fill(halo);
+    g.fillStyle = 'rgba(150, 96, 44, 0.26)'; g.fill(core);
+    g.globalCompositeOperation = 'source-over';
+  }
   // a scale of miles in the lower corner, as the engraver signed off the sheet
   {
     const seg = CS * 1.2, n = 5, x0 = K * 1.1, y0 = TH - K * 0.85, bh = 6 * u;
