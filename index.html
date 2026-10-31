@@ -12550,7 +12550,15 @@ function owPlaceNames() {
       const stem = [m];
       for (let cur = m, guard = 0; guard < 400; guard++) { const a = ups.get(cur); if (!a || !a.length) break; cur = a.reduce((p, q) => flow[q] > flow[p] ? q : p); stem.push(cur); }
       if (stem.length < 7) continue;
-      const k = Math.floor(stem.length * 0.45), p0 = pos(stem[Math.min(stem.length - 1, k + 3)]), p1 = pos(stem[Math.max(0, k - 3)]);
+      // (lettered near the middle of its course, at the stretch with least standing on or beside it: ruins, wonders, towns)
+      const busy = (j) => { const t = tiles[j]; return (t.ruins ? 3 : 0) + (t.wonder ? 3 : 0) + (t.type === 4 ? 3 : 0) + (t.type === 2 ? 1 : 0); };
+      let k = Math.floor(stem.length * 0.45), kb = 1e9;
+      for (let q = Math.floor(stem.length * 0.3); q <= Math.floor(stem.length * 0.65); q++) {
+        let b = 0; for (let d = -2; d <= 2; d++) { const j = stem[Math.max(0, Math.min(stem.length - 1, q + d))]; b += busy(j); }
+        b += Math.abs(q - stem.length * 0.45) * 0.15;
+        if (b < kb) { kb = b; k = q; }
+      }
+      const p0 = pos(stem[Math.min(stem.length - 1, k + 3)]), p1 = pos(stem[Math.max(0, k - 3)]);
       let ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
       if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI; // (kept upright)
       const steep = Math.abs(ang) > 0.95; // (a stream running north and south is lettered level, beside it)
