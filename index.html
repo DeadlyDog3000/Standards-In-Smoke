@@ -852,6 +852,20 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Orders, Walls and the Sound of the Field</b><br>
+        - Old World controls: left-click picks out a regiment or town, right-click gives the order (march, attack, fire, or set out for somewhere further). A tap on a phone still marches<br>
+        - Every move or attack costs an order, not only a regiment's first of the turn<br>
+        - Regiments are paid for when you order them: the cost leaves the treasury at the press of the button (queued ones too), comes back if you clear the queue, and is lost if the town falls<br>
+        - Which regiments still need orders, at a glance: those waiting stand on a gilt ring, those done for the turn are greyed; the Next Unit button counts them and walks through them all, and End Turn glows when none are left<br>
+        - City Walls (a curtain wall and towers) and then Bastions (a star fort): the garrison takes 25% / 40% less harm and an enemy must hold the town 6 / 8 turns to take it, and you can see them raised round the town<br>
+        - A town's lands grow by themselves with its people, a hex a turn, reaching further as it grows<br>
+        - Regiments are smaller on the chart, well inside their hex; they lunge into the enemy, kick back when they fire, flinch red when struck, and a broken regiment's figure topples over<br>
+        - New sounds for everything, made in the game itself: paper and quill, the seal at turn's end, church bells, the smith's hammer, the side drum, coin, the axe, boots and hooves on the march, steel, a volley's ragged crash; and when you lean in over woods or towns, birdsong and wind, or the murmur of the streets<br>
+        - Seventeen more pieces of music of the time (Bach, Vivaldi, Corelli, Lully, Purcell, Pachelbel, Charpentier), credited under Options; the playlist shuffles<br>
+        - The sea moves; volley smoke drifts off sideways instead of hiding the target; sea names stay on their water; no more leaves falling across the screen; zooming glides, and the chart stays sharp while you pan
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Atlas, Finished</b><br>
@@ -1838,6 +1852,20 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.3</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Orders, Walls and the Sound of the Field</b><br>
+          - Old World controls: left-click picks out a regiment or town, right-click gives the order (march, attack, fire, or set out for somewhere further). A tap on a phone still marches<br>
+          - Every move or attack costs an order, not only a regiment's first of the turn<br>
+          - Regiments are paid for when you order them: the cost leaves the treasury at the press of the button (queued ones too), comes back if you clear the queue, and is lost if the town falls<br>
+          - Which regiments still need orders, at a glance: those waiting stand on a gilt ring, those done for the turn are greyed; the Next Unit button counts them and walks through them all, and End Turn glows when none are left<br>
+          - City Walls (a curtain wall and towers) and then Bastions (a star fort): the garrison takes 25% / 40% less harm and an enemy must hold the town 6 / 8 turns to take it, and you can see them raised round the town<br>
+          - A town's lands grow by themselves with its people, a hex a turn, reaching further as it grows<br>
+          - Regiments are smaller on the chart, well inside their hex; they lunge into the enemy, kick back when they fire, flinch red when struck, and a broken regiment's figure topples over<br>
+          - New sounds for everything, made in the game itself: paper and quill, the seal at turn's end, church bells, the smith's hammer, the side drum, coin, the axe, boots and hooves on the march, steel, a volley's ragged crash; and when you lean in over woods or towns, birdsong and wind, or the murmur of the streets<br>
+          - Seventeen more pieces of music of the time (Bach, Vivaldi, Corelli, Lully, Purcell, Pachelbel, Charpentier), credited under Options; the playlist shuffles<br>
+          - The sea moves; volley smoke drifts off sideways instead of hiding the target; sea names stay on their water; no more leaves falling across the screen; zooming glides, and the chart stays sharp while you pan
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
         <div style="margin-bottom:12px;">
@@ -16592,7 +16620,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-12.2';
+const CURRENT_VERSION = 'beta-12.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
