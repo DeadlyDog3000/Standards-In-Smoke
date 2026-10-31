@@ -10568,6 +10568,20 @@ function drawHexEdge(context, x, y, w, cellH, edgeIndex) {
   context.stroke();
 }
 
+// a realm's colour as the colourist laid it on an old chart: less saturated, and leaning toward the paper beneath
+const _owWater = new Map();
+function owWatercolour(c) {
+  let v = _owWater.get(c);
+  if (v) return v;
+  const h = safeColor(c, '#888888').replace('#', ''), n = parseInt(h.length <= 4 ? h.slice(0, 3).replace(/./g, '$&$&') : h.slice(0, 6), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const l = 0.3 * r + 0.59 * g + 0.11 * b;
+  r = l + (r - l) * 0.68; g = l + (g - l) * 0.68; b = l + (b - l) * 0.68; // (a third of the brilliance gone)
+  r = r * 0.82 + 226 * 0.18; g = g * 0.82 + 212 * 0.18; b = b * 0.82 + 180 * 0.18;
+  v = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+  _owWater.set(c, v);
+  return v;
+}
 function drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges) {
   if (!borderEdges.length) return;
   let cx = sx + w / 2, cy = fy + faceH / 2, hw = w / 2, hh = faceH / 2;
@@ -13230,8 +13244,9 @@ function render() {
           const nbCity = tcMap.get(nIdx);
           if (nbCity && nbCity !== myCity) {
             ctx.save();
-            ctx.strokeStyle = 'rgba(160,155,140,0.5)';
-            ctx.lineWidth = Math.max(1, VIEW_TILE / 18);
+            // (between two towns of one realm: on the chart a fine dotted line, as a county boundary)
+            if (charted) { ctx.strokeStyle = 'rgba(40, 28, 14, 0.45)'; ctx.setLineDash([Math.max(1, w * 0.012), Math.max(2, w * 0.04)]); ctx.lineWidth = Math.max(1, w * 0.018); }
+            else { ctx.strokeStyle = 'rgba(160,155,140,0.5)'; ctx.lineWidth = Math.max(1, VIEW_TILE / 18); }
             ctx.lineCap = 'round';
             drawHexEdge(ctx, sx, fy, w, faceH, edgeMap[ni]);
             ctx.restore();
@@ -13244,10 +13259,9 @@ function render() {
         ctx.save();
         drawHexPath(ctx, sx, fy, w, faceH); ctx.clip();
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.strokeStyle = isContested ? 'rgba(40, 30, 20, 0.5)' : nationColor; ctx.globalAlpha = 0.34; ctx.lineWidth = bw * 2;
-        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
-        ctx.globalAlpha = 0.7; ctx.lineWidth = Math.max(1.5, bw * 0.4);
-        drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges);
+        // (laid on as watercolour: the realm's colour softened toward the paper, deepest at the line and fading inward)
+        ctx.strokeStyle = isContested ? 'rgba(40, 30, 20, 0.5)' : owWatercolour(nationColor);
+        for (const [lw, a] of [[2.6, 0.16], [1.6, 0.2], [0.8, 0.3], [0.3, 0.42]]) { ctx.globalAlpha = a; ctx.lineWidth = Math.max(1.5, bw * lw); drawRoundedHexBorder(ctx, sx, fy, w, faceH, borderEdges); }
         ctx.restore();
         ctx.save();
         ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(30, 20, 10, 0.85)'; ctx.lineWidth = Math.max(1, w * 0.022);
