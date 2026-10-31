@@ -3971,10 +3971,13 @@ function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
   }
   if (!animationBlocking) requestAnimationFrame(() => render());
 }
-// three engraved puffs of powder smoke, made once
+// three engraved puffs of powder smoke, made once (and three sooty ones, for towns afire)
 const _owPuffs = [];
-function owSmokePuff(v) {
-  if (_owPuffs[v]) return _owPuffs[v];
+function owSmokePuff(v, dark) {
+  const key = v + (dark ? 3 : 0);
+  if (_owPuffs[key]) return _owPuffs[key];
+  const L = dark ? [[120, 110, 98], [86, 78, 70], [128, 118, 106], [112, 102, 92], [98, 90, 80]] : [[246, 240, 224], [206, 196, 174], [248, 243, 228], [240, 233, 214], [232, 222, 200]];
+  const rgb = (i, a) => `rgba(${L[i][0]}, ${L[i][1]}, ${L[i][2]}, ${a})`;
   const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
   const g = c.getContext('2d');
   let seed = 31 + v * 17; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -3984,11 +3987,11 @@ function owSmokePuff(v) {
   for (let k = 0; k < nb; k++) { const an = k / nb * Math.PI * 2 + rnd() * 0.4, d = S * (0.2 + rnd() * 0.06); bumps.push([S / 2 + Math.cos(an) * d, S / 2 + Math.sin(an) * d * 0.82, S * (0.12 + rnd() * 0.06)]); }
   const shape = new Path2D(); for (const [bx, by, br] of bumps) { shape.moveTo(bx + br, by); shape.arc(bx, by, br, 0, Math.PI * 2); }
   const gr = g.createRadialGradient(S * 0.42, S * 0.4, 2, S / 2, S / 2, S * 0.46);
-  gr.addColorStop(0, 'rgba(246, 240, 224, 0.96)'); gr.addColorStop(1, 'rgba(206, 196, 174, 0.92)');
+  gr.addColorStop(0, rgb(0, 0.96)); gr.addColorStop(1, rgb(1, 0.92));
   g.fillStyle = gr; g.fill(shape);
   // hatching across the lower right, the side away from the light
   g.save(); g.clip(shape);
-  g.strokeStyle = 'rgba(70, 54, 36, 0.38)'; g.lineWidth = 1.1; g.beginPath();
+  g.strokeStyle = dark ? 'rgba(30, 22, 14, 0.55)' : 'rgba(70, 54, 36, 0.38)'; g.lineWidth = 1.1; g.beginPath();
   for (let q = -S; q < S * 2; q += 5) { g.moveTo(q, S); g.lineTo(q + S, 0); }
   g.globalCompositeOperation = 'source-atop';
   g.stroke();
@@ -3997,20 +4000,20 @@ function owSmokePuff(v) {
   g.save(); g.clip(shape);
   for (const [bx, by, br] of bumps.slice().sort((p, q) => p[1] - q[1])) {
     const lg = g.createRadialGradient(bx - br * 0.32, by - br * 0.38, 0, bx - br * 0.32, by - br * 0.38, br * 1.12);
-    lg.addColorStop(0, 'rgba(248, 243, 228, 1)'); lg.addColorStop(0.62, 'rgba(240, 233, 214, 1)'); lg.addColorStop(0.9, 'rgba(232, 222, 200, 0)');
+    lg.addColorStop(0, rgb(2, 1)); lg.addColorStop(0.62, rgb(3, 1)); lg.addColorStop(0.9, rgb(4, 0));
     g.fillStyle = lg; g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill();
     // the billow's own lower edge, lightly inked
     g.strokeStyle = 'rgba(80, 62, 40, 0.32)'; g.lineWidth = 1; g.beginPath(); g.arc(bx, by, br * 0.96, Math.PI * 0.05, Math.PI * 0.85); g.stroke();
   }
   g.restore();
   // the outline: only each billow's outer edge, in ink
-  g.save(); g.strokeStyle = 'rgba(52, 38, 24, 0.75)'; g.lineWidth = 1.6;
+  g.save(); g.strokeStyle = dark ? 'rgba(24, 16, 8, 0.85)' : 'rgba(52, 38, 24, 0.75)'; g.lineWidth = 1.6;
   for (const [bx, by, br] of bumps.slice(1)) {
     const out = Math.atan2(by - S / 2, bx - S / 2);
     g.beginPath(); g.arc(bx, by, br, out - 1.15, out + 1.15); g.stroke();
   }
   g.restore();
-  return (_owPuffs[v] = c);
+  return (_owPuffs[key] = c);
 }
 // a column on the march raises a little dust at each step (horse more than foot); a ship leaves a white wake
 function spawnStepDust(col, row, unit) {
@@ -11527,6 +11530,7 @@ function drawChimneySmoke(cx, cy, w, n, seed) {
     for (let i = 0; i < 6; i++) {
       const t = i / 6, x = bx + w * 0.022 * i * i, y = by - w * 0.11 * i, r = w * (0.05 + t * 0.1);
       const a = (0.62 - t * 0.5) * k;
+      if (OW.canvas) { ctx.globalAlpha = Math.min(1, a * 1.3); ctx.drawImage(owSmokePuff((c + i) % 3), x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6); ctx.globalAlpha = 1; continue; } // (an engraver's little billows)
       ctx.fillStyle = `rgba(${170 + i * 8}, ${168 + i * 8}, ${165 + i * 8}, ${a})`;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
@@ -11551,6 +11555,7 @@ function drawTownFire(cx, cy, w, k, seed) {
       const t = i / n, x = bx + lean * i * t * 1.6, y = by - w * 0.2 * i * (1 - t * 0.3);
       const r = w * (0.13 + t * 0.3) * (0.85 + rnd() * 0.3), tone = Math.round(48 + t * 80);
       const a = (0.9 - t * 0.55) * (0.5 + k * 0.5);
+      if (OW.canvas) { ctx.globalAlpha = Math.min(1, a * 1.1); ctx.drawImage(owSmokePuff((c + i) % 3, t < 0.6), x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4); ctx.globalAlpha = 1; continue; } // (sooty billows, paling as they rise)
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, `rgba(${tone},${tone - 4},${tone - 8},${a})`); g.addColorStop(0.55, `rgba(${tone},${tone - 4},${tone - 8},${a * 0.6})`); g.addColorStop(1, `rgba(${tone},${tone - 4},${tone - 8},0)`);
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
