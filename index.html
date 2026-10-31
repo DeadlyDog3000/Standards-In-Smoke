@@ -3457,6 +3457,7 @@ function mergeRegiments(lead, other) {
   lead.merged = [...(lead.merged || []), other.type, ...(other.merged || [])];
   lead.hp = Math.min(getEffectiveMaxHp(lead), hpBefore + other.hp);
   lead.xp = Math.max(lead.xp || 0, other.xp || 0);
+  if (other.promos && other.promos.length) { lead.promos = [...new Set([...(lead.promos || []), ...other.promos])]; lead.promoChoices = null; }
   lead.honours = Math.max(lead.honours || 0, other.honours || 0);
   lead.morale = Math.round(((lead.morale ?? MORALE_MAX) + (other.morale ?? MORALE_MAX)) / 2);
   lead.movesLeft = Math.max(0, Math.min(lead.movesLeft - 1, other.movesLeft));
@@ -3486,7 +3487,7 @@ function splitRegiment(u) {
   if (!c) { (u.merged || (u.merged = [])).push(t); return 'The company could not be formed.'; }
   const share = Math.max(1, Math.round(u.hp * (UNIT_DEFS[t]?.hp || 10) / maxBefore));
   c.hp = Math.min(getEffectiveMaxHp(c), share); u.hp = Math.max(1, Math.min(getEffectiveMaxHp(u), u.hp - share));
-  c.xp = u.xp || 0; c.morale = u.morale ?? MORALE_MAX; c.movesLeft = 0;
+  c.xp = u.xp || 0; c.morale = u.morale ?? MORALE_MAX; c.movesLeft = 0; c.promos = [...(u.promos || [])].filter(p => PROMOTIONS[p]?.fits(UNIT_DEFS[c.type] || {}, c.type));
   startUnitAnimation(c, [{ x: spot.col, y: spot.row }], null, u.x, u.y);
   if (u.nationId === playerNation) { addFloatingText(c.x, c.y, 'a company steps out', '#e0c880', 1600, 14); try { SMK.drum(0.3); } catch (e) {} }
   visionDirty = true;
