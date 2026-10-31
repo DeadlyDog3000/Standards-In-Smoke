@@ -176,6 +176,8 @@
     }
     #kingdoms h3 { color: #e0c880; margin-bottom: 8px; }
     .ycity { margin: 4px 0 6px; }
+    .save-thumb { float: left; width: 64px; height: 40px; object-fit: cover; margin-right: 10px; border-radius: 3px; border: 1px solid rgba(180, 140, 60, 0.45); background: #211d17; }
+    .save-thumb.empty { display: inline-block; }
     #techBanner { position: fixed; left: 50%; transform: translateX(-50%); z-index: 120; min-width: 340px; max-width: 92vw; padding: 12px 26px; text-align: center; border: 1px solid rgba(212, 168, 86, 0.6); border-radius: 8px; background: linear-gradient(rgba(28, 22, 14, 0.82), rgba(28, 22, 14, 0.94)), url('events/study.jpg') center/cover; box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 20px rgba(212,168,86,0.25); animation: tbIn 0.35s ease-out; transition: opacity 0.6s, transform 0.6s; pointer-events: none; }
     #techBanner.out { opacity: 0; transform: translate(-50%, -10px); }
     #techBanner .tb-k { font-family: 'Uncial Antiqua', cursive; color: #e0c880; font-size: 15px; letter-spacing: 1px; }
@@ -12302,9 +12304,10 @@ function showSavePanel() {
   for (let i = 0; i < slots.length; i++) {
     const meta = localStorage.getItem('sis_meta_' + slots[i]);
     let info = 'Empty';
-    if (meta) { const m = JSON.parse(meta); info = `${m.nation} | Turn ${m.turn} | ${m.size} | ${m.date}`; }
+    let thumb = '<span class="save-thumb empty"></span>';
+    if (meta) { const m = JSON.parse(meta); info = `${escHtml(m.nation)} | Turn ${m.turn | 0} | ${escHtml(m.size || '')} | ${escHtml(m.date || '')}`; thumb = saveSlotThumb(m); }
     html += `<div style="display:flex;gap:4px;margin-bottom:4px;">`;
-    html += `<button class="esc-btn" style="flex:1;font-size:13px;text-align:left;line-height:1.4;margin:0;" onclick="if(saveGame('${slots[i]}')) showToast('Saved to ${labels[i]}!'); showSavePanel();">${labels[i]}<br><span style="font-size:11px;color:#aaa;">${info}</span></button>`;
+    html += `<button class="esc-btn" style="flex:1;font-size:13px;text-align:left;line-height:1.4;margin:0;" onclick="if(saveGame('${slots[i]}')) showToast('Saved to ${labels[i]}!'); showSavePanel();">${thumb}${labels[i]}<br><span style="font-size:11px;color:#aaa;">${info}</span></button>`;
     if (meta) html += `<button class="esc-btn" style="width:36px;margin:0;color:#e44;font-size:16px;" onclick="deleteSave('${slots[i]}'); showSavePanel();" title="Delete save">X</button>`;
     html += `</div>`;
   }
@@ -12462,7 +12465,7 @@ function refreshMenuSaveSlots() {
       hasAnySave = true;
       const m = JSON.parse(meta);
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-        '<button class="menu-btn" onclick="loadGame(\'' + slots[i] + '\')" style="flex:1;min-width:auto;font-size:14px;padding:8px 12px;">' + labels[i] + '<span class="slot-info">' + m.nation + ' | Turn ' + m.turn + ' | ' + m.size + '</span></button>' +
+        '<button class="menu-btn" onclick="loadGame(\'' + slots[i] + '\')" style="flex:1;min-width:auto;font-size:14px;padding:8px 12px;text-align:left;">' + saveSlotThumb(m) + labels[i] + '<span class="slot-info">' + escHtml(m.nation) + ' | Turn ' + (m.turn | 0) + ' | ' + escHtml(m.size || '') + '</span></button>' +
         '<button class="menu-btn" onclick="deleteSave(\'' + slots[i] + '\');refreshMenuSaveSlots()" style="min-width:auto;padding:8px 12px;font-size:13px;background:rgba(180,60,40,0.2);border-color:rgba(180,90,60,0.4);">Delete</button>' +
         '</div>';
     }
@@ -14467,11 +14470,25 @@ function deserializeGame(json) {
   return true;
 }
 
+// (a little picture of the realm for the save list: the minimap, small, as a JPEG of a few kilobytes)
+function saveThumb() {
+  try {
+    if (!minimapBaseCanvas) renderMinimap();
+    if (!minimapBaseCanvas || !minimapBaseCanvas.width) return null;
+    const w = 120, h = Math.max(1, Math.round(w * minimapBaseCanvas.height / minimapBaseCanvas.width));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(minimapBaseCanvas, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.6);
+  } catch (e) { return null; }
+}
+function saveSlotThumb(m) {
+  return m && typeof m.thumb === 'string' && m.thumb.startsWith('data:image/jpeg') ? `<img class="save-thumb" src="${m.thumb}" alt="">` : '<span class="save-thumb empty"></span>';
+}
 function saveGame(slot) {
   slot = slot || 'auto';
   try {
     const data = serializeGame();
-    const meta = { nation: nations[playerNation].name, turn: turnNumber, year: getCurrentYear(), date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}` };
+    const meta = { nation: nations[playerNation].name, turn: turnNumber, year: getCurrentYear(), date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}`, color: nations[playerNation].color, thumb: saveThumb() };
     localStorage.setItem('sis_save_' + slot, data);
     localStorage.setItem('sis_meta_' + slot, JSON.stringify(meta));
     return true;
