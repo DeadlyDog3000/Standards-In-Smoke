@@ -12508,7 +12508,9 @@ function owPlaceNames() {
       // (and clear of the corners where the cartouche, the wind head, the key and the scale are printed)
       const corner = (x, y) => { const cx2 = Math.min(x, MAP_COLS - 1 - x), cy2 = Math.min(y, MAP_ROWS - 1 - y); return cx2 < 16 && cy2 < 6 ? -6 : 0; };
       const inset = (x, y) => Math.min(x - 9, MAP_COLS - 10 - x, (y - 2) * 2, (MAP_ROWS - 3 - y) * 2) + corner(x, y);
-      for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 - Math.hypot(x - cx, y - cy) * 0.5 + Math.min(0, inset(x, y)) * 4; if (sc > bs) { bs = sc; best = i; } }
+      // (and where the water runs furthest east and west of it, as the name is lettered along the row)
+      const run = (i) => { const x = i % MAP_COLS, r0 = i - x; let a = x, b = x; while (a > 0 && isWater(r0 + a - 1)) a--; while (b < MAP_COLS - 1 && isWater(r0 + b + 1)) b++; return Math.min(x - a, b - x); };
+      for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 + Math.min(run(i), 10) * 0.8 - Math.hypot(x - cx, y - cy) * 0.5 + Math.min(0, inset(x, y)) * 4; if (sc > bs) { bs = sc; best = i; } }
       const big = n >= 60;
       labels.push({ i: best, text: big ? OW_SEA_NAMES[seaN++ % OW_SEA_NAMES.length] : OW_LAKE_NAMES[lakeN++ % OW_LAKE_NAMES.length], kind: 'sea', size: (big ? 0.42 : 0.3) * Math.min(4, Math.max(1, Math.sqrt(n) / 9)) });
       // the open sea gets a monster or a ship, well away from the shore and from each other
@@ -12610,9 +12612,18 @@ function owDrawNames(g, w, cs, ch, facePad) {
     // (a level river name starts a little right of the stream: its middle lies that much further on)
     const mid = l.kind === 'river' && l.steep ? w * 0.3 + tw / 2 : 0;
     x = Math.max(sheetL + tw / 2 + 6 - mid, Math.min(sheetR - tw / 2 - 6 - mid, x)); // (kept within the sheet)
+    let lc = lx, hw = half;
+    if (l.kind === 'sea') { // (a sea's name kept on its own water: lettered smaller where the sea is narrow, and slid along the row to lie within it)
+      let a = lx, b = lx; while (a > 0 && tiles[ly * MAP_COLS + a - 1].type === 0) a--; while (b < MAP_COLS - 1 && tiles[ly * MAP_COLS + b + 1].type === 0) b++;
+      const wL = (a - camX) * cs + w * 0.4, wR = (b - camX) * cs + w * 0.6, span = wR - wL;
+      if (tw > span) { const f = Math.max(11 / px, span / tw); if (f < 1) { g.font = `italic 500 ${px * f}px 'EB Garamond', serif`; if ('letterSpacing' in g) g.letterSpacing = (px * f * 0.35) + 'px'; } }
+      const tw2 = g.measureText(l.text).width;
+      if (tw2 <= span) x = Math.max(wL + tw2 / 2, Math.min(wR - tw2 / 2, x));
+      lc = Math.round(camX + (x - w / 2) / cs); hw = Math.ceil(tw2 / 2 / cs + 0.3);
+    }
     const known = (c) => c < 0 || c >= MAP_COLS || tiles[ly * MAP_COLS + c].revealed.has(playerNation);
     const lmid = Math.round(mid / cs);
-    if (!known(lx + lmid - half) || !known(lx + lmid + half)) continue;
+    if (!known(lc + lmid - hw) || !known(lc + lmid + hw)) continue;
     if (l.kind === 'river') { // (lettered along the stream, a little to one side of it, in the river's own ink)
       g.save(); g.translate(x, y); g.rotate(l.ang || 0);
       const tx = l.steep ? w * 0.3 : 0, ty = l.steep ? 0 : -ch * 0.32; if (l.steep) g.textAlign = 'left';
