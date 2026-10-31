@@ -562,6 +562,10 @@
     #menu h1 + h2::before { content: ''; display: block; width: min(420px, 70vw); height: 14px; margin: 0 auto 8px;
       background: radial-gradient(circle at 50% 50%, #e8c870 0 3px, transparent 3.5px), linear-gradient(90deg, transparent, rgba(232, 200, 112, 0.85) 18%, rgba(232, 200, 112, 0.85) 46%, transparent 47%, transparent 53%, rgba(232, 200, 112, 0.85) 54%, rgba(232, 200, 112, 0.85) 82%, transparent) center / 100% 1.5px no-repeat; }
     #menu h2 { font-style: italic; letter-spacing: 0.12em; }
+    .city-plate { height: 92px; margin: -6px -6px 6px; display: flex; align-items: center; justify-content: center; border-radius: 2px;
+      background: radial-gradient(ellipse at 50% 60%, rgba(236, 222, 186, 0.95), rgba(196, 174, 128, 0.95) 75%), url(ui/parch.jpg) 0 0 / 160px;
+      box-shadow: inset 0 0 0 1px rgba(60, 40, 18, 0.7), inset 0 0 18px rgba(90, 60, 24, 0.45); }
+    .city-plate img { max-height: 84px; max-width: 86%; filter: drop-shadow(2px 3px 2px rgba(40, 24, 8, 0.35)); }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -13984,7 +13988,10 @@ function showCityPanel(city) {
     prodStr = `${prodName} (${getProductionTurns(city)} turns)`;
   }
   const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
-  let html = `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${escHtml(city.name)}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
+  // the town's own engraving at the head of its page
+  const tImg = townSprite(city);
+  let html = tImg ? `<div class="city-plate"><img src="${tImg.src}" alt=""></div>` : '';
+  html += `<h3>${city.isCapital ? '\u2655 ' : '\uD83C\uDFF0 '}${escHtml(city.name)}${city.isCapital ? ' <span style="font-size:11px;color:#d4a856;">(Capital)</span>' : ''}${renameBtn}</h3>`;
   const pop = city.population || 1;
   const jobs = getCityJobs(city);
   const needed = pop * 2;
