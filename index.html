@@ -10776,21 +10776,31 @@ function rebuildRoads() {
 function drawRoads(w, facePad, ch, pId) {
   if (!roads.length) return;
   const centre = (ti) => { const x = ti % MAP_COLS, y = (ti - x) / MAP_COLS, p = hexScreenPos(x, y); return [p.x + w / 2, p.y + facePad + ch / 2]; };
-  const seg = new Path2D();
+  const seg = new Path2D(), smooth = !!OW.canvas;
   for (const r of roads) {
-    let open = false;
+    let open = false, px = 0, py = 0;
     for (let i = 0; i < r.path.length; i++) {
       const ti = r.path[i];
-      if (!tiles[ti].revealed.has(pId)) { open = false; continue; }
+      if (!tiles[ti].revealed.has(pId)) { if (open && smooth) seg.lineTo(px, py); open = false; continue; }
       const [x, y] = centre(ti);
-      if (!open) { seg.moveTo(x, y); open = true; } else seg.lineTo(x, y);
+      if (!open) { seg.moveTo(x, y); open = true; }
+      else if (smooth) seg.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2); // on the chart the road bends through each hex rather than kinking at its centre
+      else seg.lineTo(x, y);
+      px = x; py = y;
     }
+    if (open && smooth) seg.lineTo(px, py);
   }
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (smooth) {
+    // an atlas road: two fine ink rules with the paper showing between
+    ctx.strokeStyle = 'rgba(64, 36, 16, 0.85)'; ctx.lineWidth = Math.max(2.4, w * 0.065); ctx.stroke(seg);
+    ctx.strokeStyle = 'rgba(236, 218, 176, 0.95)'; ctx.lineWidth = Math.max(1, w * 0.032); ctx.stroke(seg);
+  } else {
   ctx.strokeStyle = 'rgba(60, 42, 22, 0.5)'; ctx.lineWidth = Math.max(3, w * 0.16); ctx.stroke(seg);
   ctx.strokeStyle = 'rgba(186, 152, 100, 0.92)'; ctx.lineWidth = Math.max(1.8, w * 0.1); ctx.stroke(seg);
   if (w >= 40) { ctx.setLineDash([w * 0.06, w * 0.1]); ctx.strokeStyle = 'rgba(110, 84, 50, 0.55)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(seg); }
+  }
   ctx.restore();
   // timber bridges where a road meets a river
   if (w < 18) return;
