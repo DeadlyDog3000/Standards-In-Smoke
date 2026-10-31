@@ -12557,7 +12557,7 @@ function owPlaceNames() {
       if (steep) ang = 0;
       const at0 = stem[k], ax = at0 % MAP_COLS, ay = (at0 - ax) / MAP_COLS;
       if (labels.some(l => Math.hypot(l.i % MAP_COLS - ax, Math.floor(l.i / MAP_COLS) - ay) < 6)) continue;
-      labels.push({ i: at0, text: 'Fl. ' + OW_RIVER_NAMES[rN++ % OW_RIVER_NAMES.length], kind: 'river', size: 0.3, ang, steep });
+      labels.push({ i: at0, text: 'Fl. ' + OW_RIVER_NAMES[rN++ % OW_RIVER_NAMES.length], kind: 'river', size: 0.3, ang, steep, stem });
     }
   }
   OW.labels = labels; OW.decor = decor;
@@ -12589,6 +12589,7 @@ function owDrawNames(g, w, cs, ch, facePad) {
     if (!tiles[l.i].revealed.has(playerNation)) continue; // a sea is named once its middle has been seen
     let [x, y] = at(l.i); const px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : l.kind === 'river' ? 22 : 28));
     if (l.kind === 'river' && w < 14) continue;
+    if (l.kind === 'river' && l.stem) { let k2 = 0; for (const j of l.stem) if (tiles[j].revealed.has(playerNation)) k2++; if (k2 < l.stem.length * 0.6) continue; } // (named once most of its course has been surveyed)
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
     g.font = `italic ${l.kind === 'mount' ? 600 : 500} ${px}px 'EB Garamond', serif`;
     if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : l.kind === 'river' ? 0.12 : 0.18)) + 'px';
