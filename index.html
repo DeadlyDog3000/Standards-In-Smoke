@@ -3340,9 +3340,10 @@ function mirroredTile(img) {
   return m;
 }
 
-function hexWidth() { return Math.round(VIEW_TILE * 1.0); }
-function hexCellH() { return Math.round(hexWidth() * 0.72); } // row step: tighter than face height so rows overlap and cover dirt
-function hexColStep() { return Math.round(hexWidth() * 0.75); } // horizontal column spacing (3/4 width for edge-sharing)
+// (whole pixels in play, so the hexes tile without seams; fractional when filming, so a zoom glides instead of stepping)
+function hexWidth() { return window.__film ? VIEW_TILE : Math.round(VIEW_TILE * 1.0); }
+function hexCellH() { return window.__film ? hexWidth() * 0.72 : Math.round(hexWidth() * 0.72); } // row step: tighter than face height so rows overlap and cover dirt
+function hexColStep() { return window.__film ? hexWidth() * 0.75 : Math.round(hexWidth() * 0.75); } // horizontal column spacing (3/4 width for edge-sharing)
 function hexRowStep() { return hexCellH(); } // vertical row spacing = full cell height
 
 function hexToPixel(col, row) {
@@ -12820,7 +12821,7 @@ function owDrawNames(g, w, cs, ch, facePad) {
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const l of OW.labels || []) {
     if (!tiles[l.i].revealed.has(playerNation)) continue; // a sea is named once its middle has been seen
-    let [x, y] = at(l.i); const px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : l.kind === 'river' ? 22 : 28));
+    let [x, y] = at(l.i); const px = window.__film ? w * l.size : Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : l.kind === 'river' ? 22 : 28));
     if (l.kind === 'river' && w < 14) continue;
     if (l.kind === 'river' && l.stem) { let k2 = 0; for (const j of l.stem) if (tiles[j].revealed.has(playerNation)) k2++; if (k2 < l.stem.length * 0.6) continue; } // (named once most of its course has been surveyed)
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
@@ -13117,7 +13118,7 @@ function owDrawScaleOfMiles(g, K, CS, TH, u) {
   g.restore();
 }
 // (seen whole or nearly, the ornaments are printed over the chart; any closer they lie beneath it)
-function ornamentsOver() { return VIEW_TILE < Math.max(20, minTile() + 4); }
+function ornamentsOver() { return !!window.__film || VIEW_TILE < Math.max(20, minTile() + 4); } // (filming: always printed over, so they never jump between layers in a zoom)
 function drawSheetOrnaments(cs, ch, facePad) {
   if (!MAP_COLS) return;
   const mw = MAP_COLS * cs, mh = MAP_ROWS * ch, ox = -camX * cs, oy = -camY * ch;
@@ -13367,7 +13368,7 @@ function drawRealmNames(pId, w, ch, facePad) {
   // (the greater realms are lettered first; a name that would run into one already set is moved a line, or left out)
   const placed = [], left = -camX * hexColStep(), right = left + MAP_COLS * hexColStep() + w / 4;
   for (const r of _realmNames.slice().sort((a, b) => b.size - a.size)) {
-    const x0 = r.i % MAP_COLS, y0 = (r.i - x0) / MAP_COLS, p = hexScreenPos(x0, y0), px = Math.max(10, Math.min(46, w * r.size));
+    const x0 = r.i % MAP_COLS, y0 = (r.i - x0) / MAP_COLS, p = hexScreenPos(x0, y0), px = window.__film ? w * r.size : Math.max(10, Math.min(46, w * r.size)); // (filming: lettered at the chart's own scale, growing as the camera closes in)
     let x = p.x + w / 2, y = p.y + facePad + ch * 1.35;
     if (x < -viewW || x > viewW * 2 || y < -px * 2 || y > viewH + px * 2) continue;
     ctx.font = `600 ${px}px 'EB Garamond', serif`;
@@ -13375,12 +13376,14 @@ function drawRealmNames(pId, w, ch, facePad) {
     const tw = ctx.measureText(r.text).width;
     x = Math.max(left + tw / 2 + 4, Math.min(right - tw / 2 - 4, x)); // (kept within the sheet)
     const fits = (yy) => !placed.some(q => Math.abs(q.x - x) < (q.w + tw) / 2 + px * 0.3 && Math.abs(q.y - yy) < (q.h + px) / 2 + 2);
-    const dy = [0, px * 1.3, -px * 1.3, px * 2.6].find(o => fits(y + o));
+    const dy = window.__film ? 0 : [0, px * 1.3, -px * 1.3, px * 2.6].find(o => fits(y + o)); // (filming: never hopping to another line mid-shot)
     if (dy === undefined) continue;
     y += dy; placed.push({ x, y, w: tw, h: px });
-    ctx.globalAlpha = 0.6;
+    const fadeIn = window.__film ? Math.max(0, Math.min(1, (90 - w) / 40)) : 1; // (filming: a realm's great name fades as the camera comes down onto its fields)
+    if (fadeIn <= 0) continue;
+    ctx.globalAlpha = 0.6 * fadeIn;
     ctx.lineWidth = Math.max(1.5, px * 0.11); ctx.strokeStyle = 'rgba(244, 232, 200, 0.75)'; ctx.strokeText(r.text, x, y);
-    ctx.globalAlpha = 0.86;
+    ctx.globalAlpha = 0.86 * fadeIn;
     // (a pale realm's colour is inked much darker, so a white banner's name still reads on the paper)
     const hx = r.col.replace('#', ''), nn = parseInt(hx.length <= 4 ? hx.slice(0, 3).replace(/./g, '$&$&') : hx.slice(0, 6), 16);
     const lum = (0.3 * ((nn >> 16) & 255) + 0.59 * ((nn >> 8) & 255) + 0.11 * (nn & 255)) / 255;
@@ -13404,7 +13407,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const camKey = camX.toFixed(3) + ',' + camY.toFixed(3) + ',' + w, now = Date.now();
   if (OW.camKey !== camKey) { OW.camKey = camKey; OW.moveUntil = now + 180; if (!OW.restTimer) OW.restTimer = setTimeout(function rest() { if (Date.now() < OW.moveUntil) { OW.restTimer = setTimeout(rest, OW.moveUntil - Date.now() + 5); return; } OW.restTimer = 0; render(); }, 190); }
   // (close in, with few hexes in view, the re-inking is cheap enough to keep up with the view as it moves, so the chart never goes soft under a pan)
-  const settled = now >= (OW.moveUntil || 0) || (viewW / cs) * (viewH / ch) < 700;
+  const settled = window.__film || now >= (OW.moveUntil || 0) || (viewW / cs) * (viewH / ch) < 700;
   const key = [OW.maskKey, OW.assetGen || 0, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
@@ -13428,12 +13431,14 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-in';
-      const lvl = fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
+      const lvl = window.__film ? 0 : fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
       g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
       g.globalCompositeOperation = 'source-atop';
       // shown larger than it was drawn: ink the coast and the trees, peaks and reeds again at the view's own sharpness
-      if (fx * DPR > 1.25 && OW.F && settled) {
-        g.save(); g.translate(ox, oy); g.scale(fx, fy);
+      // (when filming, the re-inking fades in across the zoom rather than switching on at once)
+      const inkA = window.__film ? Math.max(0, Math.min(1, (fx * DPR - 1.05) / 0.5)) : 1;
+      if (fx * DPR > (window.__film ? 1.05 : 1.25) && OW.F && settled) {
+        g.save(); g.globalAlpha = inkA; g.translate(ox, oy); g.scale(fx, fy);
         g.lineCap = 'round'; g.lineJoin = 'round';
         g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.6 * OW.K / 64; g.stroke(OW.F.coast);
         owDrawMarks(g, OW.F.marks, OW.season || currentSeason, OW.K / 64, sx0 - OW.K, sy0 - OW.K, sx1 + OW.K, sy1 + OW.K * 2);
