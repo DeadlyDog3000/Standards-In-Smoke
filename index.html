@@ -708,6 +708,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Fixes</b><br>
+        - Siege rings, trampled fields and siege tooltips no longer show for a rival's town hidden in fog (they gave away troops you couldn't see)<br>
+        - Wiping out a rival now closes the chronicle of that war too, as a conquest<br>
+        - The cut-road warning is no longer repeated after loading a game, is given once a siege lifts with the road still cut, and starts afresh for a captured town<br>
+        - A rival with no free shore no longer keeps buying stone for a harbour it cannot build
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Polish</b><br>
@@ -1629,6 +1637,14 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.9</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Fixes</b><br>
+          - Siege rings, trampled fields and siege tooltips no longer show for a rival's town hidden in fog (they gave away troops you couldn't see)<br>
+          - Wiping out a rival now closes the chronicle of that war too, as a conquest<br>
+          - The cut-road warning is no longer repeated after loading a game, is given once a siege lifts with the road still cut, and starts afresh for a captured town<br>
+          - A rival with no free shore no longer keeps buying stone for a harbour it cannot build
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.8</b></div>
         <div style="margin-bottom:12px;">
@@ -6692,7 +6708,7 @@ function tickCityCapture() {
           city.nationId = occupier.nationId;
           city.capturedTurn = turnNumber;
           city.burnTurn = turnNumber;
-          city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; // the old owner's siege is over
+          city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false; // the old owner's siege is over
           city.captureProgress = {};
           city.contested = false;
           city.producing = null; city.productionProgress = 0;
@@ -7165,6 +7181,7 @@ function checkElimination() {
     if (n.eliminated || n.isPlayer || n.isBarbarian) continue;
     const hasCities = cities.some(c => c.nationId === n.id);
 
+    if (!hasCities && nations[playerNation]?._warTally?.[n.id]) endWarChronicle(n.id, true); // the war ends with them
     if (!hasCities && n.isTribe) {
       n.eliminated = true;
       units.filter(u => u.nationId === n.id).forEach(u => removeUnit(u));
@@ -7397,10 +7414,23 @@ function workerInDanger(x, y, nationId, r) {
     && (n.relations?.[e.nationId] === 'war' || nations[e.nationId]?.isBarbarian));
 }
 // a realm that knows Navigation but has no harbour (built or being built) wants one
+let _portNeed = { turn: -1, by: new Map() };
 function aiNeedsPort(nationId) {
   if (!nationHasTech(nationId, 'navigation')) return false;
   if (units.some(o => o.nationId === nationId && o.building === 'port')) return false;
-  return !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port');
+  if (_portNeed.turn !== turnNumber || _portNeed.tiles !== tiles) _portNeed = { turn: turnNumber, tiles, by: new Map() };
+  if (!_portNeed.by.has(nationId)) {
+    // wanted only by a realm with no harbour yet and a bare stretch of its own shore to put one on
+    let has = false, shore = false;
+    for (let ti = 0; ti < tiles.length && !has; ti++) {
+      const t = tiles[ti];
+      if (t.owner !== nationId) continue;
+      if (t.improvement === 'port') has = true;
+      else if (!shore && !t.improvement && IMPROVEMENT_DEFS.port.validOn.includes(t.type) && isCoastal(ti % MAP_COLS, (ti - ti % MAP_COLS) / MAP_COLS)) shore = true;
+    }
+    _portNeed.by.set(nationId, !has && shore);
+  }
+  return _portNeed.by.get(nationId);
 }
 
 function workerSeekWork(u, nationId, opts = {}) {
@@ -8600,7 +8630,7 @@ function tryCityRebellion(city) {
     const wasCapital = city.isCapital;
     city.nationId = newOwner;
     city.capturedTurn = turnNumber;
-    city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0;
+    city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false;
     city.producing = null; city.productionProgress = 0; city.productionQueue = [];
     if (wasCapital) {
       city.isCapital = false;
@@ -10452,14 +10482,7 @@ function updateSieges(effects = true) {
   // a road with enemy troops standing on it carries no trade to the town at its end (path[0] is that town)
   const cut = new Set();
   for (const r of roads) if (r.path.some(ti => { const nid = at.get(ti); return nid !== undefined && hostile(nid, r.nationId); })) cut.add(r.path[0]);
-  for (const city of cities) {
-    const wasCut = !!city._cutShown;
-    city._roadCut = cut.has(city.y * MAP_COLS + city.x);
-    if (effects) {
-      city._cutShown = city._roadCut;
-      if (city.nationId === playerNation && city._roadCut && !wasCut && !city._besieged) showToast(`Enemy troops have cut the road to ${city.name}: its trade with the capital has stopped.`);
-    }
-  }
+  for (const city of cities) city._roadCut = cut.has(city.y * MAP_COLS + city.x);
   for (const city of cities) {
     let held = null, gates = 0;
     for (const ti of city.ownedTiles) {
@@ -10497,6 +10520,10 @@ function updateSieges(effects = true) {
     if (city.nationId !== playerNation) continue;
     if (blockaded && !wasB) showToast(`\u2693 Enemy warships blockade the port of ${city.name}: no trade or catch comes in while they stay.`);
     else if (!blockaded && wasB) showToast(`The blockade of ${city.name} is lifted.`);
+    // a cut road (told once; besieged towns already say so). Unknown after a load counts as already told
+    const wasCut = city._cutShown === undefined ? city._roadCut : city._cutShown, tellCut = city._roadCut && !city._besieged;
+    city._cutShown = tellCut || (city._roadCut && wasCut);
+    if (tellCut && !wasCut) showToast(`Enemy troops have cut the road to ${city.name}: its trade with the capital has stopped.`);
     if (city._besieged && !was) {
       addFloatingText(city.x, city.y, 'Besieged!', '#ff6a3a', 2500, 16);
       showToast(`\u26D3 ${city.name} is besieged: enemy troops hold ${held.size} of its fields and its road trade is cut.`);
@@ -13135,14 +13162,14 @@ function renderKingdoms() {
 
   el.innerHTML = html;
 }
-function endWarChronicle(nationId) {
+function endWarChronicle(nationId, conquest = false) {
   const pn = nations[playerNation], w = pn?._warTally?.[nationId];
   if (!w) return;
   delete pn._warTally[nationId];
   const turns = Math.max(1, turnNumber - w.start);
   const reg = (k) => `${k} regiment${k === 1 ? '' : 's'}`;
-  const verdict = w.killed > w.lost * 1.5 ? 'a victorious peace' : w.lost > w.killed * 1.5 ? 'a hard-won peace' : 'peace';
-  logEvent(`\uD83D\uDD4A ${verdict.charAt(0).toUpperCase() + verdict.slice(1)} with ${nations[nationId]?.name || 'the enemy'} after ${turns} turn${turns === 1 ? '' : 's'} of fighting: you lost ${reg(w.lost)} and destroyed ${reg(w.killed)}${w.coloursTaken ? `, taking ${w.coloursTaken} set${w.coloursTaken > 1 ? 's' : ''} of colours` : ''}${w.coloursLost ? `; ${w.coloursLost} of your own ${w.coloursLost > 1 ? 'were' : 'was'} lost` : ''}.`);
+  const verdict = conquest ? 'the end of the war' : w.killed > w.lost * 1.5 ? 'a victorious peace' : w.lost > w.killed * 1.5 ? 'a hard-won peace' : 'peace';
+  logEvent(`\uD83D\uDD4A ${verdict.charAt(0).toUpperCase() + verdict.slice(1)} ${conquest ? 'against' : 'with'} ${nations[nationId]?.name || 'the enemy'}${conquest ? ', who are no more,' : ''} after ${turns} turn${turns === 1 ? '' : 's'} of fighting: you lost ${reg(w.lost)} and destroyed ${reg(w.killed)}${w.coloursTaken ? `, taking ${w.coloursTaken} set${w.coloursTaken > 1 ? 's' : ''} of colours` : ''}${w.coloursLost ? `; ${w.coloursLost} of your own ${w.coloursLost > 1 ? 'were' : 'was'} lost` : ''}.`);
 }
 
 function sendEnvoy(nationId) {
@@ -13918,7 +13945,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.8';
+const CURRENT_VERSION = 'beta-10.9';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
