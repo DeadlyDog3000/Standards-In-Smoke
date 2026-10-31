@@ -310,7 +310,7 @@
     /* Minimap */
     #minimap {
       position: fixed; top: 44px; left: 10px; border: 1px solid rgba(160, 140, 100, 0.35); z-index: 20;
-      image-rendering: pixelated; image-rendering: crisp-edges; background: #1a1610; border-radius: 3px;
+      background: #715c3d; border-radius: 3px;
     }
 
     /* Notification toast */
@@ -12765,6 +12765,12 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       }
       owDrawNames(g, w, cs, ch, facePad);
       g.drawImage(masks.dim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      // the charted land lies a little proud of the blank sheet: a smoky shadow along the edge of the known world
+      g.globalCompositeOperation = 'destination-over';
+      const so = Math.max(2, Math.min(7, cs * 0.09));
+      g.globalAlpha = 0.34; g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx + so * 0.6, dy + so, dw, dh);
+      g.globalAlpha = 0.22; g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx - so * 0.4, dy - so * 0.3, dw, dh);
+      g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
     }
   }
@@ -13948,15 +13954,25 @@ function renderMinimap() {
     minimapBaseCanvas.width = cw; minimapBaseCanvas.height = chh;
     const bctx = minimapBaseCanvas.getContext('2d');
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    bctx.fillStyle = '#211d17'; bctx.fillRect(0, 0, mw, mh);
+    // (the blank vellum of the great sheet, in miniature: rhumb lines from its middle, edges browned)
+    const VELLUM = '#715c3d';
+    const drawVellum = () => {
+      bctx.fillStyle = VELLUM; bctx.fillRect(0, 0, mw, mh);
+      bctx.lineWidth = 0.5; bctx.strokeStyle = 'rgba(48, 32, 16, 0.3)'; bctx.beginPath();
+      for (let a = 0; a < 16; a++) { const an = a / 16 * Math.PI * 2; bctx.moveTo(mw / 2, mh / 2); bctx.lineTo(mw / 2 + Math.cos(an) * mw, mh / 2 + Math.sin(an) * mw); }
+      bctx.stroke();
+    };
+    drawVellum();
     const tw = Math.max(1, k * 0.8), th = Math.max(1, 0.75 * k);
     const chart = getWorldChart();
     if (chart) {
       // the atlas sheet in miniature, with the unexplored hexes left dark
       bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
       bctx.drawImage(chart, 0, 0, chart.width * k / OW.K, chart.height * k / OW.K);
-      bctx.fillStyle = '#211d17';
-      for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) if (!tiles[y * MAP_COLS + x].revealed.has(playerNation)) bctx.fillRect(tx(x) - 0.5, ty(x, y) - 0.5, tw + 1, th + 1);
+      // the unexplored hexes go back to blank vellum, rhumbs and all
+      bctx.save(); bctx.beginPath();
+      for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) if (!tiles[y * MAP_COLS + x].revealed.has(playerNation)) bctx.rect(tx(x) - 0.5, ty(x, y) - 0.5, tw + 1, th + 1);
+      bctx.clip(); drawVellum(); bctx.restore();
     } else for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
       const t = tiles[y * MAP_COLS + x];
       if (!t.revealed.has(playerNation)) continue;          // (unexplored: the dark chart beneath)
@@ -13981,6 +13997,11 @@ function renderMinimap() {
       bctx.beginPath(); bctx.arc(tx(c.x) + tw / 2, ty(c.x, c.y) + th / 2, r, 0, Math.PI * 2);
       bctx.fillStyle = safeColor(nations[c.nationId].color); bctx.fill();
       bctx.lineWidth = 1; bctx.strokeStyle = 'rgba(255,240,210,0.85)'; bctx.stroke();
+    }
+    // the sheet's edges browned, as the great one's are
+    for (const [x0, y0, x1, y1] of [[0, 0, mw * 0.18, 0], [mw, 0, mw * 0.82, 0], [0, 0, 0, mh * 0.18], [0, mh, 0, mh * 0.82]]) {
+      const gr = bctx.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, 'rgba(30, 18, 6, 0.4)'); gr.addColorStop(1, 'rgba(30, 18, 6, 0)');
+      bctx.fillStyle = gr; bctx.fillRect(0, 0, mw, mh);
     }
     minimapDirty = false;
   }
