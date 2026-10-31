@@ -13537,9 +13537,10 @@ function render() {
       ctx.beginPath(); for (let q = -viewH; q < viewW; q += sp) { ctx.moveTo(q, viewH); ctx.lineTo(q + viewH, 0); } ctx.stroke();
       ctx.restore();
       ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(255, 246, 220, 0.5)'; ctx.lineWidth = Math.max(2, w * 0.055); ctx.stroke(rim);
-      ctx.setLineDash([Math.max(3, w * 0.09), Math.max(2, w * 0.05)]);
-      ctx.strokeStyle = buy ? 'rgba(36, 70, 26, 0.9)' : 'rgba(64, 38, 16, 0.9)'; ctx.lineWidth = Math.max(1.2, w * 0.03); ctx.stroke(rim);
+      // (a pen line keeps its width however close the view: it is not drawn thicker as the map is enlarged)
+      ctx.strokeStyle = 'rgba(255, 246, 220, 0.5)'; ctx.lineWidth = Math.min(4.5, Math.max(2, w * 0.055)); ctx.stroke(rim);
+      ctx.setLineDash([Math.min(9, Math.max(3, w * 0.09)), Math.min(5, Math.max(2, w * 0.05))]);
+      ctx.strokeStyle = buy ? 'rgba(36, 70, 26, 0.9)' : 'rgba(64, 38, 16, 0.9)'; ctx.lineWidth = Math.min(2.2, Math.max(1.2, w * 0.03)); ctx.stroke(rim);
       ctx.restore();
     } else {
     ctx.save();
