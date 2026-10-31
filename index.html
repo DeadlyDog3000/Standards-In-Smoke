@@ -785,7 +785,7 @@
         <b style="color:#b8a070;">The Old World</b><br>
         - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
         - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
-        - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
+        - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
@@ -1752,7 +1752,7 @@
           <b style="color:#b8a070;">The Old World</b><br>
           - The map is an engraved, hand-coloured atlas sheet: relief shaded hills and mountain ranges, inked coasts with lines of water out to sea, woods drawn tree by tree, hatched hills and marsh reeds, all on aged paper inside a ruled border<br>
           - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
-          - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
+          - Mountains rise in shaded relief and throw their shadows across the plains below; the seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
@@ -11706,7 +11706,15 @@ function owLandFields(tileKey) {
     if (WAT[i] >= 0.5) NS[i] = owFbm(x * R / K * 0.8, y * R / K * 0.8, 23, 3) - 0.5;
     else {
       const hx = H[Math.min(N - 1, i + 1)] - H[Math.max(0, i - 1)], hy = H[Math.min(N - 1, i + LW)] - H[Math.max(0, i - LW)];
-      SH[i] = Math.max(0.55, Math.min(1.4, 1 + (hx + hy) * 1.1));
+      let sh = Math.max(0.55, Math.min(1.4, 1 + (hx + hy) * 1.1));
+      // cast shadows: look back toward the sun (north-west, low in the sky); higher ground in the way throws its shadow here
+      const h0 = H[i];
+      for (let k = 1; k <= 10; k++) {
+        const sx = x - k * 2, sy = y - k * 2;
+        if (sx < 0 || sy < 0) break;
+        if (H[sy * LW + sx] - h0 > k * 0.075) { sh *= 0.8; break; }
+      }
+      SH[i] = sh;
       NL[i] = owFbm(x * R / K * 3, y * R / K * 3, 31, 3) - 0.5;
     }
   }
@@ -11762,7 +11770,7 @@ function buildWorldChart(key) {
       for (let t = 1; t < 9; t++) { const q = WT[i * 9 + t]; if (q) { const col = wash[t] || wash[1]; r += q * col[0]; g += q * col[1]; b += q * col[2]; tot += q; } }
       if (tot) { r /= tot; g /= tot; b /= tot; } else { r = wash[1][0]; g = wash[1][1]; b = wash[1][2]; }
       // the high peaks stay pale (snow and bare rock), in any season
-      const hi = Math.max(0, Math.min(1, (H[i] - 0.95) * 2.2)) * (MNT[i] > 0.3 ? 1 : 0) + (winter ? Math.max(0, Math.min(1, (H[i] - 0.25) * 2)) * 0.5 : 0);
+      const hi = Math.max(0, Math.min(0.85, (H[i] - 1.12) * 2)) * (MNT[i] > 0.3 ? 1 : 0) + (winter ? Math.max(0, Math.min(1, (H[i] - 0.25) * 2)) * 0.5 : 0);
       r += (238 - r) * hi; g += (236 - g) * hi; b += (228 - b) * hi;
       const n = NL[i];
       r = r * shade + n * 16; g = g * shade + n * 16; b = b * shade + n * 12;
