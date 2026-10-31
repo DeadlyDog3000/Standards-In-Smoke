@@ -6958,6 +6958,7 @@ function tickCityCapture() {
           city.nationId = occupier.nationId;
           city.capturedTurn = turnNumber;
           city.burnTurn = turnNumber;
+          if (tiles[city.y * MAP_COLS + city.x]?.revealed.has(playerNation)) particles.push({ kind: 'seal', col: city.x, row: city.y, vx: 0, vy: 0, color: nations[occupier.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 }); // the new master's seal
           city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false; // the old owner's siege is over
           city.captureProgress = {};
           city.contested = false;
@@ -8882,6 +8883,7 @@ function tryCityRebellion(city) {
     const wasCapital = city.isCapital;
     city.nationId = newOwner;
     city.capturedTurn = turnNumber;
+    if (tiles[city.y * MAP_COLS + city.x]?.revealed.has(playerNation)) particles.push({ kind: 'seal', col: city.x, row: city.y, vx: 0, vy: 0, color: nations[newOwner]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
     city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false;
     city.producing = null; city.productionProgress = 0; city.productionQueue = [];
     if (wasCapital) {
