@@ -704,6 +704,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Redoubts</b><br>
+        - Workers can raise a <b>Redoubt</b> (15 stone, 10 wood, 3 turns) on open ground, hills, woods or marsh: an earthwork ring with a palisade and your pennant. A unit holding it takes 25% less damage, from blows and from fire alike<br>
+        - Rivals weigh wonders of nature when choosing where to settle
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Wonders of Nature</b><br>
@@ -1393,7 +1399,13 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.9</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Redoubts</b><br>
+        - Workers can raise a <b>Redoubt</b> (15 stone, 10 wood, 3 turns) on open ground, hills, woods or marsh: an earthwork ring with a palisade and your pennant. A unit holding it takes 25% less damage, from blows and from fire alike<br>
+        - Rivals weigh wonders of nature when choosing where to settle
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Wonders of Nature</b><br>
         - Every map holds a few <b>wonders of nature</b>: the Great Falls (on a river), the Ancient Oak, the Crystal Peak, the Salt Marsh and the Sacred Grove. The city whose lands hold one draws its gifts (food, gold, science, stone, or legitimacy for the realm); the first time your people set eyes on one, you're rewarded. Hover one to see what it gives
@@ -3658,6 +3670,7 @@ const IMPROVEMENT_DEFS = {
   science_lab: { name: 'Science Lab', icon: '\uD83D\uDD2C', yields: { science: 4 }, cost: { stone: 15, gold: 20 }, validOn: [1, 5], buildTurns: 4 },
   port:        { name: 'Port', icon: '\u2693', yields: { gold: 2, food: 1 }, cost: { wood: 20, stone: 15 }, validOn: [1], tech: 'navigation', coastal: true, buildTurns: 5 },
   treasury:    { name: 'Treasury', icon: '\uD83C\uDFE6', yields: { gold: 4 }, cost: { stone: 15, gold: 25 }, validOn: [1, 5], tech: 'banking', buildTurns: 4 },
+  redoubt:     { name: 'Redoubt', icon: '\u26CA', yields: {}, cost: { stone: 15, wood: 10 }, validOn: [1, 3, 5, 7], buildTurns: 3, desc: 'An earthwork fort: a unit holding it takes 25% less damage' },
 };
 
 const PRODUCTION_COSTS = {
@@ -5652,7 +5665,7 @@ function estimateCombat(attacker, tx, ty) {
   const diffMods = getDifficultyModifiers();
   const atkDiffMult = attacker.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
   const defDiffMult = target.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
-  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef * atkDiffMult * riverCrossingMult(attacker, tx, ty));
+  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef * atkDiffMult * riverCrossingMult(attacker, tx, ty) * redoubtMult(tx, ty));
   let estRetaliation = 0;
   if (tgtDef.combat && !atkDef.ranged) {
     const tgtMaxHp = getEffectiveMaxHp(target);
@@ -5664,6 +5677,9 @@ function estimateCombat(attacker, tx, ty) {
 
 // Attacking across a river: a melee blow from off the river onto a defender on river land falls 15% lighter (the water must be forded)
 const RIVER_CROSSING = 0.85;
+// a redoubt (the earthwork workers raise) shelters whoever holds it: blows land 25% lighter
+const REDOUBT_SHELTER = 0.75;
+function redoubtMult(x, y) { return tiles[y * MAP_COLS + x]?.improvement === 'redoubt' ? REDOUBT_SHELTER : 1; }
 function riverCrossingMult(attacker, tx, ty) {
   if (UNIT_DEFS[attacker.type]?.ranged) return 1;
   const dt = tiles[ty * MAP_COLS + tx], at = tiles[attacker.y * MAP_COLS + attacker.x];
@@ -5782,7 +5798,7 @@ function doAttack(attacker, tx, ty) {
 
   const defCmd = getCommandBonus(target);
   defTerrainBonus /= defCmd.defMult;
-  defTerrainBonus *= riverCrossingMult(attacker, tx, ty);
+  defTerrainBonus *= riverCrossingMult(attacker, tx, ty) * redoubtMult(tx, ty);
 
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
 
@@ -7093,6 +7109,7 @@ function aiTurn(nationId) {
             if (tt === 2) quality += 1;
             if (tt === 0) quality -= 1;
             if (tiles[ty * MAP_COLS + tx].hasRiver) quality += 2; // river land feeds and enriches a town
+        if (tiles[ty * MAP_COLS + tx].wonder) quality += 5; // a wonder of nature is worth settling beside
           }
           let minCityDist = Infinity;
           for (const c of aiCities) {
@@ -7240,7 +7257,7 @@ function aiTurn(nationId) {
           const aiRFortBonus = bestTarget.fortified ? FORT_BONUS : 1.0;
           const aiRSiegeBonus = (UNIT_DEFS[u.type].siege && aiRInCity) ? SIEGE_BONUS : 1.0;
           const aiRFlankBonus = getFlankingBonus(u, bestTarget.x, bestTarget.y);
-          const aiRFormDef = 1 / (bestTarget.formation ? (getFormationBonus(bestTarget).defMult || 1.0) : 1.0);
+          const aiRFormDef = redoubtMult(bestTarget.x, bestTarget.y) / (bestTarget.formation ? (getFormationBonus(bestTarget).defMult || 1.0) : 1.0);
           const aiRCmdDef = 1 / (getCommandBonus(bestTarget).defMult || 1.0);
           const aiRDiffMult = getDifficultyModifiers().aiCombatMult;
 
@@ -9762,6 +9779,27 @@ function drawRoads(w, facePad, ch, pId) {
   ctx.restore();
 }
 
+// a redoubt: a ring of banked earth with a palisade of stakes along its crest and the holder's pennant
+function drawRedoubt(cx, cy, w, owner) {
+  ctx.save();
+  const rx = w * 0.34, ry = w * 0.2;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(cx + w * 0.02, cy + w * 0.04, rx * 1.1, ry * 1.15, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#7a5c36'; ctx.lineWidth = Math.max(2, w * 0.09);
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = '#a07a48'; ctx.lineWidth = Math.max(1, w * 0.035);
+  ctx.beginPath(); ctx.ellipse(cx, cy - w * 0.02, rx, ry, 0, Math.PI, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = '#4a3420'; ctx.lineWidth = Math.max(1, w * 0.015);
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 7) {
+    const px = cx + Math.cos(a) * rx, py = cy + Math.sin(a) * ry;
+    ctx.beginPath(); ctx.moveTo(px, py - w * 0.02); ctx.lineTo(px, py - w * 0.08); ctx.stroke();
+  }
+  const fx = cx + rx * 0.5, fy = cy - ry * 0.6;
+  ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - w * 0.22); ctx.stroke();
+  ctx.fillStyle = (owner >= 0 && nations[owner]) ? nations[owner].color : '#999';
+  ctx.beginPath(); ctx.moveTo(fx, fy - w * 0.22); ctx.lineTo(fx + w * 0.12, fy - w * 0.18); ctx.lineTo(fx, fy - w * 0.14); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
 // ---- Wonders of nature: a few unique places on every map. The city whose lands hold one draws its gifts, and the realm
 // that first sets eyes on it is rewarded ----
 const NATURAL_WONDERS = {
@@ -10358,7 +10396,8 @@ function render() {
       const imp = IMPROVEMENT_DEFS[t.improvement];
       const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
       const impKey = impSpriteMap[t.improvement] || t.improvement;
-      if (!hexImages[impKey] || !hexImages[impKey].complete || !hexImages[impKey].naturalWidth) {
+      if (t.improvement === 'redoubt') drawRedoubt(sx + w / 2, fy + faceH / 2, w, t.owner);
+      else if (!hexImages[impKey] || !hexImages[impKey].complete || !hexImages[impKey].naturalWidth) {
 
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath(); ctx.arc(sx + w / 2, fy + ch / 2, w * 0.3, 0, Math.PI * 2); ctx.fill();
@@ -11241,7 +11280,7 @@ function showUnitPanel(unit) {
             const baseY = ANIMAL_DATA[t.animal].baseYield;
             yieldStr = Object.entries(baseY).map(([k,v]) => `+${v} ${k}`).join(', ');
           } else {
-            yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ');
+            yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ') || (key === 'redoubt' ? '-25% damage to its holder' : '');
           }
           const bTurns = (unit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
           html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t → ${yieldStr}</span></button>`;
@@ -12657,7 +12696,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.9';
+const CURRENT_VERSION = 'beta-7.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13804,7 +13843,7 @@ window.doRangedAttack = function(tx, ty) {
   const rFortBonus = target.fortified ? FORT_BONUS : 1.0;
   const rSiegeBonus = (UNIT_DEFS[selectedUnit.type].siege && rInCity) ? SIEGE_BONUS : 1.0;
   const rFlankBonus = getFlankingBonus(selectedUnit, tx, ty);
-  const rFormDef = 1 / (target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0);
+  const rFormDef = redoubtMult(target.x, target.y) / (target.formation ? (getFormationBonus(target).defMult || 1.0) : 1.0);
   const rCmdDef = 1 / (getCommandBonus(target).defMult || 1.0);
 
   let rAmmoMult = 1.0, rAmmoMoraleMult = 1.0;
