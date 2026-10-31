@@ -13146,7 +13146,7 @@ function render() {
       if (!tiles[key]?.revealed.has(pId)) continue;
       const pos = hexScreenPos(rx, ry);
       if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
-      ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#ff4444';
+      ctx.save(); ctx.globalAlpha = charted ? 0.16 : 0.22; ctx.fillStyle = charted ? '#a82a1a' : '#ff4444';
       drawHexPath(ctx, pos.x, pos.y + facePad, w, faceH); ctx.fill(); ctx.restore();
     }
   }
@@ -13523,8 +13523,18 @@ function render() {
       const enemy = units.find(u => u.x === rt.x && u.y === rt.y && u.nationId !== selectedUnit.nationId && nations[selectedUnit.nationId].relations[u.nationId] === 'war');
       if (enemy) {
         const rp = hexScreenPos(rt.x, rt.y);
-        ctx.fillStyle = 'rgba(255, 50, 50, 0.35)';
-        drawHexPath(ctx, rp.x, rp.y + facePad, w, faceH); ctx.fill();
+        if (charted) {
+          // a target as a gunner marks it on his plan: a red ring and cross-hairs in ink
+          const tx = rp.x + w / 2, ty = rp.y + facePad + ch / 2, tr = w * 0.3;
+          ctx.save(); ctx.fillStyle = 'rgba(170, 30, 20, 0.14)'; drawHexPath(ctx, rp.x, rp.y + facePad, w, faceH); ctx.fill();
+          ctx.strokeStyle = 'rgba(246, 236, 210, 0.7)'; ctx.lineWidth = Math.max(3, w * 0.045); ctx.beginPath(); ctx.arc(tx, ty, tr, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = 'rgba(150, 24, 14, 0.95)'; ctx.lineWidth = Math.max(1.4, w * 0.022); ctx.stroke();
+          ctx.beginPath(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ctx.moveTo(tx + dx * tr * 0.6, ty + dy * tr * 0.6); ctx.lineTo(tx + dx * tr * 1.35, ty + dy * tr * 1.35); } ctx.stroke();
+          ctx.restore();
+        } else {
+          ctx.fillStyle = 'rgba(255, 50, 50, 0.35)';
+          drawHexPath(ctx, rp.x, rp.y + facePad, w, faceH); ctx.fill();
+        }
       }
     }
   }
