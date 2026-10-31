@@ -708,6 +708,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Roads That Carry Armies</b><br>
+        - A step along a road costs one move whatever the ground: through forest, over hills and across rivers (anyone's troops may use them, so mind your roads in wartime)<br>
+        - Timber bridges are drawn where a road crosses a river
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Frozen Rivers</b><br>
@@ -1545,6 +1551,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.4</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Roads That Carry Armies</b><br>
+          - A step along a road costs one move whatever the ground: through forest, over hills and across rivers (anyone's troops may use them, so mind your roads in wartime)<br>
+          - Timber bridges are drawn where a road crosses a river
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.3</b></div>
         <div style="margin-bottom:12px;">
@@ -5993,6 +6005,7 @@ function getMoveCost(fromX, fromY, toX, toY, unitType) {
   let cost = 1;
   const toTi = toY * MAP_COLS + toX;
   const fromTi = fromY * MAP_COLS + fromX;
+  if (roadEdges.size && roadEdges.has(roadEdgeKey(fromTi, toTi))) return 1; // along the road: one move whatever the ground, bridged over rivers
   const toTile = tiles[toTi];
   const fromTile = tiles[fromTi];
   const terrainName = getTerrainName(toTile.type);
@@ -10229,9 +10242,10 @@ function updateCityThreats() {
 // A city on the road earns trade gold; the roads are redrawn as the realm changes (each turn, and when a city is founded or lost) ----
 const ROAD_TRADE_GOLD = 2, ROAD_MAX_LEN = 14;
 const RIVER_FOOD = 0.5, RIVER_GOLD = 0.5; // each river tile in a city's lands
-let roads = [], _roadsKey = '';
+let roads = [], _roadsKey = '', roadEdges = new Set();
+const roadEdgeKey = (a, b) => a < b ? a * 1e6 + b : b * 1e6 + a;
 function rebuildRoads() {
-  roads = [];
+  roads = []; roadEdges = new Set();
   for (const c of cities) c._road = false;
   for (const cap of cities) {
     if (!cap.isCapital) continue;
@@ -10260,6 +10274,7 @@ function rebuildRoads() {
       const path = [];
       while (at !== -1) { path.push(at); at = prev.get(at); }
       roads.push({ nationId: nId, path });
+      for (let k = 1; k < path.length; k++) roadEdges.add(roadEdgeKey(path[k - 1], path[k]));
       c._road = true;
     }
   }
@@ -10282,6 +10297,29 @@ function drawRoads(w, facePad, ch, pId) {
   ctx.strokeStyle = 'rgba(60, 42, 22, 0.5)'; ctx.lineWidth = Math.max(3, w * 0.16); ctx.stroke(seg);
   ctx.strokeStyle = 'rgba(186, 152, 100, 0.92)'; ctx.lineWidth = Math.max(1.8, w * 0.1); ctx.stroke(seg);
   if (w >= 40) { ctx.setLineDash([w * 0.06, w * 0.1]); ctx.strokeStyle = 'rgba(110, 84, 50, 0.55)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke(seg); }
+  ctx.restore();
+  // timber bridges where a road meets a river
+  if (w < 18) return;
+  const done = new Set();
+  ctx.save();
+  for (const r of roads) for (let i = 0; i < r.path.length; i++) {
+    const ti = r.path[i];
+    if (!tiles[ti].hasRiver || done.has(ti) || !tiles[ti].revealed.has(pId)) continue;
+    done.add(ti);
+    const [x, y] = centre(ti);
+    if (x < -w || y < -w || x > viewW + w || y > viewH + w) continue;
+    const a = r.path[i - 1] ?? r.path[i + 1], b = r.path[i + 1] ?? r.path[i - 1];
+    const [ax, ay] = centre(a), [bx, by] = centre(b), ang = Math.atan2(by - ay, bx - ax);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    const L = w * 0.42, H = w * 0.15;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(-L / 2 + 1, -H / 2 + 2, L, H);
+    ctx.fillStyle = '#8a6438'; ctx.fillRect(-L / 2, -H / 2, L, H);
+    ctx.strokeStyle = '#5a3e20'; ctx.lineWidth = Math.max(0.6, w * 0.012);
+    for (let k = 1; k < 6; k++) { const px = -L / 2 + L * k / 6; ctx.beginPath(); ctx.moveTo(px, -H / 2); ctx.lineTo(px, H / 2); ctx.stroke(); }
+    ctx.lineWidth = Math.max(1, w * 0.025); ctx.strokeStyle = '#4a3218';
+    ctx.beginPath(); ctx.moveTo(-L / 2, -H / 2); ctx.lineTo(L / 2, -H / 2); ctx.moveTo(-L / 2, H / 2); ctx.lineTo(L / 2, H / 2); ctx.stroke();
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -13464,7 +13502,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.3';
+const CURRENT_VERSION = 'beta-9.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
