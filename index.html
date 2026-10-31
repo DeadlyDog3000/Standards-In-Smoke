@@ -10587,7 +10587,25 @@ function drawSuburbs(city, w, facePad, ch, pId) {
 }
 
 // A building or wonder a town has raised, drawn small in the town
+const LANDMARK_IMGS = {};
+function landmarkSprite(kind) {
+  if (!CITY_BUILDING_DEFS[kind]) return null;
+  let img = LANDMARK_IMGS[kind];
+  if (!img) {
+    img = LANDMARK_IMGS[kind] = new Image();
+    img.onload = () => { if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
+    img.onerror = () => { img._bad = true; };
+    img.src = `tiles/lm_${kind}.png`;
+  }
+  return img.complete && img.naturalWidth && !img._bad ? img : null;
+}
 function drawLandmark(kind, x, y, w) {
+  const painted = landmarkSprite(kind);
+  if (painted) { // the painted building, its base on the spot
+    const lw = w * (CITY_BUILDING_DEFS[kind].wonder ? 0.29 : 0.23), lh = lw * painted.naturalHeight / painted.naturalWidth;
+    ctx.drawImage(painted, x - lw / 2, y - lh * 0.88, lw, lh);
+    return;
+  }
   const u = w * 0.01; // one hundredth of a tile
   const shadow = (hw) => { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x + u * 2, y, hw * 0.65, hw * 0.16, 0, 0, Math.PI * 2); ctx.fill(); };
   const block = (bx, by, bw, bh, c) => { ctx.fillStyle = c; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(bx + bw * 0.6, by, bw * 0.4, bh); };
@@ -10731,8 +10749,9 @@ function drawTown(city, cx, cy, w, faceH) {
     // the painted settlement, with what the town has built standing round it and the realm's flag above
     const tw = w * (city.isCapital ? 0.98 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
     const top = cy + ry * 1.15 - th;
+    for (const h of houses) if (h.lm && h.y < cy) drawLandmark(h.lm, h.x, h.y, w); // behind the town
     ctx.drawImage(painted, cx - tw / 2, top, tw, th);
-    for (const h of houses) if (h.lm) drawLandmark(h.lm, h.x, h.y, w);
+    for (const h of houses) if (h.lm && h.y >= cy) drawLandmark(h.lm, h.x, h.y, w);
     const fx = cx + tw * 0.08, fy = top + th * 0.08, fh = w * 0.16;
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
     ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - fh); ctx.stroke();
