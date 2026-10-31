@@ -11615,6 +11615,75 @@ function getWorldChart() {
   if (OW.key !== key) { try { buildWorldChart(key); } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } }
   return OW.canvas;
 }
+// every tree, peak, hill, reed and wave on the sheet (also drawn again sharp over the view when the sheet is shown larger than it was drawn)
+function owDrawMarks(g, marks, season, u, x0 = -Infinity, y0 = -Infinity, x1 = Infinity, y1 = Infinity) {
+  const winter = season === 'winter', ink = 'rgba(52, 38, 24, ';
+  const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(136, 104, 58)' : 'rgb(96, 112, 62)';
+  const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(176, 140, 82)' : 'rgb(140, 152, 92)';
+  // in autumn not every tree has turned: some stay green
+  const autumnGreen = ['rgb(104, 112, 64)', 'rgb(146, 150, 92)'];
+  for (const m of marks) {
+    if (m.x < x0 || m.x > x1 || m.y < y0 || m.y > y1) continue;
+    const s = m.s * u, x = m.x, y = m.y;
+    g.lineWidth = 1.1 * u; g.strokeStyle = ink + '0.85)';
+    if (m.k === 'tree') {
+      const rr = 6.5 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, rr * 0.9, rr * 0.35, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 6 * s); g.stroke();
+      const green = season === 'autumn' && owHash(x | 0, y | 0, 7) < 0.4;
+      g.fillStyle = green ? autumnGreen[0] : forestCol; g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.fill();
+      g.fillStyle = green ? autumnGreen[1] : forestLit; g.beginPath(); g.arc(x - rr * 0.3, y - 6 * s - rr * 1.05, rr * 0.55, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.stroke();
+      if (winter) { g.fillStyle = 'rgba(248, 250, 252, 0.9)'; g.beginPath(); g.arc(x - rr * 0.2, y - 6 * s - rr * 1.3, rr * 0.5, Math.PI, 0); g.fill(); }
+    } else if (m.k === 'pine') {
+      const hh = 17 * s, ww = 5.5 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, ww, ww * 0.35, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = winter ? 'rgb(84, 100, 84)' : 'rgb(74, 92, 58)';
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.fill();
+      g.fillStyle = winter ? 'rgba(248,250,252,0.85)' : 'rgba(150, 160, 100, 0.8)';
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x - ww, y - 2 * s); g.lineTo(x - ww * 0.15, y - 2 * s); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.stroke();
+      g.beginPath(); g.moveTo(x, y - 2 * s); g.lineTo(x, y + 1 * s); g.stroke();
+    } else if (m.k === 'peak') {
+      // a little range: a jagged ridge with a main summit and a lower shoulder, lit on the west and hatched on the east
+      const hh = 24 * s, ww = 18 * s, j = owHash(x | 0, y | 0, 3), j2 = owHash(y | 0, x | 0, 5);
+      const sx = x + (j - 0.5) * 6 * s, side = j2 < 0.5 ? -1 : 1;
+      const pts = [[x - ww, y], [x - ww * 0.55, y - hh * (0.35 + j * 0.15)], [sx - ww * 0.12, y - hh * 0.8], [sx, y - hh], [sx + ww * 0.14, y - hh * 0.78],
+        [x + side * ww * 0.45, y - hh * (0.62 + j2 * 0.12)], [x + ww * 0.62, y - hh * 0.36], [x + ww, y]];
+      if (side < 0) pts.splice(5, 1);
+      g.fillStyle = 'rgba(40, 30, 18, 0.2)'; g.beginPath(); g.moveTo(sx + 3 * s, y - hh + 6 * s); g.lineTo(x + ww + 8 * s, y + 2 * s); g.lineTo(x - ww * 0.2, y + 2 * s); g.closePath(); g.fill();
+      g.fillStyle = winter ? 'rgb(226, 224, 216)' : 'rgb(212, 200, 172)';
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.closePath(); g.fill();
+      // the shaded east face: from the summit down to the foot
+      g.fillStyle = winter ? 'rgb(170, 172, 172)' : 'rgb(148, 132, 106)';
+      g.beginPath(); g.moveTo(sx, y - hh); for (let k = 4; k < pts.length; k++) g.lineTo(pts[k][0], pts[k][1]); g.lineTo(sx + ww * 0.1, y); g.lineTo(sx - ww * 0.05, y - hh * 0.45); g.closePath(); g.fill();
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
+      for (let k = 1; k < 6; k++) { const f = k / 6, ax = sx + (x + ww - sx) * f * 0.9, ay = y - hh + hh * f; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - 3 * s, ay + 5 * s * (1 - f) + 2 * s); g.stroke(); }
+      g.fillStyle = 'rgba(250, 250, 246, 0.95)';
+      g.beginPath(); g.moveTo(sx, y - hh); g.lineTo(sx - ww * 0.3, y - hh * 0.68); g.lineTo(sx - ww * 0.12, y - hh * 0.74); g.lineTo(sx, y - hh * 0.62); g.lineTo(sx + ww * 0.12, y - hh * 0.72); g.lineTo(sx + ww * 0.26, y - hh * 0.7); g.closePath(); g.fill();
+      g.lineWidth = 1.2 * u; g.strokeStyle = ink + '0.9)';
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.stroke();
+    } else if (m.k === 'hill') {
+      const ww = 15 * s, hh = 8 * s;
+      g.fillStyle = 'rgba(40, 30, 18, 0.18)'; g.beginPath(); g.ellipse(x + 3 * s, y, ww, hh * 0.4, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(x - ww, y); g.quadraticCurveTo(x - ww * 0.2, y - hh * 2, x + ww, y); g.stroke();
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
+      for (let k = 0; k < 4; k++) { const ax = x + ww * (0.15 + k * 0.2); g.beginPath(); g.moveTo(ax, y - hh * (1 - k * 0.22) + 1 * s); g.lineTo(ax - 2 * s, y - 1 * s); g.stroke(); }
+    } else if (m.k === 'marsh') {
+      g.lineWidth = 0.9 * u; g.strokeStyle = 'rgba(52, 70, 70, 0.7)';
+      g.beginPath(); g.moveTo(x - 6 * s, y); g.lineTo(x + 6 * s, y); g.moveTo(x - 3 * s, y + 3 * s); g.lineTo(x + 4 * s, y + 3 * s); g.stroke();
+      g.strokeStyle = ink + '0.7)';
+      g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x, y - 7 * s); g.moveTo(x - 1 * s, y - 1); g.lineTo(x - 4 * s, y - 6 * s); g.moveTo(x + 1 * s, y - 1); g.lineTo(x + 4 * s, y - 6 * s); g.stroke();
+    } else if (m.k === 'tuft') {
+      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.4)';
+      g.beginPath(); g.moveTo(x - 2.5 * s, y - 3 * s); g.lineTo(x, y); g.lineTo(x + 2.5 * s, y - 3 * s); g.moveTo(x, y); g.lineTo(x, y - 4 * s); g.stroke();
+    } else if (m.k === 'wave') {
+      g.lineWidth = 1 * u; g.strokeStyle = 'rgba(36, 56, 64, 0.5)';
+      const ww = 7 * s;
+      g.beginPath(); g.moveTo(x - ww * 2, y); g.quadraticCurveTo(x - ww * 1.5, y - ww * 0.6, x - ww, y); g.quadraticCurveTo(x - ww * 0.5, y + ww * 0.6, x, y); g.quadraticCurveTo(x + ww * 0.5, y - ww * 0.6, x + ww, y); g.stroke();
+    }
+  }
+}
 function owLandFields(tileKey) {
   // resolution: as fine as the map's size allows (about 14 million pixels at most)
   let K = 96;
@@ -11819,70 +11888,8 @@ function buildWorldChart(key) {
   // a pale shore wash and the coast itself in ink
   g.strokeStyle = 'rgba(232, 222, 190, 0.35)'; g.lineWidth = 4 * u; g.stroke(OW.F.coast);
   g.strokeStyle = ink + '0.9)'; g.lineWidth = 1.6 * u; g.stroke(OW.F.coast);
-  const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(136, 104, 58)' : 'rgb(96, 112, 62)';
-  const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(176, 140, 82)' : 'rgb(140, 152, 92)';
-  // in autumn not every tree has turned: some stay green
-  const autumnGreen = ['rgb(104, 112, 64)', 'rgb(146, 150, 92)'];
-  for (const m of marks) {
-    const s = m.s * u, x = m.x, y = m.y;
-    g.lineWidth = 1.1 * u; g.strokeStyle = ink + '0.85)';
-    if (m.k === 'tree') {
-      const rr = 6.5 * s;
-      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, rr * 0.9, rr * 0.35, 0, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 6 * s); g.stroke();
-      const green = season === 'autumn' && owHash(x | 0, y | 0, 7) < 0.4;
-      g.fillStyle = green ? autumnGreen[0] : forestCol; g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.fill();
-      g.fillStyle = green ? autumnGreen[1] : forestLit; g.beginPath(); g.arc(x - rr * 0.3, y - 6 * s - rr * 1.05, rr * 0.55, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.arc(x, y - 6 * s - rr * 0.8, rr, 0, Math.PI * 2); g.stroke();
-      if (winter) { g.fillStyle = 'rgba(248, 250, 252, 0.9)'; g.beginPath(); g.arc(x - rr * 0.2, y - 6 * s - rr * 1.3, rr * 0.5, Math.PI, 0); g.fill(); }
-    } else if (m.k === 'pine') {
-      const hh = 17 * s, ww = 5.5 * s;
-      g.fillStyle = 'rgba(40, 30, 18, 0.25)'; g.beginPath(); g.ellipse(x + 3 * s, y + 1.5 * s, ww, ww * 0.35, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = winter ? 'rgb(84, 100, 84)' : 'rgb(74, 92, 58)';
-      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.fill();
-      g.fillStyle = winter ? 'rgba(248,250,252,0.85)' : 'rgba(150, 160, 100, 0.8)';
-      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x - ww, y - 2 * s); g.lineTo(x - ww * 0.15, y - 2 * s); g.closePath(); g.fill();
-      g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + ww, y - 2 * s); g.lineTo(x - ww, y - 2 * s); g.closePath(); g.stroke();
-      g.beginPath(); g.moveTo(x, y - 2 * s); g.lineTo(x, y + 1 * s); g.stroke();
-    } else if (m.k === 'peak') {
-      // a little range: a jagged ridge with a main summit and a lower shoulder, lit on the west and hatched on the east
-      const hh = 24 * s, ww = 18 * s, j = owHash(x | 0, y | 0, 3), j2 = owHash(y | 0, x | 0, 5);
-      const sx = x + (j - 0.5) * 6 * s, side = j2 < 0.5 ? -1 : 1;
-      const pts = [[x - ww, y], [x - ww * 0.55, y - hh * (0.35 + j * 0.15)], [sx - ww * 0.12, y - hh * 0.8], [sx, y - hh], [sx + ww * 0.14, y - hh * 0.78],
-        [x + side * ww * 0.45, y - hh * (0.62 + j2 * 0.12)], [x + ww * 0.62, y - hh * 0.36], [x + ww, y]];
-      if (side < 0) pts.splice(5, 1);
-      g.fillStyle = 'rgba(40, 30, 18, 0.2)'; g.beginPath(); g.moveTo(sx + 3 * s, y - hh + 6 * s); g.lineTo(x + ww + 8 * s, y + 2 * s); g.lineTo(x - ww * 0.2, y + 2 * s); g.closePath(); g.fill();
-      g.fillStyle = winter ? 'rgb(226, 224, 216)' : 'rgb(212, 200, 172)';
-      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.closePath(); g.fill();
-      // the shaded east face: from the summit down to the foot
-      g.fillStyle = winter ? 'rgb(170, 172, 172)' : 'rgb(148, 132, 106)';
-      g.beginPath(); g.moveTo(sx, y - hh); for (let k = 4; k < pts.length; k++) g.lineTo(pts[k][0], pts[k][1]); g.lineTo(sx + ww * 0.1, y); g.lineTo(sx - ww * 0.05, y - hh * 0.45); g.closePath(); g.fill();
-      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
-      for (let k = 1; k < 6; k++) { const f = k / 6, ax = sx + (x + ww - sx) * f * 0.9, ay = y - hh + hh * f; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - 3 * s, ay + 5 * s * (1 - f) + 2 * s); g.stroke(); }
-      g.fillStyle = 'rgba(250, 250, 246, 0.95)';
-      g.beginPath(); g.moveTo(sx, y - hh); g.lineTo(sx - ww * 0.3, y - hh * 0.68); g.lineTo(sx - ww * 0.12, y - hh * 0.74); g.lineTo(sx, y - hh * 0.62); g.lineTo(sx + ww * 0.12, y - hh * 0.72); g.lineTo(sx + ww * 0.26, y - hh * 0.7); g.closePath(); g.fill();
-      g.lineWidth = 1.2 * u; g.strokeStyle = ink + '0.9)';
-      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.stroke();
-    } else if (m.k === 'hill') {
-      const ww = 15 * s, hh = 8 * s;
-      g.fillStyle = 'rgba(40, 30, 18, 0.18)'; g.beginPath(); g.ellipse(x + 3 * s, y, ww, hh * 0.4, 0, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.moveTo(x - ww, y); g.quadraticCurveTo(x - ww * 0.2, y - hh * 2, x + ww, y); g.stroke();
-      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.5)';
-      for (let k = 0; k < 4; k++) { const ax = x + ww * (0.15 + k * 0.2); g.beginPath(); g.moveTo(ax, y - hh * (1 - k * 0.22) + 1 * s); g.lineTo(ax - 2 * s, y - 1 * s); g.stroke(); }
-    } else if (m.k === 'marsh') {
-      g.lineWidth = 0.9 * u; g.strokeStyle = 'rgba(52, 70, 70, 0.7)';
-      g.beginPath(); g.moveTo(x - 6 * s, y); g.lineTo(x + 6 * s, y); g.moveTo(x - 3 * s, y + 3 * s); g.lineTo(x + 4 * s, y + 3 * s); g.stroke();
-      g.strokeStyle = ink + '0.7)';
-      g.beginPath(); g.moveTo(x, y - 1); g.lineTo(x, y - 7 * s); g.moveTo(x - 1 * s, y - 1); g.lineTo(x - 4 * s, y - 6 * s); g.moveTo(x + 1 * s, y - 1); g.lineTo(x + 4 * s, y - 6 * s); g.stroke();
-    } else if (m.k === 'tuft') {
-      g.lineWidth = 0.8 * u; g.strokeStyle = ink + '0.4)';
-      g.beginPath(); g.moveTo(x - 2.5 * s, y - 3 * s); g.lineTo(x, y); g.lineTo(x + 2.5 * s, y - 3 * s); g.moveTo(x, y); g.lineTo(x, y - 4 * s); g.stroke();
-    } else if (m.k === 'wave') {
-      g.lineWidth = 1 * u; g.strokeStyle = 'rgba(36, 56, 64, 0.5)';
-      const ww = 7 * s;
-      g.beginPath(); g.moveTo(x - ww * 2, y); g.quadraticCurveTo(x - ww * 1.5, y - ww * 0.6, x - ww, y); g.quadraticCurveTo(x - ww * 0.5, y + ww * 0.6, x, y); g.quadraticCurveTo(x + ww * 0.5, y - ww * 0.6, x + ww, y); g.stroke();
-    }
-  }
+  owDrawMarks(g, marks, season, u);
+  OW.season = season;
   const grid = OW.F.grid;
   g.strokeStyle = 'rgba(60, 44, 26, 0.16)'; g.lineWidth = 1 * u; g.stroke(grid);
   // paper: grain and foxing over everything
@@ -12169,6 +12176,14 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       const lvl = fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
       g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
       g.globalCompositeOperation = 'source-atop';
+      // shown larger than it was drawn: ink the coast and the trees, peaks and reeds again at the view's own sharpness
+      if (fx * DPR > 1.25 && OW.F) {
+        g.save(); g.translate(ox, oy); g.scale(fx, fy);
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.6 * OW.K / 64; g.stroke(OW.F.coast);
+        owDrawMarks(g, OW.F.marks, OW.season || currentSeason, OW.K / 64, sx0 - OW.K, sy0 - OW.K, sx1 + OW.K, sy1 + OW.K * 2);
+        g.restore();
+      }
       owDrawNames(g, w, cs, ch, facePad);
       g.drawImage(masks.dim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       g.globalCompositeOperation = 'source-over';
