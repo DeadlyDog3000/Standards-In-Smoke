@@ -3297,7 +3297,7 @@ function getEffectiveMaxHp(unit) {
 // ---- merging regiments: right-click one of your own beside the regiment you have chosen, and it marches in and
 //  takes the other into its ranks: up to three companies under one colour, their men and their fire added together,
 //  all of them seen on the base and all of them firing at once ----
-const typeName = t => UNIT_DEFS[t]?.name || String(t).replace(/_/g, ' ');
+const unitTypeName = t => UNIT_DEFS[t]?.name || String(t).replace(/_/g, ' ');
 const MERGE_MAX = 3;
 const mergeable = u => { const d = UNIT_DEFS[u.type]; return !!d && d.combat && !d.naval && u.type !== 'general'; };
 const regimentSize = u => 1 + (u.merged || []).length;
@@ -15289,7 +15289,7 @@ function showUnitPanel(unit) {
     const effAtk = getEffectiveAtk(unit);
     chips += chip(`⚔ ${effAtk}${effAtk > (def.atk || 4) ? ` <em style="color:${unitLevel.color}">(+${effAtk - (def.atk || 4)})</em>` : ''}`, `Attack (${def.atk || 4} base, with its rank, laws and general)`);
     if (def.ranged) chips += chip('Ranged', 'Can fire from range (R)');
-    if (unit.merged && unit.merged.length) chips += chip(`${regimentSize(unit)} companies`, 'Formed from ' + [unit.type, ...unit.merged].map(typeName).join(', ') + ': their men and fire together');
+    if (unit.merged && unit.merged.length) chips += chip(`${regimentSize(unit)} companies`, 'Formed from ' + [unit.type, ...unit.merged].map(unitTypeName).join(', ') + ': their men and fire together');
     if (def.siege) chips += chip('Siege', 'Strong against walls');
     if (unit.fortified) chips += chip('Fortified', 'Dug in: harder to dislodge', 'good');
 
@@ -15431,10 +15431,10 @@ function showUnitPanel(unit) {
   // (on a phone there is no right-click: a button forms up with the regiment beside it)
   if (unit.nationId === playerNation && mergeable(unit) && regimentSize(unit) < MERGE_MAX && unit.movesLeft > 0) {
     const mate = units.find(o => o !== unit && o.nationId === unit.nationId && mergeable(o) && regimentSize(unit) + regimentSize(o) <= MERGE_MAX && hexDistance(unit.x, unit.y, o.x, o.y) === 1);
-    if (mate) html += `<button class="p-btn" onclick="mergeSelectedWithNeighbour()">Form up with the ${typeName(mate.type)} beside it <span class="cost">1 order</span></button>`;
+    if (mate) html += `<button class="p-btn" onclick="mergeSelectedWithNeighbour()">Form up with the ${unitTypeName(mate.type)} beside it <span class="cost">1 order</span></button>`;
   }
   if (unit.merged && unit.merged.length && unit.nationId === playerNation) {
-    html += `<button class="p-btn" onclick="splitSelected()">Split off a company <span class="cost">${typeName(unit.merged[unit.merged.length - 1])}</span></button>`;
+    html += `<button class="p-btn" onclick="splitSelected()">Split off a company <span class="cost">${unitTypeName(unit.merged[unit.merged.length - 1])}</span></button>`;
   }
 
   if (unit.nationId === playerNation && def.artillery && def.ammoTypes && def.ammoTypes.length > 1) {
