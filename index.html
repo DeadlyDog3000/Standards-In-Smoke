@@ -12844,7 +12844,8 @@ function owMasks(pId) {
   const now = Date.now();
   if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) {
     // (a look is owed: take it once the pause is over, so land found just now isn't left blank)
-    if (!OW.maskLater) OW.maskLater = setTimeout(() => { OW.maskLater = 0; OW.maskCheck = 0; if (MAP_COLS) render(); }, 310);
+    //  (only when the view has gone still: while frames keep coming, the next one after the pause takes the look itself)
+    if (!OW.maskLater) OW.maskLater = setTimeout(() => { OW.maskLater = 0; if (MAP_COLS && Date.now() - (OW.lastDraw || 0) > 250) { OW.maskCheck = 0; requestAnimationFrame(render); } }, 310);
     return OW.masks;
   }
   const sameWorld = OW.maskTiles === tiles && OW.maskPid === pId;
@@ -12887,7 +12888,7 @@ function owMasks(pId) {
   }
   kg.clearRect(0, 0, W, H); kg.filter = 'blur(3px)'; kg.fillStyle = '#000'; kg.fill(kp); kg.fill(kp); kg.filter = 'none';
   // land known but not watched now: dimmed and browned, as an old survey not lately checked
-  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(104, 94, 80, 0.44)'; dg.fill(dp); // (greyed rather than darkened, so it stays apart from the blank vellum) dg.filter = 'none';
+  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(104, 94, 80, 0.44)'; dg.fill(dp); dg.filter = 'none'; // (greyed rather than darkened, so it stays apart from the blank vellum)
   // (and smaller copies of each, for a view from afar: scaling the whole mask down every frame is slow on a big sheet)
   const half = (src, old) => { const m = mk2(old, Math.ceil(src.width / 2), Math.ceil(src.height / 2)); const q = m.getContext('2d'); q.clearRect(0, 0, m.width, m.height); q.imageSmoothingEnabled = true; q.drawImage(src, 0, 0, m.width, m.height); return m; };
   const mk2 = (old, w2, h2) => { const c = old && old.width === w2 && old.height === h2 ? old : document.createElement('canvas'); c.width = w2; c.height = h2; return c; };
@@ -12953,6 +12954,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const chart = getWorldChart();
   if (!chart) { OW.prevKnown = null; return false; }
   const masks = owMasks(pId);
+  OW.lastDraw = Date.now();
   if (!masks.any) return true;
   const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
   const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
@@ -13004,8 +13006,9 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       // the charted land lies a little proud of the blank sheet: a smoky shadow along the edge of the known world
       g.globalCompositeOperation = 'destination-over';
       const so = Math.max(2, Math.min(7, cs * 0.09));
-      g.globalAlpha = 0.34; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx + so * 0.6, dy + so, dw, dh);
-      g.globalAlpha = 0.22; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx - so * 0.4, dy - so * 0.3, dw, dh);
+      const sf = OW.prevKnown ? fadeT : 1; // (newly found land's shadow comes in with it, not ahead of it)
+      g.globalAlpha = 0.34 * sf; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx + so * 0.6, dy + so, dw, dh);
+      g.globalAlpha = 0.22 * sf; g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx - so * 0.4, dy - so * 0.3, dw, dh);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
     }
@@ -16430,7 +16433,7 @@ canvas.addEventListener('wheel', (e) => {
   const zoomIn = _wheelAcc < 0; _wheelAcc = 0;
   // (from wherever a glide in progress was heading, so quick notches add up)
   const base = _zoomGlide ? _zoomGlide.to : VIEW_TILE;
-  const to = zoomIn ? Math.min(MAX_TILE, base + Math.max(2, Math.round(base * 0.15))) : Math.max(minTile(), base - Math.max(2, Math.round(base * 0.15)));
+  const to = zoomIn ? Math.min(MAX_TILE, base + Math.max(2, Math.round(base * 0.15))) : Math.min(base, Math.max(minTile(), base - Math.max(2, Math.round(base * 0.15)))); // (never further in than now)
   // the zoom glides over a few frames, the point under the pointer staying where it is
   _zoomGlide = { from: VIEW_TILE, to, t0: performance.now(), worldX, worldY, mx, my };
   if (!_zoomRaf) { _zoomRaf = true; requestAnimationFrame(zoomGlideStep); }
@@ -16484,7 +16487,7 @@ canvas.addEventListener('touchmove', (e) => {
       const oldCS = hexColStep(), oldCH = hexCellH();
       const worldX = camX + midX / oldCS, worldY = camY + midY / oldCH;
       if (dist > lastPinchDist * 1.05) VIEW_TILE = Math.min(MAX_TILE, VIEW_TILE + Math.max(1, Math.round(VIEW_TILE * 0.08)));
-      else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.max(minTile(), VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08)));
+      else if (dist < lastPinchDist * 0.95) VIEW_TILE = Math.min(VIEW_TILE, Math.max(minTile(), VIEW_TILE - Math.max(1, Math.round(VIEW_TILE * 0.08))));
       const newCS = hexColStep(), newCH = hexCellH();
       camX = worldX - midX / newCS;
       camY = worldY - midY / newCH;
