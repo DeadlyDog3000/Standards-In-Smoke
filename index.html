@@ -12238,6 +12238,12 @@ function owMasks(pId) {
   OW.maskKey = key;
   const { K, CS, CH } = OW, sc = 24 / K, W = Math.ceil(OW.canvas.width * sc), H = Math.ceil(OW.canvas.height * sc);
   const mk = (old) => { const c = old && old.width === W && old.height === H ? old : document.createElement('canvas'); c.width = W; c.height = H; return c; };
+  // keep what was known a moment ago, so newly found land can be inked in over it rather than appear at once
+  if (OW.masks && OW.masks.known.width === W && OW.masks.known.height === H) {
+    const pk = OW.prevKnown && OW.prevKnown.width === W && OW.prevKnown.height === H ? OW.prevKnown : document.createElement('canvas');
+    pk.width = W; pk.height = H; pk.getContext('2d').drawImage(OW.masks.known, 0, 0);
+    OW.prevKnown = pk; OW.fadeStart = Date.now();
+  } else OW.prevKnown = null;
   const known = mk(OW.masks && OW.masks.known), dim = mk(OW.masks && OW.masks.dim);
   const kg = known.getContext('2d'), dg = dim.getContext('2d');
   const kp = new Path2D(), dp = new Path2D(), qx = CS / 3 * sc + 0.4, hx2 = CS * 2 / 3 * sc + 0.4, hy = CH / 2 * sc + 0.4;
@@ -12310,7 +12316,9 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   if (!masks.any) return true;
   const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
   const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
-  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H].join('|');
+  const fadeT = OW.prevKnown ? Math.min(1, (Date.now() - OW.fadeStart) / 650) : 1;
+  if (fadeT >= 1) OW.prevKnown = null;
+  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2)].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
     const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
@@ -12324,7 +12332,12 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     if (sx1 > sx0 && sy1 > sy0) {
       const dx = ox + sx0 * fx, dy = oy + sy0 * fy, dw = (sx1 - sx0) * fx, dh = (sy1 - sy0) * fy, ks = masks.sc;
       // the explored part of the sheet only, from the copy nearest the scale it is shown at
+      if (OW.prevKnown) { // newly found land comes up out of the blank sheet
+        g.drawImage(OW.prevKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+        g.globalAlpha = fadeT * fadeT * (3 - 2 * fadeT);
+      }
       g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-in';
       const lvl = fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
       g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
@@ -13306,7 +13319,7 @@ function render() {
 
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime;
+  const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime || !!OW.prevKnown;
   if (hasEffects && !selectionFlashRAF && !animationBlocking && !render._fx) {
     // one pending effects frame at a time (every outside render used to start another chain of its own)
     render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
