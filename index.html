@@ -12176,7 +12176,16 @@ function owLandFields(tileKey) {
       // pines in the cold north and up against the mountains, broadleaf woods in the south
       let pineShare = 0.2 + 0.55 * Math.max(0, 1 - r / (MAP_ROWS * 0.45));
       for (const [dc, dr] of [[0, -1], [0, 1], [1, 0], [-1, 0]]) if (typeAt(cI + dc, r + dr) === 2) pineShare += 0.2;
-      for (let k = 0; k < 16; k++) { const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.72; if (inHex(fx, fy)) marks.push({ k: rnd() < pineShare ? 'pine' : 'tree', x: cx + fx * K, y: cy + fy * K, s: 0.85 + rnd() * 0.35 }); }
+      // deep in a wood the trees stand thinner, with here and there a glade, as an engraver leaves the paper to breathe; its edges stay thick
+      let deep = true;
+      for (const [dc, dr] of (cI & 1) ? [[0, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]] : [[0, -1], [1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1]]) if (typeAt(cI + dc, r + dr) !== 5) deep = false;
+      for (let k = 0, n = deep ? 11 : 16; k < n; k++) {
+        const fx = rnd() - 0.5, fy = (rnd() - 0.5) * 0.72;
+        if (!inHex(fx, fy)) continue;
+        const x = cx + fx * K, y = cy + fy * K;
+        if (deep && owFbm(x / (K * 2.2), y / (K * 2.2), 57, 2) < 0.27) continue; // (about a fifth of a deep wood open)
+        marks.push({ k: rnd() < pineShare ? 'pine' : 'tree', x, y, s: 0.85 + rnd() * 0.35 });
+      }
     } else if (t === 2) {
       // deep in a range, fewer and bigger peaks (the relief shading carries the rest); more along its edges
       let inner = true;
