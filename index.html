@@ -4720,7 +4720,8 @@ const PRODUCTION_COSTS = {
   man_of_war:     { wood: 60, steel: 35, gold: 45 },
   general:        { gold: 40, steel: 15 },
 
-  fortifications: { stone: 30, steel: 20 },
+  fortifications: { wood: 20, stone: 30 },
+  star_fort:      { stone: 50, steel: 25, gold: 30 },
   granary:        { wood: 20, gold: 15 },
   factory:        { steel: 30, wood: 20, gold: 30 },
 
@@ -4732,7 +4733,8 @@ const PRODUCTION_COSTS = {
 };
 
 const CITY_BUILDING_DEFS = {
-  fortifications: { name: 'Fortifications', icon: '\uD83C\uDFF0', desc: 'City defense +20%. Units heal +2 HP/turn. Noble families +5 opinion (security).', category: 'military' },
+  fortifications: { name: 'City Walls', icon: '\uD83C\uDFF0', desc: 'A curtain wall and towers round the town. Its garrison takes 25% less harm, an enemy must hold the town 6 turns (not 4) to take it, and the wounded heal +2 HP a turn. Noble families +5 opinion.', category: 'military' },
+  star_fort:      { name: 'Bastions', icon: '\uD83C\uDFF0', desc: 'Star-fort bastions on the walls, so no foot of them is out of the guns\' sight. Needs City Walls. The garrison takes 40% less harm in all, and an enemy must hold the town 8 turns to take it.', category: 'military', requires: 'fortifications' },
   granary:        { name: 'Granary', icon: '\uD83C\uDF3E', desc: '+8% population growth. Noble families +3 opinion (prosperity).', category: 'growth' },
   factory:        { name: 'Factory', icon: '\uD83C\uDFED', desc: 'Unit production 25% faster in this city.', category: 'growth' },
 
@@ -6707,12 +6709,12 @@ function chopForest(worker) {
   worker.movesLeft = 0;
 }
 
+// a town's walls: 0 none, 1 a curtain wall and towers, 2 with bastions as well
+function cityWallLevel(city) { const b = (city && city.buildings) || []; return b.includes('fortifications') ? (b.includes('star_fort') ? 2 : 1) : 0; }
+const WALL_DEF = [1, 0.75, 0.6];       // (harm the garrison takes, behind no walls, walls, bastions)
+const WALL_HOLD = [4, 6, 8];           // (turns an enemy must hold the town to take it)
 function getTerrainDefense(tileType, inCity, cityObj) {
-  if (inCity) {
-    let def = TERRAIN_DEFENSE.city;
-    if (cityObj && (cityObj.buildings || []).includes('fortifications')) def *= 0.8; // extra 20% reduction
-    return def;
-  }
+  if (inCity) return TERRAIN_DEFENSE.city * WALL_DEF[cityWallLevel(cityObj)];
   if (tileType === 5) return TERRAIN_DEFENSE.forest;
   if (tileType === 2) return TERRAIN_DEFENSE.mountain;
   if (tileType === 7) return TERRAIN_DEFENSE.hill;
@@ -7165,7 +7167,7 @@ function tickCityCapture() {
         if (!city.captureProgress[occupier.nationId]) city.captureProgress[occupier.nationId] = 0;
         city.captureProgress[occupier.nationId]++;
         city.contested = true;
-        if (city.captureProgress[occupier.nationId] >= 4) {
+        if (city.captureProgress[occupier.nationId] >= WALL_HOLD[cityWallLevel(city)]) {
           const oldOwner = city.nationId;
 
           if (isBarbarianNation(occupier.nationId) && (city.isCapital || (city.population || 1) >= 3)) { // a real town is plundered; only a village can be burned to the ground
@@ -7281,7 +7283,7 @@ function tickCityCapture() {
             addFloatingText(city.x, city.y, 'City Lost!', '#d0603e', 2000, 16);
           }
         } else {
-          if (occupier.nationId === playerNation) showToast(`Occupying ${city.name}: ${city.captureProgress[occupier.nationId]}/4 turns`);
+          if (occupier.nationId === playerNation) showToast(`Occupying ${city.name}: ${city.captureProgress[occupier.nationId]}/${WALL_HOLD[cityWallLevel(city)]} turns${cityWallLevel(city) ? ' (walled)' : ''}`);
         }
         continue;
       }
@@ -8768,8 +8770,10 @@ function aiTurn(nationId) {
           && n.food >= settlerFood * 0.5
           && threatLevel <= combatCount * (n.food >= settlerFood * 2 ? 10 : 6) && (n.food >= settlerFood * 2 || Math.random() < 0.6)) {
         c.producing = 'settler';
-      } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.steel >= 20 && Math.random() < 0.35) {
+      } else if (threatLevel > 0 && !hasFort && n.stone >= 30 && n.wood >= 20 && Math.random() < 0.35) {
         c.producing = 'fortifications';
+      } else if (threatLevel > 0 && hasFort && !(c.buildings || []).includes('star_fort') && n.stone >= 50 && n.steel >= 25 && n.gold >= 30 && Math.random() < 0.2) {
+        c.producing = 'star_fort';
       } else if (threatLevel > 0) {
         c.producing = bestCombat;
       } else if (combatCount < minArmy) {
@@ -11778,20 +11782,70 @@ function snowySprite(img) {
   return c;
 }
 
+// a town's walls, raised round the painted town: a curtain of pale stone with round towers, or (with bastions) a star-fort trace.
+//  Drawn in two passes, the far side behind the town and the near side in front of it, so the town stands inside its walls.
+function drawTownWalls(cx, oy, w, level, pass) {
+  const R = w * (level === 2 ? 0.53 : 0.49), sy = 0.5, h = w * 0.07, lw = Math.max(0.8, w * 0.012);
+  const pts = [];
+  if (level === 2) { const n = 5; for (let k = 0; k < n * 2; k++) { const a = k / (n * 2) * Math.PI * 2 + Math.PI / 2, r = k & 1 ? R * 0.74 : R * 1.06; pts.push([cx + Math.cos(a) * r, oy + Math.sin(a) * r * sy]); } }
+  else for (let k = 0; k < 40; k++) { const a = k / 40 * Math.PI * 2; pts.push([cx + Math.cos(a) * R, oy + Math.sin(a) * R * sy]); }
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = lw;
+  for (let k = 0; k < pts.length; k++) {
+    const p = pts[k], q = pts[(k + 1) % pts.length], my = (p[1] + q[1]) / 2;
+    if ((pass === 'front') !== (my >= oy)) continue;
+    // the face of the wall: lit from the north-west, so the faces turned south and east fall in shade
+    const nx = q[1] - p[1], ny = -(q[0] - p[0]), nl = Math.hypot(nx, ny) || 1, lit = Math.max(0, (-nx * 0.5 - ny * 0.8) / nl);
+    const v = Math.round(150 + lit * 70);
+    ctx.fillStyle = `rgb(${v}, ${v - 10}, ${v - 34})`; ctx.strokeStyle = 'rgba(46, 32, 16, 0.9)';
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.lineTo(q[0], q[1] - h); ctx.lineTo(p[0], p[1] - h); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // the wall-walk along its top
+    ctx.strokeStyle = 'rgba(232, 222, 196, 0.95)'; ctx.lineWidth = Math.max(1, h * 0.35); ctx.beginPath(); ctx.moveTo(p[0], p[1] - h); ctx.lineTo(q[0], q[1] - h); ctx.stroke();
+    ctx.lineWidth = lw;
+  }
+  // towers (round, on the curtain wall) or sentry posts (on the bastions' points), the near ones in front
+  const posts = level === 2 ? pts.filter((_, k) => !(k & 1)) : pts.filter((_, k) => k % 5 === 2);
+  for (const [x, y] of posts) {
+    if ((pass === 'front') !== (y >= oy)) continue;
+    const tr = w * (level === 2 ? 0.045 : 0.055), th = h * 1.7;
+    ctx.fillStyle = 'rgb(176, 164, 136)'; ctx.strokeStyle = 'rgba(46, 32, 16, 0.9)';
+    ctx.beginPath(); ctx.moveTo(x - tr, y); ctx.lineTo(x - tr, y - th); ctx.ellipse(x, y - th, tr, tr * 0.5, 0, Math.PI, 0); ctx.lineTo(x + tr, y); ctx.ellipse(x, y, tr, tr * 0.5, 0, 0, Math.PI); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(70, 52, 30, 0.35)'; ctx.fillRect(x + tr * 0.1, y - th, tr * 0.9, th); // (its shaded side)
+    ctx.fillStyle = 'rgb(226, 214, 184)'; ctx.beginPath(); ctx.ellipse(x, y - th, tr, tr * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  if (pass === 'front') { // (the gate, facing south)
+    const gx = cx, gy = oy + R * (level === 2 ? 0.74 : 1) * sy, gw = w * 0.05;
+    ctx.fillStyle = 'rgba(40, 26, 12, 0.9)'; ctx.beginPath(); ctx.moveTo(gx - gw, gy); ctx.lineTo(gx - gw, gy - h * 0.7); ctx.quadraticCurveTo(gx, gy - h * 1.3, gx + gw, gy - h * 0.7); ctx.lineTo(gx + gw, gy); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
 function drawTown(city, cx, cy, w, faceH) {
   let seed = (city.x * 73856093) ^ (city.y * 19349663);
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   const pop = city.population || 1;
   const count = Math.min(9, 3 + Math.floor(pop / 2));
   const rx = w * 0.34, ry = faceH * 0.27;
-  const fortified = (city.buildings || []).includes('fortifications');
+  const wallLv = cityWallLevel(city), fortified = wallLv > 0;
   const col = nations[city.nationId]?.color || '#888';
   ctx.save();
   // trodden ground of the town
   ctx.fillStyle = 'rgba(120, 98, 66, 0.55)';
   ctx.beginPath(); ctx.ellipse(cx, cy + faceH * 0.04, rx * 1.12, ry * 1.18, 0, 0, Math.PI * 2); ctx.fill();
-  if (fortified && OW.canvas) {
-    // on the chart, walls as a fortress plan is drawn: a bastioned trace of pale stone ruled in ink, its points facing out
+  if (wallLv === 1 && OW.canvas && !townSprite(city)) {
+    // on the chart, a walled town as the old plans drew one: a ring of pale stone ruled in ink, with round towers along it
+    const oy = cy + faceH * 0.04, R = rx * 1.2, sy = ry / rx * 1.1, lw = Math.max(1, w * 0.018), tw = Math.max(2.5, rx * 0.2);
+    ctx.lineWidth = Math.max(3, rx * 0.16); ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)';
+    ctx.beginPath(); ctx.ellipse(cx, oy, R, R * sy, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = Math.max(1.6, rx * 0.16 - lw * 2); ctx.strokeStyle = 'rgba(214, 202, 172, 0.95)'; ctx.stroke();
+    for (let k = 0; k < 8; k++) {
+      const a2 = k / 8 * Math.PI * 2 + Math.PI / 8, x = cx + Math.cos(a2) * R, y = oy + Math.sin(a2) * R * sy;
+      ctx.fillStyle = 'rgba(206, 192, 160, 1)'; ctx.beginPath(); ctx.arc(x, y, tw, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)'; ctx.lineWidth = lw; ctx.stroke();
+      ctx.fillStyle = 'rgba(52, 36, 18, 0.35)'; ctx.beginPath(); ctx.arc(x + tw * 0.2, y + tw * 0.25, tw * 0.55, 0, Math.PI * 2); ctx.fill();
+    }
+    // (the gate, to the south)
+    ctx.fillStyle = 'rgba(52, 36, 18, 0.85)'; ctx.fillRect(cx - tw * 0.6, oy + R * sy - tw * 0.6, tw * 1.2, tw * 1.2);
+  } else if (fortified && OW.canvas && !townSprite(city)) {
+    // bastions: walls as a fortress plan is drawn: a bastioned trace of pale stone ruled in ink, its points facing out
     const n = 6, R1 = rx * 1.32, R2 = rx * 1.08, oy = cy + faceH * 0.04, sy = ry / rx;
     const trace = new Path2D();
     for (let k = 0; k < n * 2; k++) { const a2 = k / (n * 2) * Math.PI * 2 - Math.PI / 2, r = k & 1 ? R2 : R1; const x = cx + Math.cos(a2) * r, y = oy + Math.sin(a2) * r * sy * 1.1; k ? trace.lineTo(x, y) : trace.moveTo(x, y); }
@@ -11799,7 +11853,7 @@ function drawTown(city, cx, cy, w, faceH) {
     ctx.fillStyle = 'rgba(214, 202, 172, 0.85)'; ctx.fill(trace);
     ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.018); ctx.stroke(trace);
     ctx.fillStyle = 'rgba(120, 98, 66, 0.55)'; ctx.beginPath(); ctx.ellipse(cx, oy, rx * 0.95, ry * 1.0, 0, 0, Math.PI * 2); ctx.fill();
-  } else if (fortified) {
+  } else if (fortified && !townSprite(city)) {
     ctx.strokeStyle = '#8d8778'; ctx.lineWidth = Math.max(1.5, w * 0.035);
     ctx.beginPath(); ctx.ellipse(cx, cy + faceH * 0.04, rx * 1.22, ry * 1.3, 0, Math.PI, Math.PI * 2); ctx.stroke();
   }
@@ -11813,7 +11867,7 @@ function drawTown(city, cx, cy, w, faceH) {
   const LANDMARK_SLOTS = [[-0.62, -0.25], [0.7, -0.2], [-0.35, 0.55], [0.45, 0.6], [-0.8, 0.25], [0.85, 0.3], [0.05, 0.75]];
   let slot = 0;
   for (const b of (city.buildings || [])) {
-    if (b === 'fortifications' || slot >= LANDMARK_SLOTS.length) continue;
+    if (b === 'fortifications' || b === 'star_fort' || slot >= LANDMARK_SLOTS.length) continue;
     const [ax, ay] = LANDMARK_SLOTS[slot++];
     houses.push({ x: cx + rx * ax, y: cy + ry * ay, lm: b, s: 1 });
   }
@@ -11824,6 +11878,8 @@ function drawTown(city, cx, cy, w, faceH) {
     // the painted settlement, with what the town has built standing round it and the realm's flag above
     const tw = w * (city.isCapital ? 0.98 : pop >= 10 ? 1.02 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
     const top = cy + ry * 1.15 - th;
+    const wallY = cy + ry * 0.55;
+    if (wallLv) drawTownWalls(cx, wallY, w, wallLv, 'back');
     for (const h of houses) if (h.lm && h.y < cy) drawLandmark(h.lm, h.x, h.y, w); // behind the town
     { // (leaning a little away from the middle of the view, like the figures)
       const lean = OW.canvas ? Math.max(-0.12, Math.min(0.12, (cx - viewW / 2) / viewW * 0.16)) : 0, gy = top + th;
@@ -11836,6 +11892,7 @@ function drawTown(city, cx, cy, w, faceH) {
       ctx.restore();
     }
     for (const h of houses) if (h.lm && h.y >= cy) drawLandmark(h.lm, h.x, h.y, w);
+    if (wallLv) drawTownWalls(cx, wallY, w, wallLv, 'front');
     const fx = cx + tw * 0.08, fy = top + th * 0.08, fh = w * 0.16;
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
     ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - fh); ctx.stroke();
@@ -13184,7 +13241,7 @@ setTimeout(function owPreload() {
   for (const k of ['farm', 'market', 'mine', 'quarry', 'factory', 'urban', 'lumber_mill', 'barn', 'port', 'pasture', 'science_lab', 'treasury']) featSprite('v_' + k);
   for (const k of ['ft_ruins', 'ft_camp', 'ft_redoubt']) featSprite(k);
   for (const k in NATURAL_WONDERS) featSprite('nw_' + k);
-  for (const k in CITY_BUILDING_DEFS) if (k !== 'fortifications') landmarkSprite(k); // (walls are drawn, not pictured)
+  for (const k in CITY_BUILDING_DEFS) if (k !== 'fortifications' && k !== 'star_fort') landmarkSprite(k); // (walls are drawn, not pictured)
   townSprite(null); for (const k of ['capital', 'town', 'city', 'port']) { const img = TOWN_IMGS[k] = new Image(); img.src = `tiles/town_${k}.png`; }
   for (const k in UNIT_DEFS) unitFigure(k);
   for (const k in ANIMAL_DATA) featSprite('an_' + k);
@@ -14802,9 +14859,9 @@ function showUnitPanel(unit) {
     const uti = unit.y * MAP_COLS + unit.x;
     const uTerrain = tiles[uti].type;
     const unitCity = cities.find(c => c.x === unit.x && c.y === unit.y);
-    const hasCityFort = unitCity && (unitCity.buildings || []).includes('fortifications');
+    const wl = unitCity ? cityWallLevel(unitCity) : 0;
     const defLabel = (uTerrain === 5) ? 'Forest +25%' : (uTerrain === 2) ? 'Mountain +35%' : (uTerrain === 7) ? 'Hill +30%' : (uTerrain === 3) ? 'Swamp +15%' :
-                     unitCity ? (hasCityFort ? 'City +52%' : 'City +40%') : null;
+                     unitCity ? `${['City', 'Walls', 'Bastions'][wl]} +${Math.round((1 - TERRAIN_DEFENSE.city * WALL_DEF[wl]) * 100)}%` : null;
     if (defLabel) chips += chip(`🛡 ${defLabel}`, 'Defence the ground gives it', 'good');
     if (tiles[uti].hasRiver) chips += chip('River', 'On a river', 'water');
   }
@@ -15114,9 +15171,11 @@ function showCityTab(tab) {
 
     const cityBuildings = selectedCity.buildings || [];
     const globalBuiltWonders = new Set(cities.flatMap(c => (c.buildings || []).filter(b => CITY_BUILDING_DEFS[b]?.wonder)));
-    const availableBuildings = Object.entries(CITY_BUILDING_DEFS).filter(([key, bld]) => !bld.wonder && !cityBuildings.includes(key));
+    const availableBuildings = Object.entries(CITY_BUILDING_DEFS).filter(([key, bld]) => !bld.wonder && !cityBuildings.includes(key) && (!bld.requires || cityBuildings.includes(bld.requires)))
+      .sort((a, b) => (b[1].category === 'military') - (a[1].category === 'military'));
     if (availableBuildings.length > 0) {
-      html += '<div class="section-title">Buildings</div>';
+      const wl = cityWallLevel(selectedCity);
+      html += `<div class="section-title">Buildings</div><p style="font-size:11px;color:#c8b48a;margin:0 0 6px 4px;">\uD83C\uDFF0 Defences: <b>${['no walls', 'City Walls', 'Walls and Bastions'][wl]}</b> &mdash; garrison takes ${Math.round((1 - WALL_DEF[wl]) * 100)}% less harm; an enemy must hold the town ${WALL_HOLD[wl]} turns.</p>`;
       for (const [key, bld] of availableBuildings) {
         const costs = getScaledCosts(nId, PRODUCTION_COSTS[key]);
         const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
@@ -15440,6 +15499,9 @@ function setProd(type) {
 
   if (bld && bld.wonder && cities.some(c => (c.buildings || []).includes(type))) {
     showToast(`${bld.name} has already been built.`); return;
+  }
+  if (bld && bld.requires && !(selectedCity.buildings || []).includes(bld.requires) && selectedCity.producing !== bld.requires && !(selectedCity.productionQueue || []).includes(bld.requires)) {
+    showToast(`${bld.name} needs ${CITY_BUILDING_DEFS[bld.requires].name} first.`); return;
   }
   if (bld && (selectedCity.producing === type || (selectedCity.productionQueue || []).includes(type))) {
     showToast(`${bld.name} is already in the production queue.`); return;
