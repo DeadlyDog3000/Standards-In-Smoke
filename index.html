@@ -4429,7 +4429,7 @@ const SOUND_VOL = (() => { try { return Object.assign({ music: 1, amb: 1, sfx: 1
 function soundKind(el) {
   const src = el.currentSrc || el.src || '';
   if (MUSIC_TRACKS.some(t => src.includes(encodeURI(t)) || src.includes(t))) return 'music';
-  if (/birds|town\.m4a|marching_loop/.test(src)) return 'amb';
+  if (/birds|town\.m4a|city_|marching_loop/.test(src)) return 'amb';
   return 'sfx';
 }
 const _liveSounds = new Set();   // (the long ones: music and the loops, kept so a slider moved now is heard now)
@@ -4512,9 +4512,36 @@ const cannonShotSound = new Audio('cannon_shot.m4a');
 cannonShotSound.volume = 0.5;
 const fieldGunSound = new Audio('field_gun_shot.m4a');
 fieldGunSound.volume = 0.5;
-const townSound = new Audio('town.m4a');
+// A town heard from above: a market's crowd as the bed (recorded, CC0, BigSoundBank: "Outdoor Market #1", trimmed of its
+// rumble and made to loop), and now and then one sound of the place: a church bell swinging, a peal, a few bars of a
+// carillon, a horse walking by (all CC0, BigSoundBank). They replace the old loop and the synthesised street sounds.
+const townSound = new Audio('city_bed.m4a');
 townSound.loop = true; townSound.volume = 0;
 let townPlaying = false;
+const CITY_SHOTS = {
+  hooves:   { file: 'city_hooves.m4a',   vol: 0.42, gap: 12, w: 0.45 },
+  bell:     { file: 'city_bell.m4a',     vol: 0.34, gap: 45, w: 0.3 },
+  peal:     { file: 'city_peal.m4a',     vol: 0.28, gap: 90, w: 0.15 },
+  carillon: { file: 'city_carillon.m4a', vol: 0.24, gap: 120, w: 0.1 },
+};
+const _cityLast = {}, _cityEl = {};
+function cityOneShot(level) {
+  if (/[?&]mute\b/.test(location.search) || window.__sisMute) return;
+  const now = performance.now() / 1000;
+  const ready = Object.entries(CITY_SHOTS).filter(([k, c]) => now - (_cityLast[k] || -1e9) > c.gap);
+  // (only one bell at a time: a peal does not start over a bell still ringing)
+  const anyBell = ['bell', 'peal', 'carillon'].some(k => now - (_cityLast[k] || -1e9) < 25);
+  const pool = ready.filter(([k]) => k === 'hooves' || !anyBell);
+  if (!pool.length) return;
+  let r = Math.random() * pool.reduce((a, [, c]) => a + c.w, 0), pick = pool[0];
+  for (const e of pool) { r -= e[1].w; if (r <= 0) { pick = e; break; } }
+  const [k, c] = pick;
+  _cityLast[k] = now;
+  let el = _cityEl[k];
+  if (!el || !el.paused) el = _cityEl[k] = new Audio(c.file);
+  el.currentTime = 0; el.volume = Math.max(0, Math.min(1, c.vol * level));
+  el.play().catch(() => {});
+}
 // ---- THE SOUNDS OF THE TABLE, made as they play (Web Audio, no files): a wooden tick under a click, paper and the quill,
 //  the seal pressed at the turn's end, church bells for a town founded or a discovery, a smith's hammer for a thing built,
 //  the side drum for a regiment raised or a war begun, coin on the counter, boots and hooves on the march, steel on steel.
@@ -4639,7 +4666,8 @@ const SMK = (() => {
       amb.leaves.bf.frequency.setTargetAtTime(900 + gust * 600, t, 0.8);
       // a town's streets: a murmur that rises and falls as people pass
       const talk = 0.6 + 0.4 * Math.sin(t * 1.7) * Math.sin(t * 0.61);
-      amb.crowd.g.gain.setTargetAtTime(Tn * 0.07 * talk, t, 0.25); amb.crowdHi.g.gain.setTargetAtTime(Tn * 0.02 * talk, t, 0.2);
+      // (the town's murmur is the recorded market now, under townSound: the synthesised one is kept silent)
+      amb.crowd.g.gain.setTargetAtTime(0 * talk, t, 0.25); amb.crowdHi.g.gain.setTargetAtTime(0, t, 0.2);
       // and now and then, one sound of the place
       if (t - amb.last < 1.2) return; amb.last = t;
       const w = t + 0.05, R = Math.random();
@@ -4651,13 +4679,8 @@ const SMK = (() => {
         else if (pick < 0.65) { for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) { const tt = w + i * 0.75; strike(tt, 740, { vol: 0.045 * F, dec: 0.22, att: 0.03, parts: [[1, 1], [2, 0.08]], wet: 0.5 }); strike(tt + 0.24, 600, { vol: 0.04 * F, dec: 0.3, att: 0.03, parts: [[1, 1], [2, 0.08]], wet: 0.5 }); } } // cuckoo, far off
         else { const f = 180 + Math.random() * 120; const o = ac.createOscillator(), g = env(w, 0.012 * F, 0.3, 0.9, 0.3); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, w); o.frequency.linearRampToValueAtTime(f * 1.3, w + 1.1); const lp = ac.createBiquadFilter(); lp.type = 'bandpass'; lp.frequency.value = f * 3; lp.Q.value = 6; o.connect(lp); lp.connect(g); o.start(w); o.stop(w + 1.3); } // a bough creaking
       }
-      if (Tn > 0.12 && Math.random() < Tn * 0.4) {
-        const pick = Math.random();
-        if (pick < 0.3) { for (let i = 0; i < 3; i++) { const tt = w + i * 0.5 + Math.random() * 0.05; strike(tt, 1250, { vol: 0.03 * Tn, dec: 0.5, parts: [[1, 1], [2.76, 0.6, 0.4], [5.4, 0.4, 0.2]], wet: 0.4 }); } } // the smithy
-        else if (pick < 0.6) { noise(w, { f: 180, type: 'lowpass', att: 0.4, dur: 2.2, vol: 0.06 * Tn, wet: 0.2 }); for (let i = 0; i < 18; i++) noise(w + 0.2 + i * 0.11 + Math.random() * 0.03, { f: 900, q: 2, dur: 0.02, vol: 0.02 * Tn }); } // a cart over the cobbles
-        else if (pick < 0.75) bell(w, 196, 0.04 * Tn, 3.5); // the church bell
-        else { for (let i = 0; i < 2; i++) { noise(w + i * 0.18, { f: 700, q: 4, dur: 0.06, vol: 0.03 * Tn, wet: 0.3 }); strike(w + i * 0.18, 330, { vol: 0.02 * Tn, dec: 0.08, drop: 0.3 }); } } // hooves passing by
-      }
+      // a town's own sounds are recordings now (see CITY_SHOTS): a horse, a bell, a peal, a carillon, each in its turn
+      if (Tn > 0.12 && Math.random() < Tn * 0.3) { try { cityOneShot(Tn); } catch (e) {} }
       } finally { out = sfxOut; }
     },
   };
