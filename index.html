@@ -16256,6 +16256,9 @@ function quitToMenu() {
 
   const vo = document.getElementById('victoryOverlay'); if (vo) vo.remove();
   const do2 = document.getElementById('defeatOverlay'); if (do2) do2.remove();
+  // (the game's own prompts are put away with it, so none is left standing over the menu)
+  for (const id of ['noResearchPopup', 'idleCitiesPopup', 'electionOverlay', 'planningPopup']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+  document.querySelectorAll('[data-first-contact]').forEach(e => e.remove());
 
   marchSound.pause(); marchSound.currentTime = 0;
   birdSound.pause(); birdsPlaying = false;
