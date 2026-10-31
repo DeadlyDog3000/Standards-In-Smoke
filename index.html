@@ -526,6 +526,11 @@
       box-shadow: inset 0 0 0 2px rgba(16, 11, 6, 0.9), inset 0 0 0 3px rgba(198, 158, 80, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6);
     }
     .menu-btn:hover { background: linear-gradient(rgba(255, 215, 130, 0.2), rgba(90, 60, 20, 0.2)), var(--ow-leather); border-color: #d8b060; color: #fff4d8; }
+    #idleCitiesPopup > div, #noResearchPopup > div, #electionOverlay > div, #planningPopup {
+      background: var(--ow-corners), radial-gradient(ellipse at 50% 35%, rgba(90, 66, 36, 0.28), rgba(0, 0, 0, 0.38)), var(--ow-leather) !important;
+      border: 1px solid #7a5c2a !important; border-radius: 3px !important; box-shadow: var(--ow-gilt) !important;
+    }
+    #planningPopup { background: radial-gradient(ellipse at 50% 35%, rgba(90, 66, 36, 0.28), rgba(0, 0, 0, 0.38)), var(--ow-leather) !important; }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -768,7 +773,7 @@
         - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
         - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
-        - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean<br>
+        - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
       </div>
@@ -1735,7 +1740,7 @@
           - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
           - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
-          - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean<br>
+          - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
         </div>
@@ -11887,6 +11892,29 @@ function owRoseCanvas() {
   g.restore();
   return (_owRose = c);
 }
+function drawSheetBorder(w, cs, ch, facePad) {
+  if (!OW.canvas) return;
+  const chart = OW.canvas, fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
+  // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
+  const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
+  ctx.save();
+  const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 5.2); margin.rect(bx, by, bw, bh);
+  ctx.fillStyle = '#c9b38a'; ctx.fill(margin, 'evenodd');
+  const paper = owPaperPattern(ctx); if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fill(margin, 'evenodd'); ctx.globalCompositeOperation = 'source-over'; }
+  ctx.strokeStyle = 'rgba(40, 28, 16, 0.95)'; ctx.lineWidth = Math.max(2, w * 0.06);
+  ctx.strokeRect(bx - gap * 1.6, by - gap * 1.6, bw + gap * 3.2, bh + gap * 3.2);
+  ctx.lineWidth = Math.max(1, w * 0.018); ctx.strokeRect(bx - gap * 0.4, by - gap * 0.4, bw + gap * 0.8, bh + gap * 0.8);
+  ctx.fillStyle = 'rgba(40, 28, 16, 0.85)';
+  const step = cs * 2;
+  for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
+  for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
+  ctx.restore();
+}
+let _owCart = null;
+function owCartouche() {
+  if (!_owCart) { _owCart = new Image(); _owCart.src = 'ui/cartouche.png'; }
+  return _owCart.complete && _owCart.naturalWidth ? _owCart : null;
+}
 function drawRhumbs(cs, ch) {
   if (!MAP_COLS) return;
   const mw = MAP_COLS * cs, mh = MAP_ROWS * ch, ox = -camX * cs, oy = -camY * ch;
@@ -11895,6 +11923,13 @@ function drawRhumbs(cs, ch) {
   for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; hubs.push([c0[0] + Math.cos(a) * R * 1.25, c0[1] + Math.sin(a) * R]); }
   const L = Math.hypot(mw, mh), cols = ['rgba(150, 120, 70, 0.20)', 'rgba(90, 130, 80, 0.17)', 'rgba(160, 60, 40, 0.15)'];
   ctx.save(); ctx.lineWidth = 1;
+  // off the sheet is the table it lies on, darker; the lines stay on the vellum
+  if (OW.canvas) {
+    const fx = cs / OW.CS, fy = ch / OW.CH, sx = ox, sy = oy + Math.round(hexWidth() * 1.5 * 4 / 48), sw = OW.canvas.width * fx, sh = OW.canvas.height * fy, pad = Math.max(4, hexWidth() * 0.12) * 2.6;
+    const off = new Path2D(); off.rect(0, 0, viewW, viewH); off.rect(sx - pad, sy - pad, sw + pad * 2, sh + pad * 2);
+    ctx.fillStyle = 'rgba(6, 4, 2, 0.6)'; ctx.fill(off, 'evenodd');
+    ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+  }
   for (let band = 0; band < 3; band++) {
     ctx.strokeStyle = cols[band]; ctx.beginPath();
     for (const [hx, hy] of hubs) for (let k = 0; k < 32; k++) {
@@ -11904,6 +11939,22 @@ function drawRhumbs(cs, ch) {
       ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * L, hy + Math.sin(a) * L);
     }
     ctx.stroke();
+  }
+  // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
+  const cart = owCartouche();
+  if (cart) {
+    const cwid = Math.min(mw * 0.3, cs * 10), chgt = cwid * cart.naturalHeight / cart.naturalWidth;
+    const cx0 = ox + cs * 1.2, cy0 = oy + ch * 1.0, pcx = cx0 + cwid * 0.494, pcy = cy0 + chgt * 0.545;
+    ctx.globalAlpha = 0.92; ctx.drawImage(cart, cx0, cy0, cwid, chgt); ctx.globalAlpha = 1;
+    const n = nations[playerNation], year = getCurrentYear();
+    const roman = (v) => { let r = ''; for (const [k, ch2] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) while (v >= k) { r += ch2; v -= k; } return r; };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
+    const u = cwid / 100;
+    ctx.font = `italic ${Math.max(8, u * 4.2)}px 'EB Garamond', serif`; ctx.fillText('Charta Novissima', pcx, pcy - u * 7);
+    ctx.font = `${Math.max(10, u * 6.4)}px 'Uncial Antiqua', serif`; ctx.fillStyle = 'rgba(120, 30, 20, 0.95)';
+    const name = n ? n.name : ''; ctx.fillText(name, pcx, pcy, cwid * 0.42);
+    ctx.font = `italic ${Math.max(8, u * 3.8)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
+    ctx.fillText('Anno Domini ' + roman(year), pcx, pcy + u * 7.5);
   }
   // the great rose at the centre, and a small one at each hub
   const rose = owRoseCanvas(), big = Math.min(mw, mh) * 0.22;
@@ -11970,20 +12021,6 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     g.globalCompositeOperation = 'source-over';
   }
   ctx.drawImage(_owLayer.c, 0, 0, viewW, viewH);
-  // the sheet's border: a heavy rule and a fine one inside it, with the degrees ticked off between
-  const bx = ox, by = oy, bw = chart.width * fx, bh = chart.height * fy, gap = Math.max(4, w * 0.12);
-  ctx.save();
-  const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 5.2); margin.rect(bx, by, bw, bh);
-  ctx.fillStyle = '#c9b38a'; ctx.fill(margin, 'evenodd');
-  const paper = owPaperPattern(ctx); if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fill(margin, 'evenodd'); ctx.globalCompositeOperation = 'source-over'; }
-  ctx.strokeStyle = 'rgba(40, 28, 16, 0.95)'; ctx.lineWidth = Math.max(2, w * 0.06);
-  ctx.strokeRect(bx - gap * 1.6, by - gap * 1.6, bw + gap * 3.2, bh + gap * 3.2);
-  ctx.lineWidth = Math.max(1, w * 0.018); ctx.strokeRect(bx - gap * 0.4, by - gap * 0.4, bw + gap * 0.8, bh + gap * 0.8);
-  ctx.fillStyle = 'rgba(40, 28, 16, 0.85)';
-  const step = cs * 2;
-  for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
-  for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
-  ctx.restore();
   return true;
 }
 function render() {
@@ -11999,6 +12036,7 @@ function render() {
   } else ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, viewW, viewH);
   drawRhumbs(cs, ch);
+  if (MAP_COLS && tiles.length) { getWorldChart(); drawSheetBorder(hexWidth(), cs, ch, Math.round(hexWidth() * 1.5 * 4 / 48)); }
 
   const shake = getShakeOffset();
   if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y);
