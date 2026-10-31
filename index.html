@@ -11797,7 +11797,8 @@ function owLandFields(tileKey) {
   while (K > 12 && ((MAP_COLS * 0.75 + 0.25) * K) * ((MAP_ROWS + 0.5) * 0.72 * K) > budget) K -= K > 24 ? 8 : 4;
   const CS = 0.75 * K, CH = 0.72 * K;
   const TW = Math.ceil((MAP_COLS - 1) * CS + K), TH = Math.ceil((MAP_ROWS + 0.5) * CH);
-  const R = 3, LW = Math.ceil(TW / R) + 1, LH = Math.ceil(TH / R) + 1;
+  // (the land is sampled about twenty times across a hex, whatever the sheet's scale)
+  const R = Math.max(3, Math.round(K / 20)), LW = Math.ceil(TW / R) + 1, LH = Math.ceil(TH / R) + 1;
   const N = LW * LH, H = new Float32Array(N), WAT = new Float32Array(N), WT = new Uint8Array(N * 9), MNT = new Float32Array(N), acc = new Float32Array(9);
   // past the edge of the map the land (or sea) runs on as it was at the edge
   const typeAt = (c, r) => tiles[Math.min(MAP_ROWS - 1, Math.max(0, r)) * MAP_COLS + Math.min(MAP_COLS - 1, Math.max(0, c))].type;
@@ -11827,9 +11828,11 @@ function owLandFields(tileKey) {
       const wat = swat / swW + (owFbm(X * 1.7, Y * 1.7, 11, 3) - 0.5) * 0.34;
       WAT[i] = wat;
       const rough = srough / sw, mt = smt / sw;
-      // ridged noise for the mountains, soft rolls elsewhere
-      const ridge = 1 - Math.abs(owFbm(X * 2.2, Y * 2.2, 5, 4) * 2 - 1);
-      H[i] = sh / sw + rough * (mt > 0.15 ? ridge * ridge * 1.3 - 0.2 : (owFbm(X * 2.5, Y * 2.5, 3, 4) - 0.5) * 2);
+      // ridged noise for the mountains, soft rolls elsewhere (fewer octaves on the flat, where they hardly show)
+      let rel;
+      if (mt > 0.15) { const ridge = 1 - Math.abs(owFbm(X * 2.2, Y * 2.2, 5, 4) * 2 - 1); rel = ridge * ridge * 1.3 - 0.2; }
+      else rel = (owFbm(X * 2.5, Y * 2.5, 3, rough > 0.1 ? 4 : 2) - 0.5) * 2;
+      H[i] = sh / sw + rough * rel;
       MNT[i] = mt;
       // how much of each kind of ground lies here (the season's colours are mixed from these)
       for (let t = 0; t < 9; t++) WT[i * 9 + t] = 0;
@@ -11915,13 +11918,14 @@ function owLandFields(tileKey) {
     if (WAT[i] >= 0.5) NS[i] = owFbm(x * R / K * 0.8, y * R / K * 0.8, 23, 3) - 0.5;
     else {
       const hx = H[Math.min(N - 1, i + 1)] - H[Math.max(0, i - 1)], hy = H[Math.min(N - 1, i + LW)] - H[Math.max(0, i - LW)];
-      let sh = Math.max(0.55, Math.min(1.4, 1 + (hx + hy) * 1.1));
+      const rs = R / 3; // (slopes and shadows are measured in samples: keep them the same whatever the sampling)
+      let sh = Math.max(0.55, Math.min(1.4, 1 + (hx + hy) * 1.1 / rs));
       // cast shadows: look back toward the sun (north-west, low in the sky); higher ground in the way throws its shadow here
-      const h0 = H[i];
-      for (let k = 1; k <= 10; k++) {
+      const h0 = H[i], steps = Math.max(4, Math.round(10 / rs));
+      for (let k = 1; k <= steps; k++) {
         const sx = x - k * 2, sy = y - k * 2;
         if (sx < 0 || sy < 0) break;
-        if (H[sy * LW + sx] - h0 > k * 0.075) { sh *= 0.8; break; }
+        if (H[sy * LW + sx] - h0 > k * 0.075 * rs) { sh *= 0.8; break; }
       }
       SH[i] = sh;
       NL[i] = owFbm(x * R / K * 3, y * R / K * 3, 31, 3) - 0.5;
@@ -11998,7 +12002,8 @@ function buildWorldChart(key) {
   // a pale shore wash and the coast itself in ink
   g.strokeStyle = 'rgba(232, 222, 190, 0.35)'; g.lineWidth = 4 * u; g.stroke(OW.F.coast);
   g.strokeStyle = ink + '0.9)'; g.lineWidth = 1.6 * u; g.stroke(OW.F.coast);
-  owDrawMarks(g, marks, season, u);
+  // (on a coarse sheet the grass tufts would be a pixel or two: they're inked at the view's own scale instead)
+  owDrawMarks(g, K >= 40 ? marks : marks.filter(m => m.k !== 'tuft'), season, u);
   OW.season = season;
   const grid = OW.F.grid;
   g.strokeStyle = 'rgba(60, 44, 26, 0.16)'; g.lineWidth = 1 * u; g.stroke(grid);
