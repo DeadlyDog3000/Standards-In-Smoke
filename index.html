@@ -10161,7 +10161,7 @@ function drawNaturalWonder(key, cx, cy, w) {
 
 // ---- Ancient ruins: scattered over the wild land; the first unit of any realm to reach one finds something ----
 function scatterRuins() {
-  const want = Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 260));
+  const want = Math.min(40, Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 260))); // at most 40 even on the largest maps
   let placed = 0;
   for (let tries = 0; tries < want * 40 && placed < want; tries++) {
     const x = Math.floor(Math.random() * MAP_COLS), y = Math.floor(Math.random() * MAP_ROWS), t = tiles[y * MAP_COLS + x];
