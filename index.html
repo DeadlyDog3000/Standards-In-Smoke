@@ -11922,11 +11922,12 @@ function owLandFields(tileKey) {
   };
   const marks = genMarks();
   // the survey grid: every hex outlined faintly in ink
-  const grid = new Path2D(), qx = CS / 3, hx2 = CS * 2 / 3, hy = CH / 2;
+  // (two grids: the one over the land ruled firmer than the one over open water, where a chart leaves the sea clean)
+  const grid = new Path2D(), gridSea = new Path2D(), qx = CS / 3, hx2 = CS * 2 / 3, hy = CH / 2;
   for (let r = 0; r < MAP_ROWS; r++) for (let cI = 0; cI < MAP_COLS; cI++) {
-    const cx = cI * CS + K / 2, cy = r * CH + (cI & 1) * CH / 2 + CH / 2;
-    grid.moveTo(cx - hx2, cy); grid.lineTo(cx - qx, cy - hy); grid.lineTo(cx + qx, cy - hy); grid.lineTo(cx + hx2, cy);
-    if (!(cI & 1) || r === MAP_ROWS - 1) { grid.moveTo(cx - hx2, cy); grid.lineTo(cx - qx, cy + hy); grid.lineTo(cx + qx, cy + hy); grid.lineTo(cx + hx2, cy); }
+    const cx = cI * CS + K / 2, cy = r * CH + (cI & 1) * CH / 2 + CH / 2, gp = typeAt(cI, r) === 0 ? gridSea : grid;
+    gp.moveTo(cx - hx2, cy); gp.lineTo(cx - qx, cy - hy); gp.lineTo(cx + qx, cy - hy); gp.lineTo(cx + hx2, cy);
+    if (!(cI & 1) || r === MAP_ROWS - 1) { gp.moveTo(cx - hx2, cy); gp.lineTo(cx - qx, cy + hy); gp.lineTo(cx + qx, cy + hy); gp.lineTo(cx + hx2, cy); }
   }
   // the grain of the sea and the land, and the light on every slope
   const NS = new Float32Array(N), NL = new Float32Array(N), SH = new Float32Array(N);
@@ -11951,7 +11952,7 @@ function owLandFields(tileKey) {
   }
   };
   shadeFill(0, 0, LW, LH);
-  return { tileKey, K, CS, CH, TW, TH, R, LW, LH, N, H, WAT, MNT, NEAR, WT, marks, grid, NS, NL, SH, fill, shadeFill, genMarks,
+  return { tileKey, K, CS, CH, TW, TH, R, LW, LH, N, H, WAT, MNT, NEAR, WT, marks, grid, gridSea, NS, NL, SH, fill, shadeFill, genMarks,
     dims: MAP_COLS + 'x' + MAP_ROWS, types: Uint8Array.from(tiles, t => t.type),
     waterLines: [0.42, 0.28, 0.17, 0.09].map(l => contour(NEAR, l)), coast: contour(WAT, 0.5) };
 }
@@ -12025,6 +12026,7 @@ function buildWorldChart(key) {
   OW.season = season;
   const grid = OW.F.grid;
   g.strokeStyle = 'rgba(60, 44, 26, 0.16)'; g.lineWidth = 1 * u; g.stroke(grid);
+  g.strokeStyle = 'rgba(30, 50, 56, 0.09)'; g.stroke(OW.F.gridSea);
   // paper: grain and foxing over everything
   const pat = owPaperPattern(g);
   if (pat) { g.globalCompositeOperation = 'multiply'; g.fillStyle = pat; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over'; }
@@ -12092,14 +12094,14 @@ function owPlaceNames() {
       let cx = 0, cy = 0; for (const i of g.cells) { cx += i % MAP_COLS; cy += Math.floor(i / MAP_COLS); } cx /= n; cy /= n;
       let best = g.cells[0], bs = -1e9;
       // (well inside the sheet, so the lettering isn't cut off at its border)
-      const inset = (x, y) => Math.min(x - 5, MAP_COLS - 6 - x, (y - 2) * 2, (MAP_ROWS - 3 - y) * 2);
+      const inset = (x, y) => Math.min(x - 9, MAP_COLS - 10 - x, (y - 2) * 2, (MAP_ROWS - 3 - y) * 2);
       for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 - Math.hypot(x - cx, y - cy) * 0.5 + Math.min(0, inset(x, y)) * 4; if (sc > bs) { bs = sc; best = i; } }
       const big = n >= 60;
       labels.push({ i: best, text: big ? OW_SEA_NAMES[seaN++ % OW_SEA_NAMES.length] : OW_LAKE_NAMES[lakeN++ % OW_LAKE_NAMES.length], kind: 'sea', size: (big ? 0.42 : 0.3) * Math.min(4, Math.max(1, Math.sqrt(n) / 9)) });
       // the open sea gets a monster or a ship, well away from the shore and from each other
       if (n >= 40) {
         const want = Math.min(4, 1 + Math.floor(n / 160)), picked = [];
-        const cand = g.cells.filter(i => depth[i] >= 3 && i !== best).sort((a, b) => owHash(a, 1, 9) - owHash(b, 1, 9));
+        const cand = g.cells.filter(i => { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS); return depth[i] >= 3 && i !== best && x >= 3 && y >= 2 && x < MAP_COLS - 3 && y < MAP_ROWS - 2; }).sort((a, b) => owHash(a, 1, 9) - owHash(b, 1, 9));
         for (const i of cand) {
           if (picked.length >= want) break;
           const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), bx = best % MAP_COLS, by = Math.floor(best / MAP_COLS);
