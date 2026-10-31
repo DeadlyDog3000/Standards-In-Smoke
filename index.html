@@ -13502,18 +13502,34 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
   const masks = owMasks(pId);
   OW.lastDraw = Date.now();
   if (!masks.any) return true;
-  const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
-  const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
+  const fx = cs / OW.CS, fy = ch / OW.CH;
   const fadeT = OW.prevKnown ? Math.min(1, (Date.now() - OW.fadeStart) / 650) : 1;
   if (fadeT >= 1) OW.prevKnown = null;
+  // The sheet is inked with a margin of half a view all round and slid under the hexes as the camera
+  // pans: rebuilt only when the view runs past the margin, or the zoom or the map changes. (It was
+  // re-inked whole on every frame of a pan, soft while moving and sharp at rest, which is most of
+  // what made moving the camera feel janky.)
+  // (a quarter of a view each side, less on a big high-density screen: Safari refuses a canvas over ~16 million pixels)
+  const padF = Math.max(0, Math.min(0.25, (Math.sqrt(15e6 / Math.max(1, viewW * viewH * DPR * DPR)) - 1) / 2));
+  const PADX = Math.round(viewW * padF), PADY = Math.round(viewH * padF);
+  const A = _owLayer.anchor, baseKey = [OW.maskKey, OW.assetGen || 0, w, viewW, viewH, DPR, fadeT.toFixed(2)].join('|');
+  const inMargin = A && A.base === baseKey && Math.abs(camX - A.x) * cs < PADX * 0.85 && Math.abs(camY - A.y) * ch < PADY * 0.85;
+  const ax = inMargin ? A.x : camX, ay = inMargin ? A.y : camY;
+  const saved = [camX, camY, viewW, viewH];
+  camX = ax - PADX / cs; camY = ay - PADY / ch; viewW += PADX * 2; viewH += PADY * 2;
+  try {
+  const ox = -camX * cs, oy = -camY * ch + facePad;
+  const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
   // while the view is moving, the sharp re-inking of a wide view waits: it's drawn once the view comes to rest
-  const camKey = camX.toFixed(3) + ',' + camY.toFixed(3) + ',' + w, now = Date.now();
+  const camKey = saved[0].toFixed(3) + ',' + saved[1].toFixed(3) + ',' + w, now = Date.now();
   if (OW.camKey !== camKey) { OW.camKey = camKey; OW.moveUntil = now + 180; if (!OW.restTimer) OW.restTimer = setTimeout(function rest() { if (Date.now() < OW.moveUntil) { OW.restTimer = setTimeout(rest, OW.moveUntil - Date.now() + 5); return; } OW.restTimer = 0; render(); }, 190); }
   // (close in, with few hexes in view, the re-inking is cheap enough to keep up with the view as it moves, so the chart never goes soft under a pan)
-  const settled = window.__film || now >= (OW.moveUntil || 0) || (viewW / cs) * (viewH / ch) < 700;
-  const key = [OW.maskKey, OW.assetGen || 0, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), settled ? 1 : 0].join('|');
+  const settled = window.__film || now >= (OW.moveUntil || 0) || (saved[2] / cs) * (saved[3] / ch) < 700;
+  // (a sharp layer stays sharp while the view moves inside its margin; a soft one is inked sharp once the view rests)
+  const sharp = settled || (inMargin && _owLayer.sharp);
+  const key = [OW.maskKey, OW.assetGen || 0, camX.toFixed(3), camY.toFixed(3), w, W, H, fadeT.toFixed(2), sharp ? 1 : 0].join('|');
   if (_owLayer.key !== key) {
-    _owLayer.key = key;
+    _owLayer.key = key; _owLayer.sharp = sharp;
     const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
     if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
     const g = c.getContext('2d');
@@ -13540,7 +13556,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       // shown larger than it was drawn: ink the coast and the trees, peaks and reeds again at the view's own sharpness
       // (when filming, the re-inking fades in across the zoom rather than switching on at once)
       const inkA = window.__film ? Math.max(0, Math.min(1, (fx * DPR - 1.05) / 0.5)) : 1;
-      if (fx * DPR > (window.__film ? 1.05 : 1.25) && OW.F && settled) {
+      if (fx * DPR > (window.__film ? 1.05 : 1.25) && OW.F && sharp) {
         g.save(); g.globalAlpha = inkA; g.translate(ox, oy); g.scale(fx, fy);
         g.lineCap = 'round'; g.lineJoin = 'round';
         g.strokeStyle = 'rgba(52, 38, 24, 0.9)'; g.lineWidth = 1.6 * OW.K / 64; g.stroke(OW.F.coast);
@@ -13562,8 +13578,10 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       g.globalCompositeOperation = 'source-over';
     }
   }
-  ctx.drawImage(_owLayer.c, 0, 0, viewW, viewH);
-  if (masks.any) owDrawWaterMotion(masks, fx, fy, ox, oy);
+  _owLayer.anchor = { x: ax, y: ay, base: baseKey };
+  } finally { [camX, camY, viewW, viewH] = saved; }
+  ctx.drawImage(_owLayer.c, (ax - camX) * cs - PADX, (ay - camY) * ch - PADY, viewW + PADX * 2, viewH + PADY * 2);
+  if (masks.any) owDrawWaterMotion(masks, fx, fy, -camX * cs, -camY * ch + facePad);
   return true;
 }
 // ---- the sea alive on the chart: rows of little engraved wave-marks drifting slowly with the wind, two sets crossing, and here
@@ -17109,8 +17127,10 @@ canvas.addEventListener('mousemove', (e) => {
     else if (!hu && !hc) { hoveredUnit = null; hoveredCity = null; }
   }
   updateTileTooltip(mx, my, e.clientX, e.clientY);
-  render();
+  renderSoon();   // (once a frame: a fast mouse sends two or three moves a frame, and each redrew the whole map)
 });
+let _renderSoon = false;
+function renderSoon() { if (_renderSoon) return; _renderSoon = true; requestAnimationFrame(() => { _renderSoon = false; render(); }); }
 
 document.addEventListener('mouseup', (e) => {
   if (e.button === 0) { isDragging = false; canvas.style.cursor = ''; }
@@ -17888,24 +17908,37 @@ document.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = fals
 // keys held when the window loses focus never send their keyup: forget them, or the map would pan on its own
 window.addEventListener('blur', () => { for (const k in keysDown) keysDown[k] = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { for (const k in keysDown) keysDown[k] = false; SMK.stopAmbience(); SMK.marchStop(); } });
-setInterval(() => {
-  if (!MAP_COLS || escMenuOpen || eventModalOpen || techTreeOpen) return;
+// The keys glide the camera: a speed in screen pixels a second that eases up when a key goes down
+// and eases off when it comes up, stepped every frame. (It used to jump two whole hexes twenty times
+// a second, which is what made moving the camera feel janky.) Shift doubles the pace.
+const KEY_PAN = { vx: 0, vy: 0, last: 0, on: false, SPEED: 1100 };
+function keyPanStep(now) {
+  const dt = Math.min(0.05, KEY_PAN.last ? (now - KEY_PAN.last) / 1000 : 1 / 60); KEY_PAN.last = now;
   const menuEl = document.getElementById('menu');
-  if (menuEl && menuEl.style.display !== 'none') return;
-  let dx = 0, dy = 0;
-  if (keysDown['w'] || keysDown['arrowup']) dy = -2;
-  if (keysDown['s'] || keysDown['arrowdown']) dy = 2;
-  if (keysDown['a'] || keysDown['arrowleft']) dx = -2;
-  if (keysDown['d'] || keysDown['arrowright']) dx = 2;
-  if (dx || dy) {
-    camX = clampCamX(camX + dx);
-    camY = clampCamY(camY + dy);
-    const rrCS = hexColStep(), rrCH = hexCellH();
-    const hh = pixelToHex(lastMouseX + camX * rrCS, lastMouseY + camY * rrCH);
-    hoveredMX = hh.col; hoveredMY = hh.row;
-    render();
+  const blocked = !MAP_COLS || escMenuOpen || eventModalOpen || techTreeOpen || (menuEl && menuEl.style.display !== 'none');
+  let ix = 0, iy = 0;
+  if (!blocked) {
+    if (keysDown['w'] || keysDown['arrowup']) iy -= 1;
+    if (keysDown['s'] || keysDown['arrowdown']) iy += 1;
+    if (keysDown['a'] || keysDown['arrowleft']) ix -= 1;
+    if (keysDown['d'] || keysDown['arrowright']) ix += 1;
   }
-}, 50);
+  const n = Math.hypot(ix, iy) || 1, sp = KEY_PAN.SPEED * (keysDown['shift'] ? 2 : 1);
+  const k = 1 - Math.exp(-dt * (ix || iy ? 10 : 14));   // (a quick start, a quicker stop)
+  KEY_PAN.vx += (ix / n * sp - KEY_PAN.vx) * k; KEY_PAN.vy += (iy / n * sp - KEY_PAN.vy) * k;
+  if (Math.abs(KEY_PAN.vx) < 4 && Math.abs(KEY_PAN.vy) < 4 && !ix && !iy) { KEY_PAN.vx = KEY_PAN.vy = 0; KEY_PAN.on = false; KEY_PAN.last = 0; return; }
+  const cs = hexColStep(), ch = hexCellH();
+  camX = clampCamX(camX + KEY_PAN.vx * dt / cs);
+  camY = clampCamY(camY + KEY_PAN.vy * dt / ch);
+  const hh = pixelToHex(lastMouseX + camX * cs, lastMouseY + camY * ch);
+  hoveredMX = hh.col; hoveredMY = hh.row;
+  render();
+  requestAnimationFrame(keyPanStep);
+}
+document.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (!KEY_PAN.on && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k) && keysDown[k]) { KEY_PAN.on = true; KEY_PAN.last = 0; requestAnimationFrame(keyPanStep); }
+});
 
 window.enterRangedMode = function() {
   const canRanged = selectedUnit && (selectedUnit.movesLeft >= (selectedUnit.turnStartMoves ?? selectedUnit.maxMoves) || (selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0));
