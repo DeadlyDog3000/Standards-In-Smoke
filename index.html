@@ -484,6 +484,8 @@
     @keyframes warFlash { 0% { background: rgba(200,30,10,0.9); } 100% { background: rgba(80,10,5,0.85); } }
     @keyframes pulseEndTurn { 0%, 100% { box-shadow: 0 0 4px rgba(255,180,60,0.3); } 50% { box-shadow: 0 0 14px rgba(255,180,60,0.7); } }
     .end-turn-pulse { animation: pulseEndTurn 1.5s ease-in-out infinite; }
+    #nextUnitBtn.units-waiting { background: linear-gradient(#b08a3c, #7a5a20); border-color: #f0cf72; color: #fff6dc; font-weight: 600; }
+    #nextUnitBtn:not(.units-waiting) { opacity: 0.6; }
     body.mobile-mode #minimap { display: none; }
     body.mobile-mode #zoomInfo { display: none; }
     body.mobile-mode #menu h1 { font-size: clamp(36px, 11vw, 48px); }
@@ -12122,10 +12124,17 @@ function figureSilhouette(img) {
 }
 // regiments stand as small figures on the chart, well inside their hex, as a wargamer's miniatures on a map table
 const UNIT_FIG_SCALE = 0.76;
-function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0) {
+function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0, ready = false, spent = false) {
   const naval = img.width > img.height * 1.15 && /frigate|galleon|man_of_war/.test(img.src);
   const rx = w * 0.22, ry = w * 0.08;
   ctx.save();
+  if (ready && !selected) { // (waiting for orders: a gilt ring on the ground round it, gently breathing)
+    const ph = 0.5 + 0.5 * Math.sin(Date.now() / 260);
+    ctx.save(); ctx.strokeStyle = `rgba(250, 214, 110, ${0.55 + ph * 0.4})`; ctx.lineWidth = Math.max(2, w * 0.04);
+    ctx.shadowColor = 'rgba(255, 220, 120, 0.9)'; ctx.shadowBlur = w * 0.08;
+    ctx.beginPath(); ctx.ellipse(cx, baseY + ry * 0.4, rx * (1.45 + ph * 0.12), ry * (1.6 + ph * 0.12), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+  if (spent) { ctx.globalAlpha = 0.62; ctx.filter = 'grayscale(0.75)'; } // (done for the turn)
   // its shadow, and the ring of its colours on the ground
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(cx + w * 0.04, baseY + ry * 0.35, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2); ctx.fill();
@@ -14250,7 +14259,7 @@ function render() {
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0);
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, u.nationId === pId && !u._animating && unitAwaitsOrders(u), u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
@@ -14811,18 +14820,32 @@ function updateUI() {
   }
 
   const btn = document.getElementById('endTurnBtn');
-  const anyMoves = units.some(u => u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified);
-  if (!anyMoves) btn.classList.add('end-turn-pulse');
+  const waiting = units.filter(unitAwaitsOrders).length;
+  if (!waiting) btn.classList.add('end-turn-pulse');
   else btn.classList.remove('end-turn-pulse');
+  // the Next button counts the regiments still waiting for orders, gilt while there are any
+  const nb = document.getElementById('nextUnitBtn');
+  if (nb) {
+    const lbl = waiting ? `Next Unit (${waiting})` : (ordersRemaining > 0 ? 'All Moved' : 'No Orders Left');
+    nb.querySelector('.btn-full').textContent = lbl; nb.querySelector('.btn-short').textContent = waiting ? `Next ${waiting}` : '\u2713'; nb.querySelector('.btn-ico').textContent = waiting ? `\u2192 ${waiting}` : '\u2713';
+    nb.classList.toggle('units-waiting', waiting > 0);
+    nb.title = waiting ? `${waiting} regiment${waiting > 1 ? 's' : ''} still waiting for orders: go to the next (Q or N)` : 'No regiment is waiting for orders';
+  }
 }
 
 function hidePanel() { document.getElementById('panel').style.display = 'none'; stopSelectionFlash(); }
 
+// a regiment of yours that can still be given an order this turn (none can, once the orders are spent)
+function unitAwaitsOrders(u) {
+  return u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore && ordersRemaining > 0;
+}
 function cycleToNextUnit(force = false) {
   if (!force && !autoNextUnit) return;
-  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore);
+  const all = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore);
+  const available = all.filter(u => u !== selectedUnit);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
-  const next = available[0];
+  const cur = selectedUnit ? units.indexOf(selectedUnit) : -1;
+  const next = available.find(u => units.indexOf(u) > cur) || available[0];
   selectedUnit = next; selectedCity = null;
   moveMode = false; gotoMode = false; rangedMode = false; buyTileMode = false; workerBuyMode = false; reachableTiles.clear();
   panCameraTo(next.x, next.y);
