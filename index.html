@@ -705,6 +705,11 @@
     #menuTitle { background: var(--ow-corners), radial-gradient(ellipse at 50% 40%, rgba(50, 76, 104, 0.55), rgba(4, 8, 14, 0.88) 80%), var(--ow-leather);
       border-color: var(--owk-gold-2); box-shadow: inset 0 0 0 4px rgba(4, 8, 14, 0.85), inset 0 0 0 5px rgba(201, 164, 90, 0.55), inset 0 0 0 9px rgba(4, 8, 14, 0.6), inset 0 0 0 10px rgba(201, 164, 90, 0.3), 0 14px 40px rgba(0, 0, 0, 0.7); }
     .promo-card { background: rgba(8, 14, 22, 0.85); border-color: rgba(201, 164, 90, 0.4); }
+    /* promotions: those held as small gilt labels, those earned as choices */
+    .promo-held { margin: 2px 0 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .promo-held span { font-size: 10.5px; color: #f0dcae; padding: 1px 7px; border: 1px solid rgba(201, 164, 90, 0.55); border-radius: 9px; background: rgba(201, 164, 90, 0.12); cursor: help; }
+    .p-btn.promo-pick { border-color: rgba(232, 192, 112, 0.8); }
+    .p-btn.promo-pick b { color: #f4dca0; font-weight: normal; }
     /* ambitions: a gilt plaque under the turn, and the card where they're chosen */
     #ambitionPlaque { position: fixed; top: 44px; left: 50%; transform: translateX(-50%); z-index: 25; min-width: 200px; padding: 5px 14px 6px; cursor: pointer; text-align: center; border-radius: 0 0 4px 4px; border-top: none !important;
       background: linear-gradient(rgba(16, 26, 38, 0.92), rgba(8, 14, 22, 0.95)), var(--ow-leather); border: 1px solid var(--owk-gold-2);
@@ -965,7 +970,7 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">Ambitions, Campaigns and Sieges</b><br>
+        <b style="color:#b8a070;">Ambitions, Promotions and Campaigns</b><br>
         - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
         - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
         - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
@@ -973,6 +978,7 @@
         - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
         - The title screen and its buttons in navy and gold too<br>
         - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
+        - Promotions, as in Old World: every rank a regiment reaches earns it a promotion, chosen from two in its panel whenever you like (a gilt star over it says one is waiting): Drilled, Hardened, Iron Discipline, Field Surgeons, Forced Marches, Squares Against Horse for the foot, Pursuit for the horse, Gunnery for the guns. The other crowns promote theirs too<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -1996,7 +2002,7 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">Ambitions, Campaigns and Sieges</b><br>
+          <b style="color:#b8a070;">Ambitions, Promotions and Campaigns</b><br>
           - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
           - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
           - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
@@ -2004,6 +2010,7 @@
           - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
           - The title screen and its buttons in navy and gold too<br>
           - The rival crowns keep ambitions too: theirs count in their score and legitimacy as yours do (the Kingdoms panel shows how many each has fulfilled), though only you can win by them. An ambition out of reach can be set aside for another at the cost of 5 legitimacy<br>
+          - Promotions, as in Old World: every rank a regiment reaches earns it a promotion, chosen from two in its panel whenever you like (a gilt star over it says one is waiting): Drilled, Hardened, Iron Discipline, Field Surgeons, Forced Marches, Squares Against Horse for the foot, Pursuit for the horse, Gunnery for the guns. The other crowns promote theirs too<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -3239,7 +3246,7 @@ function getEffectiveMorale(unit) {
 
 function applyMoraleDamage(unit, amount, context) {
   if (!UNIT_DEFS[unit.type]?.combat) return;
-  unit.morale = Math.max(0, (unit.morale ?? MORALE_MAX) - amount);
+  unit.morale = Math.max(0, (unit.morale ?? MORALE_MAX) - amount * (hasPromo(unit, 'discipline') ? 0.5 : 1));
 }
 
 function checkMoraleBreak(unit, depth) {
@@ -3422,12 +3429,12 @@ function getEffectiveAtk(unit, target) {
   bonus += cmdBonus.atkBonus;
   // (a merged regiment: each company formed into it adds four-fifths of its own fire)
   const more = (unit.merged || []).reduce((a, t) => a + (UNIT_DEFS[t]?.atk || 4) * 0.8, 0);
-  return Math.round((base + bonus + more) * formBonus.atkMult);
+  return Math.round((base + bonus + more) * formBonus.atkMult * promoAtkMult(unit, target));
 }
 function getEffectiveMaxHp(unit) {
   const base = UNIT_DEFS[unit.type].hp || (UNIT_DEFS[unit.type].combat ? 10 : 5);
   const more = (unit.merged || []).reduce((a, t) => a + (UNIT_DEFS[t]?.hp || 10), 0);   // (and its men)
-  return base + more + getUnitLevel(unit).hpBonus;
+  return base + more + getUnitLevel(unit).hpBonus + (hasPromo(unit, 'hardened') ? 3 : 0);
 }
 // ---- merging regiments: right-click one of your own beside the regiment you have chosen, and it marches in and
 //  takes the other into its ranks: up to three companies under one colour, their men and their fire added together,
@@ -3566,6 +3573,67 @@ function aiMergeRegiments(nationId) {
     if (b) mergeRegiments(a, b);
   }
 }
+// ---- promotions, after Old World: each rank a regiment reaches earns it a promotion, chosen from two whenever you like
+//  (its panel shows them); the other crowns choose theirs at once ----
+const isHorse = t => /cavalry|hussar|lancer|dragoon/.test(t);
+const PROMOTIONS = {
+  drill:      { name: 'Drilled',              desc: '+15% attack.',                                        fits: d => true },
+  hardened:   { name: 'Hardened',             desc: '+3 men (health).',                                    fits: d => true },
+  discipline: { name: 'Iron Discipline',      desc: 'Loses half as much morale.',                           fits: d => true },
+  surgeons:   { name: 'Field Surgeons',       desc: 'Heals 2 more each turn in its own lands.',             fits: d => true },
+  forced:     { name: 'Forced Marches',       desc: '+1 move each turn.',                                  fits: (d, t) => !d.artillery },
+  squares:    { name: 'Squares Against Horse', desc: '+30% attack against cavalry.',                         fits: (d, t) => !d.artillery && !isHorse(t) },
+  pursuit:    { name: 'Pursuit',              desc: '+25% attack against a wounded enemy (under half its men).', fits: (d, t) => isHorse(t) },
+  gunnery:    { name: 'Gunnery',              desc: '+20% attack against troops in a town.',                fits: d => !!d.artillery },
+};
+const hasPromo = (u, p) => !!(u && u.promos && u.promos.includes(p));
+function promosEarned(u) { return Math.max(0, XP_LEVELS.indexOf(getUnitLevel(u))); }
+function promosPending(u) { return UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval ? Math.max(0, promosEarned(u) - (u.promos || []).length) : 0; }
+function promoChoices(u) {
+  if (u.promoChoices && u.promoChoices.length) return u.promoChoices;
+  const d = UNIT_DEFS[u.type] || {};
+  const pool = Object.keys(PROMOTIONS).filter(p => PROMOTIONS[p].fits(d, u.type) && !hasPromo(u, p)).sort(() => Math.random() - 0.5);
+  u.promoChoices = pool.slice(0, 2);
+  return u.promoChoices;
+}
+function grantPromo(u, p) {
+  if (!PROMOTIONS[p] || hasPromo(u, p)) return;
+  (u.promos || (u.promos = [])).push(p); u.promoChoices = null;
+  if (p === 'hardened') u.hp = Math.min(getEffectiveMaxHp(u), u.hp + 3);
+}
+// (the other crowns don't keep theirs waiting)
+function aiTakePromos(u) { for (let k = 0; k < 4 && promosPending(u) > 0; k++) { const c = promoChoices(u); if (!c.length) break; grantPromo(u, c[Math.floor(Math.random() * c.length)]); } }
+window.choosePromo = function (p) {
+  const u = selectedUnit; if (!u || u.nationId !== playerNation || promosPending(u) <= 0 || !promoChoices(u).includes(p)) return;
+  grantPromo(u, p);
+  addFloatingText(u.x, u.y, PROMOTIONS[p].name, '#e8c070', 1800, 14);
+  logEvent(`${u.regiment ? 'The ' + regimentName(u) : unitTypeName(u.type).replace(/^./, c => c.toUpperCase())}: ${PROMOTIONS[p].name}.`);
+  try { SMK.drum(0.2); } catch (e) {}
+  showUnitPanel(u); updateUI(); render();
+};
+// how much a regiment's promotions multiply its attack against this target
+function promoAtkMult(u, target) {
+  if (!u.promos || !u.promos.length) return 1;
+  let m = 1;
+  if (hasPromo(u, 'drill')) m *= 1.15;
+  if (target) {
+    if (hasPromo(u, 'squares') && isHorse(target.type)) m *= 1.3;
+    if (hasPromo(u, 'pursuit') && target.hp < getEffectiveMaxHp(target) / 2) m *= 1.25;
+    if (hasPromo(u, 'gunnery') && cities.some(c => c.x === target.x && c.y === target.y)) m *= 1.2;
+  }
+  return m;
+}
+function promoPanelHtml(unit) {
+  if (!UNIT_DEFS[unit.type]?.combat || UNIT_DEFS[unit.type]?.naval) return '';
+  let h = '';
+  const held = (unit.promos || []).filter(p => PROMOTIONS[p]);
+  if (held.length) h += `<p class="promo-held">${held.map(p => `<span title="${escHtml(PROMOTIONS[p].desc)}">${PROMOTIONS[p].name}</span>`).join('')}</p>`;
+  if (unit.nationId === playerNation && promosPending(unit) > 0) {
+    h += `<div class="section-title">Promotion${promosPending(unit) > 1 ? 's' : ''} earned <span style="color:#e8c070">(${promosPending(unit)})</span></div>`;
+    for (const p of promoChoices(unit)) h += `<button class="p-btn promo-pick" onclick="choosePromo('${p}')"><b>${PROMOTIONS[p].name}</b><span class="cost">${PROMOTIONS[p].desc}</span></button>`;
+  }
+  return h;
+}
 function awardXP(unit, amount) {
   if (!UNIT_DEFS[unit.type]?.combat) return;
   if (unit.hp <= 0) return;
@@ -3579,8 +3647,8 @@ function awardXP(unit, amount) {
     }
     if (unit.nationId === playerNation) {
       addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
-      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : UNIT_DEFS[unit.type].name} promoted to ${newLevel.rank}!`);
-    }
+      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : UNIT_DEFS[unit.type].name} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
+    } else aiTakePromos(unit);
   }
 }
 
@@ -10225,6 +10293,7 @@ function _finishEndTurnImpl() {
           if (healCity && (healCity.buildings || []).includes('fortifications')) heal += 2;
 
           if (healCity && nationHasTech(u.nationId, 'medicine')) heal += 1;
+          if (hasPromo(u, 'surgeons')) heal += 2;
           u.hp = Math.min(maxHp, u.hp + heal);
         }
       }
@@ -10252,7 +10321,7 @@ function _finishEndTurnImpl() {
   for (const u of units) {
     // the Engineers law's extra step follows the law: every worker gets it while it's adopted, upgraded ones too
     if ((u.type === 'worker' || u.type === 'veteran_worker') && UNIT_DEFS[u.type]) u.maxMoves = UNIT_DEFS[u.type].moves + lawWorkerMoveBonus(u.nationId);
-    let moves = u.maxMoves;
+    let moves = u.maxMoves + (hasPromo(u, 'forced') ? 1 : 0);
     if (u.formation && FORMATIONS[u.formation]) moves += FORMATIONS[u.formation].moveMod;
     const cmd = getCommandBonus(u);
     if (cmd.moveBonus) moves += cmd.moveBonus;
@@ -15158,6 +15227,14 @@ function render() {
       for (let k = 0; k < 6; k++) { const a = Math.PI * (0.75 + k * 0.3); ctx.beginPath(); ctx.ellipse(lx + Math.cos(a) * lr, ly + Math.sin(a) * lr, lr * 0.32, lr * 0.16, a + Math.PI / 2, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
     }
+    // a promotion waiting to be chosen: a small gilt star over the regiment
+    if (!window.__film && u.nationId === pId && VIEW_TILE >= 16 && promosPending(u) > 0) {
+      const sx0 = cx, sy0 = cy - rad * 1.12, sr = Math.max(3.5, rad * 0.26);
+      ctx.save(); ctx.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k & 1 ? sr * 0.45 : sr; k ? ctx.lineTo(sx0 + Math.cos(a) * r, sy0 + Math.sin(a) * r) : ctx.moveTo(sx0 + Math.cos(a) * r, sy0 + Math.sin(a) * r); }
+      ctx.closePath(); ctx.fillStyle = '#f2c94c'; ctx.strokeStyle = 'rgba(40, 25, 5, 0.9)'; ctx.lineWidth = Math.max(1, sr * 0.22); ctx.stroke(); ctx.fill();
+      ctx.restore();
+    }
     // ready for orders: a small gold pip on your units that can still act this turn
     if (!window.__film && u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && !u.automated && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
       if (charted) { // (on the chart, a brass pin stuck in the map beside it, as a staff officer marks a regiment awaiting orders)
@@ -15779,6 +15856,7 @@ function showUnitPanel(unit) {
   }
   let html = `${UNIT_DEFS[unit.type] ? `<div class="city-plate unit-plate"><img src="units/${unit.type}.png" alt=""></div>` : ''}<h3>${unitIco(unit.type)} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
 
+  html += promoPanelHtml(unit);
   if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
     const upg = UNIT_UPGRADES[unit.type];
     const hastech = nationHasTech(playerNation, upg.tech);
