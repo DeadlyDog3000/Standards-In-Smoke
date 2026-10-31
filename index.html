@@ -731,7 +731,7 @@
     #ambitionOverlay .amb-row > span:not(.amb-bar):not(.amb-num) { display: block; color: #b8a888; margin-bottom: 4px; }
     #ambitionOverlay .amb-done b { color: #a8c890; }
     #ambitionOverlay .amb-num { font-size: 11px; color: #c9b07a; }
-    body.mobile-mode #ambitionPlaque { min-width: 150px; padding: 3px 8px; } body.mobile-mode #ambitionPlaque b { font-size: 11.5px; }
+    body.mobile-mode #ambitionPlaque { min-width: 150px; padding: 3px 8px; left: 8px; transform: none; border-top: 1px solid var(--owk-gold-2) !important; border-radius: 3px; } body.mobile-mode #ambitionPlaque b { font-size: 11.5px; }
     /* the tech tree on the same navy, its bar in gold rules; the chronicle (event log) as an Old World log: pale ink on navy, the turn in gold */
     #techTreeOverlay { background: radial-gradient(ellipse at 50% 30%, rgba(60, 90, 120, 0.22), rgba(0, 0, 0, 0) 70%), linear-gradient(rgba(10, 18, 28, 0.94), rgba(5, 10, 16, 0.97)), var(--ow-leather) !important; }
     #techTreeOverlay > div:first-child { background: linear-gradient(rgba(30, 46, 64, 0.95), rgba(10, 16, 24, 0.97)), var(--ow-leather) !important;
@@ -8409,6 +8409,9 @@ function updateAmbitionPlaque() {
   else html = `<small>Ambitions ${done} of ${AMBITION_WIN}</small>`;
   if (el._html !== html) { el._html = html; el.innerHTML = html; }
   el.style.display = '';
+  // (on a phone the top bar is several rows tall: the plaque sits just under it, at the left)
+  const tb = document.body.classList.contains('mobile-mode') && document.getElementById('topbar');
+  el.style.top = tb ? Math.round(tb.getBoundingClientRect().bottom + 6) + 'px' : '';
 }
 
 function showVictory(type) {
