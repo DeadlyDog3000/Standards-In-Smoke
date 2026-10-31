@@ -11476,7 +11476,12 @@ function drawTown(city, cx, cy, w, faceH) {
     const tw = w * (city.isCapital ? 0.98 : pop >= 10 ? 1.02 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
     const top = cy + ry * 1.15 - th;
     for (const h of houses) if (h.lm && h.y < cy) drawLandmark(h.lm, h.x, h.y, w); // behind the town
-    ctx.drawImage(currentSeason === 'winter' ? snowySprite(painted) : painted, cx - tw / 2, top, tw, th);
+    { // (leaning a little away from the middle of the view, like the figures)
+      const lean = OW.canvas ? Math.max(-0.12, Math.min(0.12, (cx - viewW / 2) / viewW * 0.16)) : 0, gy = top + th;
+      ctx.save(); if (lean) ctx.transform(1, 0, -lean, 1, lean * gy, 0);
+      ctx.drawImage(currentSeason === 'winter' ? snowySprite(painted) : painted, cx - tw / 2, top, tw, th);
+      ctx.restore();
+    }
     for (const h of houses) if (h.lm && h.y >= cy) drawLandmark(h.lm, h.x, h.y, w);
     const fx = cx + tw * 0.08, fy = top + th * 0.08, fh = w * 0.16;
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
