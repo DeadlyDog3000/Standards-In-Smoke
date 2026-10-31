@@ -5489,6 +5489,7 @@ window._idleCityPick = function(cityKey, type) {
   const bld = CITY_BUILDING_DEFS[type];
   if (bld && !bld.wonder && (city.buildings||[]).includes(type)) { showToast(`${bld.name} already built here.`); return; }
   if (bld && bld.wonder && cities.some(c => (c.buildings||[]).includes(type))) { showToast(`${bld.name} already built.`); return; }
+  if (isUnitProd(type)) { if (!prodPrepay(city, type)) { prodRefuse(city, type); return; } SMK.coins(3); }
   city.producing = type; city.productionProgress = 0;
   showToast(`${city.name}: producing ${getProductionName(type)}`);
   document.getElementById('idleCitiesPopup')?.remove();
@@ -6377,6 +6378,8 @@ function tickProduction(city) {
   if (!PRODUCTION_COSTS[city.producing] && !CITY_BUILDING_DEFS[city.producing]) {
     city.producing = null; city.productionProgress = 0; return; // unknown type — clear to prevent infinite loop
   }
+  prodPaidSync(city);
+  if (isUnitProd(city.producing) && !prodIsPaid(city, city.producing)) prodPrepay(city, city.producing);
   const prodRb = getRulerBonuses(city.nationId);
   const tickIncrement = cityBaseProduction(city) * getScienceBoost(city.nationId) * getFactoryBonus(city) * (1 + (prodRb.prodBonus || 0)) * lawProductionMult(city.nationId) * getCityProductionPenalty(city);
   city.productionProgress += tickIncrement;
@@ -6421,11 +6424,9 @@ function tickProduction(city) {
           }
         }
       } else {
-        let canAffordUnit = true;
-        for (const k in costs) if ((n[k] || 0) < costs[k]) { canAffordUnit = false; break; }
+        let canAffordUnit = prodIsPaid(city, city.producing); // (paid for when it was ordered)
         if (city.producing === 'settler' && (city.population || 1) < 2) canAffordUnit = false; // settlers are people: a hamlet of one can't spare them
         if (!canAffordUnit) { stallProduction(city, total); return; }
-        for (const k in costs) n[k] -= costs[k];
         const isNaval = UNIT_DEFS[city.producing] && UNIT_DEFS[city.producing].naval;
         let sx = city.x, sy = city.y, foundTile = false;
         for (const nb of hexNeighbors(city.x, city.y)) {
@@ -6437,7 +6438,6 @@ function tickProduction(city) {
         }
         if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy && u.nationId !== cityOwnerAt(sx, sy)) || units.filter(u => u.x === sx && u.y === sy).length >= 3)) { // a land unit with no room outside musters in its own city
           if (city.nationId === playerNation) showToast(`No room to deploy unit near ${city.name}!`);
-          for (const k in costs) n[k] += costs[k];
           city.productionProgress = Math.min(city.productionProgress, total); // waiting doesn't pile up more work
           // a rival city boxed in by its own army builds something for the town instead of retrying every turn
           if (city.nationId !== playerNation) {
@@ -6446,7 +6446,7 @@ function tickProduction(city) {
           }
           return;
         } else {
-          spawnUnit(city.producing, city.nationId, sx, sy);
+          spawnUnit(city.producing, city.nationId, sx, sy); prodConsume(city, city.producing);
           if (city.producing === 'settler') city.population = Math.max(1, (city.population || 1) - 1);
           if (city.nationId === playerNation) {
             const unitDef = UNIT_DEFS[city.producing];
@@ -6486,8 +6486,9 @@ window.rushProduce = function() {
   const isBuilding = !!CITY_BUILDING_DEFS[selectedCity.producing];
   // rushing pays for the haste, not the materials: units and buildings both still cost their resources
   const costs = getScaledCosts(selectedCity.nationId, PRODUCTION_COSTS[selectedCity.producing] || {});
+  const prepaid = !isBuilding && prodIsPaid(selectedCity, selectedCity.producing);
   let canAfford = true;
-  for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
+  if (!prepaid) for (const k in costs) if ((n[k] || 0) < costs[k]) { canAfford = false; break; }
   if (!canAfford) { showToast('Not enough resources to finish production!'); n.gold += cost; return; }
   if (isBuilding) {
     for (const k in costs) n[k] -= costs[k];
@@ -6523,7 +6524,7 @@ window.rushProduce = function() {
     if (selectedCity.producing === 'settler' && (selectedCity.population || 1) < 2) {
       n.gold += cost; showToast(`${selectedCity.name} needs at least 2 citizens to send out settlers.`); return;
     }
-    for (const k in costs) n[k] -= costs[k];
+    if (prepaid) prodConsume(selectedCity, selectedCity.producing); else for (const k in costs) n[k] -= costs[k];
     spawnUnit(selectedCity.producing, selectedCity.nationId, sx, sy);
     if (selectedCity.producing === 'settler') selectedCity.population = Math.max(1, (selectedCity.population || 1) - 1);
     showToast(`Rushed ${selectedCity.producing}!`);
@@ -15347,6 +15348,37 @@ function workerBuyTile(worker, tx, ty) {
   return true;
 }
 
+// ---- a regiment is paid for when it's ordered, not when it marches out: its resources leave the treasury at the press of the
+//  button (queued ones too), are given back if the order is struck off, and are lost with the town if it falls ----
+const isUnitProd = (type) => !!type && !CITY_BUILDING_DEFS[type] && !!UNIT_DEFS[type];
+function prodMissing(city, type) {
+  const n = nations[city.nationId], costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[type] || {});
+  return Object.keys(costs).filter(k => (n[k] || 0) < costs[k]);
+}
+function prodPrepay(city, type) {
+  const n = nations[city.nationId], costs = getScaledCosts(city.nationId, PRODUCTION_COSTS[type] || {});
+  if (prodMissing(city, type).length) return false;
+  for (const k in costs) n[k] -= costs[k];
+  (city.paid || (city.paid = [])).push({ type, costs, nid: city.nationId });
+  return true;
+}
+const prodIsPaid = (city, type) => (city.paid || []).some(p => p.type === type && p.nid === city.nationId);
+function prodConsume(city, type) { const i = (city.paid || []).findIndex(p => p.type === type && p.nid === city.nationId); if (i >= 0) city.paid.splice(i, 1); }
+// (what's paid for and no longer wanted goes back to whoever paid it; what a lost town had paid for is gone)
+function prodPaidSync(city) {
+  if (!city.paid || !city.paid.length) return;
+  const want = {};
+  for (const t of [city.producing, ...(city.productionQueue || [])]) if (isUnitProd(t)) want[t] = (want[t] || 0) + 1;
+  city.paid = city.paid.filter(p => {
+    if (p.nid !== city.nationId) return false;
+    if (want[p.type] > 0) { want[p.type]--; return true; }
+    const n = nations[p.nid]; if (n) for (const k in p.costs) n[k] = (n[k] || 0) + p.costs[k];
+    return false;
+  });
+}
+const RES_NAMES = { gold: 'gold', food: 'food', wood: 'wood', stone: 'stone', steel: 'steel', science: 'science' };
+function prodRefuse(city, type) { showToast(`Not enough ${prodMissing(city, type).map(k => RES_NAMES[k] || k).join(' or ')} to raise a ${getProductionName(type)}.`); SMK.deny(); }
+
 function setProd(type) {
   if (!selectedCity) return;
   if (selectedCity.nationId !== playerNation) return;
@@ -15363,6 +15395,8 @@ function setProd(type) {
     showToast(`${bld.name} is already in the production queue.`); return;
   }
   if (!selectedCity.productionQueue) selectedCity.productionQueue = [];
+  if (selectedCity.producing && selectedCity.productionQueue.length >= 3) { showToast('Production queue is full (max 3).'); return; }
+  if (isUnitProd(type)) { if (!prodPrepay(selectedCity, type)) { prodRefuse(selectedCity, type); return; } SMK.coins(3); updateUI(); }
   if (selectedCity.producing) {
 
     if (selectedCity.productionQueue.length < 3) {
@@ -15387,6 +15421,7 @@ window.clearQueue = function() {
   if (!selectedCity) return;
   if (selectedCity.nationId !== playerNation) return;
   selectedCity.productionQueue = [];
+  prodPaidSync(selectedCity); updateUI();
   showToast('Production queue cleared.');
   showCityPanel(selectedCity);
 };
@@ -18474,7 +18509,7 @@ function serializeGame() {
     isCapital: c.isCapital || false,
     population: c.population || 1, discontent: c.discontent || 0,
     buildings: c.buildings || [],
-    productionQueue: c.productionQueue || [],
+    productionQueue: c.productionQueue || [], paid: c.paid || [],
     originalNationId: c.originalNationId,
     foundedTurn: c.foundedTurn,
     capturedTurn: c.capturedTurn,
