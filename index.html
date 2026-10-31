@@ -734,6 +734,7 @@
         <b style="color:#b8a070;">A Painted Map</b><br>
         - The map is hand-painted: meadows, forests, marsh, snowfields, rock, sea and ice, with painted farms, mines, mills, markets, ports and town houses<br>
         - Settlements are painted too: a village grows into a walled market town at 5 people, and capitals are star-fortress cities<br>
+        - Mountains rise as painted peaks and hills roll; ruins, barbarian camps, redoubts, town landmarks and the wonders of nature are painted as well<br>
         <b style="color:#b8a070;">Relief Columns</b><br>
         - Rival troops marching to a threatened town now strike the besiegers they find at its gates when the fight looks good, instead of standing beside them
       </div>
@@ -1583,6 +1584,7 @@
           <b style="color:#b8a070;">A Painted Map</b><br>
           - The map is hand-painted: meadows, forests, marsh, snowfields, rock, sea and ice, with painted farms, mines, mills, markets, ports and town houses<br>
           - Settlements are painted too: a village grows into a walled market town at 5 people, and capitals are star-fortress cities<br>
+          - Mountains rise as painted peaks and hills roll; ruins, barbarian camps, redoubts, town landmarks and the wonders of nature are painted as well<br>
           <b style="color:#b8a070;">Relief Columns</b><br>
           - Rival troops marching to a threatened town now strike the besiegers they find at its gates when the fight looks good, instead of standing beside them
         </div>
@@ -2861,6 +2863,7 @@ const HEX_TILE_FILES = [
   'Snow','Snow_Patch','Snow_Pine','Snow_Plants','Snow_Snowman','Snow_Trees',
   'Dirt','Dirt_Sprouts','Dirt_Pumpkins',
   'FrosenWater','FrosenWater_Lilypads',
+  'Mount_A','Mount_B','Mount_C','Hill_A','Hill_B',
 
   'musket-2','stiletto','crossbow','spyglass','horse-head','sun-spear','cavalry','horse-head-2','3d-hammer','farmer',
 ];
@@ -2890,6 +2893,7 @@ for (const name of HEX_TILE_FILES) {
   hexImages[name] = img;
 }
 
+const MOUNT_KEYS = ['Mount_A', 'Mount_B', 'Mount_C'], HILL_KEYS = ['Hill_A', 'Hill_B'];
 const TILE_SPRITES = {
   0: ['Water'],                                            // ocean
   1: ['Grass', 'Grass_Plants'],                             // plains
@@ -10346,7 +10350,35 @@ function drawRoads(w, facePad, ch, pId) {
 }
 
 // a redoubt: a ring of banked earth with a palisade of stakes along its crest and the holder's pennant
+// painted map features (ruins, camps, redoubts, wonders of nature); the drawn versions stay as the fallback
+const FEAT_IMGS = {};
+function featSprite(name) {
+  let img = FEAT_IMGS[name];
+  if (!img) {
+    img = FEAT_IMGS[name] = new Image();
+    img.onload = () => { if (MAP_COLS && !window._spriteRedraw) window._spriteRedraw = requestAnimationFrame(() => { window._spriteRedraw = 0; render(); }); };
+    img.onerror = () => { img._bad = true; };
+    img.src = `tiles/${name}.png`;
+  }
+  return img.complete && img.naturalWidth && !img._bad ? img : null;
+}
+function drawFeat(img, cx, baseY, fw) {
+  const fh = fw * img.naturalHeight / img.naturalWidth;
+  ctx.drawImage(img, cx - fw / 2, baseY - fh, fw, fh);
+  return baseY - fh;
+}
 function drawRedoubt(cx, cy, w, owner) {
+  const rImg = featSprite('ft_redoubt');
+  if (rImg) {
+    const top = drawFeat(rImg, cx, cy + w * 0.24, w * 0.78);
+    if (owner != null && nations[owner]) { // the holder's colours on a staff
+      const fx = cx + w * 0.16, fy = top + w * 0.14;
+      ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - w * 0.2); ctx.stroke();
+      ctx.fillStyle = safeColor(nations[owner].color); ctx.fillRect(fx, fy - w * 0.2, w * 0.1, w * 0.06);
+    }
+    return;
+  }
   ctx.save();
   const rx = w * 0.34, ry = w * 0.2;
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(cx + w * 0.02, cy + w * 0.04, rx * 1.1, ry * 1.15, 0, 0, Math.PI * 2); ctx.fill();
@@ -10422,6 +10454,16 @@ function discoverNaturalWonders() {
 }
 function drawNaturalWonder(key, cx, cy, w) {
   const def = NATURAL_WONDERS[key]; if (!def) return;
+  const nImg = featSprite('nw_' + key);
+  if (nImg) {
+    ctx.save();
+    const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.55);
+    gl.addColorStop(0, 'rgba(255, 225, 140, 0.35)'); gl.addColorStop(1, 'rgba(255, 225, 140, 0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, w * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    drawFeat(nImg, cx, cy + w * 0.3, w * 0.92);
+    return;
+  }
   ctx.save();
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.5);
   g.addColorStop(0, 'rgba(255, 225, 140, 0.45)'); g.addColorStop(1, 'rgba(255, 225, 140, 0)');
@@ -10474,6 +10516,8 @@ function claimRuins() {
   if (any) { updateUI(); render(); }
 }
 function drawRuins(cx, cy, w) {
+  const ruImg = featSprite('ft_ruins');
+  if (ruImg) { drawFeat(ruImg, cx, cy + w * 0.14, w * 0.62); return; }
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.beginPath(); ctx.ellipse(cx, cy + w * 0.05, w * 0.3, w * 0.09, 0, 0, Math.PI * 2); ctx.fill();
@@ -10512,6 +10556,8 @@ function drawBattleScar(sc, cx, cy, w) {
 
 // A raiders' camp: hide tents round a fire behind a ring of stakes, a ragged black banner over it
 function drawCamp(camp, cx, cy, w, faceH) {
+  const cImg = featSprite('ft_camp');
+  if (cImg) { drawFeat(cImg, cx, cy + faceH * 0.42, w * 0.84); return; }
   let seed = (camp.x * 92821) ^ (camp.y * 68917);
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   const rx = w * 0.36, ry = faceH * 0.3;
@@ -10983,6 +11029,9 @@ function render() {
         if (!t.revealed.has(pId)) continue;
 
         let key = t.spriteKey;
+        // mountains and hills are painted as peaks and rolling hills (chosen here, so saves keep their keys)
+        if (t.type === 2) key = MOUNT_KEYS[(i * 7 + mx) % 3];
+        else if (t.type === 7) key = HILL_KEYS[(i * 5 + my) % 2];
         // winter: the sea along the shore freezes over
         if (winterIce && t.type === 0 && isShoreWater(i)) key = key === 'Water_Lilypads' ? 'FrosenWater_Lilypads' : 'FrosenWater';
         const img = hexImages[key] || hexImages[t.spriteKey] || hexImages['Grass_Plants'];
