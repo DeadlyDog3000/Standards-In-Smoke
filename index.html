@@ -934,6 +934,7 @@
         <b style="color:#b8a070;">Campaigns and Sieges</b><br>
         - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
         - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
+        - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -1957,6 +1958,7 @@
           <b style="color:#b8a070;">Campaigns and Sieges</b><br>
           - Rival crowns wage real campaigns: the army marches on one enemy town together instead of each regiment choosing its own, a regiment that gets into an enemy town stays there until it falls, and an enemy near one of their towns calls back only the regiments nearest it, not the whole army. In test games towns changed hands in wars between rivals about three times as often<br>
           - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
+          - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -9159,6 +9161,7 @@ function aiTurn(nationId) {
   if (nationHasTech(nationId, 'advanced_siege')) availCombat.push('mortar');
   if (nationHasTech(nationId, 'field_artillery')) availCombat.push('field_gun');
   const topStart = Math.max(0, availCombat.length - 3);
+  let aiRushed = false;
   for (const c of aiCities) {
 
     if (threatLevel > 20 && c.producing && !UNIT_DEFS[c.producing]?.combat && !(c.producing === 'settler' && threatLevel <= combatUnits.length * 6)) {
@@ -9296,6 +9299,12 @@ function aiTurn(nationId) {
       const _bld = CITY_BUILDING_DEFS[c.producing];
       if (_bld && !_bld.wonder && (c.buildings || []).includes(c.producing)) c.producing = bestCombat;
       else if (_bld && _bld.wonder && cities.some(ci => ci !== c && (ci.producing === c.producing || (ci.buildings || []).includes(c.producing)))) c.producing = bestCombat;
+    }
+    // a full treasury hurries the work, as Rush Produce does for you: one town a turn, for what it needs most
+    if (!aiRushed && c.producing && (n.gold || 0) >= getRushCost(nationId) + 160 && (UNIT_DEFS[c.producing] ? (UNIT_DEFS[c.producing].combat ? (atWar || threatLevel > 0) : c.producing === 'settler') : true)) {
+      const costs = getScaledCosts(nationId, PRODUCTION_COSTS[c.producing] || {});
+      let total = 0; for (const k in costs) total += costs[k];
+      if ((c.productionProgress || 0) < total && total - (c.productionProgress || 0) > cityBaseProduction(c)) { n.gold -= getRushCost(nationId); c.productionProgress = total; aiRushed = true; }
     }
     tickProduction(c);
     const y = getCityYields(c);
@@ -18985,6 +18994,14 @@ function aiUseMarket(nationId) {
     const reserve = res === 'food' ? 300 : 150; // a granary's worth kept back for settlers
     while ((n.gold || 0) < 120 && (n[res] || 0) > reserve + MARKET_LOT && lots < 6) { marketSell(nationId, res); lots++; }
   }
+  // a mountain of steel or powder is sold down (it buys food and haste instead of lying in the stores)
+  for (const res of ['steel', 'gunpowder', 'wood', 'stone']) {
+    let k = 0;
+    while ((n[res] || 0) > 500 + MARKET_LOT && k < 6) { marketSell(nationId, res); k++; }
+  }
+  // short of bread for the next colonists while the treasury is full: buy it
+  const settlerFood = getScaledCosts(nationId, PRODUCTION_COSTS.settler).food;
+  for (let i = 0; i < 2 && (n.food || 0) < settlerFood * 2 && (n.gold || 0) >= marketBuyPrice(nationId, 'food') + 180; i++) marketBuy(nationId, 'food');
 }
 // ---- the Empire: every city of yours in one table — its people and mood, what it makes, what it's building and when it's
 //  done, who guards it; click a row to go there ----
