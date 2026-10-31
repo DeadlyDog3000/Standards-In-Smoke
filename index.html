@@ -561,6 +561,9 @@
     }
     .city-label .cl-pop { font-style: normal; font-weight: bold; background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--nc) 70%, #fff), var(--nc) 55%, color-mix(in srgb, var(--nc) 60%, #000)); box-shadow: 0 0 0 1px rgba(30, 18, 8, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5); text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7); }
     .city-label .cl-siege { color: #9a2a18; font-style: normal; }
+    .city-label::before, .city-label::after { content: ''; position: absolute; top: 0.28em; bottom: -0.28em; width: 0.95em; z-index: -1; background: linear-gradient(#b39462, #8e7044); }
+    .city-label::before { left: -0.62em; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 42% 50%); }
+    .city-label::after { right: -0.62em; clip-path: polygon(0 0, 100% 0, 58% 50%, 100% 100%, 0 100%); }
 
   </style>
 </head>
@@ -796,7 +799,7 @@
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
         - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
-        - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button
+        - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
       <div style="margin-bottom:12px;">
@@ -1763,7 +1766,7 @@
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure; a village grows into a market town (or a harbour town on the coast), a great walled city at ten people, and a capital is a star fortress<br>
           - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean; a title cartouche held by cherubs names your realm and the year of the survey in the sheet's corner<br>
         - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases, and from far off they show as wooden wargame blocks marked infantry, horse, guns or ships<br>
-        - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button
+        - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge; the pictures on events and behind the menu are hand-coloured engravings, like plates in an old book, and End Turn is a wax-red button; every icon is a little hand-coloured engraving, as on an encyclopaedia plate
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
         <div style="margin-bottom:12px;">
