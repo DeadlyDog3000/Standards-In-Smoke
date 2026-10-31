@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The Race for Wonders</b><br>
+        - Each wonder of nature has a marked city site beside it, so it is worth racing for, and your rivals now go after them
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Tidier Borders</b><br>
@@ -1440,7 +1445,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.6</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The Race for Wonders</b><br>
+        - Each wonder of nature has a marked city site beside it, so it is worth racing for, and your rivals now go after them
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Tidier Borders</b><br>
         - A city's lands grow outward nearest-first into a compact shape, and natural growth reaches only so far: 2 tiles for a small town, 3 from 5 people, 4 from 10 (borders used to creep on for ever, one town ending with ninety tiles and swallowing the sites others might have settled). Bought tiles and Urban quarters can still push past it<br>
@@ -9980,7 +9990,15 @@ function placeNaturalWonders() {
       if (!def.on.includes(t.type) || t.owner >= 0 || t.ruins || t.wonder || citySites.some(cs => cs.x === x && cs.y === y) || barbarianCamps.some(b => b.x === x && b.y === y)) continue;
       if (def.river && !t.hasRiver) continue;
       if (cities.some(c => hexDistance(c.x, c.y, x, y) < 5) || placed.some(p => hexDistance(p[0], p[1], x, y) < 8)) continue;
-      t.wonder = key; placed.push([x, y]); break;
+      t.wonder = key; placed.push([x, y]);
+      // a good site beside it, so a wonder is worth racing for
+      const site = hexNeighbors(x, y).map(nb => [nb.col, nb.row]).concat(
+        [].concat(...hexNeighbors(x, y).map(nb => hexNeighbors(nb.col, nb.row).map(n2 => [n2.col, n2.row]))))
+        .find(([sx2, sy2]) => sx2 >= 0 && sy2 >= 0 && sx2 < MAP_COLS && sy2 < MAP_ROWS && (sx2 !== x || sy2 !== y)
+          && [1, 5, 6, 7].includes(tiles[sy2 * MAP_COLS + sx2].type) && tiles[sy2 * MAP_COLS + sx2].owner < 0 && !tiles[sy2 * MAP_COLS + sx2].ruins
+          && !cities.some(c => hexDistance(c.x, c.y, sx2, sy2) < 5) && !citySites.some(cs => hexDistance(cs.x, cs.y, sx2, sy2) < 3));
+      if (site) citySites.push({ x: site[0], y: site[1], settled: false });
+      break;
     }
   }
 }
@@ -12895,7 +12913,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.6';
+const CURRENT_VERSION = 'beta-7.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
