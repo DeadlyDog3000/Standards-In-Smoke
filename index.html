@@ -566,6 +566,8 @@
       background: radial-gradient(ellipse at 50% 60%, rgba(236, 222, 186, 0.95), rgba(196, 174, 128, 0.95) 75%), url(ui/parch.jpg) 0 0 / 160px;
       box-shadow: inset 0 0 0 1px rgba(60, 40, 18, 0.7), inset 0 0 18px rgba(90, 60, 24, 0.45); }
     .unit-plate { height: 104px; }
+    body.mobile-mode .city-plate { display: none; }
+    @media (max-height: 640px) { .city-plate { display: none; } }
     .unit-plate img { max-height: 96px !important; }
     .city-plate img { max-height: 84px; max-width: 86%; filter: drop-shadow(2px 3px 2px rgba(40, 24, 8, 0.35)); }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
