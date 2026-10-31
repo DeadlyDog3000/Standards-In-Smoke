@@ -708,6 +708,12 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Reading the War from the Map</b><br>
+        - Hovering over a town tells you if it is besieged, blockaded or cut off, and how many of its tiles the enemy holds; hovering over a held field names the town it is lost to<br>
+        - The road tooltip says that a road costs one move per step
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Taking the Colours</b><br>
@@ -1607,6 +1613,12 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.5</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Reading the War from the Map</b><br>
+          - Hovering over a town tells you if it is besieged, blockaded or cut off, and how many of its tiles the enemy holds; hovering over a held field names the town it is lost to<br>
+          - The road tooltip says that a road costs one move per step
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.4</b></div>
         <div style="margin-bottom:12px;">
@@ -13852,7 +13864,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.4';
+const CURRENT_VERSION = 'beta-10.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -14115,7 +14127,20 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (t.ruins) html += `<div class="tt-detail" style="color:#e0c880">\uD83C\uDFDB Ancient ruins: the first unit to reach them finds something</div>`;
   if (t.wonder && NATURAL_WONDERS[t.wonder]) { const nw = NATURAL_WONDERS[t.wonder]; html += `<div class="tt-detail" style="color:#f2d68a">${nw.icon} <b>${nw.name}</b>, a wonder of nature: ${nw.desc}</div>`; }
   if (_scarMap && _scarMap.get(i)) html += `<div class="tt-detail" style="color:#a98">A field of recent battle</div>`;
-  if (roads.some(r => r.path.includes(i))) html += `<div class="tt-detail" style="color:#c9a86a">Road to the capital</div>`;
+  if (roads.some(r => r.path.includes(i))) html += `<div class="tt-detail" style="color:#c9a86a">Road to the capital: one move per step, whatever the ground</div>`;
+  // the state of a town's war: siege, blockade, cut road, fields lost
+  const ttCity = cities.find(c => c.x === mx && c.y === my);
+  if (ttCity) {
+    const notes = [];
+    if (ttCity._besieged) notes.push('besieged');
+    if (ttCity._blockaded) notes.push('its harbour blockaded');
+    if (ttCity._roadCut && !ttCity._besieged) notes.push('its road cut');
+    if (ttCity._occupied && ttCity._occupied.size) notes.push(`${ttCity._occupied.size} of its tiles held by the enemy`);
+    if (notes.length) html += `<div class="tt-detail" style="color:#ff9a4a">\u26D3 ${escHtml(ttCity.name)}: ${notes.join(', ')}</div>`;
+  } else if (tiles[i].owner >= 0) {
+    const holder = cities.find(c => c._occupied && c._occupied.has(i));
+    if (holder) html += `<div class="tt-detail" style="color:#ff9a4a">Held by the enemy: ${escHtml(holder.name)} gets nothing from this tile</div>`;
+  }
   if (t.type === 6 && !t.improvement && !t.animal) html += `<div class="tt-detail">+0.5 food/turn</div>`;
   if (t.animal && !t.improvement) {
     const _ad = ANIMAL_DATA[t.animal];
