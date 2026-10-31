@@ -570,6 +570,8 @@
       box-shadow: inset 0 0 0 4px rgba(16, 11, 6, 0.85), inset 0 0 0 5px rgba(198, 158, 80, 0.55), inset 0 0 0 9px rgba(16, 11, 6, 0.6), inset 0 0 0 10px rgba(198, 158, 80, 0.3), 0 14px 40px rgba(0, 0, 0, 0.7); }
     #menuTitle h1 { margin-top: 0; background: linear-gradient(#fbecc4, #d8b468 60%, #a77c32); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 18px rgba(180, 140, 60, 0.3)); }
     #menuTitle h2 { margin-bottom: 0; }
+    @keyframes quillNod { from { transform: rotate(-2deg); } to { transform: rotate(2.5deg); } }
+    @media (prefers-reduced-motion: reduce) { #chartmakerCard img { animation: none !important; } }
     /* sliders and ticks in gilt, not the browser's blue */
     input[type=range], input[type=checkbox], input[type=radio], progress { accent-color: #c08f3e; }
     /* on the pages behind the main buttons, the plate is set smaller so the page itself has the room */
@@ -16227,6 +16229,7 @@ function showChartmakerCard() {
   el.id = 'chartmakerCard';
   el.style.cssText = "position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%, rgba(20,14,8,0.6), rgba(8,6,3,0.92) 70%),url('menu_art5.jpg') center/cover;";
   el.innerHTML = `<div style="text-align:center;padding:26px 40px;background:radial-gradient(ellipse at 50% 30%, rgba(90,66,36,0.28), rgba(0,0,0,0.4)), url(ui/leather.jpg) 0 0 / 256px;border:1px solid #7a5c2a;border-radius:3px;box-shadow:var(--ow-gilt);">
+    <img src="ui/desk_inkwell.png" alt="" style="height:78px;display:block;margin:0 auto 10px;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.6));transform-origin:50% 90%;animation:quillNod 1.4s ease-in-out infinite alternate;">
     <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:6px;">The chartmaker is at work</div>
     <div style="font-family:'EB Garamond',serif;font-style:italic;color:#c8b8a0;font-size:15px;">engraving the coasts, the rivers and the hills of a new world…</div>
   </div>`;
