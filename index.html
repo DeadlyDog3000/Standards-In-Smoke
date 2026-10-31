@@ -6974,11 +6974,10 @@ function canAttack(attacker, tx, ty) {
 
   const adjacent = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
   if (!def.ranged) return adjacent;
-  // a ranged unit fires at most two tiles off, and (dragoons aside) not after moving; at close quarters it can always fight
+  // a ranged unit fires at most two tiles off (the guns only from where they began the turn); at close quarters it can always fight
   if (adjacent) return true;
   if (hexDistance(attacker.x, attacker.y, tx, ty) > 2) return false;
-  const moved = attacker.movesLeft < (attacker.turnStartMoves ?? attacker.maxMoves);
-  return !moved || attacker.type === 'dragoon';
+  return canFireNow(attacker);
 }
 
 function doAttack(attacker, tx, ty) {
@@ -15323,13 +15322,14 @@ function showUnitPanel(unit) {
     }
   }
   if (UNIT_DEFS[unit.type].ranged && unit.nationId === playerNation) {
-    const canRanged = unit.movesLeft >= (unit.turnStartMoves ?? unit.maxMoves) || (unit.type === 'dragoon' && unit.movesLeft > 0);
+    const canRanged = canFireNow(unit);
 
     if (def.artillery && unit.reloadTurns > 0) {
       html += `<p style="font-size:11px;color:#d8a040;margin:2px 0;">Reloading... ${unit.reloadTurns} turn${unit.reloadTurns > 1 ? 's' : ''} remaining</p>`;
     }
-    html += `<button class="p-btn" onclick="enterRangedMode()" ${(!canRanged || (def.artillery && unit.reloadTurns > 0)) ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">2 tile range</span></button>`;
-    if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">Cannot attack after moving.</p>`;
+    html += `<button class="p-btn" onclick="enterRangedMode()" ${(!canRanged || (def.artillery && unit.reloadTurns > 0)) ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">${getUnitRange(unit)} tile range</span></button>`;
+    if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">The guns cannot fire after moving: they fire from where they began the turn.</p>`;
+    else if (unit.movesLeft <= 0) html += `<p style="font-size:10px;color:#a66">No moves left this turn.</p>`;
   }
 
   if (unit.nationId === playerNation && def.artillery && def.ammoTypes && def.ammoTypes.length > 1) {
@@ -17366,7 +17366,7 @@ canvas.addEventListener('contextmenu', (e) => {
     const d = hexDistance(u.x, u.y, mx, my);
     if (def.ranged && d > 1 && d <= getUnitRange(u)) {
       enterRangedMode();
-      if (!rangedMode) return refuse(def.artillery && u.reloadTurns > 0 ? 'The guns are still reloading.' : 'A line can only fire before it moves this turn.');
+      if (!rangedMode) return refuse(def.artillery && u.reloadTurns > 0 ? 'The guns are still reloading.' : (u.movesLeft <= 0 ? 'No moves left this turn.' : 'The guns cannot fire after moving.'));
     } else if (def.combat && canAttack(u, mx, my)) {
       if (!moveMode) enterMoveMode();
       if (!moveMode) return;
@@ -17484,10 +17484,8 @@ canvas.addEventListener('click', (e) => {
   }
 
   if (rangedMode && selectedUnit) {
-    const canAttackAfterMove = selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0;
-    const startMoves = selectedUnit.turnStartMoves ?? selectedUnit.maxMoves;
-    if (selectedUnit.movesLeft < startMoves && !canAttackAfterMove) {
-      showToast('Cannot attack after moving.'); rangedMode = false; render(); return;
+    if (!canFireNow(selectedUnit)) {
+      showToast(selectedUnit.movesLeft <= 0 ? 'No moves left this turn.' : 'The guns cannot fire after moving.'); rangedMode = false; render(); return;
     }
     const target = units.find(u => u.x === mx && u.y === my && u.nationId !== selectedUnit.nationId);
     if (target && nations[selectedUnit.nationId].relations[target.nationId] === 'war') {
@@ -17802,6 +17800,13 @@ function processGotoOrders() {
   if (lastMovedUnit) panCameraTo(lastMovedUnit.x, lastMovedUnit.y);
 }
 
+// Whether a ranged regiment may fire now: foot and horse with firearms may fire whenever they have a move left
+// (march, then shoot); the guns must still stand where they began the turn, unlimbered.
+function canFireNow(u) {
+  if (!u || u.movesLeft <= 0) return false;
+  if (!UNIT_DEFS[u.type]?.artillery) return true;
+  return u.movesLeft >= (u.turnStartMoves ?? u.maxMoves);
+}
 function getUnitRange(unit) {
   const def = UNIT_DEFS[unit.type];
   if (!def || !def.ranged) return 1;
@@ -18071,7 +18076,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.enterRangedMode = function() {
-  const canRanged = selectedUnit && (selectedUnit.movesLeft >= (selectedUnit.turnStartMoves ?? selectedUnit.maxMoves) || (selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0));
+  const canRanged = selectedUnit && canFireNow(selectedUnit);
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || !canRanged) return;
 
   if (UNIT_DEFS[selectedUnit.type].artillery && selectedUnit.reloadTurns > 0) return;
@@ -18083,9 +18088,7 @@ window.enterRangedMode = function() {
 window.doRangedAttack = function(tx, ty) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged) return;
 
-  const canSkirmish = selectedUnit.type === 'dragoon' && selectedUnit.movesLeft > 0;
-  const _startMoves = selectedUnit.turnStartMoves ?? selectedUnit.maxMoves;
-  if (selectedUnit.movesLeft < _startMoves && !canSkirmish) { showToast('Cannot attack after moving.'); return; }
+  if (!canFireNow(selectedUnit)) { showToast(selectedUnit.movesLeft <= 0 ? 'No moves left this turn.' : 'The guns cannot fire after moving.'); return; }
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== selectedUnit.nationId);
   if (!target) return;
   if (nations[selectedUnit.nationId].relations[target.nationId] !== 'war') return;
