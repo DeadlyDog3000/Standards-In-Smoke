@@ -5267,11 +5267,19 @@ function getShakeOffset() {
   };
 }
 
+function toRoman(v) {
+  let r = '';
+  for (const [k, ch] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) while (v >= k) { r += ch; v -= k; }
+  return r;
+}
 function showTurnBanner(turn) {
   const banner = document.createElement('div');
   banner.style.cssText = 'position:fixed;inset:0;z-index:115;display:flex;align-items:center;justify-content:center;pointer-events:none;animation:turnBanner 1.5s ease-in-out forwards;';
+  const season = currentSeason ? currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1) : '';
   banner.innerHTML = `<div style="text-align:center;">
-    <div style="font-family:'Uncial Antiqua',cursive;color:rgba(224,200,128,0.8);font-size:48px;text-shadow:0 0 30px rgba(180,140,60,0.4);">Turn ${turn}</div>
+    <div style="font-family:'Uncial Antiqua',cursive;color:rgba(224,200,128,0.85);font-size:48px;text-shadow:0 2px 4px rgba(0,0,0,0.8), 0 0 30px rgba(180,140,60,0.4);">Turn ${turn}</div>
+    <div style="width:220px;height:1px;margin:6px auto;background:linear-gradient(90deg, transparent, rgba(224,200,128,0.7), transparent);"></div>
+    <div style="font-family:'EB Garamond',serif;font-style:italic;color:rgba(240,226,190,0.85);font-size:17px;letter-spacing:0.12em;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${season}, Anno Domini ${toRoman(getCurrentYear())}</div>
   </div>`;
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 1500);
