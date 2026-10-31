@@ -11962,6 +11962,7 @@ function owPlaceNames() {
 function owDrawNames(g, w, cs, ch, facePad) {
   const halfCh = Math.round(ch / 2), at = i => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return [x * cs - camX * cs + w / 2, y * ch + (x & 1) * halfCh - camY * ch + facePad + ch / 2]; };
   for (const d of OW.decor || []) {
+    if (!tiles[d.i].revealed.has(playerNation)) continue;
     const img = featSprite(d.img); if (!img) continue;
     const [x, y] = at(d.i); if (x < -w * 2 || y < -w * 2 || x > viewW + w * 2 || y > viewH + w * 2) continue;
     const dw = w * 1.5, dh = dw * img.naturalHeight / img.naturalWidth;
@@ -11969,6 +11970,7 @@ function owDrawNames(g, w, cs, ch, facePad) {
   }
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const l of OW.labels || []) {
+    if (!tiles[l.i].revealed.has(playerNation)) continue; // a sea is named once its middle has been seen
     const [x, y] = at(l.i), px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : 28));
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
     g.font = `italic ${l.kind === 'sea' ? 500 : 600} ${px}px 'EB Garamond', serif`;
@@ -12662,7 +12664,7 @@ function render() {
       const dirs = NB[rx & 1];
       for (let d = 0; d < 6; d++) {
         const nx = rx + dirs[d][0], ny = ry + dirs[d][1];
-        if (nx >= 0 && ny >= 0 && nx < MAP_COLS && ny < MAP_ROWS && reachableTiles.has(ny * MAP_COLS + nx)) continue;
+        if (nx >= 0 && ny >= 0 && nx < MAP_COLS && ny < MAP_ROWS && (reachableTiles.has(ny * MAP_COLS + nx) || !tiles[ny * MAP_COLS + nx].revealed.has(pId))) continue; // (no rule against the unknown)
         const a = v[(d + 1) % 6], b = v[(d + 2) % 6];
         rim.moveTo(a[0], a[1]); rim.lineTo(b[0], b[1]);
       }
@@ -12797,28 +12799,34 @@ function render() {
     const previewPath = bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId);
     if (previewPath && previewPath.length > 0) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(255, 220, 80, 0.7)';
-      ctx.lineWidth = Math.max(2, w * 0.08);
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      const startPos = hexScreenPos(selectedUnit.x, selectedUnit.y);
-      ctx.moveTo(startPos.x + w / 2, startPos.y + facePad + ch / 2);
-      for (const step of previewPath) {
-        const sp = hexScreenPos(step.x, step.y);
-        ctx.lineTo(sp.x + w / 2, sp.y + facePad + ch / 2);
+      // the route of march, as a staff officer inks it: a dashed red line ending in an arrowhead
+      const pts = [hexScreenPos(selectedUnit.x, selectedUnit.y), ...previewPath.map(st => hexScreenPos(st.x, st.y))].map(p => [p.x + w / 2, p.y + facePad + ch / 2]);
+      const route = new Path2D();
+      route.moveTo(pts[0][0], pts[0][1]);
+      for (let k = 1; k < pts.length; k++) {
+        const [x, y] = pts[k], [px, py] = pts[k - 1];
+        if (k < pts.length - 1) route.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2); else route.quadraticCurveTo(px, py, x, y);
       }
-      ctx.stroke();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(250, 238, 210, 0.6)'; ctx.lineWidth = Math.max(3, w * 0.09); ctx.stroke(route);
+      ctx.setLineDash([Math.max(5, w * 0.12), Math.max(3, w * 0.07)]);
+      ctx.strokeStyle = 'rgba(150, 30, 20, 0.92)'; ctx.lineWidth = Math.max(1.6, w * 0.045); ctx.stroke(route);
       ctx.setLineDash([]);
+      const [ex, ey] = pts[pts.length - 1], [bx2, by2] = pts[Math.max(0, pts.length - 2)], ang = Math.atan2(ey - by2, ex - bx2), ah = Math.max(6, w * 0.16);
+      ctx.fillStyle = 'rgba(150, 30, 20, 0.95)';
+      ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - Math.cos(ang - 0.45) * ah, ey - Math.sin(ang - 0.45) * ah); ctx.lineTo(ex - Math.cos(ang + 0.45) * ah, ey - Math.sin(ang + 0.45) * ah); ctx.closePath(); ctx.fill();
 
+      // the days' marches it takes, written in a little parchment roundel
       const destPos = hexScreenPos(hoveredMX, hoveredMY);
       const cost = previewPath.length;
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      const costX = destPos.x + w * 0.75, costY = destPos.y + facePad + ch * 0.2;
-      ctx.beginPath(); ctx.arc(costX, costY, w * 0.18, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = cost <= selectedUnit.movesLeft ? '#ffd' : '#f88';
-      ctx.font = `bold ${Math.max(8, w * 0.28)}px 'EB Garamond', serif`;
+      const costX = destPos.x + w * 0.75, costY = destPos.y + facePad + ch * 0.2, cr = Math.max(7, w * 0.16);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(costX + 1, costY + 1.5, cr, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#efe0bc'; ctx.beginPath(); ctx.arc(costX, costY, cr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(60, 36, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke();
+      ctx.fillStyle = cost <= selectedUnit.movesLeft ? '#2a1c0e' : '#9a2a18';
+      ctx.font = `bold ${Math.max(9, w * 0.26)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(cost, costX, costY);
+      ctx.fillText(cost, costX, costY + 1);
       ctx.restore();
     }
   }
