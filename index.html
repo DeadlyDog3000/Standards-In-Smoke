@@ -487,6 +487,10 @@
     body.mobile-mode #zoomInfo { display: none; }
     body.mobile-mode #menu h1 { font-size: clamp(36px, 11vw, 48px); }
     body.mobile-mode .menu-btn { min-width: 200px; padding: 14px 28px; font-size: 17px; }
+    /* painted icons standing in for emoji (see swapEmoji) and soldier figures in unit lists */
+    img.emo { height: 1.3em; width: auto; vertical-align: -0.28em; display: inline-block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.55)); pointer-events: none; }
+    img.emo.fig { height: 1.75em; vertical-align: -0.5em; margin: -0.15em 0.05em -0.1em 0; }
+    h3 img.emo.fig { height: 2.1em; }
   </style>
 </head>
 <body>
@@ -706,6 +710,9 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
       <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Look</b><br>
+        - Units on the map are painted soldiers, gunners and ships in place of round badges, ringed in their nation's colour<br>
+        - The emoji across menus, panels and messages are replaced by painted icons; unit lists and the unit panel show each soldier<br>
         <b style="color:#b8a070;">Sieges</b><br>
         - Enemy troops standing in a town's fields take their harvest: those fields bring in nothing while they stay (the city's yield breakdown shows what is lost)<br>
         - Two or more at its gates put the town under siege and cut its road trade; you are told when a siege begins and when it is lifted<br>
@@ -1517,6 +1524,9 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.9</b></div>
         <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Look</b><br>
+          - Units on the map are painted soldiers, gunners and ships in place of round badges, ringed in their nation's colour<br>
+          - The emoji across menus, panels and messages are replaced by painted icons; unit lists and the unit panel show each soldier<br>
           <b style="color:#b8a070;">Sieges</b><br>
           - Enemy troops standing in a town's fields take their harvest: those fields bring in nothing while they stay (the city's yield breakdown shows what is lost)<br>
           - Two or more at its gates put the town under siege and cut its road trade; you are told when a siege begins and when it is lifted<br>
@@ -4661,10 +4671,10 @@ function showNoResearchPopup() {
     inner += `<div style="color:#c8a060;font-size:10px;font-weight:bold;margin:10px 0 3px;text-transform:uppercase;letter-spacing:0.07em;">${SECTION_LABELS[sec] || sec}</div>`;
     for (const [key, tech] of techs) {
       const turns = sciPerTurn > 0 ? Math.ceil(tech.cost / sciPerTurn) : '∞';
-      const unlocks = tech.unlocks.map(u => UNIT_DEFS[u]?.icon || CITY_BUILDING_DEFS[u]?.icon || IMPROVEMENT_DEFS[u]?.icon || '').filter(Boolean).join(' ');
+      const unlocks = tech.unlocks.map(u => (UNIT_DEFS[u] && unitIco(u)) || CITY_BUILDING_DEFS[u]?.icon || IMPROVEMENT_DEFS[u]?.icon || '').filter(Boolean).join(' ');
       inner += `<button onclick="setResearchTarget(${playerNation},'${key}');document.getElementById('noResearchPopup')?.remove();updateUI();" `;
       inner += `style="width:100%;text-align:left;background:#241900;border:1px solid #4a3810;border-radius:5px;color:#e0d0a0;padding:6px 10px;margin:2px 0;cursor:pointer;font-size:12px;display:block;">`;
-      inner += `<strong>${tech.name}</strong>${unlocks ? ' <span style="opacity:0.7">' + unlocks + '</span>' : ''}<span style="color:#7a7a6a;font-size:10px;float:right;">${tech.cost}⚗ · ${turns}t</span>`;
+      inner += `<strong>${tech.name}</strong>${unlocks ? ' <span style="opacity:0.9">' + unlocks + '</span>' : ''}<span style="color:#7a7a6a;font-size:10px;float:right;">${tech.cost}⚗ · ${turns}t</span>`;
       inner += `<div style="font-size:10px;color:#7a7a6a;margin-top:2px;">${tech.desc}</div></button>`;
     }
   }
@@ -4712,7 +4722,7 @@ function showIdleCitiesPopup(idleCities) {
       const costTip = costs ? Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ') : '';
       inner += `<button onclick="window._idleCityPick('${cityKey}','${type}')" title="${escHtml(costTip)}" `;
       inner += `style="background:#241900;border:1px solid ${canAfford?'#4a3810':'#2a2010'};border-radius:4px;color:${canAfford?'#e0d0a0':'#5a5040'};padding:3px 8px;cursor:pointer;font-size:11px;">`;
-      inner += `${def.icon} ${type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</button>`;
+      inner += `${unitIco(type)} ${type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</button>`;
     }
 
     const availBldgs = Object.entries(CITY_BUILDING_DEFS).filter(([key, bld]) => !bld.wonder && !cityBuildings.includes(key));
@@ -10639,6 +10649,44 @@ function shadeHex(hex, t) { // t < 0 darkens toward black, t > 0 lightens toward
 // ---- units as soldiers: each type a painted figure (units/<type>.png, our own), standing on a ring in its realm's colour.
 //  Zoomed far out, or before its picture has loaded, a unit is the old medallion ----
 const UNIT_FIGS = {};
+// Painted icons in place of emoji. The defs keep their emoji (the map canvas still draws them as text);
+// panels, toasts and lists get the painted image instead, swapped in as the text lands in the page.
+const EMOJI_ICONS = { '⚔': 'swords', '🛡': 'shield', '⚗': 'alembic', '🏛': 'columns', '📊': 'ledger', '📷': 'easel', '⚜': 'fleur', '⚒': 'hammerpick', '⚓': 'anchor', '🌾': 'wheat', '📜': 'scroll', '⚖': 'scales', '🐴': 'horsehead', '🐄': 'cow', '🏹': 'bow', '💥': 'blast', '♕': 'crown', '♛': 'crown', '👑': 'crown', '🪨': 'stone', '🏭': 'factory', '🏰': 'castle', '🏙': 'town', '🔥': 'fire', '🛠': 'tools', '🔒': 'lock', '⌛': 'hourglass', '☠': 'skull', '🌱': 'sprout', '☀': 'sun', '🍂': 'leaf', '❄': 'snow', '🦌': 'deer', '🐑': 'sheep', '🐗': 'boar', '🔭': 'telescope', '🔨': 'hammer', '🐎': 'horse', '🔫': 'musket', '🎯': 'target', '💢': 'grenade', '🏇': 'rider', '🪄': 'lance', '☄': 'fieldgun', '💣': 'bomb', '🧭': 'compass', '🚢': 'ship', '🗡': 'dagger', '🏪': 'market', '⛏': 'pick', '🏠': 'house', '🏚': 'barn', '🪓': 'axe', '🔬': 'microscope', '🏦': 'treasury', '⛊': 'redoubt', '📚': 'books', '⛪': 'church', '💰': 'moneybag', '⛓': 'chain', '✍': 'quill', '✝': 'cross', '⚙': 'gear', '⛰': 'mountain', '🏗': 'scaffold', '📈': 'rising', '🏳': 'whiteflag', '🌊': 'waves', '🌳': 'tree', '💎': 'gem', '🧂': 'salt', '✨': 'sparkle', '👁': 'eye', '⚡': 'lightning', '☮': 'olive', '🌿': 'herb', '🪵': 'log', '⚠': 'warning' };
+const EMOJI_RE = new RegExp('(' + Object.keys(EMOJI_ICONS).sort((a, b) => b.length - a.length).map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\uFE0F?', 'gu');
+function unitIco(type) { return UNIT_DEFS[type] ? `<img class="emo fig" src="units/${type}.png" alt="">` : ''; }
+function swapEmojiIn(root) {
+  if (!root) return;
+  if (root.nodeType === 3) { swapEmojiText(root); return; }
+  if (root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|CANVAS|TITLE)$/.test(root.nodeName)) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentNode && /^(SCRIPT|STYLE|TEXTAREA|OPTION|SELECT|TITLE)$/.test(n.parentNode.nodeName)) ? 2 : 1 });
+  const hits = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) { EMOJI_RE.lastIndex = 0; if (EMOJI_RE.test(n.data)) hits.push(n); }
+  hits.forEach(swapEmojiText);
+}
+function swapEmojiText(n) {
+  const s = n.data; EMOJI_RE.lastIndex = 0;
+  if (!EMOJI_RE.test(s) || !n.parentNode) return;
+  const frag = document.createDocumentFragment(); let last = 0; EMOJI_RE.lastIndex = 0;
+  for (let m; (m = EMOJI_RE.exec(s)); ) {
+    if (m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+    const img = document.createElement('img'); img.className = 'emo'; img.alt = m[0]; img.src = 'icons/' + EMOJI_ICONS[m[1]] + '.png';
+    frag.appendChild(img); last = m.index + m[0].length;
+  }
+  if (last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+  n.parentNode.replaceChild(frag, n);
+}
+(function watchEmoji() {
+  const go = () => {
+    swapEmojiIn(document.body);
+    new MutationObserver(list => {
+      for (const r of list) {
+        if (r.type === 'characterData') swapEmojiText(r.target);
+        else r.addedNodes.forEach(swapEmojiIn);
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+})();
 function unitFigure(type) {
   let img = UNIT_FIGS[type];
   if (!img) {
@@ -11793,7 +11841,7 @@ function showUnitPanel(unit) {
       generalHtml = `<p style="font-size:11px;color:#6c6;margin:2px 0;">Under command of General (${traitNames})</p>`;
     }
   }
-  let html = `<h3>${def.icon} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
+  let html = `<h3>${unitIco(unit.type)} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
 
   if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
     const upg = UNIT_UPGRADES[unit.type];
@@ -11807,7 +11855,7 @@ function showUnitPanel(unit) {
     const costStr = Object.entries(upg.cost).map(([r, amt]) => `${amt} ${r}`).join(', ');
     const canUpgrade = hastech && inCityBorders && canAfford;
     const upgradeToName = upg.to.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    html += `<button class="p-btn" onclick="upgradeUnit()" ${!canUpgrade ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${toDef.icon} ${upgradeToName} <span class="cost">${costStr}</span></button>`;
+    html += `<button class="p-btn" onclick="upgradeUnit()" ${!canUpgrade ? 'disabled' : ''} style="border-color:#c8a;color:#e8c">Upgrade to ${unitIco(upg.to)} ${upgradeToName} <span class="cost">${costStr}</span></button>`;
     if (!hastech) html += `<p style="font-size:10px;color:#a66">Requires ${techName} research.</p>`;
     else if (!inCityBorders) html += `<p style="font-size:10px;color:#a86">Must be within a city&apos;s borders to upgrade.</p>`;
     else if (!canAfford) html += `<p style="font-size:10px;color:#a66">Not enough resources.</p>`;
@@ -12030,7 +12078,7 @@ function showCityTab(tab) {
     function prodBtn(type) {
       const costs = getScaledCosts(nId, PRODUCTION_COSTS[type]); const costStr = Object.entries(costs).map(([k,v]) => `${v} ${k}`).join(', ');
       const typeName = type.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
-      const def = UNIT_DEFS[type]; const icon = def.icon;
+      const def = UNIT_DEFS[type]; const icon = unitIco(type);
       let statStr = '';
       if (def.combat) { statStr = `<span style="color:#b8a070;font-size:11px"> ATK ${def.atk} HP ${def.hp || 10} Mv ${def.moves}${def.ranged ? ' R' : ''}${def.siege ? ' S' : ''}</span>`; }
       else { statStr = `<span style="color:#8a9a6a;font-size:11px"> Mv ${def.moves} Vis ${def.vision}</span>`; }
@@ -13598,7 +13646,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (u) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
-    html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
+    html += `<div class="tt-detail">${unitIco(u.type)} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
     const regiment = regimentName(u);
     if (regiment) html += `<div class="tt-detail" style="color:#e0c880;font-style:italic">${escHtml(regiment)}</div>`;
     const ttMaxHp = getEffectiveMaxHp(u);
