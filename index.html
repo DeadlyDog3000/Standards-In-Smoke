@@ -712,7 +712,7 @@
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Pixel Map, Sharpened</b><br>
         - The map is back to its bright pixel look, redrawn at twice the detail: shaded hexes, grass tufts and flowers, ripples on the water and outlined trees and buildings<br>
-        - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before<br>
+        - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before, with snow on their roofs in winter and captured colours flying beside the capital's church<br>
         - Soldiers, horsemen, guns and ships are small pixel figures to match the map
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.1</b></div>
@@ -1659,7 +1659,7 @@
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">The Pixel Map, Sharpened</b><br>
           - The map is back to its bright pixel look, redrawn at twice the detail: shaded hexes, grass tufts and flowers, ripples on the water and outlined trees and buildings<br>
-          - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before<br>
+          - Mountains are pixel peaks with snowy tops and hills are green mounds; towns are drawn as before, with snow on their roofs in winter and captured colours flying beside the capital's church<br>
           - Soldiers, horsemen, guns and ships are small pixel figures to match the map
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.1</b></div>
@@ -11158,6 +11158,7 @@ function drawTown(city, cx, cy, w, faceH) {
   }
   houses.sort((p, q) => p.y - q.y);
   const painted = townSprite(city);
+  let trophyX = cx - rx * 0.5, trophyY = cy - ry * 0.25; // beside the church when the town is drawn house by house
   if (painted) {
     // the painted settlement, with what the town has built standing round it and the realm's flag above
     const tw = w * (city.isCapital ? 0.98 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
@@ -11169,19 +11170,7 @@ function drawTown(city, cx, cy, w, faceH) {
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
     ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - fh); ctx.stroke();
     ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(fx, fy - fh); ctx.lineTo(fx + w * 0.1, fy - fh + w * 0.025); ctx.lineTo(fx, fy - fh + w * 0.055); ctx.closePath(); ctx.fill();
-    // captured colours hang in the capital: a row of small trophy flags in the colours of the realms they were taken from
-    const trophies = city.isCapital ? nations[city.nationId]?.coloursFrom : null;
-    if (trophies && trophies.length && w >= 24) {
-      const step = w * 0.1, tfh = w * 0.14, bx = cx - step * (trophies.length - 1) / 2, by = top + th * 0.02;
-      ctx.lineWidth = Math.max(0.8, w * 0.01);
-      trophies.forEach((nid, k) => {
-        const x = bx + k * step, sway = (k % 2 ? 1 : -1) * w * 0.012;
-        ctx.strokeStyle = '#3a3026'; ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + sway, by - tfh); ctx.stroke();
-        ctx.fillStyle = safeColor(nations[nid]?.color || '#999');
-        ctx.beginPath(); ctx.moveTo(x + sway, by - tfh); ctx.lineTo(x + sway + w * 0.075, by - tfh + w * 0.015); ctx.lineTo(x + sway + w * 0.068, by - tfh + w * 0.056); ctx.lineTo(x + sway, by - tfh + w * 0.048); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
-      });
-    }
+    trophyX = cx; trophyY = top + th * 0.02;
     houses.length = 0;
   }
   const roofs = ['#9a4330', '#7d3a2a', '#5f5a63', '#86563a'], walls = ['#e2d3b2', '#cdb894', '#d9c7a0'];
@@ -11212,6 +11201,23 @@ function drawTown(city, cx, cy, w, faceH) {
     ctx.beginPath(); ctx.moveTo(h.x - hw * 0.62, h.y - wh); ctx.lineTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.62, h.y - wh); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath(); ctx.moveTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.62, h.y - wh); ctx.lineTo(h.x, h.y - wh); ctx.closePath(); ctx.fill();
+    if (currentSeason === 'winter') { // snow lying on the upper roof
+      ctx.fillStyle = 'rgba(246, 250, 255, 0.92)';
+      ctx.beginPath(); ctx.moveTo(h.x - hw * 0.36, h.y - wh - rh * 0.42); ctx.lineTo(h.x, h.y - wh - rh); ctx.lineTo(h.x + hw * 0.36, h.y - wh - rh * 0.42); ctx.closePath(); ctx.fill();
+    }
+  }
+  // captured colours hang in the capital: a row of small trophy flags in the colours of the realms they were taken from
+  const trophies = city.isCapital ? nations[city.nationId]?.coloursFrom : null;
+  if (trophies && trophies.length && w >= 24) {
+    const step = w * 0.1, tfh = w * 0.14, bx = trophyX - step * (trophies.length - 1) / 2, by = trophyY;
+    ctx.lineWidth = Math.max(0.8, w * 0.01);
+    trophies.forEach((nid, k) => {
+      const x = bx + k * step, sway = (k % 2 ? 1 : -1) * w * 0.012;
+      ctx.strokeStyle = '#3a3026'; ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + sway, by - tfh); ctx.stroke();
+      ctx.fillStyle = safeColor(nations[nid]?.color || '#999');
+      ctx.beginPath(); ctx.moveTo(x + sway, by - tfh); ctx.lineTo(x + sway + w * 0.075, by - tfh + w * 0.015); ctx.lineTo(x + sway + w * 0.068, by - tfh + w * 0.056); ctx.lineTo(x + sway, by - tfh + w * 0.048); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
+    });
   }
   if (fortified) {
     ctx.strokeStyle = '#a39d8c'; ctx.lineWidth = Math.max(1.5, w * 0.04);
