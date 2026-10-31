@@ -12415,6 +12415,31 @@ function drawRhumbs(cs, ch) {
     ctx.font = `italic ${Math.max(8, u * 3.8)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.92)';
     ctx.fillText('Anno Domini ' + roman(year), pcx, pcy + u * 7.5);
   }
+  // the key to the chart in its lower right corner, as the old maps explained their marks
+  {
+    const lw = Math.min(cs * 6.5, mw * 0.2), lh = lw * 0.82, lx = ox + mw - lw - cs * 0.7, ly = oy + mh - lh - ch * 0.9, u2 = lw / 200;
+    if (lx < viewW && ly < viewH && lx + lw > 0 && ly + lh > 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(232, 218, 182, 0.92)'; ctx.fillRect(lx, ly, lw, lh);
+      ctx.strokeStyle = 'rgba(52, 36, 18, 0.9)'; ctx.lineWidth = 2 * u2; ctx.strokeRect(lx, ly, lw, lh);
+      ctx.lineWidth = 0.8 * u2; ctx.strokeRect(lx + 5 * u2, ly + 5 * u2, lw - 10 * u2, lh - 10 * u2);
+      ctx.fillStyle = 'rgba(46, 30, 14, 0.95)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `italic 600 ${15 * u2}px 'EB Garamond', serif`; ctx.fillText('Explicatio Notarum', lx + lw / 2, ly + 20 * u2);
+      const rows = ['Urbs regia', 'Oppidum', 'Via regia', 'Flumen', 'Proelium'], rx0 = lx + 22 * u2, tx0 = lx + 52 * u2;
+      ctx.textAlign = 'left'; ctx.font = `italic ${12 * u2}px 'EB Garamond', serif`;
+      rows.forEach((label, k) => {
+        const ry = ly + 44 * u2 + k * 24 * u2;
+        ctx.fillStyle = 'rgba(46, 30, 14, 0.95)'; ctx.fillText(label, tx0, ry);
+        ctx.strokeStyle = 'rgba(46, 30, 14, 0.95)'; ctx.lineWidth = 1.2 * u2; ctx.beginPath();
+        if (k === 0) { for (let q = 0; q < 10; q++) { const an = -Math.PI / 2 + q * Math.PI / 5, rr = q & 1 ? 4 * u2 : 9 * u2; q ? ctx.lineTo(rx0 + Math.cos(an) * rr, ry + Math.sin(an) * rr) : ctx.moveTo(rx0, ry - rr); } ctx.closePath(); ctx.fillStyle = '#a3362a'; ctx.fill(); ctx.stroke(); }
+        else if (k === 1) { ctx.arc(rx0, ry, 6 * u2, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(rx0, ry, 2 * u2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(46, 30, 14, 0.95)'; ctx.fill(); }
+        else if (k === 2) { ctx.moveTo(rx0 - 12 * u2, ry - 2 * u2); ctx.lineTo(rx0 + 12 * u2, ry - 2 * u2); ctx.moveTo(rx0 - 12 * u2, ry + 2 * u2); ctx.lineTo(rx0 + 12 * u2, ry + 2 * u2); ctx.stroke(); }
+        else if (k === 3) { ctx.strokeStyle = '#5f8a90'; ctx.lineWidth = 2.4 * u2; ctx.moveTo(rx0 - 12 * u2, ry + 3 * u2); ctx.bezierCurveTo(rx0 - 4 * u2, ry - 6 * u2, rx0 + 4 * u2, ry + 6 * u2, rx0 + 12 * u2, ry - 3 * u2); ctx.stroke(); }
+        else { ctx.moveTo(rx0 - 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 + 7 * u2, ry - 7 * u2); ctx.moveTo(rx0 + 7 * u2, ry + 7 * u2); ctx.lineTo(rx0 - 7 * u2, ry - 7 * u2); ctx.stroke(); }
+      });
+      ctx.restore();
+    }
+  }
   // a wind head puffing from the sheet's upper right corner, as on the old world maps
   const wh = owDeskProp('windhead');
   if (wh) {
