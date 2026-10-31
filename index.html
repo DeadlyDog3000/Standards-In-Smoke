@@ -10610,7 +10610,7 @@ function owWatercolour(c) {
   const h = safeColor(c, '#888888').replace('#', ''), n = parseInt(h.length <= 4 ? h.slice(0, 3).replace(/./g, '$&$&') : h.slice(0, 6), 16);
   let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   const l = 0.3 * r + 0.59 * g + 0.11 * b;
-  r = l + (r - l) * 0.68; g = l + (g - l) * 0.68; b = l + (b - l) * 0.68; // (a third of the brilliance gone)
+  r = l + (r - l) * 0.58; g = l + (g - l) * 0.58; b = l + (b - l) * 0.58; // (near half the brilliance gone, as a colourist's thin wash)
   r = r * 0.82 + 226 * 0.18; g = g * 0.82 + 212 * 0.18; b = b * 0.82 + 180 * 0.18;
   v = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   _owWater.set(c, v);
