@@ -520,6 +520,12 @@
     .p-btn:hover, .esc-btn:hover, .event-choice:hover { background: linear-gradient(rgba(255, 220, 140, 0.18), rgba(120, 80, 20, 0.12)); border-color: rgba(222, 180, 90, 0.8); }
     #panel h3, .event-card h3, #kingdoms h3, #escMenuBox h2 { text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 12px rgba(212, 168, 86, 0.25); }
     .section-title { color: #b49a64; border-bottom: 1px solid rgba(198, 158, 80, 0.25); padding-bottom: 2px; }
+    .menu-btn {
+      background: linear-gradient(rgba(255, 225, 160, 0.08), rgba(0, 0, 0, 0.25)), var(--ow-leather); color: #f0e0bc;
+      border: 1px solid #8a6a30; border-radius: 2px;
+      box-shadow: inset 0 0 0 2px rgba(16, 11, 6, 0.9), inset 0 0 0 3px rgba(198, 158, 80, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6);
+    }
+    .menu-btn:hover { background: linear-gradient(rgba(255, 215, 130, 0.2), rgba(90, 60, 20, 0.2)), var(--ow-leather); border-color: #d8b060; color: #fff4d8; }
     /* town names as on an atlas: a parchment ribbon lettered in ink, the population on a wax seal in the realm's colour */
     .city-label {
       color: #2a1c0e; font-style: italic; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 0 rgba(255, 245, 220, 0.6);
@@ -762,6 +768,8 @@
         - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
         - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
         - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
+        - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean<br>
+        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
         - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
@@ -1727,7 +1735,9 @@
           - The known world fades softly into the blank vellum, where rhumb lines run out from wind-roses as on a portolan chart; land you are not watching is dimmed rather than blacked out<br>
           - The seasons recolour the whole sheet: green spring, gold summer, russet autumn, and snow with frozen shallows in winter<br>
           - Towns, farms, mines, mills, ports and wonders are little engraved vignettes, and every unit is an engraved figure<br>
-          - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
+          - Seas, lakes and mountain ranges are lettered with their names, and sea serpents, whales and carracks swim in the open ocean<br>
+        - Realms are bounded as on an atlas, a wash of their colour inside a dotted line; towns are named on parchment ribbons, and units stand on painted wargame bases<br>
+        - Panels are tooled leather in gilt frames; the ground a unit can reach is one wash ruled round its edge
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 11.2</b></div>
         <div style="margin-bottom:12px;">
@@ -11758,6 +11768,77 @@ function buildWorldChart(key) {
   const pat = owPaperPattern(g);
   if (pat) { g.globalCompositeOperation = 'multiply'; g.fillStyle = pat; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over'; }
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
+  owPlaceNames();
+}
+// names lettered across the seas and the great ranges, and the beasts and ships an engraver put in open water
+const OW_SEA_NAMES = ['Mare Tenebrosum', 'Oceanus Occidentalis', 'Mare Magnum', 'Sinus Aureus', 'Mare Borealis', 'Mare Ignotum', 'Oceanus Orientalis', 'Sinus Tranquillus', 'Mare Glaciale', 'Mare Serenum'];
+const OW_LAKE_NAMES = ['Lacus Argenteus', 'Lacus Niger', 'Lacus Serenus', 'Lacus Brevis', 'Lacus Profundus', 'Lacus Viridis'];
+const OW_HILL_NAMES = ['Montes Ferrei', 'Alpes Nebulosae', 'Montes Lupi', 'Montes Albi', 'Montes Draconis', 'Montes Aquilae', 'Alpes Glaciales', 'Montes Aurei'];
+function owPlaceNames() {
+  const N = tiles.length, comp = new Int32Array(N).fill(-1), groups = [];
+  const nbrs = (i) => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return hexNeighbors(x, y).map(q => q.row * MAP_COLS + q.col); };
+  const isWater = i => tiles[i].type === 0;
+  // how far each sea hex lies from land
+  const depth = new Int32Array(N).fill(-1), queue = [];
+  for (let i = 0; i < N; i++) if (!isWater(i)) { depth[i] = 0; queue.push(i); }
+  for (let h = 0; h < queue.length; h++) for (const j of nbrs(queue[h])) if (depth[j] < 0) { depth[j] = depth[queue[h]] + 1; queue.push(j); }
+  for (let i = 0; i < N; i++) {
+    if (comp[i] >= 0) continue;
+    const kind = isWater(i) ? 'sea' : tiles[i].type === 2 ? 'mount' : null;
+    if (!kind) continue;
+    const g = { kind, cells: [] }, st = [i]; comp[i] = groups.length;
+    while (st.length) { const k = st.pop(); g.cells.push(k); for (const j of nbrs(k)) if (comp[j] < 0 && (kind === 'sea' ? isWater(j) : tiles[j].type === 2)) { comp[j] = groups.length; st.push(j); } }
+    groups.push(g);
+  }
+  const labels = [], decor = [];
+  let seaN = 0, lakeN = 0, hillN = 0;
+  for (const g of groups) {
+    const n = g.cells.length;
+    if (g.kind === 'sea' && n >= 12) {
+      // lettered at the deepest water near the middle of the sea
+      let cx = 0, cy = 0; for (const i of g.cells) { cx += i % MAP_COLS; cy += Math.floor(i / MAP_COLS); } cx /= n; cy /= n;
+      let best = g.cells[0], bs = -1e9;
+      for (const i of g.cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), sc = depth[i] * 3 - Math.hypot(x - cx, y - cy) * 0.5; if (sc > bs) { bs = sc; best = i; } }
+      const big = n >= 60;
+      labels.push({ i: best, text: big ? OW_SEA_NAMES[seaN++ % OW_SEA_NAMES.length] : OW_LAKE_NAMES[lakeN++ % OW_LAKE_NAMES.length], kind: 'sea', size: (big ? 0.42 : 0.3) * Math.min(2.4, Math.max(1, Math.sqrt(n) / 9)) });
+      // the open sea gets a monster or a ship, well away from the shore and from each other
+      if (n >= 40) {
+        const want = Math.min(4, 1 + Math.floor(n / 160)), picked = [];
+        const cand = g.cells.filter(i => depth[i] >= 3 && i !== best).sort((a, b) => owHash(a, 1, 9) - owHash(b, 1, 9));
+        for (const i of cand) {
+          if (picked.length >= want) break;
+          const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS), bx = best % MAP_COLS, by = Math.floor(best / MAP_COLS);
+          if (Math.hypot(x - bx, y - by) < 4 || picked.some(j => Math.hypot(x - j % MAP_COLS, y - Math.floor(j / MAP_COLS)) < 8)) continue;
+          picked.push(i); decor.push({ i, img: ['sea_serpent', 'sea_whale', 'sea_ship'][Math.floor(owHash(i, 3, 5) * 3)], flip: owHash(i, 4, 6) < 0.5 });
+        }
+      }
+    } else if (g.kind === 'mount' && n >= 9) {
+      let cx = 0, cy = 0; for (const i of g.cells) { cx += i % MAP_COLS; cy += Math.floor(i / MAP_COLS); } cx /= n; cy /= n;
+      let best = g.cells[0], bd = 1e9;
+      for (const i of g.cells) { const d = Math.hypot(i % MAP_COLS - cx, Math.floor(i / MAP_COLS) - cy); if (d < bd) { bd = d; best = i; } }
+      labels.push({ i: best, text: OW_HILL_NAMES[hillN++ % OW_HILL_NAMES.length], kind: 'mount', size: 0.3 });
+    }
+  }
+  OW.labels = labels; OW.decor = decor;
+}
+function owDrawNames(g, w, cs, ch, facePad) {
+  const halfCh = Math.round(ch / 2), at = i => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return [x * cs - camX * cs + w / 2, y * ch + (x & 1) * halfCh - camY * ch + facePad + ch / 2]; };
+  for (const d of OW.decor || []) {
+    const img = featSprite(d.img); if (!img) continue;
+    const [x, y] = at(d.i); if (x < -w * 2 || y < -w * 2 || x > viewW + w * 2 || y > viewH + w * 2) continue;
+    const dw = w * 1.5, dh = dw * img.naturalHeight / img.naturalWidth;
+    g.save(); g.globalAlpha = 0.9; g.translate(x, y); if (d.flip) g.scale(-1, 1); g.drawImage(img, -dw / 2, -dh * 0.6, dw, dh); g.restore();
+  }
+  g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const l of OW.labels || []) {
+    const [x, y] = at(l.i), px = Math.max(l.kind === 'sea' ? 12 : 10, Math.min(w * l.size, l.kind === 'sea' ? 36 : 24));
+    if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
+    g.font = `italic ${l.kind === 'sea' ? 500 : 600} ${px}px 'EB Garamond', serif`;
+    if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : 0.18)) + 'px';
+    g.lineWidth = Math.max(2, px * 0.18); g.strokeStyle = l.kind === 'sea' ? 'rgba(150, 175, 170, 0.55)' : 'rgba(236, 226, 200, 0.75)'; g.strokeText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
+    g.fillStyle = l.kind === 'sea' ? 'rgba(28, 44, 50, 0.85)' : 'rgba(58, 38, 18, 0.9)'; g.fillText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
+  }
+  g.restore();
 }
 let _owPaper = null;
 function owPaperCanvas() {
@@ -11839,6 +11920,7 @@ setTimeout(function owPreload() {
   townSprite(null); townSprite({ isCapital: true }); townSprite({ population: 5 });
   for (const k in UNIT_DEFS) unitFigure(k);
   for (const k in ANIMAL_DATA) featSprite('an_' + k);
+  for (const k of ['serpent', 'whale', 'ship']) featSprite('sea_' + k);
 }, 0);
 // draw the chart under the hexes that have been explored, feathered at the edge of the known world; the cut-out sheet is cached until the view or the map changes
 const _owLayer = { c: null, key: '' };
@@ -11883,6 +11965,7 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     if (sx1 > sx0 && sy1 > sy0) g.drawImage(chart, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * fx, oy + sy0 * fy, (sx1 - sx0) * fx, (sy1 - sy0) * fy);
     // land known but not watched now: dimmed and browned, as an old survey not lately checked
     g.globalCompositeOperation = 'source-atop';
+    owDrawNames(g, w, cs, ch, facePad);
     g.filter = 'blur(' + Math.max(1, w * 0.1) + 'px)'; g.fillStyle = 'rgba(34, 24, 12, 0.46)'; g.fill(unseen); g.filter = 'none';
     g.globalCompositeOperation = 'source-over';
   }
