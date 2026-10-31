@@ -12555,9 +12555,45 @@ function drawSheetBorder(w, cs, ch, facePad) {
       if (cx2 + size < 0 || cx2 - size > viewW || py + size < 0 || py - size > viewH) continue;
       ctx.save(); ctx.translate(cx2, py); ctx.rotate(rot);
       ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = size * 0.04; ctx.shadowOffsetX = size * 0.025; ctx.shadowOffsetY = size * 0.04;
+      const lens = name === 'desk_glass' ? { x: (216.5 / 300 - 0.5) * iw, y: (89.5 / 298 - 0.5) * ih, rx: iw * 0.235, ry: ih * 0.25 } : null;
+      if (lens) {
+        // through the lens, the leather beneath it, magnified (the glass's own rim is laid over its edge)
+        const desk = owDeskPattern();
+        ctx.save(); ctx.shadowColor = 'transparent'; ctx.beginPath(); ctx.ellipse(lens.x, lens.y, lens.rx, lens.ry, 0, 0, Math.PI * 2); ctx.clip();
+        if (desk) { desk.setTransform(new DOMMatrix().translate(lens.x, lens.y).scale(1.6).translate(-lens.x, -lens.y)); ctx.fillStyle = desk; ctx.fillRect(lens.x - lens.rx, lens.y - lens.ry, lens.rx * 2, lens.ry * 2); }
+        ctx.fillStyle = 'rgba(10, 6, 2, 0.14)'; ctx.fillRect(lens.x - lens.rx, lens.y - lens.ry, lens.rx * 2, lens.ry * 2);
+        ctx.restore();
+      }
       ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+      if (lens) {
+        // and the window's light caught on the glass
+        const lx = lens.x, ly = lens.y, lr = lens.rx * 0.95;
+        ctx.save(); ctx.shadowColor = 'transparent'; ctx.beginPath(); ctx.ellipse(lx, ly, lr, lens.ry * 0.95, 0, 0, Math.PI * 2); ctx.clip();
+        const glint = ctx.createRadialGradient(lx - lr * 0.38, ly - lr * 0.42, lr * 0.05, lx - lr * 0.2, ly - lr * 0.2, lr * 1.1);
+        glint.addColorStop(0, 'rgba(255, 250, 235, 0.5)'); glint.addColorStop(0.35, 'rgba(255, 245, 225, 0.1)'); glint.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+        ctx.fillStyle = glint; ctx.fillRect(lx - lr, ly - lr * 1.2, lr * 2, lr * 2.4);
+        ctx.strokeStyle = 'rgba(255, 248, 230, 0.35)'; ctx.lineWidth = Math.max(1, lr * 0.05); ctx.beginPath(); ctx.arc(lx, ly, lr * 0.8, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();
+        ctx.restore();
+      }
       ctx.restore();
     }
+  }
+  // older sheets of the survey lie under this one, a little askew, their edges showing past it
+  {
+    const ow = bw + gap * 5.2, oh = bh + gap * 7.28, mcx = bx - gap * 2.6 + ow / 2, mcy = by - gap * 2.6 + oh / 2;
+    const paper = owPaperPattern(ctx);
+    const outside = new Path2D(); outside.rect(-viewW, -viewH, viewW * 3, viewH * 3); outside.rect(mcx - ow / 2, mcy - oh / 2, ow, oh);
+    ctx.save(); ctx.clip(outside, 'evenodd'); // (only where they show past the top sheet)
+    for (const [rot, dx, dy, tone] of [[-0.011, -gap * 0.8, gap * 1.6, '#a8916a'], [0.008, gap * 1.4, gap * 0.6, '#b8a178']]) {
+      ctx.save(); ctx.translate(mcx + dx, mcy + dy); ctx.rotate(rot);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'; ctx.shadowBlur = Math.max(6, gap * 2); ctx.shadowOffsetX = gap * 0.4; ctx.shadowOffsetY = gap * 0.7;
+      ctx.fillStyle = tone; ctx.fillRect(-ow / 2, -oh / 2, ow, oh);
+      ctx.shadowColor = 'transparent';
+      if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fillRect(-ow / 2, -oh / 2, ow, oh); ctx.globalCompositeOperation = 'source-over'; }
+      ctx.strokeStyle = 'rgba(60, 40, 20, 0.35)'; ctx.lineWidth = 1; ctx.strokeRect(-ow / 2, -oh / 2, ow, oh);
+      ctx.restore();
+    }
+    ctx.restore();
   }
   // the sheet lies on the table: its shadow falls on the wood around it (clipped to outside the sheet)
   {
