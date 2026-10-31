@@ -8806,7 +8806,7 @@ function getCityLoyaltyStatus(city) {
   if (net <= 3) return { status: 'uneasy', label: 'Uneasy', color: '#cc6', net, discontent: d };
   if (net <= 5) return { status: 'unhappy', label: 'Unhappy', color: '#c80', net, discontent: d };
   if (net <= 7.5) return { status: 'furious', label: 'Furious', color: '#c33', net, discontent: d };
-  return { status: 'rebellious', label: 'Rebellious', color: '#f0f', net, discontent: d };
+  return { status: 'rebellious', label: 'Rebellious', color: '#d0507a', net, discontent: d };
 }
 
 function getCityProductionPenalty(city) {
@@ -8865,7 +8865,7 @@ function tryCityRebellion(city) {
     if (hoveredCity === city) hoveredCity = null;
     if (oldOwner === playerNation) {
       showToast(`${city.name} has thrown off your rule and rejoined ${nations[newOwner].name}!`);
-      addFloatingText(city.x, city.y, 'Rebellion!', '#f0f', 2500, 14);
+      addFloatingText(city.x, city.y, 'Rebellion!', '#c0386a', 2500, 14);
       screenShake(6, 400);
     } else if (newOwner === playerNation) {
       showToast(`${city.name} has rebelled and rejoined our cause!`);
@@ -8905,7 +8905,7 @@ function tryCityRebellion(city) {
     city.population = Math.max(1, city.population - 1);
     if (city.nationId === playerNation) {
       showToast(`Citizens of ${city.name} have risen in revolt!`);
-      addFloatingText(city.x, city.y, 'Revolt!', '#f0f', 2500, 14);
+      addFloatingText(city.x, city.y, 'Revolt!', '#c0386a', 2500, 14);
       screenShake(5, 350);
     }
     return true;
