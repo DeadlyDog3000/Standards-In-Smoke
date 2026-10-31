@@ -534,6 +534,9 @@
     #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
+    #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; background-size: 256px 256px, 180px 180px; animation: snowfall 22s linear infinite; }
+    @keyframes snowfall { from { background-position: 0 0, 0 0; } to { background-position: 60px 512px, -40px 360px; } }
+    @media (prefers-reduced-motion: reduce) { #weather { animation: none; } }
     #game > canvas { image-rendering: auto; cursor: url(ui/quill32.png) 1 1, default; cursor: -webkit-image-set(url(ui/quill32.png) 1x, url(ui/quill64.png) 2x) 1 1, default; }
     #game::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 55% at 48% 45%, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0) 70%); }
     /* the top bar's stores as painted tokens, not coloured squares */
@@ -5269,6 +5272,25 @@ function getShakeOffset() {
   };
 }
 
+// winter: snow drifting down over the map (a CSS layer, so it costs the map nothing to draw)
+let _weatherEl = null, _weatherSeason = '';
+function updateWeather() {
+  const want = currentSeason === 'winter' && document.getElementById('game')?.style.display !== 'none' ? 'winter' : '';
+  if (want === _weatherSeason) return;
+  _weatherSeason = want;
+  if (!_weatherEl) {
+    _weatherEl = document.createElement('div'); _weatherEl.id = 'weather';
+    const mk = (n, rmin, rmax, seed) => {
+      const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+      let sd = seed; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      for (let k = 0; k < n; k++) { const x = rnd() * 256, y = rnd() * 256, r = rmin + rnd() * (rmax - rmin); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+      return c.toDataURL();
+    };
+    _weatherEl.style.backgroundImage = `url(${mk(26, 1.6, 3.2, 7)}), url(${mk(40, 1, 2, 31)})`;
+    document.getElementById('game')?.appendChild(_weatherEl);
+  }
+  _weatherEl.style.display = want ? 'block' : 'none';
+}
 function toRoman(v) {
   let r = '';
   for (const [k, ch] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) while (v >= k) { r += ch; v -= k; }
@@ -13487,6 +13509,7 @@ function render() {
 
   if (shake.x !== 0 || shake.y !== 0) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
+  updateWeather();
   const hasEffects = floatingTexts.length > 0 || particles.length > 0 || Date.now() < shakeEndTime || !!OW.prevKnown;
   if (hasEffects && !selectionFlashRAF && !animationBlocking && !render._fx) {
     // one pending effects frame at a time (every outside render used to start another chain of its own)
