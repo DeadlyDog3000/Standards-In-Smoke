@@ -12287,7 +12287,9 @@ function buildWorldChart(key) {
     d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
   }
   lg.putImageData(img, 0, 0);
-  const c = document.createElement('canvas'); c.width = TW; c.height = TH;
+  // (the sheet of the last build is drawn over again when it is the same size, rather than a new one of many megapixels made each time)
+  const reuse = (old, w2, h2) => { if (old && old.width === w2 && old.height === h2) { const og = old.getContext('2d'); if (og.reset) og.reset(); else old.width = w2; return old; } const n = document.createElement('canvas'); n.width = w2; n.height = h2; return n; };
+  const c = reuse(OW.canvas, TW, TH);
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.drawImage(lowC, 0, 0, LW * R, LH * R);
@@ -12371,9 +12373,10 @@ function buildWorldChart(key) {
   }
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
   // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
+  const oldMips = OW.mips || [];
   OW.mips = [c];
   for (let k = 1, src = c; k <= 2; k++) {
-    const m = document.createElement('canvas'); m.width = Math.ceil(src.width / 2); m.height = Math.ceil(src.height / 2);
+    const m = reuse(oldMips[k], Math.ceil(src.width / 2), Math.ceil(src.height / 2));
     const mg = m.getContext('2d'); mg.imageSmoothingEnabled = true; mg.imageSmoothingQuality = 'high'; mg.drawImage(src, 0, 0, m.width, m.height);
     OW.mips.push(m); src = m;
   }
