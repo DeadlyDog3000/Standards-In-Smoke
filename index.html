@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Blockades</b><br>
+        - An enemy warship lying beside a port closes it: no trade or catch comes in from it, the town's fishing boats stay in, and you are told when a blockade begins and ends
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.4</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Roads That Carry Armies</b><br>
@@ -1551,6 +1556,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.5</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Blockades</b><br>
+          - An enemy warship lying beside a port closes it: no trade or catch comes in from it, the town's fishing boats stay in, and you are told when a blockade begins and ends
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.4</b></div>
         <div style="margin-bottom:12px;">
@@ -5578,7 +5588,7 @@ function getCityYieldBreakdown(city) {
       if (t.hasRiver) { add('food', RIVER_FOOD); add('gold', RIVER_GOLD); }
       if (t.wonder && NATURAL_WONDERS[t.wonder]) { const b = NATURAL_WONDERS[t.wonder].yields; for (const k in b) add(k, b[k]); }
     }
-    const label = `Enemy troops in ${held.size} field${held.size > 1 ? 's' : ''}`;
+    const label = city._blockaded ? `Blockade and enemy troops (${held.size} tile${held.size > 1 ? 's' : ''})` : `Enemy troops in ${held.size} field${held.size > 1 ? 's' : ''}`;
     for (const k in lost) if (lost[k] && sources[k]) sources[k].push({ label, val: -lost[k] });
   }
   if (nationHasTech(city.nationId, 'banking')) {
@@ -10212,10 +10222,22 @@ function updateSieges() {
       if (u && u.hp < getEffectiveMaxHp(u)) u.hp = Math.min(getEffectiveMaxHp(u), u.hp + 1);
       if (hexDistance(ti % MAP_COLS, Math.floor(ti / MAP_COLS), city.x, city.y) === 1) gates++;
     }
-    const was = !!city._besieged;
+    // blockade: a hostile warship lying off a port closes it (no trade, no catch)
+    let blockaded = false;
+    for (const ti of city.ownedTiles) {
+      if (tiles[ti].improvement !== 'port' || (held && held.has(ti))) continue;
+      const px = ti % MAP_COLS, py = (ti - px) / MAP_COLS;
+      const ship = hexNeighbors(px, py).some(nb => { const ni = nb.row * MAP_COLS + nb.col, nid = at.get(ni), su = who.get(ni);
+        return nid !== undefined && su && UNIT_DEFS[su.type]?.naval && hostile(nid, city.nationId); });
+      if (ship) { (held || (held = new Set())).add(ti); blockaded = true; }
+    }
+    const was = !!city._besieged, wasB = !!city._blockaded;
     city._occupied = held;
     city._besieged = gates >= 2;
+    city._blockaded = blockaded;
     if (city.nationId !== playerNation) continue;
+    if (blockaded && !wasB) showToast(`\u2693 Enemy warships blockade the port of ${city.name}: no trade or catch comes in while they stay.`);
+    else if (!blockaded && wasB) showToast(`The blockade of ${city.name} is lifted.`);
     if (city._besieged && !was) {
       addFloatingText(city.x, city.y, 'Besieged!', '#ff6a3a', 2500, 16);
       showToast(`\u26D3 ${city.name} is besieged: enemy troops hold ${held.size} of its fields and its road trade is cut.`);
@@ -10537,7 +10559,7 @@ function drawFishingBoats(city, w, facePad, ch, pId) {
   const water = hexNeighbors(city.x, city.y).filter(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS
     && tiles[nb.row * MAP_COLS + nb.col].type === 0 && tiles[nb.row * MAP_COLS + nb.col].revealed.has(pId)
     && !units.some(u => u.x === nb.col && u.y === nb.row));
-  if (!water.length || currentSeason === 'winter') return; // in winter the boats are drawn up for the ice
+  if (!water.length || currentSeason === 'winter' || city._blockaded) return; // in winter the boats are drawn up for the ice; under blockade they stay in
   const n = Math.min(water.length, (city.population || 1) >= 6 ? 2 : 1);
   for (let k = 0; k < n; k++) {
     const sp = water[(city.x * 3 + city.y * 5 + k) % water.length];
@@ -11486,7 +11508,7 @@ function render() {
   if (VIEW_TILE >= 14) for (const city of cities) {
     if (!city._occupied) continue;
     for (const ti of city._occupied) {
-      if (!tiles[ti].revealed.has(pId)) continue;
+      if (!tiles[ti].revealed.has(pId) || (tiles[ti].improvement === 'port' && city._blockaded)) continue;
       const pos = hexScreenPos(ti % MAP_COLS, Math.floor(ti / MAP_COLS));
       if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
       let sd = ti * 7919 + 13; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
@@ -13521,7 +13543,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.4';
+const CURRENT_VERSION = 'beta-9.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
