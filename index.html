@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Towns Under Snow</b><br>
+        - In winter the towns lie under a dusting of snow, thickest on the roofs
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Hardship</b><br>
@@ -1582,6 +1587,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.0</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Towns Under Snow</b><br>
+          - In winter the towns lie under a dusting of snow, thickest on the roofs
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.9</b></div>
         <div style="margin-bottom:12px;">
@@ -10908,6 +10918,31 @@ function drawTownFire(cx, cy, w, k, seed) {
   ctx.restore();
 }
 
+// a town sprite under snow: the roofs (upper part of the painting) whitened, fading out toward the streets; made once per sprite
+const _snowySprites = new Map();
+function snowySprite(img) {
+  let c = _snowySprites.get(img);
+  if (c) return c;
+  if (!img.naturalWidth) return img;
+  c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  const gr = g.createLinearGradient(0, 0, 0, c.height);
+  gr.addColorStop(0, 'rgba(246, 250, 255, 0.3)'); gr.addColorStop(0.5, 'rgba(240, 246, 255, 0.16)'); gr.addColorStop(0.8, 'rgba(240, 246, 255, 0)');
+  g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+  // flecks of lying snow, thicker toward the top
+  let sd = 12345; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+  const n = Math.round(c.width * c.height / 60), r0 = Math.max(1, c.width / 160);
+  g.fillStyle = 'rgba(252, 253, 255, 0.85)';
+  for (let i = 0; i < n; i++) {
+    const y = Math.pow(rnd(), 1.6) * c.height * 0.85, x = rnd() * c.width;
+    g.fillRect(x, y, r0 * (1 + rnd()), r0 * (0.6 + rnd() * 0.6));
+  }
+  _snowySprites.set(img, c);
+  return c;
+}
+
 function drawTown(city, cx, cy, w, faceH) {
   let seed = (city.x * 73856093) ^ (city.y * 19349663);
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
@@ -10945,7 +10980,7 @@ function drawTown(city, cx, cy, w, faceH) {
     const tw = w * (city.isCapital ? 0.98 : pop >= 5 ? 0.92 : 0.84), th = tw * painted.naturalHeight / painted.naturalWidth;
     const top = cy + ry * 1.15 - th;
     for (const h of houses) if (h.lm && h.y < cy) drawLandmark(h.lm, h.x, h.y, w); // behind the town
-    ctx.drawImage(painted, cx - tw / 2, top, tw, th);
+    ctx.drawImage(currentSeason === 'winter' ? snowySprite(painted) : painted, cx - tw / 2, top, tw, th);
     for (const h of houses) if (h.lm && h.y >= cy) drawLandmark(h.lm, h.x, h.y, w);
     const fx = cx + tw * 0.08, fy = top + th * 0.08, fh = w * 0.16;
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
@@ -13727,7 +13762,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.9';
+const CURRENT_VERSION = 'beta-10.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
