@@ -12273,8 +12273,8 @@ function buildWorldChart(key) {
       // winter: the shallows along the shore freeze white
       if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; }
     } else {
-      // relief: lit from the north-west, as an engraver shades a hill
-      const shade = SH[i];
+      // relief: lit from the north-west, as an engraver shades a hill (the shade only half laid in tone: the hatching carries the rest)
+      const shade = SH[i] < 1 ? 1 - (1 - SH[i]) * 0.6 : SH[i];
       r = 0; g = 0; b = 0; let tot = 0;
       for (let t = 1; t < 9; t++) { const q = WT[i * 9 + t]; if (q) { const col = wash[t] || wash[1]; r += q * col[0]; g += q * col[1]; b += q * col[2]; tot += q; } }
       if (tot) { r /= tot; g /= tot; b /= tot; } else { r = wash[1][0]; g = wash[1][1]; b = wash[1][2]; }
@@ -12305,7 +12305,7 @@ function buildWorldChart(key) {
       const x = lx * rr + owHash(ly, lx, 4) * rr, y = ly * rr + owHash(lx, ly, 6) * rr;
       hp.moveTo(x, y); hp.lineTo(x + L2 * 0.55, y + L2 * 0.8);
     }
-    g.strokeStyle = 'rgba(52, 36, 18, 0.2)'; g.lineWidth = 0.65 * u; g.stroke(hp);
+    g.strokeStyle = 'rgba(52, 36, 18, 0.3)'; g.lineWidth = 0.65 * u; g.stroke(hp);
   }
   // the open sea hatched in fine level lines, as a copperplate engraver shades deep water
   {
@@ -12464,12 +12464,14 @@ function owDrawNames(g, w, cs, ch, facePad) {
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const l of OW.labels || []) {
     if (!tiles[l.i].revealed.has(playerNation)) continue; // a sea is named once its middle has been seen
-    const [x, y] = at(l.i), px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : 28));
+    let [x, y] = at(l.i); const px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : 28));
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
     g.font = `italic ${l.kind === 'sea' ? 500 : 600} ${px}px 'EB Garamond', serif`;
     if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : 0.18)) + 'px';
     // (lettered only once the ground under both its ends is known, so a name is never cut off at the edge of the known world)
-    const lx = l.i % MAP_COLS, ly = (l.i - lx) / MAP_COLS, half = Math.ceil(g.measureText(l.text).width / 2 / cs + 0.3);
+    const tw = g.measureText(l.text).width, lx = l.i % MAP_COLS, ly = (l.i - lx) / MAP_COLS, half = Math.ceil(tw / 2 / cs + 0.3);
+    const sheetL = -camX * cs, sheetR = sheetL + MAP_COLS * cs + w / 4;
+    x = Math.max(sheetL + tw / 2 + 6, Math.min(sheetR - tw / 2 - 6, x)); // (kept within the sheet)
     const known = (c) => c < 0 || c >= MAP_COLS || tiles[ly * MAP_COLS + c].revealed.has(playerNation);
     if (!known(lx - half) || !known(lx + half)) continue;
     g.lineWidth = Math.max(2, px * 0.18); g.strokeStyle = l.kind === 'sea' ? 'rgba(150, 175, 170, 0.55)' : 'rgba(236, 226, 200, 0.75)'; g.strokeText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
@@ -12862,12 +12864,20 @@ function drawRealmNames(pId, w, ch, facePad) {
   }
   if (!_realmNames.length) return;
   ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (const r of _realmNames) {
+  // (the greater realms are lettered first; a name that would run into one already set is moved a line, or left out)
+  const placed = [], left = -camX * hexColStep(), right = left + MAP_COLS * hexColStep() + w / 4;
+  for (const r of _realmNames.slice().sort((a, b) => b.size - a.size)) {
     const x0 = r.i % MAP_COLS, y0 = (r.i - x0) / MAP_COLS, p = hexScreenPos(x0, y0), px = Math.max(10, Math.min(46, w * r.size));
-    const x = p.x + w / 2, y = p.y + facePad + ch * 1.35;
+    let x = p.x + w / 2, y = p.y + facePad + ch * 1.35;
     if (x < -viewW || x > viewW * 2 || y < -px * 2 || y > viewH + px * 2) continue;
     ctx.font = `600 ${px}px 'EB Garamond', serif`;
     if ('letterSpacing' in ctx) ctx.letterSpacing = (px * 0.45) + 'px';
+    const tw = ctx.measureText(r.text).width;
+    x = Math.max(left + tw / 2 + 4, Math.min(right - tw / 2 - 4, x)); // (kept within the sheet)
+    const fits = (yy) => !placed.some(q => Math.abs(q.x - x) < (q.w + tw) / 2 + px * 0.3 && Math.abs(q.y - yy) < (q.h + px) / 2 + 2);
+    const dy = [0, px * 1.3, -px * 1.3, px * 2.6].find(o => fits(y + o));
+    if (dy === undefined) continue;
+    y += dy; placed.push({ x, y, w: tw, h: px });
     ctx.globalAlpha = 0.74;
     ctx.lineWidth = Math.max(2, px * 0.18); ctx.strokeStyle = 'rgba(244, 232, 200, 0.75)'; ctx.strokeText(r.text, x, y);
     ctx.fillStyle = shadeHex(r.col, -0.35); ctx.fillText(r.text, x, y);
