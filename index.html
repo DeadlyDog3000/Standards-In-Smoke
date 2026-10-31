@@ -3944,6 +3944,25 @@ function renderParticles() {
     const t = elapsed / p.duration;
     const pos = hexScreenPos(p.col, p.row);
     const sx = pos.x + w / 2 + p.vx * t, sy = pos.y + facePad + ch / 2 + p.vy * t;
+    if (p.kind === 'seal') {
+      // pressed down hard, then lifted away
+      const k = w / 48, x = pos.x + w / 2, y = pos.y + facePad + ch / 2;
+      const sc = t < 0.18 ? 1.8 - (t / 0.18) * 0.8 : 1, a = t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45, r = 20 * k * sc;
+      const wax = safeColor(p.color, '#8a2a1a');
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(x + 2 * k, y + 3 * k, r * 1.05, 0, Math.PI * 2); ctx.fill();
+      const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.1);
+      g.addColorStop(0, shadeHex(wax, 0.35)); g.addColorStop(0.6, wax); g.addColorStop(1, shadeHex(wax, -0.45));
+      ctx.fillStyle = g; ctx.beginPath();
+      for (let q = 0; q <= 16; q++) { const an = q / 16 * Math.PI * 2, rr = r * (q & 1 ? 0.92 : 1.05); q ? ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr) : ctx.moveTo(x + rr, y); }
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = Math.max(1, r * 0.08); ctx.beginPath(); ctx.arc(x, y, r * 0.68, 0, Math.PI * 2); ctx.stroke();
+      // a crown pressed into the wax
+      ctx.fillStyle = 'rgba(0,0,0,0.28)'; const cw = r * 0.62, chh = r * 0.42;
+      ctx.beginPath(); ctx.moveTo(x - cw / 2, y + chh / 2); ctx.lineTo(x - cw / 2, y - chh / 4); ctx.lineTo(x - cw / 4, y); ctx.lineTo(x, y - chh / 2); ctx.lineTo(x + cw / 4, y); ctx.lineTo(x + cw / 2, y - chh / 4); ctx.lineTo(x + cw / 2, y + chh / 2); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      continue;
+    }
     if (p.kind === 'smoke' || p.kind === 'flash') {
       if (elapsed < 0) continue;
       const k = w / 48; // effects scale with the zoom
@@ -5865,6 +5884,8 @@ function canFoundCity(x, y, nationId) {
 
 function foundCity(unit, cityName) {
   const name = cityName || randomCityName();
+  // a town founded where you can see it is stamped onto the chart with the realm's seal
+  if (unit && (unit.nationId === playerNation || (currentVisionSet && currentVisionSet.has(unit.y * MAP_COLS + unit.x)))) particles.push({ kind: 'seal', col: unit.x, row: unit.y, vx: 0, vy: 0, color: nations[unit.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
 
   const site = getCitySite(unit.x, unit.y);
   if (site) site.settled = true;
