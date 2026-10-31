@@ -963,6 +963,7 @@
         - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
         - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
         - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
+        - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -1957,6 +1958,9 @@
         <b>V</b> &mdash; Fortify Unit<br>
         <b>Z</b> &mdash; Wake Unit<br>
         <b>H</b> &mdash; Rest &amp; Heal<br>
+        <b>J</b> &mdash; Form up with the regiment beside it<br>
+        <b>U</b> &mdash; Split a company off<br>
+        <b>Delete</b> (twice) &mdash; Disband<br>
         <b>X</b> &mdash; Auto-Explore<br>
         <b>B</b> &mdash; Automate Worker<br>
         <b>N / Q</b> &mdash; Next Unit<br>
@@ -1988,6 +1992,7 @@
           - The tech tree and the event log in the same navy and gold as the rest of the interface<br>
           - Rival treasuries work: a crown with a full purse hurries one town's work a turn (as Rush Produce does for you), sells mountains of steel and powder at the market, and buys bread for its next colonists<br>
           - Ambitions, as in Old World: your crown sets itself one goal at a time, chosen from three (hold three towns, raise walls, field a merged regiment, build a wonder, take a town, topple a crown and so on, grander as you go). Each one fulfilled gives +10 legitimacy and 15 points of score, and the tenth is an Ambition Victory. The one in hand is shown under the top bar; click it to see them all<br>
+          - Keys for the new orders: J forms up with the regiment beside it, U splits a company off, Delete twice disbands; every round order button shows its key<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -3500,12 +3505,12 @@ function owActionsSync() {
   const acts = [];
   if (def.ranged) acts.push(['fire', 'Fire on an enemy', 'R', 'enterRangedMode()', !canFireNow(u) || (def.artillery && u.reloadTurns > 0)]);
   acts.push(['goto', 'March to a far hex', 'G', 'enterGotoMode()', u.movesLeft <= 0]);
-  if (def.combat && !def.naval) acts.push(u.fortified ? ['wake', 'Leave the earthworks', '', 'wakeUnit()', false] : ['fortify', 'Fortify: dig in', 'V', 'fortifyUnit()', u.movesLeft <= 0]);
-  if (u.hp < getEffectiveMaxHp(u)) acts.push(['rest', 'Rest and heal', '', 'restUnit()', u.movesLeft <= 0]);
-  if (mergeable(u)) acts.push(['merge', mate ? `Form up with the ${unitTypeName(mate.type)} beside it` : 'Form up: needs a regiment of yours beside it, and a move left', '', 'mergeSelectedWithNeighbour()', !mate]);
-  if (u.merged && u.merged.length) acts.push(['split', 'Split off a company', '', 'splitSelected()', false]);
+  if (def.combat && !def.naval) acts.push(u.fortified ? ['wake', 'Leave the earthworks', 'Z', 'wakeUnit()', false] : ['fortify', 'Fortify: dig in', 'V', 'fortifyUnit()', u.movesLeft <= 0]);
+  if (u.hp < getEffectiveMaxHp(u)) acts.push(['rest', 'Rest and heal', 'H', 'restUnit()', u.movesLeft <= 0]);
+  if (mergeable(u)) acts.push(['merge', mate ? `Form up with the ${unitTypeName(mate.type)} beside it` : 'Form up: needs a regiment of yours beside it, and a move left', 'J', 'mergeSelectedWithNeighbour()', !mate]);
+  if (u.merged && u.merged.length) acts.push(['split', 'Split off a company', 'U', 'splitSelected()', false]);
   acts.push(['next', 'Next regiment awaiting orders', 'Q', 'cycleToNextUnit(true)', false]);
-  acts.push(['disband', 'Disband (click twice)', '', 'disbandSelected(this)', false]);
+  acts.push(['disband', 'Disband (click twice)', 'Del', 'disbandSelected(this)', false]);
   const sig = u.type + '|' + regimentSize(u) + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
   bar.style.display = 'flex';
   if (sig === _owaSig) return; _owaSig = sig;
@@ -18462,6 +18467,15 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'e' && !techTreeOpen) { endTurn(); e.preventDefault(); return; }
 
   if (e.key === 'q') { cycleToNextUnit(true); e.preventDefault(); return; }
+  // (J joins the regiment beside it, U splits a company off, Delete twice disbands)
+  if (e.key === 'j' && selectedUnit && selectedUnit.nationId === playerNation) { mergeSelectedWithNeighbour(); owActionsSync(); e.preventDefault(); return; }
+  if (e.key === 'u' && selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.merged && selectedUnit.merged.length) { splitSelected(); owActionsSync(); e.preventDefault(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedUnit && selectedUnit.nationId === playerNation) {
+    const arm = window._disbandKey;
+    if (arm && arm.u === selectedUnit && Date.now() - arm.t < 3000) { window._disbandKey = null; disbandSelected(null); }
+    else { window._disbandKey = { u: selectedUnit, t: Date.now() }; showToast('Press Delete again to disband the regiment.'); }
+    e.preventDefault(); return;
+  }
   if (e.key === 'f' && selectedUnit && selectedUnit.type === 'settler') {
     const _check = canFoundCity(selectedUnit.x, selectedUnit.y, selectedUnit.nationId);
     if (_check.ok) confirmSettle();
