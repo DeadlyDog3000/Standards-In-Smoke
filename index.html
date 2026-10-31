@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Towns Before Colonies</b><br>
+        - Rivals send out settlers only from towns of three or more, so a food-rich realm no longer drains every town down to a single family
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fewer Freebies</b><br>
@@ -1491,7 +1496,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.5</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Towns Before Colonies</b><br>
+        - Rivals send out settlers only from towns of three or more, so a food-rich realm no longer drains every town down to a single family
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fewer Freebies</b><br>
         - The largest maps hold at most 40 ancient ruins (there were a hundred, a little too much treasure lying about)
@@ -7816,7 +7826,7 @@ function aiTurn(nationId) {
       const haveSettler = units.some(u => u.nationId === nationId && u.type === 'settler') || aiCities.some(ci => ci !== c && ci.producing === 'settler');
       if (poor && workers === 0 && workersHaveWork && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.worker).food) {
         c.producing = 'worker'; // a broke realm with no one working its land: workers first, so mines and farms start paying
-      } else if ((c.population || 1) >= 2 && aiCities.length < (n.food >= settlerFood * 2 ? 8 : 4) && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
+      } else if ((c.population || 1) >= 3 && aiCities.length < (n.food >= settlerFood * 2 ? 8 : 4) && freeSites > 0 && combatCount >= 2 && !haveSettler && !(c._noSettlerUntil > turnNumber)
           && n.food >= settlerFood * 0.5
           && threatLevel <= combatCount * (n.food >= settlerFood * 2 ? 10 : 6) && (n.food >= settlerFood * 2 || Math.random() < 0.6)) {
         c.producing = 'settler';
@@ -7865,7 +7875,7 @@ function aiTurn(nationId) {
 
           if (needsWorkers && workersHaveWork && roll < 0.3) c.producing = nationHasTech(nationId, 'engineering') ? 'veteran_worker' : 'worker';
 
-          else if ((c.population || 1) >= 2 && aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
+          else if ((c.population || 1) >= 3 && aiCities.length < maxCities && existingSettlers === 0 && !(c._noSettlerUntil > turnNumber) && n.food >= getScaledCosts(nationId, PRODUCTION_COSTS.settler).food && roll < 0.55) c.producing = 'settler';
           else if (scouts < 2 && roll < 0.3) c.producing = nationHasTech(nationId, 'advanced_scouting') ? 'veteran_scout' : 'scout';
           else c.producing = bestCombat; // default: keep building army
         }
@@ -13104,7 +13114,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.5';
+const CURRENT_VERSION = 'beta-8.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
