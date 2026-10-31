@@ -12781,6 +12781,11 @@ function drawRhumbs(cs, ch) {
       const bw2 = bs * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), bh2 = bs * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
       const bx = ox + mw * fxp, by = oy + mh * fyp;
       if (bx + bw2 < 0 || bx - bw2 > viewW || by + bh2 < 0 || by - bh2 > viewH) continue;
+      // (gone as soon as any of the ground under it is surveyed, rather than peeking out from under the chart)
+      const c0 = Math.floor((bx - bw2 / 2 - ox) / cs) - 1, c1 = Math.ceil((bx + bw2 / 2 - ox) / cs) + 1, r0 = Math.floor((by - bh2 - oy) / ch) - 1, r1 = Math.ceil((by - oy) / ch) + 1;
+      let seen = false;
+      for (let r = Math.max(0, r0); r <= Math.min(MAP_ROWS - 1, r1) && !seen; r++) for (let c = Math.max(0, c0); c <= Math.min(MAP_COLS - 1, c1); c++) if (tiles[r * MAP_COLS + c].revealed.has(playerNation)) { seen = true; break; }
+      if (seen) continue;
       ctx.save(); ctx.globalAlpha = 0.82; ctx.translate(bx, by); if (flip) ctx.scale(-1, 1); ctx.drawImage(img, -bw2 / 2, -bh2, bw2, bh2); ctx.restore();
       if (motto && bs > 60) { ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = `italic ${Math.max(9, bs * 0.085)}px 'EB Garamond', serif`; ctx.fillStyle = 'rgba(46, 30, 14, 0.6)'; ctx.fillText(motto, bx, by + 4); ctx.restore(); }
     }
