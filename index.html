@@ -3418,6 +3418,7 @@ let units = [];
 function removeUnit(u) {
   const idx = units.indexOf(u);
   if (idx >= 0) units.splice(idx, 1);
+  if (idx >= 0 && MAP_COLS && (u.nationId === playerNation || (currentVisionSet && currentVisionSet.has(u.y * MAP_COLS + u.x)))) SMK.fall();
   // a regiment of yours is lost: a line in the chronicle (no pop-up), with its name
   if (idx >= 0 && u.nationId === playerNation && u.regiment && MAP_COLS) { const rn = regimentName(u); if (rn) logEvent(`\u2620 Lost: the ${rn}.`); }
   if (selectedUnit === u) {
@@ -4318,24 +4319,14 @@ function playNextTrack() {
 }
 bgMusic.addEventListener('ended', playNextTrack);
 bgMusic.addEventListener('error', playNextTrack);
-const clickSound = new Audio('universfield-computer-mouse-click-352734.m4a');
-clickSound.volume = 0.35;
-const achievementSound = new Audio('denielcz-achievement-unlocked-463070.m4a');
-achievementSound.volume = 0.45;
-const chopSound = new Audio('alexzavesa-boards-fall-3-468369.m4a');
-chopSound.volume = 0.5;
 const birdSound = new Audio('eco-art-the-sound-of-birds-in-the-woods-165002.m4a');
 birdSound.loop = true; birdSound.volume = 0;
 let birdsPlaying = false;
-function playClick() { const s = clickSound.cloneNode(); s.volume = 0.35; s.play().catch(() => {}); }
-function playHover() { const s = clickSound.cloneNode(); s.volume = 0.12; s.playbackRate = 1.3; s.play().catch(() => {}); }
-function playAchievement() { const s = achievementSound.cloneNode(); s.volume = 0.45; s.play().catch(() => {}); }
-function playChop() { const s = chopSound.cloneNode(); s.volume = 0.5; s.play().catch(() => {}); }
-function playWarHorn() { const s = battleSound.cloneNode(); s.volume = 0.6; s.playbackRate = 0.7; s.play().catch(() => {}); }
-const battleSound = new Audio('battle.m4a');
-battleSound.volume = 0.5;
-const marchSound = new Audio('marching_loop.m4a');
-marchSound.loop = true; marchSound.volume = 0.4;
+function playClick() { SMK.click(); }
+function playHover() { SMK.hover(); }
+function playAchievement() { SMK.chime(); }
+function playChop() { SMK.chop(); }
+function playWarHorn() { SMK.drum(1.6, true); }
 const musketSound = new Audio('musket_shot.m4a');
 musketSound.volume = 0.5;
 const cannonShotSound = new Audio('cannon_shot.m4a');
@@ -4345,7 +4336,113 @@ fieldGunSound.volume = 0.5;
 const townSound = new Audio('town.m4a');
 townSound.loop = true; townSound.volume = 0;
 let townPlaying = false;
-const techBangSound = new Audio('tiles/achievement_bang.m4a');
+// ---- THE SOUNDS OF THE TABLE, made as they play (Web Audio, no files): a wooden tick under a click, paper and the quill,
+//  the seal pressed at the turn's end, church bells for a town founded or a discovery, a smith's hammer for a thing built,
+//  the side drum for a regiment raised or a war begun, coin on the counter, boots and hooves on the march, steel on steel.
+//  Real-world sounds only: nothing tuned that isn't a bell, nothing arcade. All on the Effects slider. ----
+const SMK = (() => {
+  let ac = null, out = null, noiseBuf = null, room = null;
+  const muted = () => /[?&]mute\b/.test(location.search) || window.__sisMute;
+  function a() {
+    if (muted()) return null;
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+      try { ac = new AC(); } catch (e) { return null; }
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(ac.destination);
+      out = ac.createGain(); out.connect(comp);
+      const len = ac.sampleRate * 2; noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      // a stone room's tail, made rather than loaded (a church for the bells, a hall for the drum)
+      const rl = Math.floor(ac.sampleRate * 2.2), rb = ac.createBuffer(2, rl, ac.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const q = rb.getChannelData(ch); let lp = 0; for (let i = 0; i < rl; i++) { lp += 0.25 * ((Math.random() * 2 - 1) - lp); q[i] = lp * Math.pow(1 - i / rl, 3); } }
+      room = ac.createConvolver(); room.buffer = rb; const rg = ac.createGain(); rg.gain.value = 0.5; room.connect(rg); rg.connect(out);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    out.gain.value = 0.9 * (SOUND_VOL.sfx ?? 1);
+    return ac;
+  }
+  const T = () => ac.currentTime + 0.01;
+  const env = (t, peak, att, dec, wet = 0) => { const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + att + dec); g.connect(out); if (wet) { const s = ac.createGain(); s.gain.value = wet; g.connect(s); s.connect(room); } return g; };
+  // filtered noise: a tick, a rustle, a scratch, a footfall, the hiss of powder
+  function noise(t, { f = 2000, q = 1, type = 'bandpass', dur = 0.05, vol = 0.2, att = 0.003, sweep = 0, wet = 0 } = {}) {
+    const s = ac.createBufferSource(); s.buffer = noiseBuf;
+    const bf = ac.createBiquadFilter(); bf.type = type; bf.Q.value = q; bf.frequency.setValueAtTime(f, t); if (sweep) bf.frequency.exponentialRampToValueAtTime(Math.max(40, f + sweep), t + att + dur);
+    s.connect(bf); bf.connect(env(t, vol, att, dur, wet)); s.start(t, Math.random() * 1.5); s.stop(t + att + dur + 0.05);
+  }
+  // a struck body: a sine falling a little in pitch, with partials (wood, a drum's skin, an anvil, a bell's hum)
+  function strike(t, f, { vol = 0.2, dec = 0.2, parts = [[1, 1]], drop = 0, wet = 0, att = 0.002 } = {}) {
+    const g = env(t, vol, att, dec, wet);
+    for (const [m, k, pd] of parts) {
+      const o = ac.createOscillator(), og = ac.createGain(); o.frequency.setValueAtTime(f * m, t); if (drop) o.frequency.exponentialRampToValueAtTime(f * m * (1 - drop), t + dec);
+      og.gain.setValueAtTime(k, t); if (pd) og.gain.exponentialRampToValueAtTime(0.0001, t + dec * pd);
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + att + dec + 0.05);
+    }
+  }
+  const BELL = [[0.5, 0.5], [1, 1], [1.183, 0.45, 0.6], [1.506, 0.35, 0.5], [2, 0.3, 0.4], [2.514, 0.18, 0.3], [2.662, 0.12, 0.25], [3.011, 0.1, 0.2]]; // (a church bell's hum, prime, tierce, quint, nominal and above)
+  const bell = (t, f, vol = 0.12, dec = 2.6) => { strike(t, f, { vol, dec, parts: BELL, wet: 0.6, att: 0.004 }); noise(t, { f: f * 6, q: 3, dur: 0.03, vol: vol * 0.6 }); };
+  const knock = (t, f = 180, vol = 0.15) => { noise(t, { f: f * 5, q: 1.4, dur: 0.04, vol: vol * 0.7 }); strike(t, f, { vol, dec: 0.09, parts: [[1, 1], [2.7, 0.3, 0.4]] }); };
+  const play = (fn) => { try { if (a()) fn(T()); } catch (e) {} };
+  let lastHover = 0, march = null;
+  return {
+    // a button: a dry wooden tick; the pointer finding one: barely there
+    click: () => play(t => { noise(t, { f: 2800, q: 3, dur: 0.03, vol: 0.16 }); strike(t, 900, { vol: 0.05, dec: 0.06, parts: [[1, 1], [4.1, 0.3]] }); }),
+    hover: () => { const n = performance.now(); if (n - lastHover < 70) return; lastHover = n; play(t => noise(t, { f: 4200, q: 4, dur: 0.015, vol: 0.03 })); },
+    deny: () => play(t => { knock(t, 110, 0.14); knock(t + 0.09, 98, 0.14); }),
+    // a regiment taken up off the table: the knock of its wooden base, and a breath of cloth
+    pick: () => play(t => { knock(t, 210, 0.12); noise(t + 0.02, { f: 900, q: 0.7, dur: 0.12, vol: 0.04, sweep: 900 }); }),
+    // a town looked over: a page turned
+    page: () => play(t => { noise(t, { f: 700, q: 0.6, dur: 0.18, vol: 0.07, sweep: 2200 }); noise(t + 0.12, { f: 2600, q: 0.8, dur: 0.06, vol: 0.04 }); }),
+    // an order written: three strokes of the quill
+    quill: () => play(t => { for (let i = 0; i < 3; i++) noise(t + i * 0.08 + Math.random() * 0.02, { f: 3600 + i * 400, q: 2, dur: 0.06, vol: 0.05, sweep: -1800 }); }),
+    // the turn's end: the wax seal pressed down on the despatch
+    seal: () => play(t => { noise(t, { f: 1200, q: 0.6, dur: 0.12, vol: 0.05, sweep: 1400 }); strike(t + 0.14, 70, { vol: 0.32, dec: 0.18, parts: [[1, 1], [2.3, 0.3, 0.3]], drop: 0.3 }); noise(t + 0.14, { f: 400, q: 0.8, dur: 0.08, vol: 0.12, type: 'lowpass' }); }),
+    // a letter unfolded (an event, a foreign envoy)
+    letter: () => play(t => { noise(t, { f: 900, q: 0.5, dur: 0.22, vol: 0.07, sweep: 2600 }); noise(t + 0.2, { f: 1800, q: 0.7, dur: 0.16, vol: 0.06, sweep: -900 }); knock(t + 0.05, 320, 0.04); }),
+    // church bells: a town founded rings a short peal; a discovery or a wonder, a few bells; a loss, one bell tolled slow
+    peal: (n = 6) => play(t => { const sc = [392, 349.2, 329.6, 293.7, 261.6, 246.9]; for (let i = 0; i < n; i++) bell(t + i * 0.32, sc[i % sc.length], 0.09); }),
+    chime: () => play(t => { bell(t, 523.3, 0.08, 2.2); bell(t + 0.28, 659.3, 0.07, 2.4); bell(t + 0.56, 784, 0.07, 3); }),
+    toll: (n = 2) => play(t => { for (let i = 0; i < n; i++) bell(t + i * 1.5, 130.8, 0.16, 3.6); }),
+    // a thing built: the smith's hammer on the anvil, then a beam set down
+    hammer: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.22; strike(tt, 1180 + i * 20, { vol: 0.07, dec: 0.5, parts: [[1, 1], [2.76, 0.6, 0.4], [5.4, 0.4, 0.2]], wet: 0.2 }); noise(tt, { f: 5000, q: 3, dur: 0.02, vol: 0.08 }); } knock(t + 0.8, 120, 0.16); }),
+    // the side drum: a ruff and a beat for a regiment raised; a long roll and the bass drum for a war
+    drum: (roll = 0.5, bass = false) => play(t => {
+      const n = Math.round(roll * 26);
+      for (let i = 0; i < n; i++) { const tt = t + i / 26, k = 0.5 + 0.5 * Math.min(1, i / (n * 0.6)); noise(tt, { f: 2400, q: 0.9, dur: 0.05, vol: 0.06 * k, wet: 0.15 }); strike(tt, 190, { vol: 0.03 * k, dec: 0.06 }); }
+      const e = t + n / 26; noise(e, { f: 2000, q: 0.8, dur: 0.14, vol: 0.14, wet: 0.3 }); strike(e, 180, { vol: 0.12, dec: 0.16, drop: 0.2 });
+      if (bass) for (let i = 0; i < 3; i++) strike(e + 0.05 + i * 0.55, 55, { vol: 0.4, dec: 0.6, drop: 0.25, parts: [[1, 1], [1.6, 0.3, 0.3]], wet: 0.4 });
+    }),
+    // coin counted out on the counter
+    coins: (n = 4) => play(t => { for (let i = 0; i < n; i++) { const tt = t + i * 0.07 + Math.random() * 0.03, f = 2600 + Math.random() * 1400; strike(tt, f, { vol: 0.05, dec: 0.25, parts: [[1, 1], [1.47, 0.7, 0.6], [2.31, 0.5, 0.4]] }); noise(tt, { f: 7000, q: 2, dur: 0.015, vol: 0.05 }); } }),
+    // the axe in the wood, and the tree going over
+    chop: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.34; knock(tt, 150, 0.2); noise(tt, { f: 1400, q: 1.2, dur: 0.07, vol: 0.12 }); }
+      noise(t + 1.1, { f: 600, q: 0.6, dur: 0.6, vol: 0.06, sweep: -400 }); strike(t + 1.7, 48, { vol: 0.45, dec: 0.5, drop: 0.3 }); noise(t + 1.7, { f: 300, type: 'lowpass', dur: 0.4, vol: 0.2 }); }),
+    // steel on steel, and the press of men behind it
+    melee: (dur = 1.6) => play(t => {
+      noise(t, { f: 500, q: 0.5, type: 'bandpass', att: 0.3, dur: dur, vol: 0.06 });
+      const n = Math.round(dur * 5);
+      for (let i = 0; i < n; i++) { const tt = t + Math.random() * dur, f = 1800 + Math.random() * 1600;
+        strike(tt, f, { vol: 0.05, dec: 0.35, parts: [[1, 1], [1.41, 0.6, 0.5], [2.83, 0.4, 0.3]], wet: 0.15 }); noise(tt, { f: 6000, q: 2, dur: 0.03, vol: 0.09 });
+        if (Math.random() < 0.5) knock(tt + 0.05, 90 + Math.random() * 40, 0.12); }
+    }),
+    // a musket volley's rolling echo off the land, under the shots themselves
+    echo: (big = false) => play(t => { noise(t + 0.08, { f: big ? 160 : 320, type: 'lowpass', q: 0.5, att: 0.05, dur: big ? 2.2 : 1.4, vol: big ? 0.22 : 0.12, wet: 0.5 }); if (big) strike(t, 42, { vol: 0.45, dec: 0.9, drop: 0.4 }); }),
+    // a regiment broken: a body falling, a dropped musket
+    fall: () => play(t => { strike(t, 60, { vol: 0.3, dec: 0.25, drop: 0.4 }); noise(t, { f: 260, type: 'lowpass', dur: 0.18, vol: 0.14 }); knock(t + 0.18, 260, 0.06); }),
+    // boots or hooves on the march, for as long as the column moves
+    marchStart: (kind) => {
+      if (march || !a()) return;
+      let i = 0;
+      const step = () => { if (!ac) return; const t = T();
+        if (kind === 'horse') { for (const d of [0, 0.07, 0.19, 0.26]) { strike(t + d, 95 + Math.random() * 25, { vol: 0.09, dec: 0.07 }); noise(t + d, { f: 900, q: 1, dur: 0.04, vol: 0.05 }); } }
+        else if (kind === 'ship') { if (i % 3 === 0) { noise(t, { f: 500, q: 0.4, att: 0.25, dur: 0.9, vol: 0.06, sweep: 500 }); strike(t + 0.3, 240 + Math.random() * 60, { vol: 0.02, dec: 0.5, att: 0.15 }); } }
+        else { noise(t, { f: 700 + Math.random() * 300, q: 0.8, dur: 0.06, vol: 0.07 }); strike(t, 80, { vol: 0.06, dec: 0.05 }); if (i % 4 === 0) { noise(t, { f: 2200, q: 1, dur: 0.05, vol: 0.05 }); strike(t, 200, { vol: 0.04, dec: 0.08 }); } } // (and the drum on the beat)
+        i++; };
+      step(); march = setInterval(step, kind === 'horse' ? 380 : kind === 'ship' ? 330 : 270);
+    },
+    marchStop: () => { if (march) { clearInterval(march); march = null; } },
+  };
+})();
+window.SMK = SMK;
 
 let ordersRemaining = 0;
 let activatedUnits = new Set();
@@ -4361,12 +4458,8 @@ function logEvent(msg) {
   el.scrollTop = el.scrollHeight;
 }
 
-function playBattleSound() {
-  const s = battleSound.cloneNode(); s.volume = 0.5; s.currentTime = 0;
-  s.play().catch(() => {});
-  setTimeout(() => { try { s.pause(); } catch(e) {} }, 4000);
-}
 function fireVolley(baseSound, count, intervalMs, vol) {
+  SMK.echo(baseSound !== musketSound);
   for (let i = 0; i < count; i++) {
     setTimeout(() => {
       const s = baseSound.cloneNode();
@@ -4387,7 +4480,7 @@ function playCombatSound(unitType, x, y) {
   const fieldGunTypes = ['field_gun'];
   const navalGunTypes = ['galleon', 'man_of_war'];
   if (gunpowderRanged.includes(unitType)) {
-    fireVolley(musketSound, 4, 1000, 0.5);
+    fireVolley(musketSound, 6, 45, 0.4);
   } else if (cannonTypes.includes(unitType)) {
     fireVolley(cannonShotSound, 3, 400, 0.5);
   } else if (fieldGunTypes.includes(unitType)) {
@@ -4395,17 +4488,14 @@ function playCombatSound(unitType, x, y) {
   } else if (navalGunTypes.includes(unitType)) {
     fireVolley(cannonShotSound, 4, 350, 0.45);
   } else {
-    playBattleSound();
+    SMK.melee();
   }
 }
-function startMarchSound() {
-  marchSound.currentTime = 0;
-  marchSound.play().catch(() => {});
+function startMarchSound(unit) {
+  const d = unit && UNIT_DEFS[unit.type];
+  SMK.marchStart(d && (d.naval || /frigate|galleon|man_of_war|ship|boat|caravel/.test(unit.type)) ? 'ship' : unit && /cavalry|dragoon|knight|horse|hussar|cuirass|lancer|raider/.test(unit.type) ? 'horse' : 'foot');
 }
-function stopMarchSound() {
-  marchSound.pause();
-  marchSound.currentTime = 0;
-}
+function stopMarchSound() { SMK.marchStop(); }
 function updateAmbientBirds() {
   if (!MAP_COLS || document.getElementById('menu').style.display !== 'none') {
     if (birdsPlaying) { birdSound.pause(); birdsPlaying = false; }
@@ -4885,6 +4975,7 @@ function setResearchTarget(nationId, techKey) {
   //  and what was left over from the last one finished goes on into the new one
   const carry = n.currentResearch ? 0 : (n.researchProgress || 0);
   if (n.currentResearch) n.techProgress[n.currentResearch] = n.researchProgress || 0;
+  if (nationId === playerNation) SMK.quill();
   n.currentResearch = techKey;
   n.researchProgress = (n.techProgress[techKey] || 0) + carry;
   delete n.techProgress[techKey];
@@ -5423,7 +5514,7 @@ function safeColor(c, fallback) {
 
 function showFirstContact(nation) {
   logEvent(`Discovered ${nation.name}!`);
-  playAchievement();
+  SMK.letter(); SMK.chime();
   const sc = safeColor(nation.color);
   const overlay = document.createElement('div');
   overlay.style.cssText = "position:fixed;inset:0;z-index:155;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%, rgba(10,8,5,0.55), rgba(10,8,5,0.9) 70%),url('events/envoy.jpg') center/cover;animation:firstContact 3s ease-in-out forwards;pointer-events:none;";
@@ -5519,18 +5610,7 @@ function showTurnBanner(turn) {
 const _techUnlockTimers = new Set();
 function playTechUnlockFX() {
 
-  const sound = techBangSound.cloneNode();
-  sound.volume = 0.75;
-  sound.play().catch(() => {});
-  const fadeStart = setTimeout(() => {
-    _techUnlockTimers.delete(fadeStart);
-    const fadeStep = setInterval(() => {
-      sound.volume = Math.max(0, sound.volume - 0.06);
-      if (sound.volume <= 0) { clearInterval(fadeStep); _techUnlockTimers.delete(fadeStep); try { sound.pause(); } catch (e) {} }
-    }, 80);
-    _techUnlockTimers.add(fadeStep);
-  }, 13000);
-  _techUnlockTimers.add(fadeStart);
+  SMK.page(); SMK.peal(4);
 
   const cvs = document.createElement('canvas');
   cvs.style.cssText = 'position:fixed;inset:0;z-index:125;pointer-events:none;';
@@ -5988,7 +6068,6 @@ function getMaxOrders(nationId) {
 }
 
 function tryActivateUnit(unit) {
-  if (activatedUnits.has(unit)) return true;
   if (ordersRemaining <= 0) {
     showToast('No orders remaining!');
     return false;
@@ -6338,7 +6417,7 @@ function tickProduction(city) {
             const isWonder = bld.wonder;
             showToast(`${city.name} built ${bld.name}!${isWonder ? ' A wonder of the world!' : ''}`);
             addFloatingText(city.x, city.y, `${bld.icon} ${bld.name}!`, isWonder ? '#e0c880' : '#9cc070', 2000, 14);
-            playAchievement();
+            if (isWonder) SMK.peal(6); else SMK.hammer();
           }
         }
       } else {
@@ -6374,7 +6453,7 @@ function tickProduction(city) {
             const unitName = city.producing.charAt(0).toUpperCase() + city.producing.slice(1).replace(/_/g, ' ');
             showToast(`${city.name} produced a ${unitName}!`);
             addFloatingText(city.x, city.y, `${unitDef?.icon || ''} ${unitName}!`, '#9cc070', 2000, 14);
-            playAchievement();
+            SMK.drum(0.45);
           }
         }
       }
@@ -6449,7 +6528,7 @@ window.rushProduce = function() {
     if (selectedCity.producing === 'settler') selectedCity.population = Math.max(1, (selectedCity.population || 1) - 1);
     showToast(`Rushed ${selectedCity.producing}!`);
   }
-  playAchievement();
+  SMK.coins(7);
 
   let _rushTotal = 0;
   if (PRODUCTION_COSTS[selectedCity.producing]) {
@@ -7094,6 +7173,7 @@ function tickCityCapture() {
             nations[oldOwner]._lastCapturedBy = occupier.nationId;
           }
           if (city.originalNationId === undefined) city.originalNationId = oldOwner;
+          if (occupier.nationId === playerNation) SMK.peal(6); else if (oldOwner === playerNation) SMK.toll(2);
           city.nationId = occupier.nationId;
           city.capturedTurn = turnNumber;
           city.burnTurn = turnNumber;
@@ -9020,6 +9100,7 @@ function tryCityRebellion(city) {
     const oldOwner = city.nationId;
     const newOwner = city.originalNationId;
     const wasCapital = city.isCapital;
+    if (newOwner === playerNation) SMK.peal(6); else if (oldOwner === playerNation) SMK.toll(2);
     city.nationId = newOwner;
     city.capturedTurn = turnNumber;
     if (tiles[city.y * MAP_COLS + city.x]?.revealed.has(playerNation)) particles.push({ kind: 'seal', col: city.x, row: city.y, vx: 0, vy: 0, color: nations[newOwner]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
@@ -9254,6 +9335,7 @@ function endTurn() {
   if (battleReplayActive) return;
   if (window._endTurnBusy) return;
   window._endTurnBusy = true;
+  SMK.seal();
   currentEventNation = null;
   try { updateSieges(false); } catch(e) { console.error('updateSieges error:', e); } // the moves you just made count for this turn's harvest
 
@@ -10417,6 +10499,7 @@ function triggerEvent() {
   card.innerHTML = html;
   modal.classList.add('active');
   eventModalOpen = true;
+  SMK.letter();
 }
 window.declineEvent = function() {
   const n = nations[playerNation];
@@ -16278,7 +16361,7 @@ function quitToMenu() {
   for (const id of ['noResearchPopup', 'idleCitiesPopup', 'electionOverlay', 'planningPopup']) document.getElementById(id)?.remove(); // (made afresh each time they're shown)
   document.querySelectorAll('[data-first-contact]').forEach(e => e.remove());
 
-  marchSound.pause(); marchSound.currentTime = 0;
+  stopMarchSound();
   birdSound.pause(); birdsPlaying = false;
   townSound.pause(); townPlaying = false;
   document.getElementById('game').style.display = 'none';
@@ -16759,11 +16842,37 @@ canvas.addEventListener('touchend', (e) => {
 
     dragMoved = false;
     const t = e.changedTouches[0];
-    canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, button: 0 }));
+    const ev = new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY, button: 0 }); ev._touch = true;
+    canvas.dispatchEvent(ev);
   }
   isTouchDrag = false; lastPinchDist = 0; touchMoved = false;
 }, { passive: false });
 
+// the right button gives the selected regiment its order: march to a hex in reach, attack an enemy beside it or in range of its
+//  muskets or guns, or set off for anywhere further as a go-to (each costs an order)
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (planningMode || animationBlocking || eventModalOpen) return;
+  const u = selectedUnit;
+  if (!u || u.nationId !== playerNation || !units.includes(u)) return;
+  const hex = pixelToHex(e.clientX + camX * hexColStep(), e.clientY + camY * hexCellH());
+  const mx = hex.col, my = hex.row;
+  if (mx < 0 || mx >= MAP_COLS || my < 0 || my >= MAP_ROWS || (mx === u.x && my === u.y)) return;
+  const ti = my * MAP_COLS + mx;
+  if (!tiles[ti].revealed.has(playerNation)) return;
+  if (u.movesLeft <= 0) { SMK.deny(); showToast('That regiment has no moves left this turn.'); return; }
+  buyTileMode = false; workerBuyMode = false;
+  const foe = units.find(o => o.x === mx && o.y === my && o.nationId !== u.nationId && nations[u.nationId].relations[o.nationId] === 'war');
+  const def = UNIT_DEFS[u.type];
+  if (foe && def.ranged && hexDistance(u.x, u.y, mx, my) <= getUnitRange(u) && hexDistance(u.x, u.y, mx, my) > 1) { enterRangedMode(); if (!rangedMode) return; }
+  else {
+    if (!moveMode) enterMoveMode();
+    if (!moveMode) return;
+    if (!reachableTiles.has(ti)) { if (foe) { SMK.deny(); showToast('Out of reach.'); return; } moveMode = false; reachableTiles.clear(); gotoMode = true; }
+  }
+  const ev = new MouseEvent('click', { clientX: e.clientX, clientY: e.clientY, button: 2 }); ev._order = true;
+  canvas.dispatchEvent(ev);
+});
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
 
@@ -16923,7 +17032,9 @@ canvas.addEventListener('click', (e) => {
     } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); gotoMode = false; }
   }
 
-  if (moveMode && selectedUnit) {
+  // (the left button picks out; the right gives the order: a left click on open ground lets the regiment go rather than marching it there.
+  //  A tap on a phone still marches it, having no right button)
+  if (moveMode && selectedUnit && (e._order || e._touch || document.body.classList.contains('mobile-mode'))) {
     if (reachableTiles.has(ti)) {
 
       if (selectedUnit.nationId !== playerNation || !tryActivateUnit(selectedUnit)) {
@@ -16999,7 +17110,7 @@ canvas.addEventListener('click', (e) => {
     clickedUnit = tilePlayerUnits[0];
   }
   if (clickedUnit) {
-    playClick();
+    SMK.pick();
     selectedUnit = clickedUnit; selectedCity = null;
     buyTileMode = false; gotoMode = false; rangedMode = false; workerBuyMode = false;
 
@@ -17014,7 +17125,7 @@ canvas.addEventListener('click', (e) => {
 
   const clickedCity = cities.find(c => c.x === mx && c.y === my && c.nationId === playerNation);
   if (clickedCity) {
-    playClick();
+    SMK.page();
     selectedCity = clickedCity; selectedUnit = null;
     moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
     showCityPanel(clickedCity); render(); return;
@@ -17250,7 +17361,7 @@ function drawMarchTrails(w, facePad, ch) {
 }
 function startUnitAnimation(unit, path, onComplete, originX, originY) {
   if (!path || path.length === 0) { if (onComplete) onComplete(); return; }
-  startMarchSound();
+  startMarchSound(unit);
   const wrappedComplete = () => {
     stopMarchSound();
     if (onComplete) onComplete();
@@ -17819,7 +17930,7 @@ window.doSettle = function() {
   const city = foundCity(selectedUnit);
   if (pendingName) city.name = pendingName;
   showToast(`${city.name} has been founded!`);
-  playAchievement();
+  SMK.peal(6);
   cycleToNextUnit(); updateUI();
 };
 
@@ -18028,7 +18139,7 @@ window.toggleMarketPanel = function() {
 window.playerMarket = function(res, buy) {
   const got = buy ? marketBuy(playerNation, res) : marketSell(playerNation, res);
   if (!got) showToast(buy ? 'Not enough gold.' : `You need ${MARKET_LOT} ${MARKET_GOODS[res].name.toLowerCase()} to sell.`);
-  else playClick();
+  else SMK.coins(4);
   renderMarketPanel(); updateUI();
 };
 function renderMarketPanel() {
@@ -18801,7 +18912,7 @@ const TUTORIAL_STEPS = [
   { title: 'Welcome to Standards In Smoke', text: 'Build your civilization from a small settlement into a mighty empire. Expand your territory, research technologies, and conquer your rivals.' },
   { title: 'Resources', target: '#topbar', text: 'The top bar shows your resources: Gold, Food, Wood, Stone, Steel, and Science. Cities with improvements generate these each turn. Keep an eye on food - more cities consume more!' },
   { title: 'Your City', text: 'Click your city tile to manage production. Train workers to build improvements, settlers to found new cities, scouts to explore, and soldiers to defend your lands.' },
-  { title: 'Moving Units', text: 'Click a unit to select it - reachable tiles highlight in blue. Click to move there. Use Go To (G) to set multi-turn waypoints. Ranged units (R) can attack from 2 tiles away.' },
+  { title: 'Moving Units', text: 'Left-click a unit to select it - the hexes it can reach are marked. Right-click a hex to march there, right-click an enemy to attack, or right-click further off to set out for it over several turns. Every move or attack costs one of your Orders (top bar), so spend them where they count.' },
   { title: 'End Turn', target: '#endTurnBtn', text: 'Press End Turn (E) when done. Cities produce resources, units regain moves, and AI nations take their turns. The game autosaves each turn and every 3 minutes.' },
   { title: 'Technology & Diplomacy', target: '#topbar .top-btn[onclick="showTechTree()"], #topbar .top-btn[onclick="toggleKingdoms()"]', text: 'Press T to open the tech tree - spend science to unlock new units and improvements. Watch the Kingdoms panel to track relations - nations may declare war if loyalty drops!' },
   { title: 'Good Luck, Commander!', text: 'Explore with scouts, expand with settlers, improve tiles with workers, and build your army. Rush production with gold when time is short. May your empire endure!' },
