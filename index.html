@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Mustering</b><br>
+        - A new land unit with no room around its city musters inside the walls (up to three there), instead of waiting turn after turn with "No room to deploy"
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.7</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Race for Wonders</b><br>
@@ -1445,7 +1450,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.7</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Mustering</b><br>
+        - A new land unit with no room around its city musters inside the walls (up to three there), instead of waiting turn after turn with "No room to deploy"
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.7</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Race for Wonders</b><br>
         - Each wonder of nature has a marked city site beside it, so it is worth racing for, and your rivals now go after them
@@ -5426,6 +5436,9 @@ function getProductionTurns(city) {
 // a bigger town works faster: 4.6 a turn for a hamlet of one, 10 for a city of ten
 function cityBaseProduction(city) { return 4 + (city.population || 1) * 0.6; }
 
+// who holds the city on this tile (-1 if none): a new unit may stand with its own side inside the walls
+function cityOwnerAt(x, y) { const c = cities.find(cc => cc.x === x && cc.y === y); return c ? c.nationId : -1; }
+
 function stallProduction(city, total) {
   city.productionProgress = Math.min(city.productionProgress, total);
   if (city.nationId === playerNation) return;
@@ -5503,7 +5516,7 @@ function tickProduction(city) {
           if (isNaval ? tt !== 0 : tt === 0) continue;
           if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; foundTile = true; break; }
         }
-        if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
+        if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy && u.nationId !== cityOwnerAt(sx, sy)) || units.filter(u => u.x === sx && u.y === sy).length >= 3)) { // a land unit with no room outside musters in its own city
           if (city.nationId === playerNation) showToast(`No room to deploy unit near ${city.name}!`);
           for (const k in costs) n[k] += costs[k];
           city.productionProgress = Math.min(city.productionProgress, total); // waiting doesn't pile up more work
@@ -5585,7 +5598,7 @@ window.rushProduce = function() {
       if (isNaval ? tt !== 0 : tt === 0) continue;
       if (!units.some(u => u.x === nx && u.y === ny)) { sx = nx; sy = ny; foundTile = true; break; }
     }
-    if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
+    if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy && u.nationId !== cityOwnerAt(sx, sy)) || units.filter(u => u.x === sx && u.y === sy).length >= 3)) { // a land unit with no room outside musters in its own city
       n.gold += cost; showToast(`No room to deploy a unit near ${selectedCity.name}!`); return;
     }
     if (selectedCity.producing === 'settler' && (selectedCity.population || 1) < 2) {
@@ -12913,7 +12926,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.7';
+const CURRENT_VERSION = 'beta-7.8';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
