@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Harbour Life</b><br>
+        - Coastal towns keep fishing boats on the water beside them (one for a small place, two from 6 people), drawn up out of the ice in winter
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Camp Burners</b><br>
@@ -1455,7 +1460,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.9</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.0</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Harbour Life</b><br>
+        - Coastal towns keep fishing boats on the water beside them (one for a small place, two from 6 people), drawn up out of the ice in winter
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.9</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Camp Burners</b><br>
         - Rival soldiers with nothing better to do (no foe near, no city to march on) go after raider camps near their towns instead of wandering, and burn any left unguarded
@@ -10200,6 +10210,30 @@ function drawCamp(camp, cx, cy, w, faceH) {
   ctx.restore();
 }
 
+// A coastal town keeps its fishing boats on the water beside it: one for a small place, two from 6 people
+function drawFishingBoats(city, w, facePad, ch, pId) {
+  const water = hexNeighbors(city.x, city.y).filter(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS
+    && tiles[nb.row * MAP_COLS + nb.col].type === 0 && tiles[nb.row * MAP_COLS + nb.col].revealed.has(pId)
+    && !units.some(u => u.x === nb.col && u.y === nb.row));
+  if (!water.length || currentSeason === 'winter') return; // in winter the boats are drawn up for the ice
+  const n = Math.min(water.length, (city.population || 1) >= 6 ? 2 : 1);
+  for (let k = 0; k < n; k++) {
+    const sp = water[(city.x * 3 + city.y * 5 + k) % water.length];
+    const p = hexScreenPos(sp.col, sp.row);
+    const bx = p.x + w / 2 + ((k % 2) ? -1 : 1) * w * 0.12, by = p.y + facePad + ch / 2 + w * 0.04;
+    const L = w * 0.22;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(bx, by + L * 0.12, L * 0.62, L * 0.1, 0, 0, Math.PI * 2); ctx.fill(); // wake
+    ctx.fillStyle = '#5a3d22';
+    ctx.beginPath(); ctx.moveTo(bx - L * 0.5, by - L * 0.05); ctx.lineTo(bx + L * 0.5, by - L * 0.05); ctx.lineTo(bx + L * 0.32, by + L * 0.12); ctx.lineTo(bx - L * 0.36, by + L * 0.12); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath(); ctx.moveTo(bx, by - L * 0.05); ctx.lineTo(bx, by - L * 0.75); ctx.stroke();
+    ctx.fillStyle = '#efe6d0';
+    ctx.beginPath(); ctx.moveTo(bx + L * 0.02, by - L * 0.72); ctx.lineTo(bx + L * 0.38, by - L * 0.12); ctx.lineTo(bx + L * 0.02, by - L * 0.12); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+
 // A big town spills over its walls: hamlets of houses on the land next to it (one at 8 people, two at 12, three at 16)
 function drawSuburbs(city, w, facePad, ch, pId) {
   const pop = city.population || 1;
@@ -10959,6 +10993,7 @@ function render() {
       const pos = hexScreenPos(city.x, city.y);
       if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
       drawSuburbs(city, w, facePad, ch, pId);
+      drawFishingBoats(city, w, facePad, ch, pId);
       drawTown(city, pos.x + w / 2, pos.y + facePad + ch / 2, w, faceH);
 
     }
@@ -12956,7 +12991,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.9';
+const CURRENT_VERSION = 'beta-8.0';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
