@@ -12386,7 +12386,7 @@ function buildWorldChart(key) {
     const { WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F, mw = MAP_COLS * CS, mh = MAP_ROWS * CH, oy0 = -K / 8;
     const Rr = Math.min(mw, mh) * 0.36, c0 = [mw / 2, mh / 2 + oy0], hubs = [c0];
     for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; hubs.push([c0[0] + Math.cos(a) * Rr * 1.25, c0[1] + Math.sin(a) * Rr]); }
-    const L = Math.hypot(mw, mh), step = rr * 1.5, wet = (x, y) => { const lx = Math.floor(x / rr), ly = Math.floor(y / rr); return lx >= 0 && ly >= 0 && lx < lw && ly < lh && WT2[ly * lw + lx] >= 0.5; };
+    const L = Math.hypot(mw, mh), step = rr * 0.7, wet = (x, y) => { const lx = Math.floor(x / rr), ly = Math.floor(y / rr); return lx >= 0 && ly >= 0 && lx < lw && ly < lh && WT2[ly * lw + lx] >= 0.5; };
     const cols = ['rgba(30, 40, 38, 0.3)', 'rgba(30, 64, 38, 0.24)', 'rgba(128, 34, 20, 0.24)'];
     for (let band = 0; band < 3; band++) {
       const p = new Path2D();
@@ -12874,7 +12874,7 @@ function owDrawScaleOfMiles(g, K, CS, TH, u) {
 // (seen whole or nearly, the ornaments are printed over the chart; any closer they lie beneath it)
 function ornamentsOver() { return VIEW_TILE < Math.max(20, minTile() + 4); }
 function drawSheetOrnaments(cs, ch, facePad) {
-  if (!MAP_COLS || !OW.canvas) return;
+  if (!MAP_COLS) return;
   const mw = MAP_COLS * cs, mh = MAP_ROWS * ch, ox = -camX * cs, oy = -camY * ch;
   ctx.save();
   // the title cartouche in the sheet's upper corner, naming the realm and the year of the survey
@@ -12936,7 +12936,7 @@ function drawSheetOrnaments(cs, ch, facePad) {
     ctx.globalAlpha = 0.9; ctx.drawImage(wh, ox + mw - ww2 - cs * 0.6, oy + ch * 0.9, ww2, ws); ctx.globalAlpha = 1;
   }
   // the scale of miles, drawn in the sheet's own measure
-  { const fx = cs / OW.CS, fy = ch / OW.CH; ctx.translate(ox, oy + facePad); ctx.scale(fx, fy); owDrawScaleOfMiles(ctx, OW.K, OW.CS, OW.canvas.height, OW.K / 64); }
+  if (OW.canvas) { const fx = cs / OW.CS, fy = ch / OW.CH; ctx.translate(ox, oy + facePad); ctx.scale(fx, fy); owDrawScaleOfMiles(ctx, OW.K, OW.CS, OW.canvas.height, OW.K / 64); }
   ctx.restore();
 }
 function drawRhumbs(cs, ch) {
