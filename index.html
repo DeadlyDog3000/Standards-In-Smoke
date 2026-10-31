@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Trophies</b><br>
+        - The latest colours a realm has taken hang over its capital as a row of small flags, each in the colours of the realm it was taken from
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Reading the War from the Map</b><br>
@@ -1613,6 +1618,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.6</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Trophies</b><br>
+          - The latest colours a realm has taken hang over its capital as a row of small flags, each in the colours of the realm it was taken from
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6509,6 +6519,7 @@ function doAttack(attacker, tx, ty) {
     if (colours) {
       const wn = nations[winnerNid], ln = nations[loserNid];
       wn.colours = (wn.colours || 0) + 1;
+      (wn.coloursFrom || (wn.coloursFrom = [])).push(loserNid); if (wn.coloursFrom.length > 6) wn.coloursFrom.shift(); // the latest few hang in the capital
       if (!wn.isTribe) wn.legitimacy = Math.min(100, (wn.legitimacy ?? 50) + 1);
       if (!ln.isTribe) ln.legitimacy = Math.max(0, (ln.legitimacy ?? 50) - 1);
     }
@@ -11064,6 +11075,19 @@ function drawTown(city, cx, cy, w, faceH) {
     ctx.strokeStyle = '#3a3026'; ctx.lineWidth = Math.max(1, w * 0.014);
     ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - fh); ctx.stroke();
     ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(fx, fy - fh); ctx.lineTo(fx + w * 0.1, fy - fh + w * 0.025); ctx.lineTo(fx, fy - fh + w * 0.055); ctx.closePath(); ctx.fill();
+    // captured colours hang in the capital: a row of small trophy flags in the colours of the realms they were taken from
+    const trophies = city.isCapital ? nations[city.nationId]?.coloursFrom : null;
+    if (trophies && trophies.length && w >= 24) {
+      const step = w * 0.1, tfh = w * 0.14, bx = cx - step * (trophies.length - 1) / 2, by = top + th * 0.02;
+      ctx.lineWidth = Math.max(0.8, w * 0.01);
+      trophies.forEach((nid, k) => {
+        const x = bx + k * step, sway = (k % 2 ? 1 : -1) * w * 0.012;
+        ctx.strokeStyle = '#3a3026'; ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + sway, by - tfh); ctx.stroke();
+        ctx.fillStyle = safeColor(nations[nid]?.color || '#999');
+        ctx.beginPath(); ctx.moveTo(x + sway, by - tfh); ctx.lineTo(x + sway + w * 0.075, by - tfh + w * 0.015); ctx.lineTo(x + sway + w * 0.068, by - tfh + w * 0.056); ctx.lineTo(x + sway, by - tfh + w * 0.048); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
+      });
+    }
     houses.length = 0;
   }
   const roofs = ['#9a4330', '#7d3a2a', '#5f5a63', '#86563a'], walls = ['#e2d3b2', '#cdb894', '#d9c7a0'];
@@ -13864,7 +13888,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.5';
+const CURRENT_VERSION = 'beta-10.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
