@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Camp Burners</b><br>
+        - Rival soldiers with nothing better to do (no foe near, no city to march on) go after raider camps near their towns instead of wandering, and burn any left unguarded
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Mustering</b><br>
@@ -1450,7 +1455,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.8</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.9</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Camp Burners</b><br>
+        - Rival soldiers with nothing better to do (no foe near, no city to march on) go after raider camps near their towns instead of wandering, and burn any left unguarded
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 7.8</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Mustering</b><br>
         - A new land unit with no room around its city musters inside the walls (up to three there), instead of waiting turn after turn with "No room to deploy"
@@ -6990,6 +7000,26 @@ function aiWorkerStep(u, nationId, opts = {}) {
   }
 }
 
+// nothing to fight and no city to march on: a realm with soldiers to spare sends them to burn the raiders' camps near
+// its towns (it used to wander them about while the camps went on raising raiders). Returns true if it acted.
+function aiHuntCamp(u, nationId, aiCities, combatUnits) {
+  if (combatUnits.length < 4 || UNIT_DEFS[u.type]?.artillery) return false;
+  const lastGuard = aiCities.some(c => c.x === u.x && c.y === u.y)
+    && units.filter(o => o.nationId === nationId && o.x === u.x && o.y === u.y && UNIT_DEFS[o.type]?.combat).length <= 1;
+  if (lastGuard) return false;
+  let camp = null, cd = Infinity;
+  for (const b of barbarianCamps) {
+    if (b.destroyed || !aiCities.some(c => hexDistance(c.x, c.y, b.x, b.y) <= 8)) continue;
+    const d = hexDistance(b.x, b.y, u.x, u.y);
+    if (d < cd) { cd = d; camp = b; }
+  }
+  if (!camp || cd > 12) return false;
+  const guarded = units.some(o => o.x === camp.x && o.y === camp.y && o.nationId !== nationId);
+  if (cd === 1 && !guarded) { u.x = camp.x; u.y = camp.y; u.movesLeft = 0; return true; } // walk in: the camp falls at the turn's end
+  if (cd > 1) { moveAIToward(u, camp.x, camp.y, u.movesLeft); return true; }
+  return false; // beside a guarded camp: the attack logic deals with the guards
+}
+
 function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
@@ -7590,7 +7620,7 @@ function aiTurn(nationId) {
             }
           }
           if (nearestThreat) { moveAITowardHighGround(u, nearestThreat.x, nearestThreat.y, u.movesLeft); }
-          else moveAIUnitMultiple(u, u.movesLeft);
+          else if (!aiHuntCamp(u, nationId, aiCities, combatUnits)) moveAIUnitMultiple(u, u.movesLeft);
         } else {
 
           let target = null, bestScore = -Infinity;
@@ -7604,7 +7634,7 @@ function aiTurn(nationId) {
             if (score > bestScore) { bestScore = score; target = c; }
           }
           if (target) moveAITowardHighGround(u, target.x, target.y, u.movesLeft);
-          else moveAIUnitMultiple(u, u.movesLeft);
+          else if (!aiHuntCamp(u, nationId, aiCities, combatUnits)) moveAIUnitMultiple(u, u.movesLeft);
         }
       }
     } else if ((u.type === 'scout' || u.type === 'veteran_scout') && u.movesLeft > 0) {
@@ -12926,7 +12956,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-7.8';
+const CURRENT_VERSION = 'beta-7.9';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
