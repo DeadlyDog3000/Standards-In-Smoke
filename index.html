@@ -11851,6 +11851,13 @@ function buildWorldChart(key) {
   const pat = owPaperPattern(g);
   if (pat) { g.globalCompositeOperation = 'multiply'; g.fillStyle = pat; g.fillRect(0, 0, TW, TH); g.globalCompositeOperation = 'source-over'; }
   OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
+  // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
+  OW.mips = [c];
+  for (let k = 1, src = c; k <= 2; k++) {
+    const m = document.createElement('canvas'); m.width = Math.ceil(src.width / 2); m.height = Math.ceil(src.height / 2);
+    const mg = m.getContext('2d'); mg.imageSmoothingEnabled = true; mg.imageSmoothingQuality = 'high'; mg.drawImage(src, 0, 0, m.width, m.height);
+    OW.mips.push(m); src = m;
+  }
 }
 // names lettered across the seas and the great ranges, and the beasts and ships an engraver put in open water
 const OW_SEA_NAMES = ['Mare Tenebrosum', 'Oceanus Occidentalis', 'Mare Magnum', 'Sinus Aureus', 'Mare Borealis', 'Mare Ignotum', 'Oceanus Orientalis', 'Sinus Tranquillus', 'Mare Glaciale', 'Mare Serenum'];
@@ -12050,32 +12057,53 @@ setTimeout(function owPreload() {
   for (const k in ANIMAL_DATA) featSprite('an_' + k);
   for (const k of ['serpent', 'whale', 'ship']) featSprite('sea_' + k);
 }, 0);
-// draw the chart under the hexes that have been explored, feathered at the edge of the known world; the cut-out sheet is cached until the view or the map changes
+// the explored hexes (and those not watched now) as masks in the sheet's own coordinates, softened at their edges;
+// made again only when the known world or the watched part of it changes, not as the view moves
+function owMasks(pId) {
+  let sig = 0, vsig = 0;
+  for (let i = 0; i < tiles.length; i++) {
+    if (!tiles[i].revealed.has(pId)) continue;
+    sig = (Math.imul(sig, 31) + i) | 0;
+    if (currentVisionSet && !currentVisionSet.has(i)) vsig = (Math.imul(vsig, 31) + i) | 0;
+  }
+  const key = OW.key + '|' + pId + '|' + sig + '|' + vsig;
+  if (OW.maskKey === key) return OW.masks;
+  OW.maskKey = key;
+  const { K, CS, CH } = OW, sc = 24 / K, W = Math.ceil(OW.canvas.width * sc), H = Math.ceil(OW.canvas.height * sc);
+  const mk = (old) => { const c = old && old.width === W && old.height === H ? old : document.createElement('canvas'); c.width = W; c.height = H; return c; };
+  const known = mk(OW.masks && OW.masks.known), dim = mk(OW.masks && OW.masks.dim);
+  const kg = known.getContext('2d'), dg = dim.getContext('2d');
+  const kp = new Path2D(), dp = new Path2D(), qx = CS / 3 * sc + 0.4, hx2 = CS * 2 / 3 * sc + 0.4, hy = CH / 2 * sc + 0.4;
+  let any = false;
+  for (let i = 0; i < tiles.length; i++) {
+    if (!tiles[i].revealed.has(pId)) continue;
+    any = true;
+    const mx = i % MAP_COLS, my = (i - mx) / MAP_COLS, cx = (mx * CS + K / 2) * sc, cy = (my * CH + (mx & 1) * CH / 2 + CH / 2) * sc;
+    const hex = (p) => { p.moveTo(cx - hx2, cy); p.lineTo(cx - qx, cy - hy); p.lineTo(cx + qx, cy - hy); p.lineTo(cx + hx2, cy); p.lineTo(cx + qx, cy + hy); p.lineTo(cx - qx, cy + hy); p.closePath(); };
+    hex(kp);
+    // hexes on the edge of the world carry the sheet out to its border
+    if (mx === 0) kp.rect(-1, cy - hy, cx + 1, hy * 2);
+    if (mx === MAP_COLS - 1) kp.rect(cx, cy - hy, W - cx + 1, hy * 2);
+    if (my === 0) kp.rect(cx - hx2, -1, hx2 * 2, cy + 1);
+    if (my === MAP_ROWS - 1) kp.rect(cx - hx2, cy, hx2 * 2, H - cy + 1);
+    if (currentVisionSet && !currentVisionSet.has(i)) hex(dp);
+  }
+  kg.clearRect(0, 0, W, H); kg.filter = 'blur(3px)'; kg.fillStyle = '#000'; kg.fill(kp); kg.fill(kp); kg.filter = 'none';
+  // land known but not watched now: dimmed and browned, as an old survey not lately checked
+  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(34, 24, 12, 0.46)'; dg.fill(dp); dg.filter = 'none';
+  OW.masks = { known, dim, any, sc };
+  return OW.masks;
+}
+// draw the chart under the hexes that have been explored; the cut-out sheet is cached until the view or the map changes
 const _owLayer = { c: null, key: '' };
 function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol) {
   const chart = getWorldChart();
   if (!chart) return false;
+  const masks = owMasks(pId);
+  if (!masks.any) return true;
   const fx = cs / OW.CS, fy = ch / OW.CH, ox = -camX * cs, oy = -camY * ch + facePad;
-  const clip = new Path2D(), qx = cs / 3 + 0.6, hx2 = cs * 2 / 3 + 0.6, hy = ch / 2 + 0.6, halfCh = Math.round(ch / 2);
-  let any = false, sig = 0;
-  const unseen = new Path2D();
-  for (let my = startRow; my < endRow; my++) for (let mx = startCol; mx < endCol; mx++) {
-    if (!tiles[my * MAP_COLS + mx].revealed.has(pId)) continue;
-    const seen = !currentVisionSet || currentVisionSet.has(my * MAP_COLS + mx);
-    sig = (Math.imul(sig, 31) + my * MAP_COLS + mx + (seen ? 0 : 7919)) | 0;
-    const cx = mx * cs - camX * cs + w / 2, cy = my * ch + (mx & 1) * halfCh - camY * ch + facePad + ch / 2;
-    if (!seen) { unseen.moveTo(cx - hx2, cy); unseen.lineTo(cx - qx, cy - hy); unseen.lineTo(cx + qx, cy - hy); unseen.lineTo(cx + hx2, cy); unseen.lineTo(cx + qx, cy + hy); unseen.lineTo(cx - qx, cy + hy); unseen.closePath(); }
-    clip.moveTo(cx - hx2, cy); clip.lineTo(cx - qx, cy - hy); clip.lineTo(cx + qx, cy - hy); clip.lineTo(cx + hx2, cy); clip.lineTo(cx + qx, cy + hy); clip.lineTo(cx - qx, cy + hy); clip.closePath();
-    // hexes on the edge of the world carry the sheet out to its border
-    if (mx === 0) clip.rect(ox - 1, cy - hy, cx - ox + 1, hy * 2);
-    if (mx === MAP_COLS - 1) clip.rect(cx, cy - hy, ox + chart.width * fx - cx + 1, hy * 2);
-    if (my === 0) clip.rect(cx - hx2, oy - 1, hx2 * 2, cy - oy + 1);
-    if (my === MAP_ROWS - 1) clip.rect(cx - hx2, cy, hx2 * 2, oy + chart.height * fy - cy + 1);
-    any = true;
-  }
-  if (!any) return true;
   const W = Math.ceil(viewW * DPR), H = Math.ceil(viewH * DPR);
-  const key = [OW.key, camX.toFixed(3), camY.toFixed(3), w, W, H, sig].join('|');
+  const key = [OW.maskKey, camX.toFixed(3), camY.toFixed(3), w, W, H].join('|');
   if (_owLayer.key !== key) {
     _owLayer.key = key;
     const c = _owLayer.c || (_owLayer.c = document.createElement('canvas'));
@@ -12083,19 +12111,21 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
     const g = c.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
     g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    // the mask: the explored hexes, softened so the known world fades into the unknown
-    const feather = Math.max(1.5, w * 0.16);
-    g.filter = 'blur(' + feather + 'px)'; g.fillStyle = '#000'; g.fill(clip); g.fill(clip); g.filter = 'none';
-    g.globalCompositeOperation = 'source-in';
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const sx0 = Math.max(0, -ox / fx), sy0 = Math.max(0, -oy / fy);
     const sx1 = Math.min(chart.width, (viewW - ox) / fx), sy1 = Math.min(chart.height, (viewH - oy) / fy);
-    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    if (sx1 > sx0 && sy1 > sy0) g.drawImage(chart, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * fx, oy + sy0 * fy, (sx1 - sx0) * fx, (sy1 - sy0) * fy);
-    // land known but not watched now: dimmed and browned, as an old survey not lately checked
-    g.globalCompositeOperation = 'source-atop';
-    owDrawNames(g, w, cs, ch, facePad);
-    g.filter = 'blur(' + Math.max(1, w * 0.1) + 'px)'; g.fillStyle = 'rgba(34, 24, 12, 0.46)'; g.fill(unseen); g.filter = 'none';
-    g.globalCompositeOperation = 'source-over';
+    if (sx1 > sx0 && sy1 > sy0) {
+      const dx = ox + sx0 * fx, dy = oy + sy0 * fy, dw = (sx1 - sx0) * fx, dh = (sy1 - sy0) * fy, ks = masks.sc;
+      // the explored part of the sheet only, from the copy nearest the scale it is shown at
+      g.drawImage(masks.known, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      g.globalCompositeOperation = 'source-in';
+      const lvl = fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
+      g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
+      g.globalCompositeOperation = 'source-atop';
+      owDrawNames(g, w, cs, ch, facePad);
+      g.drawImage(masks.dim, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
+      g.globalCompositeOperation = 'source-over';
+    }
   }
   ctx.drawImage(_owLayer.c, 0, 0, viewW, viewH);
   return true;
