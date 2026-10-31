@@ -12403,7 +12403,7 @@ function drawRhumbs(cs, ch) {
   const R = Math.min(mw, mh) * 0.36, c0 = [ox + mw / 2, oy + mh / 2];
   const hubs = [c0];
   for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; hubs.push([c0[0] + Math.cos(a) * R * 1.25, c0[1] + Math.sin(a) * R]); }
-  const L = Math.hypot(mw, mh), cols = ['rgba(150, 120, 70, 0.20)', 'rgba(90, 130, 80, 0.17)', 'rgba(160, 60, 40, 0.15)'];
+  const L = Math.hypot(mw, mh), cols = ['rgba(150, 120, 70, 0.17)', 'rgba(90, 130, 80, 0.12)', 'rgba(160, 60, 40, 0.11)'];
   ctx.save(); ctx.lineWidth = 1;
   // off the sheet is the table it lies on, darker; the lines stay on the vellum
   if (OW.canvas) {
