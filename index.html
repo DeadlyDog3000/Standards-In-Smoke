@@ -13606,8 +13606,9 @@ function render() {
     }
 
     if (u.fortified && VIEW_TILE >= 16) {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillStyle = charted ? '#efe0bc' : 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
+      if (charted) { ctx.strokeStyle = 'rgba(60, 36, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.015); ctx.stroke(); }
       ctx.fillStyle = '#8cf';
       ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -13615,8 +13616,9 @@ function render() {
     }
 
     if (u.building && VIEW_TILE >= 16) {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillStyle = charted ? '#efe0bc' : 'rgba(0,0,0,0.5)';
       ctx.beginPath(); ctx.arc(cx + rad * 0.8, cy - rad * 0.8, w * 0.12, 0, Math.PI * 2); ctx.fill();
+      if (charted) { ctx.strokeStyle = 'rgba(60, 36, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.015); ctx.stroke(); }
       ctx.fillStyle = '#da4';
       ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
