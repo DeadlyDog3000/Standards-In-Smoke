@@ -3263,11 +3263,49 @@ function getEffectiveAtk(unit, target) {
 
   const cmdBonus = getCommandBonus(unit);
   bonus += cmdBonus.atkBonus;
-  return Math.round((base + bonus) * formBonus.atkMult);
+  // (a merged regiment: each company formed into it adds four-fifths of its own fire)
+  const more = (unit.merged || []).reduce((a, t) => a + (UNIT_DEFS[t]?.atk || 4) * 0.8, 0);
+  return Math.round((base + bonus + more) * formBonus.atkMult);
 }
 function getEffectiveMaxHp(unit) {
   const base = UNIT_DEFS[unit.type].hp || (UNIT_DEFS[unit.type].combat ? 10 : 5);
-  return base + getUnitLevel(unit).hpBonus;
+  const more = (unit.merged || []).reduce((a, t) => a + (UNIT_DEFS[t]?.hp || 10), 0);   // (and its men)
+  return base + more + getUnitLevel(unit).hpBonus;
+}
+// ---- merging regiments: right-click one of your own beside the regiment you have chosen, and it marches in and
+//  takes the other into its ranks: up to three companies under one colour, their men and their fire added together,
+//  all of them seen on the base and all of them firing at once ----
+const MERGE_MAX = 3;
+const mergeable = u => { const d = UNIT_DEFS[u.type]; return !!d && d.combat && !d.naval && u.type !== 'general'; };
+const regimentSize = u => 1 + (u.merged || []).length;
+// where each company stands on the base, behind the colour (in hex widths)
+const MERGE_SPOTS = [[-0.21, -0.07], [0.21, -0.07]];
+function mergeRegiments(lead, other) {
+  if (!lead || !other || lead === other || lead.nationId !== other.nationId) return 'Only your own regiments can be formed together.';
+  if (!mergeable(lead) || !mergeable(other)) return 'Only regiments of foot, horse and guns can be formed together.';
+  if (regimentSize(lead) + regimentSize(other) > MERGE_MAX) return `A regiment holds at most ${MERGE_MAX} companies.`;
+  if (hexDistance(lead.x, lead.y, other.x, other.y) !== 1) return 'March up beside it first.';
+  if (lead.movesLeft <= 0) return 'That regiment has no moves left this turn.';
+  if (other.building || lead.building) return 'That regiment is busy.';
+  if (!tryActivateUnit(lead, true)) return '';
+  const ox = lead.x, oy = lead.y, hpBefore = lead.hp;
+  lead.merged = [...(lead.merged || []), other.type, ...(other.merged || [])];
+  lead.hp = Math.min(getEffectiveMaxHp(lead), hpBefore + other.hp);
+  lead.xp = Math.max(lead.xp || 0, other.xp || 0);
+  lead.honours = Math.max(lead.honours || 0, other.honours || 0);
+  lead.morale = Math.round(((lead.morale ?? MORALE_MAX) + (other.morale ?? MORALE_MAX)) / 2);
+  lead.movesLeft = Math.max(0, Math.min(lead.movesLeft - 1, other.movesLeft));
+  lead.fortified = false;
+  units = units.filter(u => u !== other);
+  activatedUnits.delete(other);
+  lead.x = other.x; lead.y = other.y;
+  startUnitAnimation(lead, [{ x: other.x, y: other.y }], null, ox, oy);
+  if (lead.nationId === playerNation) {
+    addFloatingText(lead.x, lead.y, `${regimentSize(lead)} companies`, '#e0c880', 1800, 15);
+    try { SMK.drum(); SMK.pick(); } catch (e) {}   // (the drum beats them into one line, and the base is set down)
+  }
+  visionDirty = true;
+  return null;
 }
 function awardXP(unit, amount) {
   if (!UNIT_DEFS[unit.type]?.combat) return;
@@ -4004,20 +4042,21 @@ function spawnDeathParticles(col, row, color) {
 }
 // Gunpowder: a muzzle flash and a bank of white smoke drifting off the firing line; dust where the blow lands
 const FIREARM_UNITS = new Set(['musketeer', 'rifleman', 'grenadier', 'dragoon', 'field_gun', 'cannon', 'mortar', 'frigate', 'galleon', 'man_of_war']);
-function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
+function spawnCombatSmoke(ax, ay, dx, dy, attackerType, shift) {
   const now = Date.now();
+  const [shx, shy] = shift || [0, 0];   // (a company standing off the centre of the base fires from where it stands)
   const big = !!UNIT_DEFS[attackerType]?.artillery || /frigate|galleon|man_of_war/.test(attackerType);
   // direction toward the target, in screen terms
   const pa = hexScreenPos(ax, ay), pd = hexScreenPos(dx, dy), w = hexWidth();
   let vx = pd.x - pa.x, vy = pd.y - pa.y; const len = Math.hypot(vx, vy) || 1; vx /= len; vy /= len;
   if (FIREARM_UNITS.has(attackerType)) {
-    particles.push({ kind: 'flash', col: ax, row: ay, ox: vx * 14, oy: vy * 14 - 4, vx: 0, vy: 0, size: big ? 26 : 16, startTime: now, duration: 200 });
+    particles.push({ kind: 'flash', col: ax, row: ay, ox: vx * 14 + shx, oy: vy * 14 - 4 + shy, vx: 0, vy: 0, size: big ? 26 : 16, startTime: now, duration: 200 });
     const puffs = big ? 9 : 6;
     // the bank hangs before the muzzles and drifts off sideways with the wind, never down the line of fire onto the target
     let wx = -vy, wy = vx; if (wy > 0 || (wy === 0 && wx < 0)) { wx = -wx; wy = -wy; }
     for (let i = 0; i < puffs; i++) {
       const d = 8 + (i % 3) * 3, s = (i - (puffs - 1) / 2) * 3.2;
-      particles.push({ kind: 'smoke', col: ax, row: ay, ox: vx * d + wx * s + (Math.random() - 0.5) * 6, oy: vy * d + wy * s - 4 + (Math.random() - 0.5) * 6,
+      particles.push({ kind: 'smoke', col: ax, row: ay, ox: vx * d + wx * s + (Math.random() - 0.5) * 6 + shx, oy: vy * d + wy * s - 4 + (Math.random() - 0.5) * 6 + shy,
         vx: vx * 3 + wx * 14 + Math.random() * 5, vy: wy * 14 - 8 - Math.random() * 8, size: (big ? 19 : 13) + Math.random() * 6,
         tone: 205 + Math.floor(Math.random() * 35), startTime: now + i * 25, duration: 1600 + Math.random() * 900, ink: i % 3, rot: Math.random() * 6.28 });
     }
@@ -4239,6 +4278,12 @@ function unitFxOffset(u, w) {
 function attackFx(ax, ay, dx, dy, aType, dType, aNid, dNid, ranged, defDied, atkDied) {
   if (particles.length < 400) spawnCombatSmoke(ax, ay, dx, dy, aType);
   const A = units.find(u => u.x === ax && u.y === ay && u.nationId === aNid);
+  // every company of a merged regiment fires in the same instant, each from its own place on the base
+  ((A && A.merged) || []).forEach((t, k) => {
+    const [sx, sy] = MERGE_SPOTS[k] || [0, 0];
+    if (particles.length < 460 && FIREARM_UNITS.has(t)) spawnCombatSmoke(ax, ay, dx, dy, t, [sx * 48, sy * 48]);
+    setTimeout(() => { try { playCombatSound(t, dx, dy); } catch (e) {} }, 25 + k * 20);
+  });
   const D = units.find(u => u.x === dx && u.y === dy && u.nationId === dNid);
   const shot = ranged || FIREARM_UNITS.has(aType) && !!UNIT_DEFS[aType]?.ranged;
   // (a regiment that broke the enemy and took their ground is seen going in, not found there already)
@@ -14547,6 +14592,12 @@ function render() {
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
+      // the other companies of a merged regiment, a step behind the colour on either side
+      (u.merged || []).forEach((t, k) => {
+        const mf = uniformFigure(unitFigure(t), t, u.nationId); if (!mf) return;
+        const [sx, sy] = MERGE_SPOTS[k] || [0, 0];
+        drawUnitFigure(mf, cx + sx * w, cy - bobY + rad * 0.62 + sy * w, w * UNIT_FIG_SCALE * 0.9, safeColor(nCol), false, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, false, !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
+      });
       drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
@@ -15142,6 +15193,7 @@ function showUnitPanel(unit) {
     const effAtk = getEffectiveAtk(unit);
     chips += chip(`⚔ ${effAtk}${effAtk > (def.atk || 4) ? ` <em style="color:${unitLevel.color}">(+${effAtk - (def.atk || 4)})</em>` : ''}`, `Attack (${def.atk || 4} base, with its rank, laws and general)`);
     if (def.ranged) chips += chip('Ranged', 'Can fire from range (R)');
+    if (unit.merged && unit.merged.length) chips += chip(`${regimentSize(unit)} companies`, 'Formed from ' + [unit.type, ...unit.merged].map(t => UNIT_DEFS[t]?.name || t).join(', ') + ': their men and fire together');
     if (def.siege) chips += chip('Siege', 'Strong against walls');
     if (unit.fortified) chips += chip('Fortified', 'Dug in: harder to dislodge', 'good');
 
@@ -17320,6 +17372,13 @@ canvas.addEventListener('contextmenu', (e) => {
       if (!moveMode) return;
     } else return refuse(!def.combat ? 'That regiment cannot fight.' : d > 1 ? 'Too far to strike: march up beside it first.' : 'That regiment cannot attack now.');
   } else {
+    const friend = units.find(o => o.x === mx && o.y === my && o !== u && o.nationId === u.nationId);
+    if (friend && mergeable(u) && mergeable(friend)) {
+      const why = mergeRegiments(u, friend);
+      if (why !== null) { if (why) refuse(why); return; }   // ('' : out of orders, already said)
+      if (selectedUnit === u) showUnitPanel(u);
+      updateUI(); render(); return;
+    }
     if (units.some(o => o.x === mx && o.y === my && o !== u)) return refuse('That hex is taken.');
     const tt = tiles[ti].type;
     if (def.naval ? tt !== 0 : tt === 0) return refuse(def.naval ? 'Ships keep to the water.' : 'A regiment cannot march into the sea.');
