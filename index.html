@@ -535,6 +535,7 @@
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
     #game > canvas { image-rendering: auto; }
+    #game::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 55% at 48% 45%, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0) 70%); }
     /* the top bar's stores as painted tokens, not coloured squares */
     #topbar .res[title^="Gold"] .res-icon { background: url(icons/moneybag.png) center / contain no-repeat !important; width: 17px; height: 17px; border-radius: 0; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7)); }
     #topbar .res[title^="Food"] .res-icon { background: url(icons/wheat.png) center / contain no-repeat !important; width: 17px; height: 17px; border-radius: 0; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7)); }
