@@ -18358,6 +18358,29 @@ function generateAndPlay(pName, pColor, opponents) {
   showUpdateLogPopup();
   startTutorial();
   setTimeout(checkEndTurnReminders, 1200);
+  // the opening: the whole chart lying on the desk, then the view comes down to where your people stand
+  if (OW.canvas && !matchMedia('(prefers-reduced-motion: reduce)').matches) openingSweep(sp.x, sp.y, VIEW_TILE);
+}
+function openingSweep(tx, ty, toTile) {
+  const fromTile = Math.max(MIN_TILE, Math.min(toTile, Math.floor(Math.min(viewW / (MAP_COLS * 0.78), viewH / (MAP_ROWS * 0.8)))));
+  if (fromTile >= toTile - 2) return;
+  const t0 = performance.now(), hold = 600, dur = 1700;
+  let cancelled = false;
+  const stop = () => { cancelled = true; };
+  window.addEventListener('pointerdown', stop, { once: true }); window.addEventListener('wheel', stop, { once: true }); window.addEventListener('keydown', stop, { once: true });
+  const setView = (tile, cx, cy) => { VIEW_TILE = tile; camX = clampCamX(cx + 0.5 - visibleCols() / 2); camY = clampCamY(cy + 0.5 - visibleRows() / 2); };
+  setView(fromTile, MAP_COLS / 2, MAP_ROWS / 2); render();
+  const step = (now) => {
+    if (cancelled) { setView(toTile, tx, ty); render(); return; }
+    const k = Math.max(0, Math.min(1, (now - t0 - hold) / dur)), e = k * k * (3 - 2 * k);
+    // zoom in on a curve that feels like leaning in over the table: the scale eases, the point of interest slides to the middle
+    const tile = Math.round(fromTile * Math.pow(toTile / fromTile, e));
+    setView(tile, MAP_COLS / 2 + (tx - MAP_COLS / 2) * e, MAP_ROWS / 2 + (ty - MAP_ROWS / 2) * e);
+    render();
+    if (k < 1) requestAnimationFrame(step);
+    else { window.removeEventListener('pointerdown', stop); window.removeEventListener('wheel', stop); window.removeEventListener('keydown', stop); }
+  };
+  requestAnimationFrame(step);
 }
 
 function updateTopbarOffset() {
