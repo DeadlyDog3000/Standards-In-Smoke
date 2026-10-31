@@ -845,7 +845,7 @@
     <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-height:60vh;overflow-y:auto;background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;">
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
-        <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
       <div style="margin-bottom:12px;">
@@ -1832,7 +1832,7 @@
       <div style="text-align:left;font-size:12px;line-height:1.6;color:#c8b8a0;max-width:340px;margin:0 auto;max-height:400px;overflow-y:auto;">
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
-          <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+          <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.2</b></div>
         <div style="margin-bottom:12px;">
@@ -14481,7 +14481,7 @@ function showUnitPanel(unit) {
     const nearbyGen = findNearbyGeneral(unit);
     if (nearbyGen) {
       const traitNames = (nearbyGen.traits || []).map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ');
-      generalHtml = `<p style="font-size:11px;color:#6c6;margin:2px 0;">Under command of General (${traitNames})</p>`;
+      generalHtml = `<p style="font-size:11px;color:#b8cc84;margin:2px 0;">Under command of General (${traitNames})</p>`;
     }
   }
   let html = `${UNIT_DEFS[unit.type] ? `<div class="city-plate unit-plate"><img src="units/${unit.type}.png" alt=""></div>` : ''}<h3>${unitIco(unit.type)} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
@@ -14594,7 +14594,7 @@ function showUnitPanel(unit) {
     html += '<div class="section-title">Formation</div><div style="display:flex;gap:4px;flex-wrap:wrap;">';
     for (const [fKey, fDef] of Object.entries(FORMATIONS)) {
       const active = unit.formation === fKey;
-      const style = active ? 'border-color:#6c6;color:#6c6' : '';
+      const style = active ? 'border-color:#a8c070;color:#b8cc84' : '';
       html += `<button class="p-btn" onclick="setFormation('${fKey}')" style="${style};flex:1;min-width:60px;font-size:11px">${fKey.charAt(0).toUpperCase() + fKey.slice(1)}${active ? ' *' : ''}</button>`;
     }
     html += '</div>';
@@ -14605,7 +14605,7 @@ function showUnitPanel(unit) {
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
       html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
       if (unit.fortified) {
-        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#6c6;color:#6c6">Wake (Z) <span class="cost">Unfortify unit</span></button>`;
+        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#a8c070;color:#b8cc84">Wake (Z) <span class="cost">Unfortify unit</span></button>`;
       }
     }
   }
@@ -14617,11 +14617,11 @@ function showUnitPanel(unit) {
     html += `<button class="p-btn" onclick="enterGotoMode()">Go To (G)</button>`;
     if (unit.gotoX !== undefined) html += `<button class="p-btn" onclick="cancelGoto()">Cancel Go To (${unit.gotoX},${unit.gotoY})</button>`;
     if (!def.combat || unit.type === 'scout' || unit.type === 'veteran_scout') {
-      const exploring = unit.autoExplore ? ' style="border-color:#6c6;color:#6c6"' : '';
+      const exploring = unit.autoExplore ? ' style="border-color:#a8c070;color:#b8cc84"' : '';
       html += `<button class="p-btn" onclick="toggleAutoExplore()"${exploring}>Auto-Explore (X)${unit.autoExplore ? ' — Active' : ''}</button>`;
     }
     if (unit.type === 'worker' || unit.type === 'veteran_worker') {
-      const on = unit.automated ? ' style="border-color:#6c6;color:#6c6"' : '';
+      const on = unit.automated ? ' style="border-color:#a8c070;color:#b8cc84"' : '';
       html += `<button class="p-btn" onclick="toggleAutomate()"${on}>${unit.automated ? 'Working by itself — Stop (B)' : 'Automate (B) <span class="cost">improves your land on its own</span>'}</button>`;
     }
   }
@@ -15098,7 +15098,7 @@ function confirmSettle() {
   selectedUnit._pendingCityName = name;
   let html = `<h3>\u2691 Found City</h3>`;
   html += `<p>Your settlers wish to found a city here.<br>The city shall be called: <strong style="color:#d4a856">${escHtml(name)}</strong></p>`;
-  html += `<button class="p-btn" onclick="doSettle()" style="border-color:#4a4;color:#afa">Confirm - Found ${escHtml(name)}</button>`;
+  html += `<button class="p-btn" onclick="doSettle()" style="border-color:#9aac58;color:#dce6b0">Confirm - Found ${escHtml(name)}</button>`;
   html += `<button class="p-btn" onclick="if(selectedUnit){delete selectedUnit._pendingCityName;}showUnitPanel(selectedUnit)">Cancel</button>`;
   panel.innerHTML = html; panel.style.display = 'block';
 }
