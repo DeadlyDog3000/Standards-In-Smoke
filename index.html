@@ -5195,7 +5195,7 @@ function showNoResearchPopup() {
   }
 
   let inner = `<div style="background:#1a140a;border:2px solid #8b6914;border-radius:12px;padding:20px 24px;width:440px;max-height:68vh;overflow-y:auto;position:relative;">`;
-  inner += `<button onclick="document.getElementById('noResearchPopup')?.remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">✕</button>`;
+  inner += `<button onclick="document.getElementById('noResearchPopup')?.remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">×</button>`;
   inner += `<h3 style="color:#d4a856;margin:0 0 4px;font-size:1.05em;">📜 No Research Selected</h3>`;
   inner += `<p style="color:#7a7a6a;font-size:11px;margin:0 0 10px;">+${sciPerTurn.toFixed(1)} science/turn — click a tech to begin.</p>`;
 
@@ -5227,7 +5227,7 @@ function showIdleCitiesPopup(idleCities) {
   const n = nations[playerNation];
 
   let inner = `<div style="background:#1a140a;border:2px solid #8b6914;border-radius:12px;padding:20px 24px;width:460px;max-height:68vh;overflow-y:auto;position:relative;">`;
-  inner += `<button onclick="window._closeIdlePopup()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">✕</button>`;
+  inner += `<button onclick="window._closeIdlePopup()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#888;font-size:17px;cursor:pointer;line-height:1;">×</button>`;
   inner += `<h3 style="color:#d4a856;margin:0 0 4px;font-size:1.05em;">🏙 ${idleCities.length} Idle Cit${idleCities.length === 1 ? 'y' : 'ies'}</h3>`;
   inner += `<p style="color:#7a7a6a;font-size:11px;margin:0 0 10px;">These cities are not producing anything. Assign them a task.</p>`;
 
@@ -15245,7 +15245,7 @@ function _buildTechTreeOverlay() {
     <button onclick="closeTechTree()" style="
       background:rgba(80,20,20,0.5);border:1px solid rgba(200,80,60,0.4);
       color:#e0907a;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px;
-    ">✕ Close</button>
+    ">× Close</button>
   `;
   overlay.appendChild(topBar);
 
