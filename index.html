@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.1</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The Reckoning of a War</b><br>
+        - When you make peace, the chronicle sums up the war: how long the fighting lasted, how many regiments you lost and how many you destroyed, and whether it was a victorious or a hard-won peace
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.0</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Towns Under Snow</b><br>
@@ -1587,6 +1592,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.1</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">The Reckoning of a War</b><br>
+          - When you make peace, the chronicle sums up the war: how long the fighting lasted, how many regiments you lost and how many you destroyed, and whether it was a victorious or a hard-won peace
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.0</b></div>
         <div style="margin-bottom:12px;">
@@ -6449,6 +6459,16 @@ function doAttack(attacker, tx, ty) {
     // your victories (your losses are already recorded as 'Lost: …')
     if (defenderDied && attackerNationId === playerNation) logEvent(`\u2694 ${a.charAt(0).toUpperCase() + a.slice(1)} destroyed ${d}.`);
     else if (attackerDied && defenderNationId === playerNation) logEvent(`\u2694 ${d.charAt(0).toUpperCase() + d.slice(1)} threw back and destroyed ${a}.`);
+    // the tally of this war, summed up in the chronicle when peace is made
+    const foeId = attackerNationId === playerNation ? defenderNationId : attackerNationId;
+    if (foeId !== playerNation && nations[foeId] && !nations[foeId].isBarbarian) {
+      const pn = nations[playerNation], tally = (pn._warTally || (pn._warTally = {}));
+      const w = tally[foeId] || (tally[foeId] = { start: turnNumber, lost: 0, killed: 0 });
+      const weLost = (attackerDied && attackerNationId === playerNation) || (defenderDied && defenderNationId === playerNation);
+      const theyLost = (attackerDied && attackerNationId === foeId) || (defenderDied && defenderNationId === foeId);
+      if (weLost) w.lost++;
+      if (theyLost) w.killed++;
+    }
   }
   addBattleEvent(attackerOrigX, attackerOrigY, tx, ty, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, false);
 }
@@ -12991,10 +13011,21 @@ function renderKingdoms() {
 
   el.innerHTML = html;
 }
+function endWarChronicle(nationId) {
+  const pn = nations[playerNation], w = pn?._warTally?.[nationId];
+  if (!w) return;
+  delete pn._warTally[nationId];
+  const turns = Math.max(1, turnNumber - w.start);
+  const reg = (k) => `${k} regiment${k === 1 ? '' : 's'}`;
+  const verdict = w.killed > w.lost * 1.5 ? 'a victorious peace' : w.lost > w.killed * 1.5 ? 'a hard-won peace' : 'peace';
+  logEvent(`\uD83D\uDD4A ${verdict.charAt(0).toUpperCase() + verdict.slice(1)} with ${nations[nationId]?.name || 'the enemy'} after ${turns} turn${turns === 1 ? '' : 's'} of fighting: you lost ${reg(w.lost)} and destroyed ${reg(w.killed)}.`);
+}
+
 function sendEnvoy(nationId) {
   const pn = nations[playerNation];
   if (pn.gold < 20) { showToast('Not enough gold (need 20g).'); return; }
   pn.gold -= 20;
+  if (pn.relations[nationId] === 'war') endWarChronicle(nationId);
   pn.relations[nationId] = 'peace';
   nations[nationId].relations[playerNation] = 'peace';
   changeLoyalty(nationId, playerNation, 25);
@@ -13011,6 +13042,7 @@ function acceptPeace(nationId) {
   if (!pn.relations) pn.relations = {};
   if (!n.relations) n.relations = {};
   if (n.wantsPeace) n.wantsPeace[playerNation] = false;
+  if (pn.relations[nationId] === 'war') endWarChronicle(nationId);
   pn.relations[nationId] = 'peace';
   n.relations[playerNation] = 'peace';
   const myLoy = getLoyalty(playerNation, nationId);
@@ -13762,7 +13794,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.0';
+const CURRENT_VERSION = 'beta-10.1';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
