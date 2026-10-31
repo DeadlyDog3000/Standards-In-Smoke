@@ -1338,6 +1338,7 @@
         <b>Z</b> &mdash; Wake Unit<br>
         <b>H</b> &mdash; Rest &amp; Heal<br>
         <b>X</b> &mdash; Auto-Explore<br>
+        <b>B</b> &mdash; Automate Worker<br>
         <b>N / Q</b> &mdash; Next Unit<br>
         <b>P</b> &mdash; Planning Mode<br>
         <b>C</b> &mdash; Center on Selection<br>
@@ -6646,6 +6647,55 @@ function showDefeat(type, winnerId) {
   document.body.appendChild(overlay);
 }
 
+// A worker's day, for a rival's workers and for your own when you set them to work by themselves: mend what raiders spoiled,
+// improve the tile it stands on, or walk to the nearest land of the realm still bare. (Your own never fell a forest unasked.)
+function aiWorkerStep(u, nationId, opts = {}) {
+
+  if (u.building) { u.movesLeft = 0; return; }
+
+  if (canRepairTile(u, u.x, u.y)) { repairTile(u); }
+  else {
+
+    let repairedTarget = null, repDist = Infinity;
+    for (const p of pillaged) {
+      const px = p.tileIndex % MAP_COLS, py = Math.floor(p.tileIndex / MAP_COLS);
+      if (tiles[p.tileIndex].owner !== nationId) continue;
+      const d = hexDistance(px, py, u.x, u.y);
+      if (d < repDist) { repDist = d; repairedTarget = { x: px, y: py }; }
+    }
+    if (repairedTarget && repDist <= 8) {
+      moveAIToward(u, repairedTarget.x, repairedTarget.y, u.movesLeft);
+    } else {
+      const ti = u.y * MAP_COLS + u.x; const t = tiles[ti];
+      if (t.owner === nationId && !t.improvement && t.type !== 4) {
+        if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
+        else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
+        else if (t.type === 5 && opts.chop !== false) chopForest(u);
+        else if (canBuildImprovement(u, 'mine')) buildImprovement(u, 'mine');
+        else if (canBuildImprovement(u, 'farm')) buildImprovement(u, 'farm');
+        else if (canBuildImprovement(u, 'treasury')) buildImprovement(u, 'treasury');
+        else if (canBuildImprovement(u, 'science_lab')) buildImprovement(u, 'science_lab');
+        else if (canBuildImprovement(u, 'port') && !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port')) buildImprovement(u, 'port'); // a first harbour, so the realm can put to sea
+        else if (canBuildImprovement(u, 'market')) buildImprovement(u, 'market');
+        else if (canBuildImprovement(u, 'quarry')) buildImprovement(u, 'quarry');
+        else {
+
+          let bestTile = null, bestDist = Infinity;
+          for (let ti2 = 0; ti2 < tiles.length; ti2++) {
+            const t2 = tiles[ti2];
+            if (t2.owner !== nationId || t2.improvement || t2.type === 4 || t2.type === 0 || t2.type === 2) continue;
+            const tx2 = ti2 % MAP_COLS, ty2 = Math.floor(ti2 / MAP_COLS);
+            const d2 = hexDistance(tx2, ty2, u.x, u.y);
+            if (d2 > 0 && d2 < bestDist) { bestDist = d2; bestTile = { x: tx2, y: ty2 }; }
+          }
+          if (bestTile) moveAIToward(u, bestTile.x, bestTile.y, u.movesLeft);
+          else moveAIUnitMultiple(u, u.movesLeft);
+        }
+      } else moveAIUnitMultiple(u, u.movesLeft);
+    }
+  }
+}
+
 function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
@@ -6977,50 +7027,7 @@ function aiTurn(nationId) {
         else moveAIUnitMultiple(u, u.movesLeft);
       }
     } else if ((u.type === 'worker' || u.type === 'veteran_worker') && u.movesLeft > 0) {
-
-      if (u.building) { u.movesLeft = 0; continue; }
-
-      if (canRepairTile(u, u.x, u.y)) { repairTile(u); }
-      else {
-
-        let repairedTarget = null, repDist = Infinity;
-        for (const p of pillaged) {
-          const px = p.tileIndex % MAP_COLS, py = Math.floor(p.tileIndex / MAP_COLS);
-          if (tiles[p.tileIndex].owner !== nationId) continue;
-          const d = hexDistance(px, py, u.x, u.y);
-          if (d < repDist) { repDist = d; repairedTarget = { x: px, y: py }; }
-        }
-        if (repairedTarget && repDist <= 8) {
-          moveAIToward(u, repairedTarget.x, repairedTarget.y, u.movesLeft);
-        } else {
-          const ti = u.y * MAP_COLS + u.x; const t = tiles[ti];
-          if (t.owner === nationId && !t.improvement && t.type !== 4) {
-            if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
-            else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
-            else if (t.type === 5) chopForest(u);
-            else if (canBuildImprovement(u, 'mine')) buildImprovement(u, 'mine');
-            else if (canBuildImprovement(u, 'farm')) buildImprovement(u, 'farm');
-            else if (canBuildImprovement(u, 'treasury')) buildImprovement(u, 'treasury');
-            else if (canBuildImprovement(u, 'science_lab')) buildImprovement(u, 'science_lab');
-            else if (canBuildImprovement(u, 'port') && !tiles.some(tt => tt.owner === nationId && tt.improvement === 'port')) buildImprovement(u, 'port'); // a first harbour, so the realm can put to sea
-            else if (canBuildImprovement(u, 'market')) buildImprovement(u, 'market');
-            else if (canBuildImprovement(u, 'quarry')) buildImprovement(u, 'quarry');
-            else {
-
-              let bestTile = null, bestDist = Infinity;
-              for (let ti2 = 0; ti2 < tiles.length; ti2++) {
-                const t2 = tiles[ti2];
-                if (t2.owner !== nationId || t2.improvement || t2.type === 4 || t2.type === 0 || t2.type === 2) continue;
-                const tx2 = ti2 % MAP_COLS, ty2 = Math.floor(ti2 / MAP_COLS);
-                const d2 = hexDistance(tx2, ty2, u.x, u.y);
-                if (d2 > 0 && d2 < bestDist) { bestDist = d2; bestTile = { x: tx2, y: ty2 }; }
-              }
-              if (bestTile) moveAIToward(u, bestTile.x, bestTile.y, u.movesLeft);
-              else moveAIUnitMultiple(u, u.movesLeft);
-            }
-          } else moveAIUnitMultiple(u, u.movesLeft);
-        }
-      }
+      aiWorkerStep(u, nationId);
     } else if (UNIT_DEFS[u.type]?.combat && u.movesLeft > 0) {
 
       if (FORMATION_UNITS.has(u.type) && u.formation) {
@@ -8174,6 +8181,11 @@ function _finishEndTurnImpl() {
     u.turnStartMoves = moves;
   }
   processGotoOrders();
+  for (const u of [...units]) {
+    if (u.automated && u.nationId === playerNation && units.includes(u) && u.movesLeft > 0 && u.gotoX === undefined) {
+      try { aiWorkerStep(u, playerNation, { chop: false }); } catch (e) { console.error('automated worker error:', e); }
+    }
+  }
 
   for (const u of units) {
     if (!UNIT_DEFS[u.type]?.combat) continue;
@@ -10470,7 +10482,7 @@ function render() {
       ctx.restore();
     }
     // ready for orders: a small gold pip on your units that can still act this turn
-    if (u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
+    if (u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && !u.automated && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
       ctx.save(); ctx.fillStyle = '#f2c94c'; ctx.strokeStyle = 'rgba(40,25,5,0.8)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cx - rad * 0.78, cy - rad * 0.78, Math.max(2.5, rad * 0.17), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
     }
@@ -10865,7 +10877,7 @@ function hidePanel() { document.getElementById('panel').style.display = 'none'; 
 
 function cycleToNextUnit(force = false) {
   if (!force && !autoNextUnit) return;
-  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && u.gotoX === undefined && !u.building && !u.fortified);
+  const available = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u !== selectedUnit && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore);
   if (available.length === 0) { selectedUnit = null; hidePanel(); render(); return false; }
   const next = available[0];
   selectedUnit = next; selectedCity = null;
@@ -11073,6 +11085,10 @@ function showUnitPanel(unit) {
     if (!def.combat || unit.type === 'scout' || unit.type === 'veteran_scout') {
       const exploring = unit.autoExplore ? ' style="border-color:#6c6;color:#6c6"' : '';
       html += `<button class="p-btn" onclick="toggleAutoExplore()"${exploring}>Auto-Explore (X)${unit.autoExplore ? ' — Active' : ''}</button>`;
+    }
+    if (unit.type === 'worker' || unit.type === 'veteran_worker') {
+      const on = unit.automated ? ' style="border-color:#6c6;color:#6c6"' : '';
+      html += `<button class="p-btn" onclick="toggleAutomate()"${on}>${unit.automated ? 'Working by itself — Stop (B)' : 'Automate (B) <span class="cost">improves your land on its own</span>'}</button>`;
     }
   }
 
@@ -13452,6 +13468,7 @@ document.addEventListener('keydown', (e) => {
   // Z wakes a fortified unit (W pans the camera, and must never cancel a worker's build)
   if (e.key === 'z' && selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.fortified && !selectedUnit.building) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'k') { toggleKingdoms(); e.preventDefault(); }
+  if (e.key === 'b' && selectedUnit && /worker/.test(selectedUnit.type)) { toggleAutomate(); e.preventDefault(); }
   if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: (e.key === '-' || e.key === '_') ? 100 : -100, clientX: viewW / 2, clientY: viewH / 2, bubbles: true, cancelable: true }));
     e.preventDefault();
@@ -13638,6 +13655,19 @@ window.cancelGoto = function() {
   gotoMode = false;
   if (selectedUnit) showUnitPanel(selectedUnit);
   render();
+};
+
+// a worker set to work by itself: each turn it mends, improves and moves on like a rival's workers (it never fells forest)
+window.toggleAutomate = function() {
+  const u = selectedUnit;
+  if (!u || u.nationId !== playerNation || !/worker/.test(u.type)) return;
+  u.automated = !u.automated;
+  if (u.automated) {
+    u.autoExplore = false; delete u.gotoX; delete u.gotoY;
+    showToast('This worker will improve your land by itself. Select it and press B to take it back.');
+    if (u.movesLeft > 0 && !u.building) aiWorkerStep(u, playerNation, { chop: false });
+  } else showToast('Worker back under your orders.');
+  showUnitPanel(u); updateUI(); render();
 };
 
 window.toggleAutoExplore = function() {
