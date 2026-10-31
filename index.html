@@ -5240,7 +5240,7 @@ function showFirstContact(nation) {
   playAchievement();
   const sc = safeColor(nation.color);
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:155;display:flex;align-items:center;justify-content:center;background:rgba(10,8,5,0.8);animation:firstContact 3s ease-in-out forwards;pointer-events:none;';
+  overlay.style.cssText = "position:fixed;inset:0;z-index:155;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%, rgba(10,8,5,0.55), rgba(10,8,5,0.9) 70%),url('events/envoy.jpg') center/cover;animation:firstContact 3s ease-in-out forwards;pointer-events:none;";
   overlay.innerHTML = `<div style="text-align:center;">
     ${(() => { const r = getNationRuler(nation.id); return r
       ? `<img class="portrait" src="${portraitOf(r)}" alt="" style="width:96px;height:96px;display:block;margin:0 auto 12px;border:3px solid ${sc};box-shadow:0 0 24px ${sc}60;">`
