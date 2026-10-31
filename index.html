@@ -6838,7 +6838,14 @@ function aiWorkerStep(u, nationId, opts = {}) {
     } else {
       const ti = u.y * MAP_COLS + u.x; const t = tiles[ti];
       if (t.owner === nationId && !t.improvement && t.type !== 4) {
-        if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
+        // at war, a rival digs redoubts on the border facing its enemy (your own workers leave that choice to you)
+      const facesFoe = opts.chop !== false && nationAtRealWar(nations[nationId]) && hexNeighbors(u.x, u.y).some(nb => {
+        if (nb.col < 0 || nb.row < 0 || nb.col >= MAP_COLS || nb.row >= MAP_ROWS) return false;
+        const o = tiles[nb.row * MAP_COLS + nb.col].owner;
+        return o >= 0 && o !== nationId && nations[nationId].relations?.[o] === 'war' && !nations[o]?.isBarbarian;
+      });
+      if (facesFoe && canBuildImprovement(u, 'redoubt')) buildImprovement(u, 'redoubt');
+      else if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
         else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
         else if (t.type === 5 && opts.chop !== false) chopForest(u);
         else if (canBuildImprovement(u, 'mine')) buildImprovement(u, 'mine');
