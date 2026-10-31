@@ -16514,8 +16514,10 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     const ownerCity = cities.find(c => c.x === mx && c.y === my);
     if (ownerCity) {
       const cy = getCityYields(ownerCity);
-      const yStr = Object.entries(cy).filter(([,v]) => v > 0).map(([k,v]) => `+${v.toFixed(1)} ${k}`).join(', ');
-      html += `<div class="tt-detail" style="color:#b8a070">City yields: ${yStr}</div>`;
+      // (each yield by its engraved token, as in the city panel)
+      const TT_ICON = { gold: 'moneybag', food: 'wheat', wood: 'log', stone: 'stone', steel: 'hammerpick', gunpowder: 'bomb', science: 'books' };
+      const yStr = Object.entries(cy).filter(([,v]) => v > 0).map(([k,v]) => TT_ICON[k] ? `<span style="white-space:nowrap" title="${k}"><img src="icons/${TT_ICON[k]}.png" alt="${k}" style="height:13px;vertical-align:-2px;margin-right:2px">+${v.toFixed(1)}</span>` : `+${v.toFixed(1)} ${k}`).join(' &nbsp;');
+      html += `<div class="tt-detail" style="color:#6a4a22">City yields: ${yStr}</div>`;
       const bldgs = (ownerCity.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
       if (bldgs.length > 0) html += `<div class="tt-detail" style="color:#8ab">Buildings: ${bldgs.map(b => `${b.icon} ${b.name}`).join(', ')}</div>`;
     }
