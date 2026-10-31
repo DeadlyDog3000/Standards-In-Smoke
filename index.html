@@ -5351,67 +5351,29 @@ function playTechUnlockFX() {
   document.body.appendChild(cvs);
   const c = cvs.getContext('2d');
 
+  // a gloria, as the engravers drew one round a glorious thing: fine straight rays of gold, alternately long and short, turning slowly
   const t0 = performance.now();
-  const BEAM_DURATION = 4000;
-  const NUM_BEAMS = 16;
-  const beams = Array.from({ length: NUM_BEAMS }, (_, i) => ({
-    base: (i / NUM_BEAMS) * Math.PI * 2 + (Math.random() - 0.5) * 0.25,
-    shake: 0,
-    lenPhase: Math.random() * Math.PI * 2,
-    widPhase: Math.random() * Math.PI * 2,
-  }));
-
+  const BEAM_DURATION = 3200;
+  const NUM_BEAMS = 48;
   function tick(now) {
     const elapsed = now - t0;
     if (elapsed >= BEAM_DURATION) { cvs.remove(); return; }
     const tNorm = elapsed / BEAM_DURATION;
-
-    const alpha = tNorm < 0.07 ? tNorm / 0.07 : tNorm > 0.72 ? 1 - (tNorm - 0.72) / 0.28 : 1;
-
+    const alpha = tNorm < 0.1 ? tNorm / 0.1 : tNorm > 0.65 ? 1 - (tNorm - 0.65) / 0.35 : 1;
     c.clearRect(0, 0, cvs.width, cvs.height);
-
-    const ox = cvs.width / 2;
-    const oy = 52;
-
-    const glow = c.createRadialGradient(ox, oy, 0, ox, oy, 140);
-    glow.addColorStop(0,   `rgba(255, 240, 120, ${alpha * 0.55})`);
-    glow.addColorStop(0.45, `rgba(255, 210, 60,  ${alpha * 0.18})`);
-    glow.addColorStop(1,   'rgba(255, 180, 0, 0)');
-    c.fillStyle = glow;
-    c.beginPath(); c.arc(ox, oy, 140, 0, Math.PI * 2); c.fill();
-
-    for (const b of beams) {
-
-      b.shake += (Math.random() - 0.5) * 0.13;
-      b.shake *= 0.80;
-      const angle = b.base + b.shake;
-
-      const len  = 260 + 130 * Math.sin(elapsed / 190 + b.lenPhase);
-      const halfW = 5  +  5 * Math.sin(elapsed / 240 + b.widPhase);
-
-      const ex = ox + Math.cos(angle) * len;
-      const ey = oy + Math.sin(angle) * len;
-      const px = -Math.sin(angle); // perpendicular unit vector
-      const py =  Math.cos(angle);
-
-      c.save();
-      c.globalCompositeOperation = 'lighter';
-
-      const grad = c.createLinearGradient(ox, oy, ex, ey);
-      grad.addColorStop(0,    `rgba(255, 248, 180, ${alpha * 0.9})`);
-      grad.addColorStop(0.2,  `rgba(255, 220,  80, ${alpha * 0.65})`);
-      grad.addColorStop(1,    'rgba(255, 180,  10, 0)');
-      c.fillStyle = grad;
-
-      c.beginPath();
-      c.moveTo(ox + px * halfW, oy + py * halfW);
-      c.lineTo(ex, ey);
-      c.lineTo(ox - px * halfW, oy - py * halfW);
-      c.closePath();
-      c.fill();
-      c.restore();
+    const ox = cvs.width / 2, oy = 52, grow = 0.75 + 0.25 * Math.min(1, tNorm * 3), spin = elapsed / 9000;
+    const glow = c.createRadialGradient(ox, oy, 0, ox, oy, 110);
+    glow.addColorStop(0, `rgba(250, 226, 160, ${alpha * 0.35})`); glow.addColorStop(1, 'rgba(250, 226, 160, 0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(ox, oy, 110, 0, Math.PI * 2); c.fill();
+    c.lineCap = 'round';
+    for (let i = 0; i < NUM_BEAMS; i++) {
+      const a = i / NUM_BEAMS * Math.PI * 2 + spin, long = i % 2 === 0;
+      const r0 = 34, r1 = (long ? 200 : 130) * grow;
+      const g = c.createLinearGradient(ox + Math.cos(a) * r0, oy + Math.sin(a) * r0, ox + Math.cos(a) * r1, oy + Math.sin(a) * r1);
+      g.addColorStop(0, `rgba(240, 206, 120, ${alpha * 0.85})`); g.addColorStop(1, 'rgba(240, 206, 120, 0)');
+      c.strokeStyle = g; c.lineWidth = long ? 1.6 : 1;
+      c.beginPath(); c.moveTo(ox + Math.cos(a) * r0, oy + Math.sin(a) * r0); c.lineTo(ox + Math.cos(a) * r1, oy + Math.sin(a) * r1); c.stroke();
     }
-
     requestAnimationFrame(tick);
   }
 
