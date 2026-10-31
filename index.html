@@ -14330,7 +14330,7 @@ function render() {
     if (burning) drawTownFire(pos.x + w / 2, pos.y + fp + ch / 2, w, 1 - age / 4, city.x * 31 + city.y * 17);
     else drawChimneySmoke(pos.x + w / 2, pos.y + fp + ch / 2, w, Math.min(3, 1 + Math.floor((city.population || 1) / 5)) * (currentSeason === 'winter' ? 1 : 0.6), city.x * 31 + city.y * 17);
   }
-  renderFloatingTexts();
+  // (the floating texts are lettered after the smoke, below, so a hit is never hidden in it)
   // cities under threat: a red dashed ring around the tile, drawn above the garrison
   for (const city of cities) {
     // your towns under threat: red; any town under siege that you can see (yours or a rival's): a heavier orange ring
@@ -14369,6 +14369,7 @@ function render() {
     }
   }
   renderParticles();
+  renderFloatingTexts();
 
   updateCityLabels();
   renderMinimap();
