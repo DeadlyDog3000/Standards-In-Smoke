@@ -214,6 +214,7 @@
     .ychips { display: flex; flex-wrap: wrap; gap: 4px; }
     .ychip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 5px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(160, 140, 100, 0.2); font-size: 11px; color: #e8dcc8; }
     .ychip i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+    .ychip i.yico { width: 14px; height: 14px; border-radius: 0; background: center / contain no-repeat; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7)); }
     #kingdoms { width: 330px; max-height: calc(100vh - 200px); }
     .kcard { border: 1px solid rgba(160, 140, 100, 0.22); border-left: 3px solid var(--kc); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 10%, transparent), rgba(0,0,0,0.12) 60%); }
     .kcard.gone { opacity: 0.4; }
@@ -14543,7 +14544,9 @@ function showCityPanel(city) {
   const y = getCityYields(city);
   // (what the city makes a turn, as chips in the top bar's colours, each named on hover)
   const Y_COL = { gold: '#cfa844', food: '#86a04e', wood: '#9a744a', stone: '#9a968c', steel: '#6e7c88', gunpowder: '#4a4038', science: '#7a68a8' };
-  const yStr = `<span class="ychips">${Object.entries(y).filter(([, v]) => v > 0).map(([k, v]) => `<span class="ychip" title="${k} a turn"><i style="background:${Y_COL[k] || '#888'}"></i>+${v.toFixed(1)}</span>`).join('')}</span>`;
+  // (each yield by its engraved token, as in the top bar)
+  const Y_ICON = { gold: 'moneybag', food: 'wheat', wood: 'log', stone: 'stone', steel: 'hammerpick', gunpowder: 'bomb', science: 'books' };
+  const yStr = `<span class="ychips">${Object.entries(y).filter(([, v]) => v > 0).map(([k, v]) => `<span class="ychip" title="${k} a turn">${Y_ICON[k] ? `<i class="yico" style="background-image:url(icons/${Y_ICON[k]}.png)"></i>` : `<i style="background:${Y_COL[k] || '#888'}"></i>`}+${v.toFixed(1)}</span>`).join('')}</span>`;
   let prodStr = 'None';
   if (city.producing) {
     const bld = CITY_BUILDING_DEFS[city.producing];
