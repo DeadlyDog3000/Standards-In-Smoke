@@ -11213,8 +11213,14 @@ function drawSuburbs(city, w, facePad, ch, pId) {
     const t = tiles[nb.row * MAP_COLS + nb.col];
     return t.type !== 0 && t.type !== 2 && t.owner === city.nationId && t.revealed.has(pId) && !t.wonder;
   }).sort((a, b) => ((a.col * 31 + a.row * 17) % 7) - ((b.col * 31 + b.row * 17) % 7)).slice(0, n);
+  const vil = OW.canvas ? townSprite(null) : null;
   for (const sp of spots) {
     const p = hexScreenPos(sp.col, sp.row), cx = p.x + w / 2, cy = p.y + facePad + ch / 2;
+    if (vil) { // on the chart: an engraved hamlet, a little smaller than the village it grew from
+      const vw = w * 0.5, vh = vw * vil.naturalHeight / vil.naturalWidth;
+      ctx.drawImage(vil, cx - vw / 2 + ((sp.col * 31 + sp.row * 17) % 5 - 2) * w * 0.03, cy + ch * 0.15 - vh, vw, vh);
+      continue;
+    }
     let seed = sp.col * 7919 + sp.row * 104729;
     const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
     const houses = [];
