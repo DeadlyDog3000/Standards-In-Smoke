@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Starved Out</b><br>
+        - A town under siege for four turns running begins to starve: it loses one family to hunger every three turns (never the last) until the siege is lifted. The town tooltip counts the turns of siege
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Trophies</b><br>
@@ -1618,6 +1623,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.7</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Starved Out</b><br>
+          - A town under siege for four turns running begins to starve: it loses one family to hunger every three turns (never the last) until the siege is lifted. The town tooltip counts the turns of siege
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 10.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6669,7 +6679,7 @@ function tickCityCapture() {
           city.nationId = occupier.nationId;
           city.capturedTurn = turnNumber;
           city.burnTurn = turnNumber;
-          city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; // the old owner's siege is over
+          city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; // the old owner's siege is over
           city.captureProgress = {};
           city.contested = false;
           city.producing = null; city.productionProgress = 0;
@@ -8577,7 +8587,7 @@ function tryCityRebellion(city) {
     const wasCapital = city.isCapital;
     city.nationId = newOwner;
     city.capturedTurn = turnNumber;
-    city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false;
+    city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0;
     city.producing = null; city.productionProgress = 0; city.productionQueue = [];
     if (wasCapital) {
       city.isCapital = false;
@@ -10462,6 +10472,12 @@ function updateSieges(effects = true) {
     city._besieged = gates >= 2;
     city._blockaded = blockaded;
     if (!effects) continue;
+    // a long siege starves the town: from the fourth turn, one family in every three turns is lost to hunger (never the last)
+    city.siegeTurns = city._besieged ? (city.siegeTurns || 0) + 1 : 0;
+    if (city.siegeTurns >= 4 && (city.siegeTurns - 4) % 3 === 0 && (city.population || 1) > 1) {
+      city.population--;
+      if (city.nationId === playerNation) { addFloatingText(city.x, city.y, 'Hunger! -1', '#ff6a3a', 2500, 15); showToast(`${city.name} is starving under the siege: a family has died of hunger.`); }
+    }
     // the toasts compare with what you were last told, so a quiet recompute never swallows or repeats one
     const was = !!city._siegeShown, wasB = !!city._blockShown;
     city._siegeShown = city._besieged; city._blockShown = blockaded;
@@ -13888,7 +13904,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-10.6';
+const CURRENT_VERSION = 'beta-10.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -14156,7 +14172,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   const ttCity = cities.find(c => c.x === mx && c.y === my);
   if (ttCity) {
     const notes = [];
-    if (ttCity._besieged) notes.push('besieged');
+    if (ttCity._besieged) notes.push(ttCity.siegeTurns >= 2 ? `besieged for ${ttCity.siegeTurns} turns${ttCity.siegeTurns >= 4 ? ', starving' : ttCity.siegeTurns === 3 ? ', its stores nearly gone' : ''}` : 'besieged');
     if (ttCity._blockaded) notes.push('its harbour blockaded');
     if (ttCity._roadCut && !ttCity._besieged) notes.push('its road cut');
     if (ttCity._occupied && ttCity._occupied.size) notes.push(`${ttCity._occupied.size} of its tiles held by the enemy`);
@@ -15993,6 +16009,7 @@ function serializeGame() {
     foundedTurn: c.foundedTurn,
     capturedTurn: c.capturedTurn,
     burnTurn: c.burnTurn,
+    siegeTurns: c.siegeTurns,
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._legFamilyBonus; return sn; });
   const sUnits = units.map(u => {
