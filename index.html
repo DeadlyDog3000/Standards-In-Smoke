@@ -829,7 +829,7 @@
         - Shallows are stippled off every shore, rivers snake and widen toward the sea, hills are shaded molehills, and wonders of nature are named beneath them; a siege is drawn as a ring of earthworks in red ink, and newly found land is inked in out of the blank sheet<br>
         - The city and unit panels are headed by the town's or regiment's own engraving; research is crowned by a gloria of gilt rays; the turn is announced with the season and the year in Roman numerals; a big world opens with the chartmaker at work<br>
         - A wind head puffs from the sheet's corner and a key to its marks (Explicatio Notarum) sits in another; a new town, or one that changes hands, is stamped with its realm's wax seal; figures step along as they march and lean a little away from the middle of the view, like miniatures on a table<br>
-        - The event log is a page of the chronicle in ink on parchment; plans are pencilled on the chart, and a gunner's targets are marked with red cross-hairs<br>
+        - Nine more event engravings (plague, storm, fire, a comet, a royal wedding, pilgrims at the cathedral, wolves in the forest, conspirators, brigands), so events show fitting pictures; the event log is a page of the chronicle in ink on parchment; plans are pencilled on the chart, and a gunner's targets are marked with red cross-hairs<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -1812,7 +1812,7 @@
           - Shallows are stippled off every shore, rivers snake and widen toward the sea, hills are shaded molehills, and wonders of nature are named beneath them; a siege is drawn as a ring of earthworks in red ink, and newly found land is inked in out of the blank sheet<br>
           - The city and unit panels are headed by the town's or regiment's own engraving; research is crowned by a gloria of gilt rays; the turn is announced with the season and the year in Roman numerals; a big world opens with the chartmaker at work<br>
         - A wind head puffs from the sheet's corner and a key to its marks (Explicatio Notarum) sits in another; a new town, or one that changes hands, is stamped with its realm's wax seal; figures step along as they march and lean a little away from the middle of the view, like miniatures on a table<br>
-        - The event log is a page of the chronicle in ink on parchment; plans are pencilled on the chart, and a gunner's targets are marked with red cross-hairs<br>
+        - Nine more event engravings (plague, storm, fire, a comet, a royal wedding, pilgrims at the cathedral, wolves in the forest, conspirators, brigands), so events show fitting pictures; the event log is a page of the chronicle in ink on parchment; plans are pencilled on the chart, and a gunner's targets are marked with red cross-hairs<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -10220,6 +10220,16 @@ const EVENTS = [
 let currentEventNation = null; // Track which nation a diplomatic event is about
 // the picture over an event: by what it's about
 const EVENT_THEMES = [
+  // (the particular pictures first: a fire, a plague, a storm, a comet... then the broad ones)
+  ['fire', /fire|explosion|powder.*accident|gunpowder_accident/i],
+  ['plague', /plague|disease|illness|sickness|hospital|medical/i],
+  ['storm', /storm|flood|blizzard|avalanche|earthquake|drought/i],
+  ['sky', /eclipse|comet/i],
+  ['wedding', /marriage|wedding|princess|banquet|festival|golden_age|renaissance/i],
+  ['church', /religio|schism|cathedral|pilgrim|miracle/i],
+  ['forest', /wolf|wolves|poach|hunt|timber|forest/i],
+  ['conspiracy', /conspira|assassin|duel|spy|pretender|scandal|lavish/i],
+  ['bandits', /bandit|brigand|smuggl|runaway/i],
   ['harbour', /naval|ship|pirate|harbou?r|\bsea\b|sea_|coast|fisher|pearl|\bport\b|whal|blockade|sailor|admiral/i],
   ['mine', /\bmines?\b|mine_|\biron\b|iron_|\bore\b|quarr|mountain_pass|\bcaves?\b|coal|deposit/i],
   ['camp', /desert(er|ion)|mutin|mercenar|general|\barms\b|arms_|gunpowder|\barmy\b|soldier|veteran|recruit|drill|barracks|\bfort|siege|\bwar\b|war_|\braid|bandit|militia|officer|rebel_informant|hospital/i],
