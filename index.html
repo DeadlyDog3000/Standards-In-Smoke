@@ -3962,7 +3962,7 @@ function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
     for (let i = 0; i < puffs; i++) {
       particles.push({ kind: 'smoke', col: ax, row: ay, ox: vx * (8 + i * 3) + (Math.random() - 0.5) * 10, oy: vy * (8 + i * 3) - 4 + (Math.random() - 0.5) * 8,
         vx: vx * 14 + 10 + Math.random() * 8, vy: -12 - Math.random() * 12, size: (big ? 22 : 15) + Math.random() * 7,
-        tone: 205 + Math.floor(Math.random() * 35), startTime: now + i * 25, duration: 1600 + Math.random() * 900 });
+        tone: 205 + Math.floor(Math.random() * 35), startTime: now + i * 25, duration: 1600 + Math.random() * 900, ink: i % 3, rot: Math.random() * 6.28 });
     }
   }
   for (let i = 0; i < 4; i++) {
@@ -3970,6 +3970,47 @@ function spawnCombatSmoke(ax, ay, dx, dy, attackerType) {
       vx: (Math.random() - 0.5) * 16, vy: -6 - Math.random() * 6, size: 10 + Math.random() * 6, tone: 150 + Math.floor(Math.random() * 25), startTime: now + 120, duration: 900 });
   }
   if (!animationBlocking) requestAnimationFrame(() => render());
+}
+// three engraved puffs of powder smoke, made once
+const _owPuffs = [];
+function owSmokePuff(v) {
+  if (_owPuffs[v]) return _owPuffs[v];
+  const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  let seed = 31 + v * 17; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // the cloud: a ring of overlapping billows round a middle one
+  const bumps = [[S / 2, S / 2 + 4, S * 0.26]];
+  const nb = 7 + v;
+  for (let k = 0; k < nb; k++) { const an = k / nb * Math.PI * 2 + rnd() * 0.4, d = S * (0.2 + rnd() * 0.06); bumps.push([S / 2 + Math.cos(an) * d, S / 2 + Math.sin(an) * d * 0.82, S * (0.12 + rnd() * 0.06)]); }
+  const shape = new Path2D(); for (const [bx, by, br] of bumps) { shape.moveTo(bx + br, by); shape.arc(bx, by, br, 0, Math.PI * 2); }
+  const gr = g.createRadialGradient(S * 0.42, S * 0.4, 2, S / 2, S / 2, S * 0.46);
+  gr.addColorStop(0, 'rgba(246, 240, 224, 0.96)'); gr.addColorStop(1, 'rgba(206, 196, 174, 0.92)');
+  g.fillStyle = gr; g.fill(shape);
+  // hatching across the lower right, the side away from the light
+  g.save(); g.clip(shape);
+  g.strokeStyle = 'rgba(70, 54, 36, 0.38)'; g.lineWidth = 1.1; g.beginPath();
+  for (let q = -S; q < S * 2; q += 5) { g.moveTo(q, S); g.lineTo(q + S, 0); }
+  g.globalCompositeOperation = 'source-atop';
+  g.stroke();
+  g.restore();
+  // each billow lit from the upper left, so the hatching is left only as a crescent on its shaded side (the lower billows laid last)
+  g.save(); g.clip(shape);
+  for (const [bx, by, br] of bumps.slice().sort((p, q) => p[1] - q[1])) {
+    const lg = g.createRadialGradient(bx - br * 0.32, by - br * 0.38, 0, bx - br * 0.32, by - br * 0.38, br * 1.12);
+    lg.addColorStop(0, 'rgba(248, 243, 228, 1)'); lg.addColorStop(0.62, 'rgba(240, 233, 214, 1)'); lg.addColorStop(0.9, 'rgba(232, 222, 200, 0)');
+    g.fillStyle = lg; g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill();
+    // the billow's own lower edge, lightly inked
+    g.strokeStyle = 'rgba(80, 62, 40, 0.32)'; g.lineWidth = 1; g.beginPath(); g.arc(bx, by, br * 0.96, Math.PI * 0.05, Math.PI * 0.85); g.stroke();
+  }
+  g.restore();
+  // the outline: only each billow's outer edge, in ink
+  g.save(); g.strokeStyle = 'rgba(52, 38, 24, 0.75)'; g.lineWidth = 1.6;
+  for (const [bx, by, br] of bumps.slice(1)) {
+    const out = Math.atan2(by - S / 2, bx - S / 2);
+    g.beginPath(); g.arc(bx, by, br, out - 1.15, out + 1.15); g.stroke();
+  }
+  g.restore();
+  return (_owPuffs[v] = c);
 }
 // a column on the march raises a little dust at each step (horse more than foot); a ship leaves a white wake
 function spawnStepDust(col, row, unit) {
@@ -4018,6 +4059,13 @@ function renderParticles() {
       const x = pos.x + w / 2 + (p.ox + p.vx * t) * k, y = pos.y + facePad + ch / 2 + (p.oy + p.vy * t) * k;
       const r = (p.kind === 'smoke' ? p.size * (0.6 + t * 1.6) : p.size * (1 - t * 0.6)) * k;
       const a = p.kind === 'smoke' ? 0.72 * (1 - t) * Math.min(1, t * 6) : 0.95 * (1 - t);
+      // powder smoke on the chart drawn as the battle prints drew it: a scalloped cloud, inked round and hatched on its shaded side
+      if (p.ink !== undefined && OW.canvas) {
+        const puff = owSmokePuff(p.ink);
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate((p.rot || 0) * 0.15 - 0.45 + t * 0.3);
+        ctx.drawImage(puff, -r * 1.25, -r * 1.25, r * 2.5, r * 2.5); ctx.restore();
+        continue;
+      }
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       if (p.kind === 'smoke') { const r0 = p.tone, g0 = p.tone - (OW.canvas ? 6 : 0), b0 = p.tone - (OW.canvas ? 18 : 6); g.addColorStop(0, `rgba(${r0},${g0},${b0},${a})`); g.addColorStop(1, `rgba(${r0},${g0},${b0},0)`); } // (on the chart, a warm powder grey)
       else { g.addColorStop(0, `rgba(255,250,210,${a})`); g.addColorStop(0.4, `rgba(255,190,70,${a * 0.8})`); g.addColorStop(1, 'rgba(255,120,30,0)'); }
