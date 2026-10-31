@@ -12877,9 +12877,11 @@ function render() {
     const uDef = UNIT_DEFS[u.type];
     const maxHp = getEffectiveMaxHp(u);
     if (u.hp < maxHp && VIEW_TILE >= 12) {
-      const barW = rad * 2 - 2;
-      ctx.fillStyle = '#400'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW, 3);
-      ctx.fillStyle = '#0f0'; ctx.fillRect(cx - rad + 1, cy + rad + 1, barW * (u.hp / maxHp), 3);
+      // strength as a little ink-ruled gauge, washed sap green, ochre or madder as it runs down
+      const barW = rad * 2 - 2, r = u.hp / maxHp, bx = cx - rad + 1, by = cy + rad + 1;
+      ctx.fillStyle = 'rgba(30, 20, 10, 0.85)'; ctx.fillRect(bx - 1, by - 1, barW + 2, 5);
+      ctx.fillStyle = '#d8c8a0'; ctx.fillRect(bx, by, barW, 3);
+      ctx.fillStyle = r > 0.6 ? '#5f8a3a' : r > 0.3 ? '#c09030' : '#a8402c'; ctx.fillRect(bx, by, barW * r, 3);
     }
 
     if (uDef.combat && VIEW_TILE >= 12) {
@@ -12887,9 +12889,10 @@ function render() {
       if (unitMorale < MORALE_MAX) {
         const barW = rad * 2 - 2;
         const barY = cy + rad + (u.hp < maxHp ? 5 : 1);
-        ctx.fillStyle = '#224'; ctx.fillRect(cx - rad + 1, barY, barW, 2);
+        ctx.fillStyle = 'rgba(30, 20, 10, 0.85)'; ctx.fillRect(cx - rad, barY - 1, barW + 2, 4);
+        ctx.fillStyle = '#d8c8a0'; ctx.fillRect(cx - rad + 1, barY, barW, 2);
         const moraleRatio = unitMorale / MORALE_MAX;
-        const moraleColor = moraleRatio > 0.5 ? '#48f' : moraleRatio > 0.25 ? '#fa0' : '#f44';
+        const moraleColor = moraleRatio > 0.5 ? '#3a5a8a' : moraleRatio > 0.25 ? '#c09030' : '#a8402c';
         ctx.fillStyle = moraleColor; ctx.fillRect(cx - rad + 1, barY, barW * moraleRatio, 2);
       }
     }
