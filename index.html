@@ -644,6 +644,60 @@
 .promo-card b { font-family:'Uncial Antiqua',cursive; font-weight:normal; font-size:16px; color:#e0c880; }
 #menuMain .promo-card { margin:18px auto 0; }
 @media (max-width:560px), (max-height:620px) { .promo-card img { width:96px; } .promo-card { font-size:11px; } }
+
+    /* ==== OLD WORLD skin: deep navy marble panels in thin gold, an end-turn crest in the corner, round action buttons ==== */
+    :root {
+      --owk-navy: linear-gradient(rgba(16, 26, 38, 0.9), rgba(8, 14, 22, 0.94)), var(--ow-leather);
+      --owk-gold: #c9a45a; --owk-gold-2: #8e6c30; --owk-ink: #e9dcc0;
+      --owk-frame: inset 0 0 0 1px rgba(4, 8, 14, 0.95), inset 0 0 0 2px rgba(201, 164, 90, 0.55), inset 0 0 0 4px rgba(4, 8, 14, 0.55), inset 0 0 40px rgba(0, 0, 0, 0.5), 0 10px 26px rgba(0, 0, 0, 0.7);
+    }
+    #panel, #kingdoms, #empirePanel, #escMenuBox, .event-card, .setup-card {
+      background: var(--ow-corners), radial-gradient(ellipse at 50% 20%, rgba(70, 100, 130, 0.18), rgba(0, 0, 0, 0) 70%), var(--owk-navy);
+      border: 1px solid var(--owk-gold-2); box-shadow: var(--owk-frame);
+    }
+    #idleCitiesPopup > div, #noResearchPopup > div, #electionOverlay > div, #planningPopup, #tutorial-overlay > div, #courtPanel, #marketPanel, #lawsPanel, #cityStatsPanel {
+      background: var(--ow-corners), radial-gradient(ellipse at 50% 20%, rgba(70, 100, 130, 0.18), rgba(0, 0, 0, 0) 70%), var(--owk-navy) !important;
+      border: 1px solid var(--owk-gold-2) !important; box-shadow: var(--owk-frame) !important;
+    }
+    #topbar { background: linear-gradient(rgba(30, 46, 64, 0.95), rgba(10, 16, 24, 0.97)), var(--ow-leather);
+      border-bottom: 1px solid var(--owk-gold); box-shadow: 0 1px 0 rgba(4, 8, 14, 0.95), 0 3px 0 rgba(201, 164, 90, 0.35), 0 8px 18px rgba(0, 0, 0, 0.6); }
+    .p-btn, .esc-btn, .event-choice { background: linear-gradient(rgba(120, 160, 200, 0.08), rgba(0, 0, 0, 0.25)); border-color: rgba(201, 164, 90, 0.42); }
+    .p-btn:hover, .esc-btn:hover, .event-choice:hover { background: linear-gradient(rgba(201, 164, 90, 0.22), rgba(40, 60, 90, 0.2)); border-color: rgba(230, 196, 120, 0.85); }
+    .top-btn { background: linear-gradient(rgba(120, 160, 200, 0.1), rgba(0, 0, 0, 0.25)); border-color: rgba(201, 164, 90, 0.5); }
+    .tab-btn { background: linear-gradient(rgba(120, 160, 200, 0.06), rgba(0, 0, 0, 0.3)); }
+    #turnInfo, #zoomInfo, #toast, #techBanner, #tileTooltip { background: linear-gradient(rgba(16, 26, 38, 0.92), rgba(8, 14, 22, 0.95)), var(--ow-leather); border-color: var(--owk-gold-2); }
+    .section-title { color: #c9b07a; border-bottom-color: rgba(201, 164, 90, 0.3); }
+    /* the end-turn crest: a gilt medallion in the corner, the turn in the middle and the orders left beneath (desktop) */
+    body:not(.mobile-mode) #endTurnBtn {
+      position: fixed; right: 18px; bottom: 16px; z-index: 30; width: 118px; height: 118px; border-radius: 50%; padding: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+      background: radial-gradient(circle at 50% 38%, #2c4460, #101a26 70%); border: 2px solid var(--owk-gold); color: #f4e6c4;
+      box-shadow: 0 0 0 4px rgba(4, 8, 14, 0.9), 0 0 0 6px rgba(201, 164, 90, 0.55), inset 0 0 0 6px rgba(4, 8, 14, 0.5), inset 0 0 0 7px rgba(201, 164, 90, 0.4), 0 12px 26px rgba(0, 0, 0, 0.7);
+      transition: transform 0.12s, box-shadow 0.2s; }
+    body:not(.mobile-mode) #endTurnBtn:hover { transform: scale(1.04); background: radial-gradient(circle at 50% 38%, #36547a, #14202e 70%); }
+    body:not(.mobile-mode) #endTurnBtn .btn-full, body:not(.mobile-mode) #endTurnBtn .btn-short { display: none !important; }
+    #endTurnBtn .crest-label, #endTurnBtn .crest-turn, #endTurnBtn .crest-orders { display: none; }
+    body:not(.mobile-mode) #endTurnBtn .crest-label { display: block; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: #d8bd84; }
+    body:not(.mobile-mode) #endTurnBtn .crest-turn { display: block; font-family: 'Uncial Antiqua', Georgia, serif; font-size: 30px; line-height: 1; color: #fff1cc; text-shadow: 0 2px 2px rgba(0, 0, 0, 0.9); }
+    body:not(.mobile-mode) #endTurnBtn .crest-orders { display: block; font-size: 10.5px; color: #c9b07a; letter-spacing: 0.04em; }
+    body:not(.mobile-mode) #endTurnBtn.end-turn-pulse { box-shadow: 0 0 0 4px rgba(4, 8, 14, 0.9), 0 0 0 6px rgba(240, 200, 110, 0.95), 0 0 26px rgba(240, 200, 110, 0.55), inset 0 0 0 7px rgba(201, 164, 90, 0.5), 0 12px 26px rgba(0, 0, 0, 0.7); }
+    body:not(.mobile-mode) #panel { bottom: 150px; max-height: calc(100vh - 210px); }
+    /* the unit's orders as a row of round gilt buttons along the bottom, each with its key */
+    #owActions { display: none; position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 28; gap: 8px; padding: 8px 14px;
+      background: var(--owk-navy); border: 1px solid var(--owk-gold-2); border-radius: 40px; box-shadow: var(--owk-frame); align-items: center; }
+    #owActions .owa-name { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; font-size: 14px; margin: 0 8px 0 4px; white-space: nowrap; }
+    #owActions button { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--owk-gold); cursor: pointer; padding: 0;
+      background: radial-gradient(circle at 50% 35%, #2a4058, #0e1822 75%); color: #f0dcae;
+      box-shadow: 0 0 0 2px rgba(4, 8, 14, 0.9), inset 0 0 0 2px rgba(4, 8, 14, 0.6), inset 0 1px 0 rgba(255, 240, 200, 0.15); transition: transform 0.1s, background 0.15s; }
+    #owActions button:hover { transform: translateY(-2px); background: radial-gradient(circle at 50% 35%, #3a5a7c, #142230 75%); }
+    #owActions button:disabled { opacity: 0.35; cursor: default; transform: none; }
+    #owActions button svg { width: 22px; height: 22px; display: block; margin: auto; }
+    #owActions button kbd { position: absolute; right: -3px; bottom: -3px; font: 9px Georgia, serif; color: #1a120a; background: #d8bd84; border-radius: 3px; padding: 0 3px; line-height: 13px; }
+    #owActions button.danger { border-color: #b0583a; }
+    #owActions button.danger[data-armed] { background: radial-gradient(circle at 50% 35%, #8a3020, #3a120a 75%); }
+    body.mobile-mode #owActions { display: none !important; }
+    body:not(.mobile-mode) #zoomInfo { bottom: 78px; }   /* (clear of the action row) */
+    @media (max-width: 1100px) { #owActions .owa-name { display: none; } }
 </style>
 </head>
 <body>
@@ -876,6 +930,7 @@
         - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
         - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
         - The rival crowns want land: they send out more settlers, two at a time once they have three towns, from smaller towns early on, and fund their colonists' food; each crown has its own appetite for expansion<br>
+        - A new dress for the interface, after Old World: deep navy panels in thin gold, the End Turn button a gilt crest in the corner with the turn and the orders left, and the chosen regiment's orders as a row of round engraved buttons along the bottom (fire, march, fortify, rest, form up, split, next, disband), each with its key<br>
         - The further ahead you get (your share of the technologies, your towns, the length of the game, your lead in score), the harder Europe pushes back: rivals gain richer treasuries, steadier soldiers and more orders, raiders grow bolder, and the crowns trust you less each turn. You are told as each stage of their alarm is reached<br>
         - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
       </div>
@@ -1802,18 +1857,19 @@
     <div class="res" id="seasonIndicator" style="color:#8ac;font-size:12px;"></div>
     <button class="top-btn" onclick="showTechTree()" title="Tech tree (T)"><span class="btn-ico">⚗</span><span class="btn-full">Tech Tree</span><span class="btn-short">Tech</span></button>
     <button class="top-btn" onclick="toggleKingdoms()" title="Kingdoms: the other realms, war and peace, pacts and trade"><span class="btn-ico">♛</span><span class="btn-full">Kingdoms</span><span class="btn-short">Realms</span></button>
-    <button class="top-btn" onclick="toggleCourt()" title="Court: your ruler, heirs and the great families"><span class="btn-ico">👑</span><span class="btn-full">Court</span></button>
-    <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)"><span class="btn-ico">📜</span><span class="btn-full">Laws</span></button>
+    <button class="top-btn" onclick="toggleCourt()" title="Court: your ruler, heirs and the great families"><span class="btn-ico">♔</span><span class="btn-full">Court</span></button>
+    <button class="top-btn" onclick="toggleLawsPanel()" title="Adopt and revise laws (L)"><span class="btn-ico">§</span><span class="btn-full">Laws</span></button>
     <button class="top-btn" onclick="toggleMarketPanel()" title="Buy and sell goods for gold (M)"><span class="btn-ico">⚖</span><span class="btn-full">Market</span></button>
-    <button class="top-btn" onclick="toggleEmpirePanel()" title="Empire: all your cities at a glance (O)"><span class="btn-ico">🏛</span><span class="btn-full">Empire</span></button>
+    <button class="top-btn" onclick="toggleEmpirePanel()" title="Empire: all your cities at a glance (O)"><span class="btn-ico">⌂</span><span class="btn-full">Empire</span></button>
     <button class="top-btn" id="planBtn" onclick="togglePlanningMode()" title="Planning mode — highlight and label tiles (P)" style="display:none"><span class="btn-full">Plan</span><span class="btn-short">Plan</span></button>
     <button class="top-btn" id="nextUnitBtn" onclick="cycleToNextUnit(true)" title="Next unit with moves left (Q)"><span class="btn-ico">→</span><span class="btn-full">Next Unit</span><span class="btn-short">Next</span></button>
-    <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG">📷</button>
-    <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span></button>
+    <button class="top-btn" onclick="exportScreenshot()" title="Save map as PNG"><span class="btn-ico">◎</span></button>
+    <button class="top-btn end-turn" id="endTurnBtn" onclick="endTurn()"><span class="btn-full">End Turn</span><span class="btn-short">End</span><span class="crest-label">End Turn</span><span class="crest-turn" id="crestTurn">1</span><span class="crest-orders" id="crestOrders"></span></button>
   </div>
   <div id="turnInfo">Turn 1</div>
   <div id="zoomInfo"></div>
   <div id="panel"></div>
+  <div id="owActions" role="toolbar" aria-label="Orders for the chosen regiment"></div>
   <div id="kingdoms"></div>
   <div id="courtPanel" style="display:none;position:fixed;top:40px;left:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:12px;z-index:140;color:#e0d0b0;font-size:13px;"></div>
   <div id="marketPanel" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);width:440px;max-width:92vw;max-height:80vh;overflow-y:auto;background:rgba(30,25,18,0.96);border:2px solid rgba(180,140,60,0.5);border-radius:8px;padding:14px 16px;z-index:140;color:#e0d0b0;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
@@ -1891,6 +1947,7 @@
           - The camera glides: WASD and the arrows ease in and out (Shift for faster) instead of jumping two hexes at a time, dragging is smooth, and the chart no longer redraws itself soft and then sharp on every pan<br>
           - Towns sound like towns: a market crowd recorded in a French square, and now and then a horse walking by, a church bell, a peal or a carillon, in place of the synthesised street noise<br>
           - The rival crowns want land: they send out more settlers, two at a time once they have three towns, from smaller towns early on, and fund their colonists' food; each crown has its own appetite for expansion<br>
+          - A new dress for the interface, after Old World: deep navy panels in thin gold, the End Turn button a gilt crest in the corner with the turn and the orders left, and the chosen regiment's orders as a row of round engraved buttons along the bottom (fire, march, fortify, rest, form up, split, next, disband), each with its key<br>
           - The further ahead you get (your share of the technologies, your towns, the length of the game, your lead in score), the harder Europe pushes back: rivals gain richer treasuries, steadier soldiers and more orders, raiders grow bolder, and the crowns trust you less each turn. You are told as each stage of their alarm is reached<br>
           - Volleys and guns sound as they do in the trailer: a line's eight muskets fired together with the boom and the echo off the country, and the cannon's thump and rumble<br>
         </div>
@@ -3367,11 +3424,48 @@ window.mergeSelectedWithNeighbour = function () {
   if (why === '') return;
   showUnitPanel(u); updateUI(); render();
 };
+// ---- the round action buttons along the bottom (desktop): the chosen regiment's orders, each drawn as a small engraving ----
+const OWA_ICONS = {
+  fire: '<path d="M3 17 L14 6" stroke-width="2.2"/><path d="M14 6 l3-3 M16 9 l4-1 M13 3 l1-2 M17 6 l3 1" stroke-width="1.4"/>',
+  goto: '<path d="M5 20 V4" stroke-width="2"/><path d="M5 4 h11 l-3 3.5 3 3.5 H5" stroke-width="1.6" fill="currentColor" fill-opacity="0.25"/>',
+  fortify: '<path d="M4 20 V8 h3 V5 h3 v3 h4 V5 h3 v3 h3 v12 Z" stroke-width="1.6"/><path d="M10 20 v-5 h4 v5" stroke-width="1.4"/>',
+  rest: '<path d="M12 5 v14 M5 12 h14" stroke-width="3"/>',
+  wake: '<circle cx="12" cy="12" r="4" stroke-width="1.8"/><path d="M12 2 v3 M12 19 v3 M2 12 h3 M19 12 h3 M5 5 l2 2 M17 17 l2 2 M5 19 l2-2 M17 7 l2-2" stroke-width="1.4"/>',
+  merge: '<circle cx="6" cy="7" r="2.5" stroke-width="1.5"/><circle cx="6" cy="17" r="2.5" stroke-width="1.5"/><path d="M8.5 7 C13 7 13 12 17 12 M8.5 17 C13 17 13 12 17 12" stroke-width="1.5"/><circle cx="19" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/>',
+  split: '<circle cx="5" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/><path d="M7.5 12 C11 12 11 7 15.5 7 M7.5 12 C11 12 11 17 15.5 17" stroke-width="1.5"/><circle cx="18" cy="7" r="2.5" stroke-width="1.5"/><circle cx="18" cy="17" r="2.5" stroke-width="1.5"/>',
+  next: '<path d="M6 5 l7 7 -7 7 M12 5 l7 7 -7 7" stroke-width="2"/>',
+  disband: '<path d="M6 6 L18 18 M18 6 L6 18" stroke-width="2.2"/>',
+};
+let _owaSig = '';
+function owActionsSync() {
+  const bar = document.getElementById('owActions'); if (!bar) return;
+  const u = selectedUnit;
+  const show = u && units.includes(u) && u.nationId === playerNation && !document.body.classList.contains('mobile-mode') && MAP_COLS && document.getElementById('menu').style.display === 'none';
+  if (!show) { if (bar.style.display !== 'none') bar.style.display = 'none'; _owaSig = ''; return; }
+  const def = UNIT_DEFS[u.type] || {};
+  const mate = mergeable(u) && regimentSize(u) < MERGE_MAX && u.movesLeft > 0 && units.find(o => o !== u && o.nationId === u.nationId && mergeable(o) && regimentSize(u) + regimentSize(o) <= MERGE_MAX && hexDistance(u.x, u.y, o.x, o.y) === 1);
+  const acts = [];
+  if (def.ranged) acts.push(['fire', 'Fire on an enemy', 'R', 'enterRangedMode()', !canFireNow(u) || (def.artillery && u.reloadTurns > 0)]);
+  acts.push(['goto', 'March to a far hex', 'G', 'enterGotoMode()', u.movesLeft <= 0]);
+  if (def.combat && !def.naval) acts.push(u.fortified ? ['wake', 'Leave the earthworks', '', 'wakeUnit()', false] : ['fortify', 'Fortify: dig in', 'V', 'fortifyUnit()', u.movesLeft <= 0]);
+  if (u.hp < getEffectiveMaxHp(u)) acts.push(['rest', 'Rest and heal', '', 'restUnit()', u.movesLeft <= 0]);
+  if (mergeable(u)) acts.push(['merge', mate ? `Form up with the ${unitTypeName(mate.type)} beside it` : 'Form up: needs a regiment of yours beside it, and a move left', '', 'mergeSelectedWithNeighbour()', !mate]);
+  if (u.merged && u.merged.length) acts.push(['split', 'Split off a company', '', 'splitSelected()', false]);
+  acts.push(['next', 'Next regiment awaiting orders', 'Q', 'cycleToNextUnit(true)', false]);
+  acts.push(['disband', 'Disband (click twice)', '', 'disbandSelected(this)', false]);
+  const sig = u.type + '|' + regimentSize(u) + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
+  bar.style.display = 'flex';
+  if (sig === _owaSig) return; _owaSig = sig;
+  bar.innerHTML = `<span class="owa-name">${escHtml(unitTypeName(u.type).replace(/^./, c => c.toUpperCase()))}${regimentSize(u) > 1 ? ' ' + (regimentSize(u) === 3 ? 'III' : 'II') : ''}</span>` +
+    acts.map(([k, tip, key, fn, off]) => `<button class="${k === 'disband' ? 'danger' : ''}" title="${escHtml(tip)}${key ? ' (' + key + ')' : ''}" aria-label="${escHtml(tip)}" onclick="${fn}; owActionsSync();" ${off ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${OWA_ICONS[k]}</svg>${key ? `<kbd>${key}</kbd>` : ''}</button>`).join('');
+}
+setInterval(() => { try { owActionsSync(); } catch (e) {} }, 400);
 window.disbandSelected = function (btn) {
   const u = selectedUnit; if (!u || u.nationId !== playerNation || !units.includes(u)) return;
   if (btn && !btn.dataset.armed) {
-    btn.dataset.armed = '1'; btn.textContent = 'Click again to disband';
-    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Disband'; } }, 3000);
+    const round = !!btn.closest('#owActions');   // (a round button keeps its picture: only its tip says so)
+    btn.dataset.armed = '1'; if (round) { btn.title = 'Click again to disband'; showToast('Click again to disband the regiment.'); } else btn.textContent = 'Click again to disband';
+    setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; if (round) btn.title = 'Disband (click twice)'; else btn.textContent = 'Disband'; } }, 3000);
     return;
   }
   const name = unitTypeName(u.type);
@@ -15292,6 +15386,10 @@ function updateUI() {
   document.getElementById('resLegitimacy').textContent = Math.floor(n.legitimacy ?? 50);
   document.getElementById('resOrders').textContent = ordersRemaining + ' / ' + getMaxOrders(playerNation);
   document.getElementById('turnCounter').textContent = turnNumber;
+  { const ct = document.getElementById('crestTurn'), co = document.getElementById('crestOrders');
+    if (ct) ct.textContent = turnNumber;
+    if (co) co.textContent = `${ordersRemaining} of ${getMaxOrders(playerNation)} orders`; }
+  try { owActionsSync(); } catch (e) {}
   document.getElementById('playerScore').textContent = getScore(playerNation);
 
   const se = SEASON_EFFECTS[currentSeason];
