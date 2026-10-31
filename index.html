@@ -708,6 +708,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Siege Lines</b><br>
+        - Any town under siege that you can see, yours or a rival's, is ringed in orange, so you can tell at a glance which of your own sieges are holding
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.7</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Cut Roads</b><br>
@@ -1572,6 +1577,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.8</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Siege Lines</b><br>
+          - Any town under siege that you can see, yours or a rival's, is ringed in orange, so you can tell at a glance which of your own sieges are holding
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 9.7</b></div>
         <div style="margin-bottom:12px;">
@@ -11917,9 +11927,16 @@ function render() {
   renderFloatingTexts();
   // cities under threat: a red dashed ring around the tile, drawn above the garrison
   for (const city of cities) {
-    if (!city._threatened || city.nationId !== pId) continue;
+    // your towns under threat: red; any town under siege that you can see (yours or a rival's): a heavier orange ring
+    const sieged = city._besieged && tiles[city.y * MAP_COLS + city.x].revealed.has(pId);
+    if (!sieged && (!city._threatened || city.nationId !== pId)) continue;
     const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
     if (pos.x < -w * 2 || pos.y < -ch * 2 || pos.x > viewW + w || pos.y > viewH + ch) continue;
+    if (sieged) {
+      ctx.save(); ctx.strokeStyle = 'rgba(255, 140, 30, 0.95)'; ctx.lineWidth = Math.max(3, w * 0.09); ctx.setLineDash([Math.max(3, w * 0.06), Math.max(3, w * 0.06)]);
+      ctx.beginPath(); ctx.ellipse(pos.x + w / 2, pos.y + fp + ch / 2, w * 0.74, ch * 0.74, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      if (!city._threatened || city.nationId !== pId) continue;
+    }
     ctx.save(); ctx.strokeStyle = 'rgba(230, 35, 25, 1)'; ctx.lineWidth = Math.max(2.5, w * 0.07); ctx.setLineDash([Math.max(4, w * 0.13), Math.max(3, w * 0.08)]);
     ctx.beginPath(); ctx.ellipse(pos.x + w / 2, pos.y + fp + ch / 2, w * 0.62, ch * 0.62, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
@@ -13697,7 +13714,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-9.7';
+const CURRENT_VERSION = 'beta-9.8';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
