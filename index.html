@@ -704,6 +704,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Rivers That Matter</b><br>
+        - Every river tile in a city's lands gives +0.5 food and +0.5 gold (shown in the city's statistics), and rivals now prefer to settle by rivers<br>
+        - A city that can't place a finished unit (every tile round it taken) no longer piles up production while it waits; a rival city boxed in by its own army builds a granary, walls or a factory instead<br>
+        - Rival treasuries sell surplus food on the market when they run short of gold
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fair Fights &amp; a Truer Map</b><br>
@@ -1333,7 +1340,14 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.1</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Rivers That Matter</b><br>
+        - Every river tile in a city's lands gives +0.5 food and +0.5 gold (shown in the city's statistics), and rivals now prefer to settle by rivers<br>
+        - A city that can't place a finished unit (every tile round it taken) no longer piles up production while it waits; a rival city boxed in by its own army builds a granary, walls or a factory instead<br>
+        - Rival treasuries sell surplus food on the market when they run short of gold
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Fair Fights &amp; a Truer Map</b><br>
         <i style="color:#a89878;">Combat fixes</i><br>
@@ -4994,6 +5008,7 @@ function getCityYields(city) {
       if (t.animal) y.food += 0.5;
       else if (t.type === 6) y.food += 0.5;
     }
+    if (t.hasRiver) { y.food += RIVER_FOOD; y.gold += RIVER_GOLD; } // river land: watered fields and a waterway for trade
   }
 
   if (nationHasWonder(city.nationId, 'great_library')) y.science += 1;
@@ -5052,6 +5067,8 @@ function getCityYieldBreakdown(city) {
 
   if (nationHasWonder(city.nationId, 'great_library')) sources.science.push({ label: 'Great Library', val: 1 });
   if (city._road) sources.gold.push({ label: 'Road to the capital', val: ROAD_TRADE_GOLD });
+  const riverTiles = [...city.ownedTiles].filter(ti => tiles[ti].hasRiver).length;
+  if (riverTiles) { sources.food.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_FOOD }); sources.gold.push({ label: `Rivers (${riverTiles})`, val: riverTiles * RIVER_GOLD }); }
   if (nationHasTech(city.nationId, 'banking')) {
     let mkt = 0;
     for (const ti of city.ownedTiles) if (tiles[ti].improvement === 'market') mkt++;
@@ -5232,6 +5249,12 @@ function tickProduction(city) {
         if (!foundTile && (isNaval || units.some(u => u.x === sx && u.y === sy))) {
           if (city.nationId === playerNation) showToast(`No room to deploy unit near ${city.name}!`);
           for (const k in costs) n[k] += costs[k];
+          city.productionProgress = Math.min(city.productionProgress, total); // waiting doesn't pile up more work
+          // a rival city boxed in by its own army builds something for the town instead of retrying every turn
+          if (city.nationId !== playerNation) {
+            const pick = ['granary', 'fortifications', 'factory'].find(b => !(city.buildings || []).includes(b) && PRODUCTION_COSTS[b]);
+            city.producing = pick || null; city.productionProgress = 0;
+          }
           return;
         } else {
           spawnUnit(city.producing, city.nationId, sx, sy);
@@ -6812,6 +6835,7 @@ function aiTurn(nationId) {
             if (tt === 6) quality += 3;
             if (tt === 2) quality += 1;
             if (tt === 0) quality -= 1;
+            if (tiles[ty * MAP_COLS + tx].hasRiver) quality += 2; // river land feeds and enriches a town
           }
           let minCityDist = Infinity;
           for (const c of aiCities) {
@@ -9444,6 +9468,7 @@ function updateCityThreats() {
 // ---- Roads: each city is joined to its capital by a road over land that doesn't cross a rival's territory.
 // A city on the road earns trade gold; the roads are redrawn as the realm changes (each turn, and when a city is founded or lost) ----
 const ROAD_TRADE_GOLD = 2, ROAD_MAX_LEN = 14;
+const RIVER_FOOD = 0.5, RIVER_GOLD = 0.5; // each river tile in a city's lands
 let roads = [], _roadsKey = '';
 function rebuildRoads() {
   roads = [];
@@ -12286,7 +12311,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.1';
+const CURRENT_VERSION = 'beta-6.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13935,8 +13960,9 @@ function marketBuy(nationId, res) {
 function aiUseMarket(nationId) {
   const n = nations[nationId];
   let lots = 0;
-  for (const res of ['steel', 'wood', 'stone', 'gunpowder']) {
-    while ((n.gold || 0) < 120 && (n[res] || 0) > 150 + MARKET_LOT && lots < 6) { marketSell(nationId, res); lots++; }
+  for (const res of ['steel', 'wood', 'stone', 'gunpowder', 'food']) {
+    const reserve = res === 'food' ? 300 : 150; // a granary's worth kept back for settlers
+    while ((n.gold || 0) < 120 && (n[res] || 0) > reserve + MARKET_LOT && lots < 6) { marketSell(nationId, res); lots++; }
   }
 }
 // ---- the Empire: every city of yours in one table — its people and mood, what it makes, what it's building and when it's
