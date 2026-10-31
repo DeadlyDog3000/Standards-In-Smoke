@@ -14039,8 +14039,19 @@ function render() {
     }
     // ready for orders: a small gold pip on your units that can still act this turn
     if (u.nationId === pId && u.movesLeft > 0 && !u.fortified && !u.building && !u.automated && u.gotoX === undefined && !u.autoExplore && VIEW_TILE >= 16 && u !== selectedUnit) {
+      if (charted) { // (on the chart, a brass pin stuck in the map beside it, as a staff officer marks a regiment awaiting orders)
+        const pr = Math.max(2.4, rad * 0.16), px0 = cx - rad * 0.74, py0 = cy - rad * 0.72;
+        ctx.save(); ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px0 + pr * 0.2, py0 + pr * 2.6); ctx.lineTo(px0 + pr * 1.6, py0 + pr * 2.2); ctx.stroke(); // (its shadow)
+        ctx.strokeStyle = 'rgba(70, 60, 50, 0.95)'; ctx.lineWidth = Math.max(0.8, pr * 0.3); ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(px0 + pr * 0.15, py0 + pr * 2.6); ctx.stroke();
+        const gr = ctx.createRadialGradient(px0 - pr * 0.35, py0 - pr * 0.4, pr * 0.1, px0, py0, pr * 1.05);
+        gr.addColorStop(0, '#fff2c4'); gr.addColorStop(0.45, '#d8a83c'); gr.addColorStop(1, '#7a5418');
+        ctx.fillStyle = gr; ctx.strokeStyle = 'rgba(40, 25, 5, 0.85)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.arc(px0, py0, pr, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+      } else {
       ctx.save(); ctx.fillStyle = '#f2c94c'; ctx.strokeStyle = 'rgba(40,25,5,0.8)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cx - rad * 0.78, cy - rad * 0.78, Math.max(2.5, rad * 0.17), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+      }
     }
     if (VIEW_TILE >= 14 && !fig) {
       const uSpriteKey = UNIT_SPRITES[u.type];
