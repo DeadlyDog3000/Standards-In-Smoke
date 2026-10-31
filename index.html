@@ -868,7 +868,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, the engineers at their fortresses, the royal counting house and the nobles in council have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; the scale of miles and the chart's key are framed and scrolled as the engravers set them; trees are hatched on their shaded side; planned orders are pencilled in ink; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, the engineers at their fortresses, the royal counting house and the nobles in council have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; the scale of miles and the chart's key are framed and scrolled as the engravers set them; trees are hatched on their shaded side; the great rivers are lettered along their course (Fl. Rhenus, Fl. Danubius…); planned orders are pencilled in ink; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -1855,7 +1855,7 @@
         - The blank sheet is smoke-browned vellum lying on a desk, with older sheets of the survey askew beneath it, an inkwell and quill and a seal with its wax beside it, and a reading glass that shows the leather under it magnified; the chart is printed on laid paper, the land you've charted casts a soft shadow onto the blank sheet, and a small world lies in the middle of the desk<br>
         - Powder smoke, hearth smoke and burning towns are billowed clouds inked round and hatched on their shaded side, as the battle prints drew them, and a musket's flash is struck out in fine rays; borders are laid on in watercolour fading inward from the line, and a unit's reach is pencilled as a staff officer marks a day's march<br>
         - The menu's title is set on a tooled-leather board in gilt, and the minimap is drawn on the same blank vellum; names on the chart wait until the land under both their ends is known, and a new game no longer shows a glimpse of the last one's land<br>
-        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, the engineers at their fortresses, the royal counting house and the nobles in council have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; the scale of miles and the chart's key are framed and scrolled as the engravers set them; trees are hatched on their shaded side; planned orders are pencilled in ink; and a big map pans several times faster zoomed right out<br>
+        - From afar, towns are marked as the chart's key says (a red star for a royal city, a ringed dot for a town); battlefields are marked in red ink; deep woods open into glades; the paper shows foxing; hills are shaded more by hatching than by smudged tone; the refugees and the nomads, risings and mutinies, the engineers at their fortresses, the royal counting house and the nobles in council have their own engravings; a bear, an elephant and a lion (Hic sunt leones) roam the blank interior until the survey covers them; the scale of miles and the chart's key are framed and scrolled as the engravers set them; trees are hatched on their shaded side; the great rivers are lettered along their course (Fl. Rhenus, Fl. Danubius…); planned orders are pencilled in ink; and a big map pans several times faster zoomed right out<br>
         - The map redraws far faster: a new turn or season recolours the sheet in a fraction of the time, and panning stays smooth at every zoom
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.1</b></div>
@@ -12512,8 +12512,34 @@ function owPlaceNames() {
     for (const i of seas[0].cells) { const x = i % MAP_COLS, y = Math.floor(i / MAP_COLS); if (depth[i] < 3 || x < 4 || y < 3 || x > MAP_COLS - 5 || y > MAP_ROWS - 4) continue; const sc = Math.min(depth[i], 6) * 2 + Math.min(far(i), 8); if (sc > bs) { bs = sc; best = i; } }
     if (best >= 0) decor.push({ i: best, rose: true });
   }
+  // the great rivers lettered along their course, the largest first: found from the mouth, followed up the main stem
+  {
+    const flow = riverFlow(), ups = new Map();
+    for (let i = 0; i < N; i++) { const t = tiles[i]; if (t.hasRiver && t.riverTo !== undefined && tiles[t.riverTo]?.hasRiver) { let a = ups.get(t.riverTo); if (!a) ups.set(t.riverTo, a = []); a.push(i); } }
+    const mouths = [];
+    for (let i = 0; i < N; i++) { const t = tiles[i]; if (t.hasRiver && !(t.riverTo !== undefined && tiles[t.riverTo]?.hasRiver) && flow[i] >= 7) mouths.push(i); }
+    mouths.sort((a, b) => flow[b] - flow[a]);
+    const want = Math.min(6, Math.max(1, Math.round(N / 1600)));
+    const pos = (i) => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return [x * 0.75, y + (x & 1) * 0.5]; };
+    let rN = 0;
+    for (const m of mouths) {
+      if (rN >= want) break;
+      const stem = [m];
+      for (let cur = m, guard = 0; guard < 400; guard++) { const a = ups.get(cur); if (!a || !a.length) break; cur = a.reduce((p, q) => flow[q] > flow[p] ? q : p); stem.push(cur); }
+      if (stem.length < 7) continue;
+      const k = Math.floor(stem.length * 0.45), p0 = pos(stem[Math.min(stem.length - 1, k + 3)]), p1 = pos(stem[Math.max(0, k - 3)]);
+      let ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+      if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI; // (kept upright)
+      const steep = Math.abs(ang) > 0.95; // (a stream running north and south is lettered level, beside it)
+      if (steep) ang = 0;
+      const at0 = stem[k], ax = at0 % MAP_COLS, ay = (at0 - ax) / MAP_COLS;
+      if (labels.some(l => Math.hypot(l.i % MAP_COLS - ax, Math.floor(l.i / MAP_COLS) - ay) < 6)) continue;
+      labels.push({ i: at0, text: 'Fl. ' + OW_RIVER_NAMES[rN++ % OW_RIVER_NAMES.length], kind: 'river', size: 0.3, ang, steep });
+    }
+  }
   OW.labels = labels; OW.decor = decor;
 }
+const OW_RIVER_NAMES = ['Rhenus', 'Danubius', 'Albis', 'Visurgis', 'Mosa', 'Sequana', 'Liger', 'Rhodanus', 'Padus', 'Tagus', 'Vistula', 'Tamesis'];
 function owDrawNames(g, w, cs, ch, facePad) {
   const halfCh = Math.round(ch / 2), at = i => { const x = i % MAP_COLS, y = (i - x) / MAP_COLS; return [x * cs - camX * cs + w / 2, y * ch + (x & 1) * halfCh - camY * ch + facePad + ch / 2]; };
   for (const d of OW.decor || []) {
@@ -12538,16 +12564,24 @@ function owDrawNames(g, w, cs, ch, facePad) {
   g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const l of OW.labels || []) {
     if (!tiles[l.i].revealed.has(playerNation)) continue; // a sea is named once its middle has been seen
-    let [x, y] = at(l.i); const px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : 28));
+    let [x, y] = at(l.i); const px = Math.max(l.kind === 'sea' ? 13 : 11, Math.min(w * l.size, l.kind === 'sea' ? 40 : l.kind === 'river' ? 22 : 28));
+    if (l.kind === 'river' && w < 14) continue;
     if (x < -viewW * 0.5 || x > viewW * 1.5 || y < -px * 2 || y > viewH + px * 2) continue;
-    g.font = `italic ${l.kind === 'sea' ? 500 : 600} ${px}px 'EB Garamond', serif`;
-    if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : 0.18)) + 'px';
+    g.font = `italic ${l.kind === 'mount' ? 600 : 500} ${px}px 'EB Garamond', serif`;
+    if ('letterSpacing' in g) g.letterSpacing = (px * (l.kind === 'sea' ? 0.35 : l.kind === 'river' ? 0.12 : 0.18)) + 'px';
     // (lettered only once the ground under both its ends is known, so a name is never cut off at the edge of the known world)
     const tw = g.measureText(l.text).width, lx = l.i % MAP_COLS, ly = (l.i - lx) / MAP_COLS, half = Math.ceil(tw / 2 / cs + 0.3);
     const sheetL = -camX * cs, sheetR = sheetL + MAP_COLS * cs + w / 4;
     x = Math.max(sheetL + tw / 2 + 6, Math.min(sheetR - tw / 2 - 6, x)); // (kept within the sheet)
     const known = (c) => c < 0 || c >= MAP_COLS || tiles[ly * MAP_COLS + c].revealed.has(playerNation);
     if (!known(lx - half) || !known(lx + half)) continue;
+    if (l.kind === 'river') { // (lettered along the stream, a little to one side of it, in the river's own ink)
+      g.save(); g.translate(x, y); g.rotate(l.ang || 0);
+      const tx = l.steep ? w * 0.3 : 0, ty = l.steep ? 0 : -ch * 0.32; if (l.steep) g.textAlign = 'left';
+      g.lineWidth = Math.max(2, px * 0.2); g.strokeStyle = 'rgba(236, 226, 200, 0.8)'; g.strokeText(l.text, tx, ty);
+      g.fillStyle = 'rgba(40, 70, 82, 0.92)'; g.fillText(l.text, tx, ty);
+      g.restore(); continue;
+    }
     g.lineWidth = Math.max(2, px * 0.18); g.strokeStyle = l.kind === 'sea' ? 'rgba(150, 175, 170, 0.55)' : 'rgba(236, 226, 200, 0.75)'; g.strokeText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
     g.fillStyle = l.kind === 'sea' ? 'rgba(28, 44, 50, 0.85)' : 'rgba(58, 38, 18, 0.9)'; g.fillText(l.text, x, y + (l.kind === 'mount' ? w * 0.45 : 0));
   }
