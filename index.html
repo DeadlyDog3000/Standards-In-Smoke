@@ -12919,6 +12919,7 @@ function render() {
     ctx.restore();
   }
   if (VIEW_TILE >= 14) drawRoads(w, facePad, ch, pId);
+  if (charted && VIEW_TILE >= 14) drawMarchTrails(w, facePad, ch);
 
   for (let my = startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
@@ -16526,6 +16527,20 @@ function animationTick(timestamp) {
   else { animationBlocking = false; lastAnimTime = 0; }
 }
 
+let marchTrails = [];
+function drawMarchTrails(w, facePad, ch) {
+  marchTrails = marchTrails.filter(t => turnNumber - t.turn < 1);
+  if (!marchTrails.length) return;
+  ctx.save(); ctx.lineCap = 'round';
+  for (const t of marchTrails) {
+    const p = new Path2D();
+    t.pts.forEach(([x, y], k) => { const q = hexScreenPos(x, y), px = q.x + w / 2, py = q.y + facePad + ch / 2; k ? p.lineTo(px, py) : p.moveTo(px, py); });
+    ctx.setLineDash([0.1, Math.max(4, w * 0.09)]);
+    ctx.strokeStyle = 'rgba(246, 236, 210, 0.6)'; ctx.lineWidth = Math.max(3.5, w * 0.06); ctx.stroke(p);
+    ctx.strokeStyle = shadeHex(safeColor(t.col), -0.35); ctx.lineWidth = Math.max(2, w * 0.035); ctx.stroke(p);
+  }
+  ctx.restore();
+}
 function startUnitAnimation(unit, path, onComplete, originX, originY) {
   if (!path || path.length === 0) { if (onComplete) onComplete(); return; }
   startMarchSound();
@@ -16535,6 +16550,8 @@ function startUnitAnimation(unit, path, onComplete, originX, originY) {
   };
   const sx = originX !== undefined ? originX : unit.x;
   const sy = originY !== undefined ? originY : unit.y;
+  // the march is pricked out on the chart as a line of dots, which fades by the next turn
+  if (unit.nationId === playerNation) marchTrails.push({ pts: [[sx, sy], ...path.map(p => [p.x, p.y])], turn: turnNumber, col: nations[unit.nationId]?.color || '#5a3a1a' });
 
   const startScreenPos = hexScreenPos(sx, sy);
   unit._animX = startScreenPos.x;
@@ -18168,7 +18185,7 @@ function resetRuntimeState() {
   currentEventNation = null;
   window._endTurnBusy = false;
   window._gameOver = false;
-  battleScars = []; roads = []; _roadsKey = ''; roadEdges = new Set();
+  battleScars = []; roads = []; _roadsKey = ''; roadEdges = new Set(); marchTrails = [];
   eventLogEntries = [];
   characters = []; nextCharId = 1;
   families = []; nextFamilyId = 1;
