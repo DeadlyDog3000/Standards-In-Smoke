@@ -5429,7 +5429,7 @@ function showFirstContact(nation) {
       ? `<img class="portrait" src="${portraitOf(r)}" alt="" style="width:96px;height:96px;display:block;margin:0 auto 12px;border:3px solid ${sc};box-shadow:0 0 24px ${sc}60;">`
       : `<div style="width:70px;height:70px;border-radius:50%;background:${sc};border:3px solid rgba(255,255,255,0.3);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px ${sc}40;"><span style="font-size:32px;">\uD83C\uDFF3\uFE0F</span></div>`; })()}
     <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:16px;text-shadow:0 0 10px rgba(180,140,60,0.4);">First Contact</div>
-    <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${sc}60;">The <span style="color:${sc}">${escHtml(nation.name)}</span></div>
+    <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${sc}60;">${/^(Kingdom|Empire|Duchy|Grand|Holy|United|Republic|Ottoman|Dutch|Polish|Swiss|Papal|Iroquois|Mughal|Qing|Russian|Aztec|Inca|Maori|Zulu|Comanche|Maya)\b|Confederacy|Empire|Kingdom|Republic|States|Union|Federation|Commonwealth|League$/.test(nation.name) ? 'The ' : ''}<span style="color:${sc}">${escHtml(nation.name)}</span></div>
     <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
   </div>`;
   // (held back while an event card is open, so the banner never lies over a choice being made)
