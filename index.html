@@ -5511,7 +5511,7 @@ function estimateCombat(attacker, tx, ty) {
   const diffMods = getDifficultyModifiers();
   const atkDiffMult = attacker.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
   const defDiffMult = target.nationId !== playerNation ? diffMods.aiCombatMult : 1.0;
-  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef * atkDiffMult);
+  const estDmg = Math.round((atkPower + 1) * (0.5 + 0.5 * atkHpRatio) * terrainBonus * fortBonus * siegeBonus * flankBonus * formDef * cmdDef * atkDiffMult * riverCrossingMult(attacker, tx, ty));
   let estRetaliation = 0;
   if (tgtDef.combat && !atkDef.ranged) {
     const tgtMaxHp = getEffectiveMaxHp(target);
@@ -5519,6 +5519,14 @@ function estimateCombat(attacker, tx, ty) {
     estRetaliation = Math.round(((getEffectiveAtk(target)) * 0.5 + 1) * (0.5 + 0.5 * tgtHpRatio) * defDiffMult);
   }
   return { estDmg, estRetaliation, targetHp: target.hp, attackerHp: attacker.hp, targetType: target.type, isRanged: !!atkDef.ranged };
+}
+
+// Attacking across a river: a melee blow from off the river onto a defender on river land falls 15% lighter (the water must be forded)
+const RIVER_CROSSING = 0.85;
+function riverCrossingMult(attacker, tx, ty) {
+  if (UNIT_DEFS[attacker.type]?.ranged) return 1;
+  const dt = tiles[ty * MAP_COLS + tx], at = tiles[attacker.y * MAP_COLS + attacker.x];
+  return dt?.hasRiver && !at?.hasRiver ? RIVER_CROSSING : 1;
 }
 
 function canAttack(attacker, tx, ty) {
@@ -5614,6 +5622,7 @@ function doAttack(attacker, tx, ty) {
 
   const defCmd = getCommandBonus(target);
   defTerrainBonus /= defCmd.defMult;
+  defTerrainBonus *= riverCrossingMult(attacker, tx, ty);
 
   const fortBonus = target.fortified ? FORT_BONUS : 1.0;
 
@@ -12633,7 +12642,8 @@ function updateTileTooltip(mx, my, screenX, screenY) {
       if (est) {
         const flank = getFlankingBonus(selectedUnit, mx, my);
         const flankStr = flank > 1.0 ? ` | Flanking +${Math.round((flank - 1) * 100)}%` : '';
-        html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:${flankStr}</div>`;
+        const riverStr = riverCrossingMult(selectedUnit, mx, my) < 1 ? ` | <span style="color:#8bc4ff">River crossing -${Math.round((1 - RIVER_CROSSING) * 100)}%</span>` : '';
+        html += `<div class="tt-detail" style="color:#ff8;margin-top:2px;">\u2694 Attack preview:${flankStr}${riverStr}</div>`;
         html += `<div class="tt-detail" style="color:#f66;">Deal ~${est.estDmg} dmg (${est.targetHp}hp \u2192 ${Math.max(0, est.targetHp - est.estDmg)}hp)</div>`;
         if (est.estRetaliation > 0) {
           html += `<div class="tt-detail" style="color:#fa4;">Take ~${est.estRetaliation} dmg (${est.attackerHp}hp \u2192 ${Math.max(0, est.attackerHp - est.estRetaliation)}hp)</div>`;
