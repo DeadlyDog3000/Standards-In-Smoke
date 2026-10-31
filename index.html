@@ -12772,6 +12772,7 @@ function render() {
   const camXcs = camX * cs, camYch = camY * ch;
   const halfCh = Math.round(ch / 2);
   const charted = drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol);
+  const buildAt = charted ? new Map(units.filter(u => u.building && u.nationId === pId).map(u => [u.y * MAP_COLS + u.x, u.building])) : null;
   if (!charted) loadHexTiles();
 
   for (let my = startRow; my < endRow; my++) {
@@ -12798,6 +12799,15 @@ function render() {
           ctx.drawImage(((i * 2654435761) >>> 7) & 1 ? mirroredTile(img) : img, sx, sy, drawW, drawH);
         }
 
+        // works being raised: the engraving sketched in faintly, as a surveyor pencils in what is planned
+        if (!t.improvement && buildAt && buildAt.has(i) && VIEW_TILE >= 16) {
+          const bk = buildAt.get(i), gk = { steel_mill: 'factory', lumbermill: 'lumber_mill' }[bk] || bk;
+          const ghost = bk !== 'redoubt' ? featSprite('v_' + gk) : null;
+          if (ghost) {
+            const vw = w * 0.62, vh = vw * ghost.naturalHeight / ghost.naturalWidth, gy = sy + facePad + ch * 0.62;
+            ctx.save(); ctx.globalAlpha = 0.6; ctx.drawImage(ghost, sx + (w - vw) / 2 - w * 0.12, gy - vh - ch * 0.08, vw, vh); ctx.restore();
+          }
+        }
         if (t.improvement && VIEW_TILE >= 16) {
           const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
           const impKey = impSpriteMap[t.improvement] || t.improvement;
