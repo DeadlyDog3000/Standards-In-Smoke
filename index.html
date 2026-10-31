@@ -704,6 +704,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Colours of the Regiments</b><br>
+        - Every regiment carries a number and a name in the manner of the day, counted for each realm as it is raised: the 1st Regiment of Foot, the 3rd Hussars, the 2nd Battery of Horse Artillery. Hover a unit to see it
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Edge of the Known World</b><br>
@@ -1476,7 +1481,12 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.2</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Colours of the Regiments</b><br>
+        - Every regiment carries a number and a name in the manner of the day, counted for each realm as it is raised: the 1st Regiment of Foot, the 3rd Hussars, the 2nd Battery of Horse Artillery. Hover a unit to see it
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 8.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Edge of the Known World</b><br>
         - The frontier of what you've explored is softly shaded, so your map fades into the unexplored chart instead of ending in a hard edge
@@ -5170,6 +5180,26 @@ function buyTile(city, tx, ty) {
   return true;
 }
 
+// Regiments carry a number and a name in the manner of the day ("3rd Hussars", "1st Regiment of Foot"), counted per realm
+const REGIMENT_STYLE = {
+  swordsman: 'Regiment of Foot', musketeer: 'Regiment of Foot', grenadier: 'Grenadier Guards', rifleman: 'Rifles',
+  crossbowman: 'Light Infantry', cavalry: 'Dragoon Guards', hussar: 'Hussars', lancer: 'Lancers', heavy_cavalry: 'Cuirassiers',
+  dragoon: 'Dragoons', field_gun: 'Battery, Horse Artillery', cannon: 'Battery, Foot Artillery', mortar: 'Siege Battery',
+  frigate: 'Frigate Squadron', galleon: 'Galleon Squadron', man_of_war: 'Ship of the Line',
+};
+function ordinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+function regimentName(u) {
+  const style = REGIMENT_STYLE[u.type];
+  const n = nations[u.nationId];
+  if (!style || !n || n.isBarbarian || n.isTribe) return '';
+  if (!u.regiment) { // numbered as raised (older saves number theirs when first seen)
+    if (!n._regiments) n._regiments = {};
+    n._regiments[style] = (n._regiments[style] || 0) + 1;
+    u.regiment = n._regiments[style];
+  }
+  return `${ordinal(u.regiment)} ${style}`;
+}
+
 function spawnUnit(type, nationId, x, y) {
   const def = UNIT_DEFS[type];
   const hp = def.hp || (def.combat ? 10 : 5);
@@ -5200,6 +5230,7 @@ function spawnUnit(type, nationId, x, y) {
   }
   units.push(u);
   revealAround(x, y, def.vision, nationId);
+  regimentName(u); // number the regiment as it is raised
   return u;
 }
 
@@ -13051,7 +13082,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-8.2';
+const CURRENT_VERSION = 'beta-8.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -13369,6 +13400,8 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
     html += `<div class="tt-detail">${def.icon} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
+    const regiment = regimentName(u);
+    if (regiment) html += `<div class="tt-detail" style="color:#e0c880;font-style:italic">${escHtml(regiment)}</div>`;
     const ttMaxHp = getEffectiveMaxHp(u);
     const ttLevel = getUnitLevel(u);
     html += `<div class="tt-detail">HP: ${u.hp}/${ttMaxHp}${ttLevel.xp > 0 ? ` | <span style="color:${ttLevel.color}">${ttLevel.rank}</span>` : ''}</div>`;
