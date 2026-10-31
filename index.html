@@ -12853,7 +12853,7 @@ function drawRhumbs(cs, ch) {
   ctx.restore();
   // and beasts in the empty interior, as the old chartmakers filled what they did not know (the survey covers them as it comes)
   {
-    const bs = Math.min(mh * 0.15, cs * 6.5, 230);
+    const bs = Math.min(mh * 0.15, cs * 4.5, 170); // (a decoration: never larger than a few hexes)
     for (const [name, fxp, fyp, flip, motto] of [['beast_bear', 0.4, 0.2, false, ''], ['beast_lion', 0.6, 0.62, true, 'Hic sunt leones'], ['beast_elephant', 0.2, 0.56, false, '']]) {
       const img = owDeskProp(name); if (!img) continue;
       const bw2 = bs * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), bh2 = bs * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
