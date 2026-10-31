@@ -5876,7 +5876,7 @@ function _reminderPopupWrap(id) {
 }
 
 function showNoResearchPopup() {
-  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup')) return;
+  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('ambitionOverlay')) return;
   const n = nations[playerNation];
   if (!n) return;
   const available = Object.entries(TECHS).filter(([key]) => nationCanResearch(playerNation, key));
@@ -8349,10 +8349,10 @@ function tickAmbitions() {
     try { SMK.peal(4); } catch (e) {}
     if (k >= AMBITION_WIN && !n.scoreSettled) { updateAmbitionPlaque(); showVictory('ambition'); return; }
   }
-  if (!n.ambition && !(n.ambitionOffer || []).length && turnNumber >= 2) {
-    n.ambitionOffer = ambitionOffer(nid);
-    if (n.ambitionOffer.length) openAmbitions();
-  }
+  if (!n.ambition && !(n.ambitionOffer || []).length) { n.ambitionOffer = ambitionOffer(nid); n._ambShown = false; }
+  // the card comes up by itself once per offer: not in the first turns (the research is chosen then) nor over another card; the plaque asks meanwhile
+  const busy = document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('eventModal')?.classList.contains('active') || document.getElementById('tutorial-overlay')?.offsetParent;
+  if (!n.ambition && (n.ambitionOffer || []).length && !n._ambShown && turnNumber >= 3 && !busy) { n._ambShown = true; openAmbitions(); }
   updateAmbitionPlaque();
 }
 window.setAsideAmbition = function () {
