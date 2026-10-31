@@ -704,6 +704,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Generals from the Ranks</b><br>
+        - A seasoned soldier (Veteran or better) who wins a fight may now and then see one of its officers raised to <b>general</b>, while the realm has fewer than two<br>
+        - Hovering a tile tells you more: a river's food, gold and defence, ancient ruins, a recent battlefield, a road to the capital<br>
+        - An afternoon light lies over the map: warm from the upper left, cooler toward the lower right
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Workers at Work</b><br>
@@ -1368,7 +1375,14 @@
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#6af;text-decoration:underline;">DeadlyDog Productions</a></div>
         </div>
-        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.6</b></div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Generals from the Ranks</b><br>
+        - A seasoned soldier (Veteran or better) who wins a fight may now and then see one of its officers raised to <b>general</b>, while the realm has fewer than two<br>
+        - Hovering a tile tells you more: a river's food, gold and defence, ancient ruins, a recent battlefield, a road to the capital<br>
+        - An afternoon light lies over the map: warm from the upper left, cooler toward the lower right
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 6.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Workers at Work</b><br>
         - <b>Automate workers</b> (<b>B</b>, or the button on a worker's panel): it mends what raiders spoiled, improves your land and moves on to the next bare tile by itself each turn. It never fells a forest unasked, and Next Unit passes it by<br>
@@ -5605,6 +5619,25 @@ function riverCrossingMult(attacker, tx, ty) {
   return dt?.hasRiver && !at?.hasRiver ? RIVER_CROSSING : 1;
 }
 
+// A general from the ranks: a seasoned soldier (Veteran or better) who wins a fight may now and then be raised to command,
+// while the realm has fewer than two generals
+function maybeRiseGeneral(victor) {
+  const n = nations[victor.nationId];
+  if (!n || n.isBarbarian || n.isTribe || !UNIT_DEFS.general) return;
+  if (XP_LEVELS.indexOf(getUnitLevel(victor)) < 2 || Math.random() >= 0.04) return;
+  if (units.filter(u => u.nationId === victor.nationId && u.type === 'general').length >= 2) return;
+  const spot = hexNeighbors(victor.x, victor.y).find(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS
+    && tiles[nb.row * MAP_COLS + nb.col].type !== 0 && !units.some(u => u.x === nb.col && u.y === nb.row));
+  if (!spot) return;
+  const g = spawnUnit('general', victor.nationId, spot.col, spot.row);
+  if (!g) return;
+  g.movesLeft = 0;
+  if (victor.nationId === playerNation) {
+    showToast(`A general rises from the ranks! Your ${victor.type.replace(/_/g, ' ')}'s victory has made a commander of one of its officers.`);
+    addFloatingText(spot.col, spot.row, 'A general rises!', '#e0c880', 2500, 15);
+  }
+}
+
 function canAttack(attacker, tx, ty) {
   const def = UNIT_DEFS[attacker.type];
   if (!def.combat) return false;
@@ -5804,7 +5837,7 @@ function doAttack(attacker, tx, ty) {
       nations[target.nationId].legitimacy = Math.max(0, (nations[target.nationId].legitimacy ?? 50) - 1);
     }
 
-    if (attacker.hp > 0) awardXP(attacker, XP_PER_KILL);
+    if (attacker.hp > 0) { awardXP(attacker, XP_PER_KILL); maybeRiseGeneral(attacker); }
     removeUnit(target);
 
     const isAdj = hexNeighbors(attacker.x, attacker.y).some(nb => nb.col === tx && nb.row === ty);
@@ -10674,6 +10707,13 @@ function render() {
   } else if (currentSeason === 'autumn') {
     ctx.save(); ctx.globalAlpha = 0.03; ctx.fillStyle = '#ffaa44'; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
   }
+  // afternoon light: a warm wash from the upper left, a cool shade toward the lower right
+  {
+    const lg = ctx.createLinearGradient(0, 0, viewW, viewH);
+    lg.addColorStop(0, 'rgba(255, 228, 170, 0.07)'); lg.addColorStop(0.5, 'rgba(255, 228, 170, 0)');
+    lg.addColorStop(0.5, 'rgba(25, 35, 70, 0)'); lg.addColorStop(1, 'rgba(25, 35, 70, 0.09)');
+    ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = lg; ctx.fillRect(0, 0, viewW, viewH); ctx.restore();
+  }
   // a soft vignette, like the edge of an old painting, so the eye rests on the middle of the map
   {
     const r = Math.hypot(viewW, viewH) / 2;
@@ -12464,7 +12504,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-6.6';
+const CURRENT_VERSION = 'beta-6.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -12723,6 +12763,10 @@ function updateTileTooltip(mx, my, screenX, screenY) {
     }
   }
   if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">Build lumbermill or chop for wood</div>`;
+  if (t.hasRiver) html += `<div class="tt-detail" style="color:#8bc4ff">\u301C River: +${RIVER_FOOD} food, +${RIVER_GOLD} gold in a city's lands; defenders here are hard to reach (-${Math.round((1 - RIVER_CROSSING) * 100)}% to blows from the bank)</div>`;
+  if (t.ruins) html += `<div class="tt-detail" style="color:#e0c880">\uD83C\uDFDB Ancient ruins: the first unit to reach them finds something</div>`;
+  if (_scarMap && _scarMap.get(i)) html += `<div class="tt-detail" style="color:#a98">A field of recent battle</div>`;
+  if (roads.some(r => r.path.includes(i))) html += `<div class="tt-detail" style="color:#c9a86a">Road to the capital</div>`;
   if (t.type === 6 && !t.improvement && !t.animal) html += `<div class="tt-detail">+0.5 food/turn</div>`;
   if (t.animal && !t.improvement) {
     const _ad = ANIMAL_DATA[t.animal];
