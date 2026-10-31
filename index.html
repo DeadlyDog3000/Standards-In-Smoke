@@ -632,7 +632,16 @@
     .city-label::before { left: -0.62em; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 42% 50%); }
     .city-label::after { right: -0.62em; clip-path: polygon(0 0, 100% 0, 58% 50%, 100% 100%, 0 100%); }
 
-  </style>
+  /* the one card for the studio's other game: on the main menu and at the end of a game, never during play */
+.promo-card { display:flex; gap:12px; align-items:center; max-width:400px; margin-top:18px; padding:9px; text-align:left; text-decoration:none; color:#c8b8a0; font-size:12px; line-height:1.45; background:rgba(28,22,12,0.82); border:1px solid rgba(212,168,86,0.35); border-radius:6px; transition:border-color .2s, background .2s; }
+.promo-card:hover, .promo-card:focus-visible { border-color:rgba(224,184,96,0.85); background:rgba(40,32,16,0.92); }
+.promo-card img { width:150px; height:auto; flex:none; border-radius:3px; }
+.promo-card span { display:flex; flex-direction:column; gap:2px; }
+.promo-card small { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#9a8a6a; }
+.promo-card b { font-family:'Uncial Antiqua',cursive; font-weight:normal; font-size:16px; color:#e0c880; }
+#menuMain .promo-card { margin:18px auto 0; }
+@media (max-width:560px), (max-height:620px) { .promo-card img { width:96px; } .promo-card { font-size:11px; } }
+</style>
 </head>
 <body>
 
@@ -655,6 +664,7 @@
     <button class="menu-btn" id="resumeBtn" onclick="resumeLastGame()" style="display:none;">Resume Last Game</button>
     <button class="menu-btn" onclick="showVictoryHistory()">Victory History</button>
     <button class="menu-btn" onclick="showMenuOptions()">Options</button>
+    <a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a>
   </div>
   <div id="menuVictoryHistory" style="display:none;text-align:center;max-width:480px;width:90vw;">
     <h3 style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:22px;margin-bottom:18px;text-shadow:1px 1px 3px rgba(0,0,0,0.6);">Victory History</h3>
@@ -7921,6 +7931,7 @@ function showVictory(type) {
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
     <button class="menu-btn" onclick="document.getElementById('victoryOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+    <div style="margin-top:22px;display:flex;justify-content:center;"><a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a></div>
     ${type === 'score' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('victoryOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
   </div>`;
   document.body.appendChild(overlay);
@@ -8021,6 +8032,7 @@ function showDefeat(type, winnerId) {
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}</p>
     <button class="menu-btn" onclick="document.getElementById('defeatOverlay').remove();quitToMenu();" style="font-size:18px;">Return to Menu</button>
+    <div style="margin-top:22px;display:flex;justify-content:center;"><a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a></div>
     ${type === 'score' ? `<div style="margin-top:10px;"><button class="menu-btn" onclick="window._keepPlaying('defeatOverlay')" style="font-size:15px;">Keep Playing</button></div>` : ''}
   </div>`;
   document.body.appendChild(overlay);
