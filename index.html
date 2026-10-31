@@ -13534,7 +13534,7 @@ function showResourceDelta(elId, oldVal, newVal) {
   const span = document.createElement('span');
   span.className = 'res-delta';
   span.textContent = delta > 0 ? `+${delta}` : `${delta}`;
-  span.style.cssText = `position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:bold;color:${delta > 0 ? '#6f6' : '#f66'};pointer-events:none;animation:resDelta 1.5s ease-out forwards;white-space:nowrap;`;
+  span.style.cssText = `position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:bold;color:${delta > 0 ? '#a8d878' : '#e88a6a'};text-shadow:0 1px 1px rgba(0,0,0,0.8);pointer-events:none;animation:resDelta 1.5s ease-out forwards;white-space:nowrap;`;
   el.parentElement.style.position = 'relative';
   el.parentElement.appendChild(span);
   setTimeout(() => span.remove(), 1500);
