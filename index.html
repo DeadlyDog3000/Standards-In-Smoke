@@ -12343,14 +12343,14 @@ function drawSheetBorder(w, cs, ch, facePad) {
   }
   // the sheet lies on the table: its shadow falls on the wood around it (clipped to outside the sheet)
   {
-    const ox0 = bx - gap * 2.6, oy0 = by - gap * 2.6, ow = bw + gap * 5.2, oh = bh + gap * 5.2;
+    const ox0 = bx - gap * 2.6, oy0 = by - gap * 2.6, ow = bw + gap * 5.2, oh = bh + gap * 7.28;
     const outside = new Path2D(); outside.rect(-viewW, -viewH, viewW * 3, viewH * 3); outside.rect(ox0, oy0, ow, oh);
     ctx.save(); ctx.clip(outside, 'evenodd');
     ctx.shadowColor = 'rgba(0, 0, 0, 0.75)'; ctx.shadowBlur = Math.max(12, gap * 5); ctx.shadowOffsetX = gap * 0.8; ctx.shadowOffsetY = gap * 1.4;
     ctx.fillStyle = '#000'; ctx.fillRect(ox0, oy0, ow, oh);
     ctx.restore();
   }
-  const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 5.2); margin.rect(bx, by, bw, bh);
+  const margin = new Path2D(); margin.rect(bx - gap * 2.6, by - gap * 2.6, bw + gap * 5.2, bh + gap * 7.28); margin.rect(bx, by, bw, bh);
   ctx.fillStyle = '#c9b38a'; ctx.fill(margin, 'evenodd');
   const paper = owPaperPattern(ctx); if (paper) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = paper; ctx.fill(margin, 'evenodd'); ctx.globalCompositeOperation = 'source-over'; }
   ctx.strokeStyle = 'rgba(40, 28, 16, 0.95)'; ctx.lineWidth = Math.max(2, w * 0.06);
@@ -12360,6 +12360,13 @@ function drawSheetBorder(w, cs, ch, facePad) {
   const step = cs * 2;
   for (let x = bx, k = 0; x < bx + bw; x += step, k++) if (k & 1) { ctx.fillRect(x, by - gap * 1.6, step, gap * 1.2); ctx.fillRect(x, by + bh + gap * 0.4, step, gap * 1.2); }
   for (let y = by, k = 0; y < by + bh; y += step, k++) if (k & 1) { ctx.fillRect(bx - gap * 1.6, y, gap * 1.2, step); ctx.fillRect(bx + bw + gap * 0.4, y, gap * 1.2, step); }
+  // the engraver's line in the bottom margin, as the old sheets were signed
+  if (gap >= 5) {
+    ctx.font = `italic ${Math.max(9, gap * 1.45)}px 'EB Garamond', serif`; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(52, 36, 18, 0.85)';
+    ctx.textAlign = 'right'; ctx.fillText('Cura et sumptibus DeadlyDog Productions', bx + bw - gap, by + bh + gap * 3.3);
+    ctx.textAlign = 'left'; ctx.fillText('Cum Privilegio', bx + gap, by + bh + gap * 3.3);
+  }
   ctx.restore();
 }
 const _owProps = {};
@@ -12393,7 +12400,7 @@ function drawRhumbs(cs, ch) {
   // off the sheet is the table it lies on, darker; the lines stay on the vellum
   if (OW.canvas) {
     const fx = cs / OW.CS, fy = ch / OW.CH, sx = ox, sy = oy + Math.round(hexWidth() * 1.5 * 4 / 48), sw = OW.canvas.width * fx, sh = OW.canvas.height * fy, pad = Math.max(4, hexWidth() * 0.12) * 2.6;
-    const off = new Path2D(); off.rect(0, 0, viewW, viewH); off.rect(sx - pad, sy - pad, sw + pad * 2, sh + pad * 2);
+    const off = new Path2D(); off.rect(0, 0, viewW, viewH); off.rect(sx - pad, sy - pad, sw + pad * 2, sh + pad * 2 + pad * 0.8); // (a deeper margin at the foot, for the engraver's line)
     const desk = owDeskPattern();
     if (desk) { desk.setTransform(new DOMMatrix().translate(ox % 512, oy % 512)); ctx.fillStyle = desk; ctx.fill(off, 'evenodd'); }
     ctx.fillStyle = desk ? 'rgba(10, 6, 2, 0.45)' : 'rgba(6, 4, 2, 0.6)'; ctx.fill(off, 'evenodd');
