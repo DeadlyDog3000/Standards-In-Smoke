@@ -12547,11 +12547,12 @@ function drawSheetBorder(w, cs, ch, facePad) {
   // the chartmaker's dividers and glass lying on the desk beside the sheet
   {
     const ow2 = bw + gap * 5.2, oh2 = bh + gap * 5.2, ox2 = bx - gap * 2.6, oy2 = by - gap * 2.6;
-    const props = [['desk_dividers', ox2 + ow2 + oh2 * 0.06, oy2 + oh2 * 0.5, oh2 * 0.42, -0.35], ['desk_glass', ox2 - oh2 * 0.06, oy2 + oh2 * 0.28, oh2 * 0.34, 0.5]];
+    const props = [['desk_dividers', ox2 + ow2 + oh2 * 0.06, oy2 + oh2 * 0.5, oh2 * 0.42, -0.35], ['desk_glass', ox2 - oh2 * 0.06, oy2 + oh2 * 0.28, oh2 * 0.34, 0.5],
+      ['desk_inkwell', ox2 + ow2 + oh2 * 0.02, oy2 + oh2 * 0.1, oh2 * 0.24, 0.12], ['desk_seal', ox2 - oh2 * 0.03, oy2 + oh2 * 0.8, oh2 * 0.22, -0.3]];
     for (const [name, px, py, size, rot] of props) {
       const img = owDeskProp(name); if (!img) continue;
       const iw = size * img.naturalWidth / Math.max(img.naturalWidth, img.naturalHeight), ih = size * img.naturalHeight / Math.max(img.naturalWidth, img.naturalHeight);
-      const cx2 = name === 'desk_glass' ? px - iw * 0.55 : px + iw * 0.55;
+      const cx2 = name === 'desk_glass' || name === 'desk_seal' ? px - iw * 0.55 : px + iw * 0.55; // (left of the sheet, or right of it)
       if (cx2 + size < 0 || cx2 - size > viewW || py + size < 0 || py - size > viewH) continue;
       ctx.save(); ctx.translate(cx2, py); ctx.rotate(rot);
       ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = size * 0.04; ctx.shadowOffsetX = size * 0.025; ctx.shadowOffsetY = size * 0.04;
