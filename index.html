@@ -14290,7 +14290,7 @@ function renderMinimap() {
       const t = tiles[y * MAP_COLS + x];
       if (t.owner < 0 || !t.revealed.has(playerNation)) continue;
       if (!discoveredNations.has(t.owner) && t.owner !== playerNation) continue;
-      bctx.fillStyle = safeColor(nations[t.owner].color);
+      bctx.fillStyle = chart ? owWatercolour(nations[t.owner].color) : safeColor(nations[t.owner].color); // (in the chart's own watercolours)
       bctx.fillRect(tx(x), ty(x, y), tw, th);
     }
     bctx.globalAlpha = 1;
