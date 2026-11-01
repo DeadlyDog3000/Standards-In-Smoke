@@ -8894,12 +8894,22 @@ function openManual(tab) {
   } else if (T === 'promotions') {
     body = `<p class="man-lede">A regiment earns a promotion at each rank (Trained, Veteran, Elite, Legendary) and chooses it from two in its panel.</p>` +
       Object.entries(PROMOTIONS).map(([k, p]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(p.name)}</b><p>${escHtml(p.desc)}</p></div></div>`).join('');
+  } else if (T === 'crowns') {
+    body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
+      Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
+      `<div class="section-title">War and peace</div>` + [
+        ['Opinion', 'Each crown thinks better of you for peace, gifts, pacts and trade, and worse for war, spies found out, refusals and borders crossed. Fall far enough and it declares war.'],
+        ['Tribute', 'A crown with twice your army that thinks little of you may demand gold: pay, and it keeps the peace for fifteen turns. You may demand it too of a crown with less than half your army.'],
+        ['War-weariness', 'After some thirty turns of war a crown may come to terms with its enemy, or offer you peace.'],
+        ['Taking towns', 'A town falls when an enemy regiment stands in it for four turns, six behind walls and eight behind bastions. A long siege starves it.'],
+        ['The alarm of Europe', 'The further ahead you get, the richer, bolder and less trusting the other crowns become. You are told as each stage comes.'],
+      ].map(([h, t]) => `<div class="man-row man-text"><div><b class="man-name">${h}</b><p>${t}</p></div></div>`).join('');
   } else if (T === 'ambitions') {
     body = `<p class="man-lede">Your crown sets itself one ambition at a time, from three offered. Each fulfilled gives +10 legitimacy and 15 score; the tenth wins the game.</p>` +
       [1, 2, 3].map(tier => `<div class="section-title">${['', 'First ambitions', 'Grander ambitions', 'The grandest'][tier]}</div>` +
         AMBITIONS.filter(a => a.tier === tier).map(a => `<div class="man-row man-text"><div><b class="man-name">${escHtml(a.name)}</b><p>${escHtml(a.desc)}</p></div></div>`).join('')).join('');
   }
-  const tabs = [['regiments', 'Regiments'], ['buildings', 'Buildings'], ['improvements', 'Improvements'], ['promotions', 'Promotions'], ['ambitions', 'Ambitions']];
+  const tabs = [['regiments', 'Regiments'], ['buildings', 'Buildings'], ['improvements', 'Improvements'], ['promotions', 'Promotions'], ['ambitions', 'Ambitions'], ['crowns', 'Crowns']];
   const ov = document.createElement('div'); ov.id = 'manualOverlay';
   ov.innerHTML = `<div class="event-card man-card"><h3>Field Manual</h3>
     <div class="man-tabs">${tabs.map(([k, l]) => `<button class="${k === T ? 'on' : ''}" onclick="openManual('${k}')">${l}</button>`).join('')}</div>
