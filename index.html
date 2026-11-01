@@ -1088,6 +1088,7 @@
         - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
         - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
+        - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2169,6 +2170,7 @@
           - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
           - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
+          - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4919,7 +4921,10 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
       const d = hexDistance(x, y, defenderX, defenderY);
       if (d < bd) { bd = d; at = y * MAP_COLS + x; }
     }
-    tiles[at].battle = getCurrentYear();
+    const bt = tiles[at]; bt.battle = getCurrentYear(); bt.battleDead = (bt.battleDead || 0) + (defenderDied ? 1 : 0) + (attackerDied ? 1 : 0);
+    // (a field where several regiments fell is named, as history names its battles, after the nearest town)
+    if (!bt.battleName) { const ax = at % MAP_COLS, ay = (at - ax) / MAP_COLS; let near = null, nd = 5; for (const c of cities) { const d = hexDistance(c.x, c.y, ax, ay); if (d < nd) { nd = d; near = c; } } if (near) bt.battleName = near.name; }
+    if (bt.battleName && bt.battleDead >= 3 && !bt.battleTold) { bt.battleTold = true; logEvent(`The battle of ${bt.battleName}, ${bt.battle}.`); }
   }
   if (seen && attackerDied) battleScars.push({ ti: attackerY * MAP_COLS + attackerX, turn: turnNumber });
   if (attackerNationId === playerNation) {
@@ -15913,7 +15918,7 @@ function render() {
         }
       }
       if (_scarMap && VIEW_TILE >= 16) { const sc = _scarMap.get(i); if (sc) drawBattleScar(sc, sx + w / 2, fy + faceH / 2 + faceH * 0.1, w); }
-      if (charted && t.battle && VIEW_TILE >= 14) { const busy = t.wonder || t.ruins || t.improvement || t.type === 4; drawBattleMark(t.battle, sx + w * (busy ? 0.2 : 0.5), fy + ch * (busy ? 0.05 : 0.22), busy ? w * 0.8 : w); } // (off to the corner where something stands)
+      if (charted && t.battle && VIEW_TILE >= 14) { const busy = t.wonder || t.ruins || t.improvement || t.type === 4; drawBattleMark(t.battleName && (t.battleDead || 0) >= 3 ? `${t.battleName} ${t.battle}` : t.battle, sx + w * (busy ? 0.2 : 0.5), fy + ch * (busy ? 0.05 : 0.22), busy ? w * 0.8 : w); } // (off to the corner where something stands)
       const camp = _campMap && _campMap.get(i);
       if (camp) {
         if (!camp.destroyed) {
@@ -20918,7 +20923,7 @@ function serializeGame() {
     if (t.ruins) ct.ru = 1;
     if (t.wonder) { ct.nw = t.wonder; if (t.wonderSeen) ct.ns = 1; }
     if (t.animal) ct.an = t.animal;
-    if (t.battle) ct.bt = t.battle;
+    if (t.battle) { ct.bt = t.battle; if (t.battleName) { ct.bn = t.battleName; ct.bd = t.battleDead || 0; } }
     return ct;
   });
   const sCities = cities.map(c => ({
@@ -20979,7 +20984,7 @@ function deserializeGame(json) {
       const type = d.v >= 10 ? t.t : (t.t === 7 ? 2 : t.t); // v10+ has hills (7) and rivers (8)
       const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
       const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
-      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, riverName: t.rn || undefined, ruins: !!t.ru, wonder: t.nw || undefined, wonderSeen: !!t.ns, animal: t.an || null, battle: t.bt || undefined };
+      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, riverName: t.rn || undefined, ruins: !!t.ru, wonder: t.nw || undefined, wonderSeen: !!t.ns, animal: t.an || null, battle: t.bt || undefined, battleName: t.bn || undefined, battleDead: t.bd || 0, battleTold: !!t.bn && (t.bd || 0) >= 3 };
     });
   } else {
 
