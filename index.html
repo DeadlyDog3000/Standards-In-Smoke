@@ -753,6 +753,14 @@
     .man-name { font-size: 14.5px; color: #f0dcae; font-weight: normal; }
     .man-stats b { color: #f0dcae; font-weight: normal; } .man-dim { color: #9c8e72 !important; font-size: 11.5px !important; }
     .man-tag { font-size: 10.5px; color: #c9a45a; font-style: italic; } .man-lede { font-size: 12.5px; color: #c8b896; margin: 0 0 8px; }
+    /* first orders, in the corner under the medallion and the small map */
+    #firstOrders { position: fixed; left: 10px; top: 180px; z-index: 19; width: 236px; padding: 8px 10px 7px; font-size: 12px; color: #d8cbae;
+      background: linear-gradient(rgba(16, 26, 38, 0.9), rgba(8, 14, 22, 0.93)), var(--ow-leather); border: 1px solid var(--owk-gold-2); box-shadow: inset 0 0 0 1px rgba(4, 8, 14, 0.9), 0 4px 10px rgba(0, 0, 0, 0.5); }
+    #firstOrders b { font-family: 'Uncial Antiqua', Georgia, serif; font-weight: normal; color: #f0dcae; font-size: 13px; display: block; margin-bottom: 4px; }
+    #firstOrders button { position: absolute; top: 4px; right: 6px; background: none; border: none; color: #b8a888; cursor: pointer; font-size: 15px; }
+    #firstOrders div { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; } #firstOrders i { flex: none; width: 13px; height: 13px; border: 1px solid rgba(201, 164, 90, 0.6); font-style: normal; font-size: 11px; line-height: 12px; text-align: center; color: #a8d090; }
+    #firstOrders .fo-done { color: #8c8470; text-decoration: line-through; }
+    #firstOrders a { display: block; margin-top: 5px; font-size: 10.5px; color: #9c8e72; }
     /* the chronicle of the race: a line chart of the scores */
     #chronicleOverlay { position: fixed; inset: 0; z-index: 230; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.6); }
     #chronicleOverlay .chron-card { width: min(640px, 94vw); max-height: 90vh; overflow-y: auto; padding: 20px 22px; color: #e9dcc0; }
@@ -1089,6 +1097,7 @@
         - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
+        - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2171,6 +2180,7 @@
           - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
+          - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9144,6 +9154,30 @@ function updateRulerMedal() {
   el.querySelector('.rm-legit-num').textContent = leg;
   const tip = `${ruler.name}, ${ruler.age ? 'aged ' + ruler.age + ', ' : ''}rules ${n.name}. Legitimacy ${leg}. Click for the Court.`;
   if (el.title !== tip) el.title = tip;
+  el.style.display = '';
+}
+// ---- first orders: a short list in the corner for the opening of a game, each line ticked off as it is done ----
+const FIRST_ORDERS = [
+  ['research', 'Choose what to research (T)', n => !!n.currentResearch],
+  ['prod', 'Set a town to making something', n => cities.some(c => c.nationId === playerNation && c.producing)],
+  ['moved', 'March a regiment (right-click a hex)', n => !!(n._tut && n._tut.moved)],
+  ['settle', 'Found another town with a settler', n => cities.filter(c => c.nationId === playerNation).length >= (scenario === '1805' ? 4 : 2)],
+  ['improve', 'Have a worker improve a hex', n => tiles.some(t => t.owner === playerNation && t.improvement)],
+  ['ambition', 'Choose an ambition (the plaque at the top)', n => !!n.ambition || (n.ambitionsDone || []).length > 0],
+  ['turn', 'End the turn (E, or the crest)', n => turnNumber >= 2],
+];
+function updateFirstOrders() {
+  let el = document.getElementById('firstOrders');
+  const n = nations[playerNation], inGame = MAP_COLS && n && document.getElementById('menu').style.display === 'none';
+  let off = false; try { off = localStorage.getItem('sis_first_orders_off') === '1'; } catch (e) {}
+  if (!inGame || off || (n._tut && n._tut.closed) || turnNumber > 40 || document.body.classList.contains('mobile-mode')) { if (el) el.style.display = 'none'; return; }
+  const done = FIRST_ORDERS.map(([id, , f]) => { try { return !!f(n); } catch (e) { return false; } });
+  if (done.every(Boolean)) { (n._tut || (n._tut = {})).closed = true; if (el) el.style.display = 'none'; showToast('Well begun. The rest is yours to command.', true); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'firstOrders'; document.body.appendChild(el); }
+  const html = `<b>First orders</b><button title="Hide this list in this game" onclick="(nations[playerNation]._tut || (nations[playerNation]._tut = {})).closed = true; updateFirstOrders();">&times;</button>` +
+    FIRST_ORDERS.map(([id, label], k) => `<div class="${done[k] ? 'fo-done' : ''}"><i>${done[k] ? '\u2713' : ''}</i>${label}</div>`).join('') +
+    `<a href="#" onclick="event.preventDefault(); try { localStorage.setItem('sis_first_orders_off', '1'); } catch (e) {} updateFirstOrders();">Don't show this in new games</a>`;
+  if (el._html !== html) { el._html = html; el.innerHTML = html; }
   el.style.display = '';
 }
 function updateAmbitionPlaque() {
@@ -16810,6 +16844,7 @@ function showResourceDelta(elId, oldVal, newVal) {
 }
 function updateUI() {
   try { updateAmbitionPlaque(); } catch (e) {}
+  try { updateFirstOrders(); } catch (e) {}
   try { updateRulerMedal(); } catch (e) {}
   const n = nations[playerNation];
   const y = getTotalYields(playerNation);
@@ -18687,7 +18722,7 @@ function quitToMenu() {
   townSound.pause(); townPlaying = false;
   document.getElementById('game').style.display = 'none';
   document.getElementById('menu').style.display = 'flex';
-  { const ap = document.getElementById('ambitionPlaque'); if (ap) ap.style.display = 'none'; const rm = document.getElementById('rulerMedal'); if (rm) rm.style.display = 'none'; document.getElementById('ambitionOverlay')?.remove(); }
+  { const ap = document.getElementById('ambitionPlaque'); if (ap) ap.style.display = 'none'; const rm = document.getElementById('rulerMedal'); if (rm) rm.style.display = 'none'; const fo = document.getElementById('firstOrders'); if (fo) fo.style.display = 'none'; document.getElementById('ambitionOverlay')?.remove(); }
   document.getElementById('menuMain').style.display = 'block';
   document.getElementById('menuSetup').style.display = 'none';
   document.getElementById('menuOptions').style.display = 'none';
@@ -19423,6 +19458,7 @@ canvas.addEventListener('click', (e) => {
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
         if ((tiles[origY * MAP_COLS + origX].type === 0) !== (tiles[my * MAP_COLS + mx].type === 0) && !UNIT_DEFS[selectedUnit.type]?.naval) { try { SMK.oars(); } catch (e) {} }
         selectedUnit.x = mx; selectedUnit.y = my; selectedUnit.automated = false; // your order: it's back in your hands
+        { const pn = nations[playerNation]; if (pn) (pn._tut || (pn._tut = {})).moved = true; }
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
         revealAround(mx, my, getUnitVision(selectedUnit), selectedUnit.nationId);
 
