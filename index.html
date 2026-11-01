@@ -1141,6 +1141,7 @@
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
         - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
         - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
+        - The Annals keep your wars and your peaces: war declared, and peace made<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2256,6 +2257,7 @@
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
           - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
           - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
+          - The Annals keep your wars and your peaces: war declared, and peace made<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6638,7 +6640,7 @@ function showTechBanner(techName, unlocks) {
 
 function showWarDeclaration(nation) {
   setTimeout(() => hint('war'), 2500);
-  logEvent(`${nation.name} has declared war!`);
+  logEvent(`${nation.name} has declared war!`); annal(`${nation.name} declared war on us.`);
   playWarHorn();
 
   const existing = document.getElementById('warDeclOverlay');
@@ -18300,6 +18302,7 @@ function acceptPeace(nationId) {
   const n = nations[nationId];
   const pn = nations[playerNation];
   if (!n || !pn) return;
+  if (pn.relations?.[nationId] === 'war') annal(`Peace made with ${n.name}.`);
   if (!pn.relations) pn.relations = {};
   if (!n.relations) n.relations = {};
   if (n.wantsPeace) n.wantsPeace[playerNation] = false;
@@ -19070,7 +19073,7 @@ function toggleDiplomacy(nationId) {
       for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, allyId, aType);
       showToast(`${ally.name} honors their alliance with ${nations[nationId].name} and joins the war!`);
     }
-    showToast(`War declared on ${nations[nationId].name}!`);
+    showToast(`War declared on ${nations[nationId].name}!`); annal(`War declared on ${nations[nationId].name}.`);
   }
   else {
     showToast(`Peace with ${nations[nationId].name}`);
