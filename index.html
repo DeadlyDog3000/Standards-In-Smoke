@@ -1072,6 +1072,7 @@
         - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
         - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
         - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
+        - On the map of Europe a town founded near a real city takes its name (Hamburg, Lyon, Kiev and some 150 more), whichever crown founds it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2130,6 +2131,7 @@
           - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
           - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
           - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
+          - On the map of Europe a town founded near a real city takes its name (Hamburg, Lyon, Kiev and some 150 more), whichever crown founds it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6600,6 +6602,17 @@ function traceEuropeRivers() {
       if (sea && last.riverTo === undefined) last.riverTo = sea.row * MAP_COLS + sea.col; }
   }
 }
+// the towns of Europe: on the Europe map a town founded near one takes its name (the nearest free one, within a degree and a half)
+const EUROPE_TOWNS = 'London -0.1 51.5;Paris 2.35 48.86;Vienna 16.37 48.21;Berlin 13.4 52.52;Moscow 37.6 55.75;Madrid -3.7 40.4;Lisbon -9.14 38.72;Rome 12.5 41.9;Naples 14.27 40.85;Amsterdam 4.9 52.37;Brussels 4.35 50.85;Stockholm 18.07 59.33;Copenhagen 12.57 55.68;Warsaw 21.0 52.23;Constantinople 28.98 41.0;Munich 11.58 48.14;Dresden 13.74 51.05;Bern 7.45 46.95;Wiesbaden 8.24 50.08;Kassel 9.48 51.31;Edinburgh -3.19 55.95;Dublin -6.26 53.35;Bristol -2.59 51.45;York -1.08 53.96;Manchester -2.24 53.48;Glasgow -4.25 55.86;Cork -8.47 51.9;Belfast -5.93 54.6;Lyon 4.85 45.76;Marseille 5.37 43.3;Bordeaux -0.58 44.84;Toulouse 1.44 43.6;Nantes -1.55 47.22;Rouen 1.1 49.44;Lille 3.06 50.63;Strasbourg 7.75 48.58;Brest -4.49 48.39;Orléans 1.9 47.9;Dijon 5.04 47.32;Nice 7.27 43.7;Montpellier 3.88 43.6;Barcelona 2.17 41.39;Valencia -0.38 39.47;Seville -5.98 37.39;Granada -3.6 37.18;Zaragoza -0.89 41.65;Bilbao -2.93 43.26;Valladolid -4.72 41.65;Cádiz -6.29 36.53;Málaga -4.42 36.72;Porto -8.61 41.15;Coimbra -8.43 40.21;Corunna -8.41 43.36;Milan 9.19 45.46;Turin 7.69 45.07;Venice 12.33 45.44;Genoa 8.93 44.41;Florence 11.26 43.77;Bologna 11.34 44.49;Bari 16.87 41.12;Palermo 13.36 38.12;Messina 15.55 38.19;Cagliari 9.11 39.22;Ajaccio 8.74 41.93;Trieste 13.78 45.65;Hamburg 9.99 53.55;Bremen 8.8 53.08;Hanover 9.73 52.37;Cologne 6.96 50.94;Frankfurt 8.68 50.11;Stuttgart 9.18 48.78;Nuremberg 11.08 49.45;Leipzig 12.37 51.34;Magdeburg 11.63 52.13;Königsberg 20.51 54.71;Danzig 18.65 54.35;Stettin 14.55 53.43;Breslau 17.04 51.11;Prague 14.42 50.08;Brünn 16.61 49.2;Salzburg 13.04 47.8;Innsbruck 11.39 47.27;Graz 15.44 47.07;Pressburg 17.11 48.15;Buda 19.04 47.5;Zurich 8.54 47.37;Geneva 6.14 46.2;Basel 7.59 47.56;Antwerp 4.4 51.22;Ghent 3.72 51.05;Liège 5.57 50.63;Rotterdam 4.48 51.92;Utrecht 5.12 52.09;Kraków 19.94 50.06;Posen 16.93 52.41;Lemberg 24.03 49.84;Vilna 25.28 54.69;Riga 24.1 56.95;Reval 24.75 59.44;St. Petersburg 30.32 59.93;Novgorod 31.27 58.52;Smolensk 32.05 54.78;Kiev 30.52 50.45;Minsk 27.56 53.9;Kharkov 36.23 49.99;Voronezh 39.2 51.67;Tula 37.62 54.2;Tver 35.9 56.86;Yaroslavl 39.87 57.63;Nizhny Novgorod 44.0 56.33;Archangel 40.54 64.54;Odessa 30.73 46.48;Kherson 32.62 46.64;Azov 39.42 47.11;Astrakhan 47.9 46.35;Kazan 47.9 55.8;Saratov 46.0 51.53;Christiania 10.75 59.91;Bergen 5.32 60.39;Trondheim 10.4 63.43;Gothenburg 11.97 57.71;Malmö 13.0 55.6;Uppsala 17.64 59.86;Åbo 22.27 60.45;Helsingfors 24.94 60.17;Aarhus 10.2 56.16;Odense 10.39 55.4;Belgrade 20.46 44.8;Bucharest 26.1 44.43;Sofia 23.32 42.7;Adrianople 26.56 41.68;Salonika 22.94 40.64;Athens 23.73 37.98;Sarajevo 18.41 43.86;Ragusa 18.09 42.65;Jassy 27.6 47.16;Smyrna 27.14 38.42;Bursa 29.06 40.19;Angora 32.85 39.93;Trebizond 39.72 41.0;Sinope 35.15 42.02;Kaffa 35.38 45.03;Tiflis 44.79 41.72;Varna 27.91 43.21;Algiers 3.06 36.75;Tunis 10.18 36.8;Tangier -5.8 35.77;Valletta 14.51 35.9;Candia 25.13 35.34;Nicosia 33.36 35.17;Aleppo 37.16 36.2;Konya 32.48 37.87;Erzurum 41.27 39.9;Vologda 39.89 59.22;Kursk 36.19 51.73;Orel 36.08 52.97;Pskov 28.33 57.82;Dorpat 26.72 58.38;Memel 21.13 55.71;Lublin 22.57 51.25;Plymouth -4.14 50.37;Norwich 1.3 52.63;Limerick -8.63 52.66;Le Havre 0.1 49.49;Reims 4.03 49.26;Metz 6.18 49.12;Toledo -4.02 39.86;Salamanca -5.66 40.97;Pamplona -1.64 42.81;Ancona 13.52 43.62;Taranto 17.24 40.47;Lübeck 10.69 53.87;Münster 7.63 51.96;Mainz 8.27 50.0;Linz 14.29 48.31;Temesvár 21.23 45.75;Debrecen 21.63 47.53;Kolozsvár 23.59 46.77;Zagreb 15.98 45.81;Ljubljana 14.51 46.06'.split(';').map(t => { const p = t.trim().split(' '), lat = +p.pop(), lon = +p.pop(); return [p.join(' '), lon, lat]; });
+function europeTownName(x, y) {
+  const [lon, lat] = euLonLat(x, y), cosL = Math.cos(lat * Math.PI / 180);
+  let best = null, bd = 1.5;
+  for (const [name, tl, tb] of EUROPE_TOWNS) {
+    const d = Math.hypot((tl - lon) * cosL, tb - lat);
+    if (d < bd && !cities.some(c => c.name === name)) { bd = d; best = name; }
+  }
+  return best;
+}
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
   const ll = EUROPE_CAPITALS[name]; if (!ll) return null;
@@ -7010,7 +7023,7 @@ function canFoundCity(x, y, nationId) {
 }
 
 function foundCity(unit, cityName) {
-  const name = cityName || randomCityName();
+  const name = (mapStyle === 'europe' && unit && europeTownName(unit.x, unit.y)) || cityName || randomCityName();
   // a town founded where you can see it is stamped onto the chart with the realm's seal
   if (unit && (unit.nationId === playerNation || (currentVisionSet && currentVisionSet.has(unit.y * MAP_COLS + unit.x)))) particles.push({ kind: 'seal', col: unit.x, row: unit.y, vx: 0, vy: 0, color: nations[unit.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
 
