@@ -966,7 +966,7 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Start</span>
-          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="1805: the map of Europe in the year of Austerlitz, the great crowns armed and the Third Coalition already at war with France">
+          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1805, the year of Austerlitz, with the Third Coalition already at war with France; or 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1805">1805: the Coalition</option>
             <option value="1756">1756: the Seven Years' War</option>
@@ -1125,7 +1125,7 @@
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-        - Achievements, kept in your browser across every game: eighteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - Achievements, kept in your browser across every game: nineteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -2239,7 +2239,7 @@
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-          - Achievements, kept in your browser across every game: eighteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - Achievements, kept in your browser across every game: nineteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -9852,6 +9852,7 @@ const ACHIEVEMENTS = [
   ['hard_win', 'Against the Odds', 'Win on Hard.'],
   ['europe_win', 'Europe Is Yours', 'Win on the map of Europe.'],
   ['austerlitz', 'The Sun of Austerlitz', 'Win a game begun in 1805.'],
+  ['rossbach', 'Rossbach', 'Win a game begun in 1756.'],
   ['sea', 'Across the Water', 'Put a regiment ashore on another landmass.'],
   ['brigade', 'A Full Regiment', 'Field a regiment of three companies.'],
   ['legend', 'Legendary', 'Bring a regiment to Legendary rank.'],
@@ -9897,6 +9898,7 @@ function achievementsOnVictory(type) {
   if (gameDifficulty === 'hard') unlockAchievement('hard_win');
   if (mapStyle === 'europe') unlockAchievement('europe_win');
   if (scenario === '1805') unlockAchievement('austerlitz');
+  if (scenario === '1756') unlockAchievement('rossbach');
 }
 function renderAchievements() {
   const el = document.getElementById('achievementsList'); if (!el) return;
