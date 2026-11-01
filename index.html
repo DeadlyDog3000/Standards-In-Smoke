@@ -1135,6 +1135,7 @@
         - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
         - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
         - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
+        - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2245,6 +2246,7 @@
           - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
           - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
           - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
+          - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -7040,6 +7042,11 @@ function tickScenario() {
       const say = 'The Holy Roman Empire is dissolved after a thousand years: Francis II lays down its crown and reigns on as Francis I of Austria.';
       if (aus.id === playerNation) { showToast(say); annal(say); } else logEvent('1806: ' + say);
     }
+  }
+  // (1806: the Continental System: France and her allies close their ports to British trade; see requestTrade)
+  if (year >= 1806 && !done.continental) {
+    done.continental = true;
+    if (fr && nations.some(n => n.name === 'Great Britain' && !n.eliminated)) logEvent('1806: by the Berlin Decree France and her allies close their ports to British trade: the Continental System.');
   }
   // (1810: the Emperor sets Joséphine aside for an Austrian archduchess, if he still reigns and Austria is at peace with him;
   //  1811: their son, the King of Rome)
@@ -18271,8 +18278,19 @@ function cancelAgreement(nationId, type) {
   }
   renderKingdoms();
 }
+// the Continental System (an 1805 game, from 1806, while France stands): is this crown France or bound to her by alliance?
+function continentalBloc(n) {
+  if (scenario !== '1805' || !nations[playerNation]?._scen?.continental) return null;
+  const fr = nations.find(x => x.name === 'France' && !x.eliminated); if (!fr || !n) return null;
+  return n.id === fr.id || hasAgreement(n.id, fr.id, 'war_help') ? fr : null;
+}
 function requestTrade(nationId, resource) {
   const loy = getLoyalty(nationId, playerNation);
+  {
+    const me = nations[playerNation], them = nations[nationId];
+    if (me.name === 'Great Britain' && continentalBloc(them)) { showToast(`${them.name} has closed its ports to British trade (the Continental System).`); return; }
+  }
+  const frAngry = nations[nationId].name === 'Great Britain' && continentalBloc(nations[playerNation]);   // (a French ally trading with Britain)
   if (loy < -20) { showToast(`${nations[nationId].name} refuses to trade — relations too poor.`); return; }
   const theirAmount = nations[nationId][resource] || 0;
   if (theirAmount < 20) { showToast(`${nations[nationId].name} doesn't have enough ${resource}.`); return; }
@@ -18291,6 +18309,7 @@ function requestTrade(nationId, resource) {
   nations[playerNation][resource] = (nations[playerNation][resource] || 0) + 20;
   changeLoyalty(nationId, playerNation, 2);
   showToast(`Traded ${cost} gold for 20 ${resource} from ${nations[nationId].name}.`);
+  if (frAngry && frAngry.id !== playerNation) { changeLoyalty(frAngry.id, playerNation, -8); logEvent('France resents your trade with Britain, against the Continental System.'); }
   updateUI(); renderKingdoms();
 }
 function toggleTradePanel(nationId) {
