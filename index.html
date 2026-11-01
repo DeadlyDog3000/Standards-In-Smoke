@@ -9560,6 +9560,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
+        ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
         ['Opinion', 'Each crown thinks better of you for peace, gifts, pacts and trade, and worse for war, spies found out, refusals and borders crossed. Fall far enough and it declares war.'],
         ['Royal marriage', 'A match between your court and another (60 gold, half back if refused), for a crown that thinks well of you. While it lasts each thinks better of the other every turn; making war on your in-laws costs 15 legitimacy.'],
