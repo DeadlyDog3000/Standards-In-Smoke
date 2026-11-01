@@ -18,7 +18,9 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 
 - An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
 - A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names
-- The 1805 start: Europe in the year of Austerlitz, the great crowns armed, and the Third Coalition already at war with France
+- The 1805 start: Europe in the year of Austerlitz, Napoleon and the crowned heads of the age on their thrones, and the Third Coalition already at war with France; the score is counted at the Congress of Vienna
+- The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris
+- Reigns that end: rulers age with the calendar, heirs grow up and are crowned under their regnal names, regents rule for a child
 - Rival crowns with tempers, tribute, royal marriages, war-weariness, and coalitions against whoever grows too great (you included)
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
