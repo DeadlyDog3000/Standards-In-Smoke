@@ -811,9 +811,9 @@
     #ambitionPlaque em { font-size: 10.5px; color: #c9b07a; font-style: normal; }
     .amb-bar { display: inline-block; vertical-align: middle; width: 100px; height: 5px; margin-right: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(201, 164, 90, 0.4); }
     .amb-bar i { display: block; height: 100%; background: linear-gradient(#e8c878, #a87c30); }
-    #ambitionOverlay, #scenOverlay { position: fixed; inset: 0; z-index: 210; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.55); }
-    #ambitionOverlay .amb-card, #scenOverlay .amb-card { width: min(460px, 92vw); max-height: 86vh; overflow-y: auto; padding: 22px 24px; color: #e9dcc0; }
-    #ambitionOverlay h3, #scenOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: normal; }
+    #ambitionOverlay, #scenOverlay, #histOverlay { position: fixed; inset: 0; z-index: 210; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.55); }
+    #ambitionOverlay .amb-card, #scenOverlay .amb-card, #histOverlay .amb-card { width: min(460px, 92vw); max-height: 86vh; overflow-y: auto; padding: 22px 24px; color: #e9dcc0; }
+    #ambitionOverlay h3, #scenOverlay h3, #histOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: normal; }
     #ambitionOverlay .amb-count { font-family: 'EB Garamond', Georgia, serif; font-size: 13px; color: #c9a45a; margin-left: 6px; }
     #ambitionOverlay .amb-lede { font-size: 12.5px; color: #c8b896; text-align: center; margin: 0 0 12px; }
     #ambitionOverlay .amb-pick { display: block !important; width: 100%; text-align: left !important; padding: 9px 12px; }
@@ -859,6 +859,7 @@
   </div>
   <div id="menuMain">
     <button class="menu-btn" onclick="showNewGame()">New Game</button>
+    <button class="menu-btn" onclick="showHistStarts()">Historical Starts</button>
     <button class="menu-btn" id="resumeBtn" onclick="resumeLastGame()" style="display:none;">Resume Last Game</button>
     <button class="menu-btn" onclick="showVictoryHistory()">Victories &amp; Achievements</button>
     <button class="menu-btn" onclick="showMenuOptions()">Options</button>
@@ -1097,6 +1098,8 @@
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
         - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
         - A third start, 1700: two wars at once. In the west the Spanish Succession, the Grand Alliance of Britain, Austria and the Dutch (with Marlborough and Prince Eugene) against Louis XIV and the Bourbon king of Spain; in the north Charles XII of Sweden against Peter the Great, Denmark and Saxony. Travendal in 1700, Queen Anne in 1702, Altranstädt in 1706, Poltava in 1709, and the score counted at the Peace of Utrecht in 1714<br>
+        - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
+        - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
         - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
@@ -1143,14 +1146,13 @@
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
+        - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
+        - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
         - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
         - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
-        - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
-        - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
-        - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2221,6 +2223,8 @@
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
           - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
           - A third start, 1700: two wars at once. In the west the Spanish Succession, the Grand Alliance of Britain, Austria and the Dutch (with Marlborough and Prince Eugene) against Louis XIV and the Bourbon king of Spain; in the north Charles XII of Sweden against Peter the Great, Denmark and Saxony. Travendal in 1700, Queen Anne in 1702, Altranstädt in 1706, Poltava in 1709, and the score counted at the Peace of Utrecht in 1714<br>
+          - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
+          - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
           - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
@@ -2267,14 +2271,13 @@
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
+          - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
+          - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
           - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
           - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
-          - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
-          - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
-          - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -19435,6 +19438,30 @@ function showNewGame() {
   switchNationTab('preset');
   renderNationPicker();
 }
+// the historical starts, offered from the title screen: each opens the setup with its year chosen
+const HIST_BLURBS = [
+  ['1700', 'The Spanish Succession', 'Two wars at once: Louis XIV against the Grand Alliance of Marlborough and Prince Eugene, and Charles XII of Sweden against Peter the Great. To the Peace of Utrecht, 1714.'],
+  ['1756', "The Seven Years' War", 'Frederick the Great and Britain against France, Maria Theresa, the Empress Elizabeth and Sweden. To the Peace of Paris, 1763.'],
+  ['1805', 'The Coalition', 'The year of Austerlitz: Napoleon and his allies against the Third Coalition of Britain, Austria and Russia. To the Congress of Vienna, 1815.'],
+];
+function showHistStarts() {
+  document.getElementById('histOverlay')?.remove();
+  const ov = document.createElement('div'); ov.id = 'histOverlay';
+  ov.innerHTML = `<div class="event-card amb-card"><h3>Historical Starts</h3><p class="amb-lede">Europe as it stood: the crowns with their rulers, armies, fleets and alliances, and the wars of the year already begun.</p>
+    ${HIST_BLURBS.map(([y, t, d]) => `<button class="event-choice" style="text-align:left" onclick="pickHistStart('${y}')"><b>${y}: ${escHtml(t)}</b><span style="display:block;font-size:13px;color:#c8b8a0;margin-top:3px;line-height:1.4">${escHtml(d)}</span></button>`).join('')}
+    <button class="event-choice" onclick="document.getElementById('histOverlay').remove()">Back</button></div>`;
+  dismissOnBackdrop(ov);
+  document.body.appendChild(ov);
+}
+function pickHistStart(y) {
+  document.getElementById('histOverlay')?.remove();
+  showNewGame();
+  const st = document.getElementById('setupStart'); if (st) { st.value = y; setupScoreChoices(); }
+  // (the crown the year belongs to is chosen to begin with; any other can be picked instead)
+  const lead = { '1700': 'Sweden', '1756': 'Prussia', '1805': 'France' }[y], i = PRESET_NATIONS.findIndex(n => n.name === lead);
+  if (i >= 0 && typeof pickNation === 'function') pickNation(i);
+}
+window.showHistStarts = showHistStarts; window.pickHistStart = pickHistStart;
 function resumeLastGame() {
   const data = localStorage.getItem('sis_save_auto');
   if (!data) { showToast('No saved game found'); return; }
