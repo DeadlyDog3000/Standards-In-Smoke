@@ -5724,7 +5724,7 @@ function canEnterTerritory(nationId, tileOwner, tx, ty) {
 // ---- embarking: with Navigation a land regiment can take ship from any coast and cross the sea, slowly and exposed.
 //  Going aboard or ashore costs 3 moves, each hex of sea 1; aboard it can't attack and takes half again the harm.
 //  The other crowns embark only to reach a target on another landmass (their marches never stray to sea otherwise) ----
-let _aiMaySail = false;
+let _aiMaySail = false, _noSail = false;   // (_noSail: your own automated workers and explorers keep to the land)
 const isEmbarked = u => !!u && !UNIT_DEFS[u.type]?.naval && tiles[u.y * MAP_COLS + u.x]?.type === 0;
 let _landmass = { tiles: null, comp: null };
 function landmassAt(x, y) {
@@ -5753,7 +5753,7 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   }
   if (def.naval) return tileType === 0; // ships only on ocean
   if (tileType !== 0) return true; // all land units can walk on land
-  if (nationId !== undefined && (nationId === playerNation || _aiMaySail) && nationHasTech(nationId, 'navigation')) return true; // (embarked)
+  if (nationId !== undefined && ((nationId === playerNation && !_noSail) || _aiMaySail) && nationHasTech(nationId, 'navigation')) return true; // (embarked)
 
   if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
     if (nx !== undefined && ny !== undefined) {
@@ -10569,7 +10569,7 @@ function _finishEndTurnImpl() {
   processGotoOrders();
   for (const u of [...units]) {
     if (u.automated && u.nationId === playerNation && units.includes(u) && u.movesLeft > 0 && u.gotoX === undefined) {
-      try { aiWorkerStep(u, playerNation, { chop: false }); } catch (e) { console.error('automated worker error:', e); }
+      _noSail = true; try { aiWorkerStep(u, playerNation, { chop: false }); } catch (e) { console.error('automated worker error:', e); } finally { _noSail = false; }
     }
   }
 
@@ -19154,6 +19154,9 @@ function findNearestUnexplored(unit) {
 }
 
 function doAutoExploreStep(unit) {
+  _noSail = !isEmbarked(unit); try { return doAutoExploreStepImpl(unit); } finally { _noSail = false; }
+}
+function doAutoExploreStepImpl(unit) {
   if (!unit.autoExplore) return;
   const target = findNearestUnexplored(unit);
   if (target) {
