@@ -1121,6 +1121,7 @@
         - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
         - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
+        - The Kingdoms panel names each crown's ruler<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2217,6 +2218,7 @@
           - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
           - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
+          - The Kingdoms panel names each crown's ruler<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -17874,7 +17876,7 @@ function renderKingdoms() {
     const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
     html += `<div class="kcard ${rel}" style="--kc:${col}">
       <div class="kc-head">${(() => { const r = getNationRuler(n.id); return r ? `<img class="portrait kc-face" src="${portraitOf(r)}" alt="" title="${escHtml(r.name)}">` : '<span class="kc-crest"></span>'; })()}
-        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${n.id !== playerNation && temperOf(n) ? `<span class="kc-temper" title="${escHtml(temperOf(n).desc)}">${temperOf(n).name}</span> · ` : ''}${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
+        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${getNationRuler(n.id) ? `<i class="kc-ruler">${escHtml(getNationRuler(n.id).name)}</i> · ` : ''}${n.id !== playerNation && temperOf(n) ? `<span class="kc-temper" title="${escHtml(temperOf(n).desc)}">${temperOf(n).name}</span> · ` : ''}${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
         <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
     if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
     const loy = getLoyalty(n.id, playerNation);
