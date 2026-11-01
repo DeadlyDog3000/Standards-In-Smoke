@@ -1140,6 +1140,7 @@
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
         - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
+        - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2254,6 +2255,7 @@
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
           - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
+          - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9298,6 +9300,7 @@ function checkElimination() {
     let bestId = playerNation, bestScore = getScore(playerNation);
     for (let i = 0; i < nations.length; i++) {
       if (nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe || nations[i].isPlayer) continue;
+      if (scen() && !scen().great.includes(nations[i].name)) continue;   // (at a historical peace the great powers settle it: a lesser crown that sat out the war and settled the empty north does not)
       const s = getScore(i);
       if (s > bestScore) { bestScore = s; bestId = i; }
     }
