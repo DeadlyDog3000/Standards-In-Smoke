@@ -1080,6 +1080,7 @@
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
+        - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2153,6 +2154,7 @@
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
+          - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6830,6 +6832,32 @@ function apply1805() {
   for (const t of tiles) for (const n of crowns) t.revealed.add(n.id);
   visionDirty = true; minimapDirty = true;
 }
+// the years after 1805, as they went (if the crowns in question are still there and still as they were)
+function tickScenario() {
+  if (scenario !== '1805') return;
+  const byName = nm => nations.find(n => n.name === nm && !n.eliminated && n.id !== playerNation);
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const fr = nations.find(n => n.name === 'France' && !n.eliminated);
+  if (year >= 1806 && !done.prussia) {
+    done.prussia = true;
+    const pr = byName('Prussia');
+    if (pr && fr && pr.relations[fr.id] !== 'war') {
+      pr.relations[fr.id] = 'war'; fr.relations[pr.id] = 'war';
+      for (const n of nations) if (!n.eliminated && SCEN_1805.coalition.includes(n.name) && n.relations[fr.id] === 'war' && n.id !== pr.id && !hasAgreement(n.id, pr.id, 'war_help')) addAgreement(n.id, pr.id, 'war_help');
+      const say = `1806: Prussia joins the Fourth Coalition and declares war on France.`; showToast(say);
+    }
+  }
+  if (year >= 1807 && !done.tilsit) {
+    done.tilsit = true;
+    const ru = byName('Russia');
+    if (ru && fr && ru.relations[fr.id] === 'war' && fr.id !== playerNation && Math.random() < 0.6) {
+      ru.relations[fr.id] = 'peace'; fr.relations[ru.id] = 'peace';
+      if (!ru._peaceCooldown) ru._peaceCooldown = {}; if (!fr._peaceCooldown) fr._peaceCooldown = {};
+      ru._peaceCooldown[fr.id] = turnNumber + 20; fr._peaceCooldown[ru.id] = turnNumber + 20;
+      const say = `1807: at Tilsit, the Emperor of Russia makes peace with France.`; showToast(say);
+    }
+  }
+}
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
   const ll = EUROPE_CAPITALS[name]; if (!ll) return null;
@@ -11231,6 +11259,7 @@ function _finishEndTurnImpl() {
   } catch (e) {}
   try { tickCoalition(); } catch (e) { console.error('tickCoalition error:', e); }
   try { tickAchievements(); } catch (e) { console.error('tickAchievements error:', e); }
+  try { tickScenario(); } catch (e) { console.error('tickScenario error:', e); }
   try { tickRivalCoalition(); } catch (e) { console.error('tickRivalCoalition error:', e); }
   tickSeason();
   try { tickWinterAttrition(); } catch(e) { console.error('tickWinterAttrition error:', e); }
