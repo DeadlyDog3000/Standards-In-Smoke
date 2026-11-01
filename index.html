@@ -11254,7 +11254,7 @@ function _finishEndTurnImpl() {
       const say = ['', 'The courts of Europe take note of your rise. Rival crowns arm a little faster, and raiders grow bolder.',
                    'Europe is alarmed by your power. The crowns spend freely on their armies, trust you less each turn, and will fight you sooner.',
                    'All Europe stands against you. Every rival fields stronger armies with more orders, and none will long stay at peace with you.'][stage];
-      logEvent(say); showToast(say);
+      showToast(say);   // (the toast writes it in the log too)
     }
   } catch (e) {}
   try { tickCoalition(); } catch (e) { console.error('tickCoalition error:', e); }
