@@ -9772,6 +9772,9 @@ function aiTurn(nationId) {
       if (!n._diploRequest[playerNation] && !hasAgreement(nationId, playerNation, 'open_borders') && Math.random() < 0.05) {
         n._diploRequest[playerNation] = 'open_borders';
         showToast(`${n.name} requests Open Borders.`);
+      } else if (!n._diploRequest[playerNation] && loy >= 55 && !hasAgreement(nationId, playerNation, 'marriage') && Math.random() < 0.012) {
+        n._diploRequest[playerNation] = 'marriage';   // (a friendly court proposes a match itself)
+        showToast(`${n.name} proposes a royal marriage. Open Kingdoms to answer.`);
       }
     }
     // a strong crown that thinks little of you may demand tribute: pay and it keeps the peace for a while, refuse and it
@@ -17642,7 +17645,7 @@ function renderKingdoms() {
     if (pendingReq === 'tribute') {
       html += `<div class="kc-ask">They demand ${n._tributeAsk || 30} gold in tribute <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'tribute')" title="Pay: they keep the peace for 15 turns and think better of you; -3 legitimacy">Pay</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'tribute')" title="Refuse: they think much worse of you; +2 legitimacy">Refuse</button></span></div>`;
     } else if (pendingReq) {
-      const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Barbarian Pact' };
+      const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Barbarian Pact', marriage: 'a Royal Marriage' };
       html += `<div class="kc-ask">They ask for ${reqLabels[pendingReq] || escHtml(String(pendingReq))} <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button></span></div>`;
     }
     // what you can do
@@ -17883,6 +17886,7 @@ function acceptRequest(nationId, type) {
   delete nations[nationId]._diploRequest[playerNation];
   addAgreement(playerNation, nationId, type);
   changeLoyalty(nationId, playerNation, 5);
+  if (type === 'marriage') { changeLoyalty(nationId, playerNation, 20); changeLoyalty(playerNation, nationId, 25); const me = nations[playerNation]; me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3); try { SMK.peal(5); } catch (e) {} }
   showToast(`Accepted ${type.replace(/_/g, ' ')} with ${nations[nationId].name}.`);
   renderKingdoms();
 }
