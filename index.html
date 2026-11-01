@@ -1113,6 +1113,7 @@
         - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
         - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
         - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
+        - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2206,6 +2207,7 @@
           - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
           - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
           - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
+          - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4161,7 +4163,7 @@ const SEASON_LENGTH = 1; // turns per season
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const START_YEAR = 1680;
 let scenario = null, startYear = START_YEAR;   // (the 1805 start begins its calendar there; both saved with the game)
-const TURNS_PER_YEAR = 32;
+const TURNS_PER_YEAR = SEASON_LENGTH * 4;   // (was 32, from when a season was eight turns: the court aged a year in eight)
 // the setup's 'Score counted at' choices: turns for a new crown, years for 1805 (four turns a year, so turn 41 is 1815)
 function setupScoreChoices() {
   const sel = document.getElementById('setupScoreTurn'); if (!sel) return;
@@ -4418,7 +4420,8 @@ function tickCharacterAging() {
     if (c.deathTurn || c.role !== 'ruler') continue;
     const spouse = characters.find(s => s.id === c.spouseId && !s.deathTurn);
     if (!spouse) continue;
-    if (c.childIds.length < 4 && turnNumber % Math.floor(turnsPerYear * 1.5) === 0 && Math.random() < 0.3) {
+    const mother = c.gender === 'female' ? c : spouse;   // (no children past the mother's forty-fifth year)
+    if (c.childIds.length < 4 && mother.age <= 45 && turnNumber % Math.floor(turnsPerYear * 1.5) === 0 && Math.random() < 0.3) {
       const childGender = Math.random() < 0.5 ? 'male' : 'female';
       const child = createCharacter(c.nationId, 'heir', childGender);
       child.parentIds = [c.id, spouse.id];
