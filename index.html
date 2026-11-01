@@ -5460,6 +5460,7 @@ let eventModalOpen = false;
 
 let eventLogEntries = [];
 function logEvent(msg) {
+  msg = ofTheDay(msg);
   eventLogEntries.push({ turn: turnNumber, msg });
   if (eventLogEntries.length > 50) eventLogEntries.shift();
   const el = document.getElementById('eventLog');
@@ -6351,7 +6352,14 @@ function escHtml(s) {
 }
 
 let toastTimer = null;
+// (a message names the crowns as their own year knew them, in a historical start)
+function ofTheDay(msg) {
+  const al = typeof scen === 'function' && scen()?.aliases; if (!al || typeof msg !== 'string') return msg;
+  for (const k in al) if (msg.includes(k)) msg = msg.split(k).join(al[k]);
+  return msg;
+}
 function showToast(msg, noLog) {
+  msg = ofTheDay(msg);
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.style.display = 'block'; el.style.opacity = '1';
