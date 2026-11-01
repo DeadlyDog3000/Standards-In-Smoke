@@ -1105,10 +1105,12 @@
         - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
         - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
         - History's other turns of the crown: George II dies in 1760, Charles IV gives up the throne of Spain to Ferdinand VII in 1808, and a prince crowned without a regnal name drops his title<br>
+        - In 1811, if George III still reigns, his mind fails and the Prince of Wales governs Britain as Prince Regent<br>
         - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
         - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
         - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
         - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
+        - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
         - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
         - In 1805 the wonders of nature are long known: the charted map no longer hands out every explorer's gift on the first turn<br>
         - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
@@ -1143,7 +1145,6 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
-        - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2223,10 +2224,12 @@
           - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
           - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
           - History's other turns of the crown: George II dies in 1760, Charles IV gives up the throne of Spain to Ferdinand VII in 1808, and a prince crowned without a regnal name drops his title<br>
+          - In 1811, if George III still reigns, his mind fails and the Prince of Wales governs Britain as Prince Regent<br>
           - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
           - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
           - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
           - In the historical starts the score at the peace is reckoned among the great powers and you: a lesser crown that sat out the war and settled the empty north no longer carries off the victory<br>
+          - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
           - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
           - In 1805 the wonders of nature are long known: the charted map no longer hands out every explorer's gift on the first turn<br>
           - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
@@ -2261,7 +2264,6 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
-          - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -7181,6 +7183,19 @@ function tickScenario() {
     turnOnFrance(es, '1808: Spain rises against the French, and Britain sends an army to help.');
   }
   if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
+  // (1811: the King's mind fails, and the Prince of Wales governs as Prince Regent; he is crowned George IV when his father dies)
+  if (year >= 1811 && !done.regency) {
+    done.regency = true;
+    const uk = nations.find(n => n.name === 'Great Britain' && !n.eliminated), g3 = uk && getNationRuler(uk.id);
+    const pw = uk && characters.find(c => c.nationId === uk.id && c.role === 'heir' && !c.deathTurn && c.name === 'George, Prince of Wales');
+    if (g3 && g3.name === 'George III' && pw) {
+      const sp = characters.find(c => c.id === g3.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
+      g3.role = 'dowager'; pw.role = 'ruler'; uk.rulerId = pw.id; pw.name = 'George, Prince Regent';
+      const ns = createCharacter(uk.id, 'spouse', 'female'); ns.name = 'Caroline of Brunswick'; ns.age = 43; ns.spouseId = pw.id; pw.spouseId = ns.id;
+      const say = "1811: King George III's mind has failed him, and the Prince of Wales governs as Prince Regent.";
+      if (uk.id === playerNation) { showToast(say); annal(say.slice(6)); } else logEvent(say);
+    }
+  }
   if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
   if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
   // (1806: the Holy Roman Empire is dissolved, and its last emperor reigns on as Emperor of Austria)
