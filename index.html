@@ -6981,8 +6981,6 @@ function apply1805() {
   // (all of the crowns are known to one another in 1805, and Europe is charted to its edges)
   for (const n of crowns) if (n.id !== playerNation) discoveredNations.add(n.id);
   for (const t of tiles) for (const n of crowns) t.revealed.add(n.id);
-  // (and its wonders of nature long known: no explorer's gift for finding them)
-  for (const t of tiles) if (t.wonder) t.wonderSeen = true;
   visionDirty = true; minimapDirty = true;
 }
 // the years after 1805, as they went (if the crowns in question are still there and still as they were)
@@ -21817,6 +21815,7 @@ function generateAndPlay(pName, pColor, opponents) {
   // after the camps, so neither lands on a camp
   scatterRuins();
   placeNaturalWonders();
+  if (scenario === '1805') for (const t of tiles) if (t.wonder) t.wonderSeen = true;   // (on the charted continent of 1805 the wonders of nature are long known: no explorer's gift for them)
 
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
