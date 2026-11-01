@@ -2132,6 +2132,7 @@
         <b>O</b> &mdash; Empire: all your cities at a glance<br>
         <b>K</b> &mdash; Kingdoms Panel<br>
         <b>I</b> &mdash; Field Manual<br>
+        <b>Y</b> &mdash; The race, the map through the years and the annals<br>
         <b>F</b> &mdash; Found City (settler)<br>
         <b>G</b> &mdash; Go To order<br>
         <b>R</b> &mdash; Ranged Attack<br>
@@ -19877,6 +19878,7 @@ document.addEventListener('keydown', (e) => {
   // Z wakes a fortified unit (W pans the camera, and must never cancel a worker's build)
   if (e.key === 'z' && selectedUnit && selectedUnit.nationId === playerNation && selectedUnit.fortified && !selectedUnit.building) { wakeUnit(); e.preventDefault(); }
   if (e.key === 'k') { toggleKingdoms(); e.preventDefault(); }
+  if (e.key === 'y') { if (document.getElementById('chronicleOverlay')) document.getElementById('chronicleOverlay').remove(); else openChronicle(); e.preventDefault(); }
   if (e.key === 'i') { if (document.getElementById('manualOverlay')) document.getElementById('manualOverlay').remove(); else openManual(); e.preventDefault(); }
   if (e.key === 'b' && selectedUnit && /worker/.test(selectedUnit.type)) { toggleAutomate(); e.preventDefault(); }
   if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
