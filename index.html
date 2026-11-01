@@ -1108,6 +1108,7 @@
         - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
         - Trafalgar: in an 1805 game where neither Britain, France nor Spain is yours, Nelson destroys the French and Spanish fleets in the autumn of 1805<br>
         - Blenheim: in a 1700 game where none of France, Bavaria, Britain or Austria is yours, Marlborough and Prince Eugene destroy the Franco-Bavarian army in the field in 1704<br>
+        - The great battles of 1756 among the crowns you don't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759<br>
         - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
         - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
         - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
@@ -1145,9 +1146,9 @@
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
-        - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
@@ -2237,6 +2238,7 @@
           - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
           - Trafalgar: in an 1805 game where neither Britain, France nor Spain is yours, Nelson destroys the French and Spanish fleets in the autumn of 1805<br>
           - Blenheim: in a 1700 game where none of France, Bavaria, Britain or Austria is yours, Marlborough and Prince Eugene destroy the Franco-Bavarian army in the field in 1704<br>
+          - The great battles of 1756 among the crowns you don't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759<br>
           - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
           - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
           - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
@@ -2274,9 +2276,9 @@
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
-          - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
           - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
@@ -7231,6 +7233,17 @@ function tickScenario1756() {
     done.ruswe = true;
     for (const nm of ['Russia', 'Sweden']) { const n = byName(nm); if (joinAgainst(n, pr)) tell(`1757: ${nm} comes into the war against Prussia.`, n); }
   }
+  // (the great battles of the war, fought among the crowns the player doesn't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759)
+  const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
+  const battle = (key, yr, winner, loser, k, say) => {
+    if (year < yr || done[key]) return; done[key] = true;
+    if (!winner || !loser || winner.id === playerNation || loser.id === playerNation || winner.relations[loser.id] !== 'war') return;
+    const lost = field(loser).slice(0, k); for (const u of lost) removeUnit(u);
+    if (lost.length) tell(say, winner, loser);
+  };
+  battle('rossbach', 1757, pr, fr, 3, '1757: at Rossbach Frederick routs the French and the Imperial army in an afternoon.');
+  battle('leuthen', 1757, pr, anyName('Austria'), 3, '1757: at Leuthen Frederick breaks the Austrian army with his oblique order.');
+  battle('kunersdorf', 1759, anyName('Russia'), pr, 3, '1759: at Kunersdorf the Russians and Austrians destroy the army of Frederick, who writes that all is lost.');
   // (1758 on: the Anglo-Prussian Convention, Britain's subsidy that kept Frederick's armies in the field)
   if (year >= 1758 && pr && gb && pr !== gb && hasAgreement(pr.id, gb.id, 'war_help') && (gb.gold || 0) >= 12) {
     gb.gold -= 12; pr.gold = (pr.gold || 0) + 12;
