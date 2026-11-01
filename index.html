@@ -1134,6 +1134,7 @@
         - On the map of Europe brigands plunder a town they take but never burn it to the ground<br>
         - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
         - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
+        - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2243,6 +2244,7 @@
           - On the map of Europe brigands plunder a town they take but never burn it to the ground<br>
           - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
           - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
+          - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6950,6 +6952,8 @@ function apply1805() {
     for (const t of SCEN_1805.techs) if (TECHS[t]) n.researched.add(t);
     const great = SCEN_1805.great.includes(n.name);
     const towns = cities.filter(c => c.nationId === n.id);
+    // (in 1805 the Tsar's court sat at St Petersburg, not Moscow)
+    if (n.name === 'Russia') { const spb = towns.find(c => /Petersburg/.test(c.name)), old = towns.find(c => c.isCapital); if (spb && old && spb !== old) { old.isCapital = false; spb.isCapital = true; } }
     for (const c of towns) {
       c.population = Math.max(c.population || 1, c.isCapital ? (great ? 6 : 4) : 3);
       if (c.isCapital) { c.buildings = c.buildings || []; if (!c.buildings.includes('fortifications')) c.buildings.push('fortifications'); }
