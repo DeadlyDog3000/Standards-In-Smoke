@@ -18199,8 +18199,8 @@ function renderKingdoms() {
     // their own wars with the crowns you know (you hear of them through your envoys)
     const theirWars = Object.entries(n.relations || {}).filter(([id, r]) => r === 'war' && +id !== playerNation && nations[id] && !nations[id].isBarbarian && !nations[id].isTribe && !nations[id].eliminated && discoveredNations.has(+id)).map(([id]) => nations[id]);
     const theirKin = nations.filter(o => o.id !== n.id && o.id !== playerNation && !o.eliminated && discoveredNations.has(o.id) && hasAgreement(n.id, o.id, 'marriage'));
-    if (theirKin.length) html += `<div class="kc-wars">Married into ${listAnd(theirKin.map(o => `<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
-    if (theirWars.length) html += `<div class="kc-wars">At war with ${listAnd(theirWars.map(o => `<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
+    if (theirKin.length) html += `<div class="kc-wars">Married into ${listAnd(theirKin.map(o => `${/^(Kingdom|Duchy|Swiss|Ottoman)/.test(o.name) ? 'the ' : ''}<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
+    if (theirWars.length) html += `<div class="kc-wars">At war with ${listAnd(theirWars.map(o => `${/^(Kingdom|Duchy|Swiss|Ottoman)/.test(o.name) ? 'the ' : ''}<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
     // what they ask of you
     if (n.wantsPeace && n.wantsPeace[playerNation]) {
       html += `<div class="kc-ask">☮ They offer peace${n._peaceGold > 0 ? ` and ${n._peaceGold} gold` : ''} <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
