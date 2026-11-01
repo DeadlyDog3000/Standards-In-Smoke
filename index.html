@@ -4422,6 +4422,10 @@ function tickCharacterAging() {
       const childGender = Math.random() < 0.5 ? 'male' : 'female';
       const child = createCharacter(c.nationId, 'heir', childGender);
       child.parentIds = [c.id, spouse.id];
+      {   // (a royal child bears the house's name, or under a crowned king or queen is a prince or princess)
+        const first = child.name.split(' ')[0], parts = c.name.split(' ');
+        child.name = parts.some(w => /^[IVX]+$/.test(w)) || parts.length < 2 || c.name.includes(',') ? `${childGender === 'male' ? 'Prince' : 'Princess'} ${first}` : `${first} ${parts.slice(1).join(' ')}`;
+      }
       child.age = 0;
       c.childIds.push(child.id);
       spouse.childIds.push(child.id);
@@ -6850,12 +6854,12 @@ const SCEN_1805 = {
     'Sweden': ['Gustav IV Adolf', 'male', 26, ['pious', 'reckless'], 'Frederica of Baden', 23, ['Crown Prince Gustav', 'male', 6, 'Gustav V']],
     'Ottoman Empire': ['Selim III', 'male', 43, ['brilliant'], null, ['Prince Mustafa', 'male', 26, 'Mustafa IV']],
     'Kingdom of Naples': ['Ferdinand IV', 'male', 54, ['frugal'], 'Maria Carolina of Austria', 52, ['Francis, Duke of Calabria', 'male', 28, 'Francis I']],
-    'Bavaria': ['Maximilian Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29, ['Crown Prince Ludwig', 'male', 19, 'Ludwig I']],
+    'Bavaria': ['Maximilian IV Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29, ['Crown Prince Ludwig', 'male', 19, 'Ludwig I']],
     'Kingdom of Italy': ['Eugène de Beauharnais', 'male', 23, ['martial'], 'Augusta of Bavaria', 17],
     'Portugal': ['John, Prince Regent', 'male', 38, ['diplomatic'], 'Carlota Joaquina', 30, ['Prince Pedro', 'male', 6, 'Pedro IV']],
     'Kingdom of Holland': ['Louis Bonaparte', 'male', 26, ['diplomatic'], 'Hortense de Beauharnais', 22],
     'Denmark-Norway': ['Frederick, Crown Prince', 'male', 37, ['industrious'], 'Marie of Hesse-Kassel', 37],
-    'Kingdom of Saxony': ['Frederick Augustus', 'male', 54, ['pious'], 'Amalie of Zweibrücken', 53],
+    'Kingdom of Saxony': ['Frederick Augustus III', 'male', 54, ['pious'], 'Amalie of Zweibrücken', 53],
   },
   techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
 };
