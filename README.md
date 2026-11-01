@@ -1,40 +1,43 @@
 # Standards In Smoke
 
-A browser-based hex tile strategy game inspired by Civilization. Build cities, train units, research technologies, and expand your empire across a procedurally generated map.
+A free turn-based strategy game in the browser, set in Europe in the age of powder and kings (about 1680 to 1815). The map is a hand-coloured, engraved 18th-century atlas that you chart as you explore. Found towns, raise star forts, march musket lines and win by conquest, by score at turn 200, or by fulfilling ten ambitions.
+
+Play it: https://deadlydog3000.github.io/Standards-In-Smoke/
 
 ## How to Play
 
-Open `index.html` in a browser. No build step or server required.
+Open `index.html` in a browser, or play the link above. No build step or server is needed.
 
-- **Pan**: Click and drag, or WASD / arrow keys
-- **Zoom**: Mouse wheel
-- **Select**: Click on units or cities
-- **Move units**: Select a unit, then right-click a destination tile
-- **Found cities**: Move a Settler unit and use the Found City action
-- **Build improvements**: Use a Worker unit on owned tiles
-- **Buy tiles**: Expand city borders by purchasing adjacent tiles
+- **Select**: left-click a regiment or a town
+- **Orders**: right-click a hex to march there, an enemy to attack or fire on it, or a far hex to set out for it over several turns. Each order costs one of the turn's Orders (shown on the End Turn crest)
+- **Form up**: right-click one of your own regiments beside the chosen one to merge them (up to three companies); split them again from the unit panel
+- **Camera**: drag, WASD or the arrow keys (Shift for faster), mouse wheel to zoom
+- **Keys**: E end turn, T tech tree, K kingdoms, O empire, M market, L laws, I field manual, Esc menu (the full list is under Hotkeys in the pause menu)
 
 ## Features
 
-- Procedurally generated hex maps with terrain types: plains, forest, mountain, swamp, ocean, and more
-- City management with production queues
-- Unit combat, movement, and fog of war
-- Tech tree for unlocking new units and improvements
-- AI opponents with diplomacy
-- Resource system: gold, food, wood, stone, steel, science
-- Save/load support via local storage
-- Background music and sound effects
+- An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
+- 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
+- Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
+- Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
+- Regiments with morale, formations, experience and promotions; merged regiments that fire as one; troops that take ship and cross the sea
+- Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
+- 120 events, four seasons, raiders and tribes, wonders, a market, and a chart of every crown's score through the game
+- Synthesised sound effects, period music, and saves in your browser
 
 ## Tech Stack
 
-Single-file HTML/JS/CSS application using Canvas 2D rendering. Hex tile sprites from a flat-top isometric tile pack.
+One HTML file of JavaScript and CSS drawing on a Canvas 2D map. The art is our own engraving-style figures, towns and map symbols.
 
 ## Changelog
+
+The full history is in the game (pause menu, Update Log). The entries below are the oldest ones.
+
 
 ### Beta 4.0 — 2026-04-15
 - **Feature**: Right-click to move units — select a unit then right-click any tile to move there instantly; right-click an enemy to attack; out-of-range right-click sets a go-to order; cursor turns to crosshair when a unit with moves is selected
 - **Feature**: Responsive topbar — collapses resource labels at narrow widths, wraps to two rows on tablet-sized windows, abbreviates button text on small screens; panels adjust position dynamically
-- **Feature**: Screenshot export — 📷 button in the topbar saves the current map view as a PNG
+- **Feature**: Screenshot export — screenshot button in the topbar saves the current map view as a PNG
 - **Balance**: Production and building costs scale with city count — each additional city raises all costs by 20% (2 cities = 1.2×, 3 = 1.4×, etc.); event resource costs follow the same scaling
 - **Balance**: Melee (non-ranged) units must be adjacent to an enemy to attack
 - **Fix**: Pastures no longer require a herd tile — buildable on any valid terrain with Animal Husbandry
