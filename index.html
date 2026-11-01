@@ -1071,6 +1071,7 @@
         - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
         - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
+        - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2142,6 +2143,7 @@
           - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
           - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
+          - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -3342,6 +3344,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;">Auto Next Unit</span>
         <button class="esc-btn" id="autoNextUnitBtn" onclick="toggleAutoNextUnit()" style="width:auto;margin:0;padding:6px 18px;">On</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:15px;" title="The battles of the other crowns' turns. Space or Esc skips the rest of a replay">Their battles</span>
+        <select class="setup-input" style="width:auto;" onchange="try{localStorage.setItem('sis_replay',this.value)}catch(e){}" id="replayModeSel"><option value="show">Shown</option><option value="quick">Quick</option><option value="mine">Only yours</option></select>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;">Tips</span>
@@ -4912,11 +4918,19 @@ async function replayBattleEvents() {
   animationBlocking = true; animBlockStart = Date.now();
   // (frames drawn throughout, so the lunges, flinches and falls play out rather than being caught in a single still)
   requestAnimationFrame(function replayFrame() { if (!battleReplayActive) return; render(); requestAnimationFrame(replayFrame); });
-  const events = [...battleEvents];
+  // (Options: their battles shown, quick, or only those you fight in; Space or Esc skips the rest of a replay)
+  let mode = 'show'; try { mode = localStorage.getItem('sis_replay') || 'show'; } catch (e) {}
+  const events = battleEvents.filter(e => mode !== 'mine' || e.attackerNationId === playerNation || e.defenderNationId === playerNation);
   battleEvents = [];
-  const fast = events.length > 4; // a busy turn of fighting plays out briskly
+  if (!events.length) { battleReplayActive = false; animationBlocking = animatingUnits.length > 0; return; }
+  const fast = mode === 'quick' || events.length > 4; // a busy turn of fighting plays out briskly
+  window._skipReplay = false;
+  const skipKey = e => { if (e.key === ' ' || e.key === 'Escape') { window._skipReplay = true; e.preventDefault(); e.stopImmediatePropagation();
+    if (camPanCallback) { const cb = camPanCallback; camPanCallback = null; targetCamX = null; targetCamY = null; cb(); } } };   // (a pan under way ends where it is)
+  document.addEventListener('keydown', skipKey, true);
   try {
     for (const evt of events) {
+      if (window._skipReplay) break;
       animBlockStart = Date.now(); // still replaying, not stuck
 
       // pan only when the fight is off screen (or near its edge)
@@ -4924,6 +4938,7 @@ async function replayBattleEvents() {
       if (sp.x < m || sp.y < m || sp.x > viewW - m || sp.y > viewH - m) {
         await new Promise(resolve => { panCameraTo(evt.defenderX, evt.defenderY, resolve); });
       }
+      if (window._skipReplay) break;
 
       await new Promise(r => setTimeout(r, fast ? 80 : 200));
 
@@ -4937,6 +4952,7 @@ async function replayBattleEvents() {
       // (the attack itself, played out where it was fought)
       attackFx(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, evt.attackerType, evt.defenderType, evt.attackerNationId, evt.defenderNationId, evt.isRanged, evt.defenderDied, evt.attackerDied);
       await new Promise(r => setTimeout(r, fast ? 300 : 560));
+      if (window._skipReplay) break;
 
       if (evt.defenderDied) {
         spawnDeathParticles(evt.defenderX, evt.defenderY, nations[evt.defenderNationId]?.color || '#d0603e');
@@ -4953,6 +4969,7 @@ async function replayBattleEvents() {
   } catch(e) {
     console.error('Battle replay error:', e);
   }
+  document.removeEventListener('keydown', skipKey, true);
   battleReplayActive = false;
   animationBlocking = animatingUnits.length > 0; // (a victor still stepping into its ground keeps the lock until it's there)
 }
@@ -18342,6 +18359,7 @@ function showOptionsPanel() {
   document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
   document.getElementById('autoNextUnitBtn').textContent = autoNextUnit ? 'On' : 'Off';
   document.getElementById('escVolumes').innerHTML = volumeSlidersHtml();
+  try { document.getElementById('replayModeSel').value = localStorage.getItem('sis_replay') || 'show'; } catch (e) {}
 }
 function toggleAutoNextUnit() {
   autoNextUnit = !autoNextUnit;
