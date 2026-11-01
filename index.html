@@ -10191,6 +10191,7 @@ function saveVictoryToHistory(type, scoreBreakdown) {
     color: nations[playerNation].color,
     type: type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory',
     turn: turnNumber,
+    start: scenario || null, year: getCurrentYear(),
     score: scoreBreakdown.total,
     cities: scoreBreakdown.cityCount,
     territory: scoreBreakdown.tileCount,
@@ -10223,7 +10224,7 @@ function showVictoryHistory() {
         <span style="color:#d4a856;font-size:14px;font-weight:bold;">${escHtml(v.type || '')}</span>
       </div>
       <div style="font-size:12px;color:#c8b8a0;line-height:1.7;">
-        Score: <strong style="color:#d4a856;">${v.score | 0}</strong> &nbsp;|&nbsp; Turn ${v.turn | 0}<br>
+        Score: <strong style="color:#d4a856;">${v.score | 0}</strong> &nbsp;|&nbsp; Turn ${v.turn | 0}${v.year ? ', ' + (v.year | 0) : ''}${SCENS[v.start] ? ` &nbsp;|&nbsp; begun in ${v.start}` : ''}<br>
         Cities: ${v.cities | 0} &nbsp; Territory: ${v.territory | 0} &nbsp; Techs: ${v.techs | 0}<br>
         Military: ${v.military | 0} &nbsp; Conquests: ${v.conquests | 0}${v.ambitions ? ` &nbsp; Ambitions: ${v.ambitions | 0}` : ''}
       </div>
