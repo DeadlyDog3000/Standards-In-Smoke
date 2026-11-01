@@ -1100,6 +1100,7 @@
         - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
         - A third start, 1700: two wars at once. In the west the Spanish Succession, the Grand Alliance of Britain, Austria and the Dutch (with Marlborough and Prince Eugene) against Louis XIV and the Bourbon king of Spain; in the north Charles XII of Sweden against Peter the Great, Denmark and Saxony. Travendal in 1700, Queen Anne in 1702, Altranstädt in 1706, Poltava in 1709, and the score counted at the Peace of Utrecht in 1714<br>
         - A fourth start, 1740: the Austrian Succession. Frederick seizes Silesia from the young Maria Theresa, France, Bavaria, Spain and Saxony fall on her and Britain and the Dutch stand by her; Mollwitz, the Peace of Breslau, the Second Silesian War, Fontenoy and Hohenfriedberg, and the score counted at Aix-la-Chapelle in 1748<br>
+        - In 1740 games the Guards put Elizabeth on the throne of Russia in 1741<br>
         - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
         - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
         - In 1700 and 1756 the crowns bear the names of their own day, on the map and in the Kingdoms panel: the Dutch Republic, the Electorate of Saxony, Poland-Lithuania, Hanover, the Spanish or Austrian Netherlands<br>
@@ -1146,9 +1147,9 @@
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - The Annals can be copied as text, year by year, to paste wherever you like<br>
-        - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Achievements, kept in your browser across every game: twenty-one of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
@@ -2234,6 +2235,7 @@
           - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
           - A third start, 1700: two wars at once. In the west the Spanish Succession, the Grand Alliance of Britain, Austria and the Dutch (with Marlborough and Prince Eugene) against Louis XIV and the Bourbon king of Spain; in the north Charles XII of Sweden against Peter the Great, Denmark and Saxony. Travendal in 1700, Queen Anne in 1702, Altranstädt in 1706, Poltava in 1709, and the score counted at the Peace of Utrecht in 1714<br>
           - A fourth start, 1740: the Austrian Succession. Frederick seizes Silesia from the young Maria Theresa, France, Bavaria, Spain and Saxony fall on her and Britain and the Dutch stand by her; Mollwitz, the Peace of Breslau, the Second Silesian War, Fontenoy and Hohenfriedberg, and the score counted at Aix-la-Chapelle in 1748<br>
+          - In 1740 games the Guards put Elizabeth on the throne of Russia in 1741<br>
           - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
           - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
           - In 1700 and 1756 the crowns bear the names of their own day, on the map and in the Kingdoms panel: the Dutch Republic, the Electorate of Saxony, Poland-Lithuania, Hanover, the Spanish or Austrian Netherlands<br>
@@ -2280,9 +2282,9 @@
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - The Annals can be copied as text, year by year, to paste wherever you like<br>
-          - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Achievements, kept in your browser across every game: twenty-one of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
@@ -7399,6 +7401,21 @@ function tickScenario1740() {
     if (lost) tell(say, winner, ...losers);
   };
   battle('mollwitz', 1741, pr, [au], 2, '1741: at Mollwitz the Prussian infantry stands when the cavalry runs, and Silesia is won.');
+  if (year >= 1742 && !done.elizabeth) {   // (December 1741: the Guards put Peter the Great's daughter on the throne, and the regent is sent away)
+    done.elizabeth = true;
+    const ru = anyName('Russia'), rg = ru && getNationRuler(ru.id);
+    if (rg && rg.name === 'Anna Leopoldovna, Regent') {
+      const sp = characters.find(c => c.id === rg.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
+      rg.role = 'dowager';
+      const el = createCharacter(ru.id, 'ruler', 'female');
+      Object.assign(el, { name: 'Elizabeth', age: 32, birthTurn: turnNumber - 32 * SEASON_LENGTH * 4, traits: ['pious'], hale: true });
+      ru.rulerId = el.id;
+      const ns = createCharacter(ru.id, 'spouse', 'male'); ns.spouseId = el.id; el.spouseId = ns.id;
+      const h = createCharacter(ru.id, 'heir', 'male'); Object.assign(h, { name: 'Grand Duke Peter', age: 14, birthTurn: turnNumber - 14 * SEASON_LENGTH * 4, parentIds: [el.id], reignName: 'Peter III', hale: true }); el.childIds.push(h.id);
+      const say = "1741: the Guards put Peter the Great's daughter Elizabeth on the throne of Russia, and the regent is sent away.";
+      if (ru.id === playerNation) { showToast(say); annal('T' + say.slice(7)); } else logEvent(say);
+    }
+  }
   if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au); }
   if (year >= 1744 && !done.second) {
     done.second = true;
