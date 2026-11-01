@@ -1082,6 +1082,7 @@
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
         - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
+        - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2156,6 +2157,7 @@
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
           - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
+          - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9663,9 +9665,13 @@ const TEMPERS = {
   expansionist: { name: 'Expansionist', desc: 'Sends out settlers more eagerly than any other crown.', warLine: -60, drift: 0, army: 1, expand: 0.4, wonder: 1 },
   merchant:     { name: 'Merchant',     desc: 'Values trade and good relations; hard to provoke.', warLine: -70, drift: 0.4, army: 0.9, expand: 0, wonder: 1 },
 };
+// (on the map of Europe the crowns have the tempers history gave them)
+const EUROPE_TEMPERS = { 'France': 'warlike', 'Great Britain': 'merchant', 'Austria': 'builder', 'Russia': 'expansionist', 'Prussia': 'warlike', 'Spain': 'builder', 'Sweden': 'warlike',
+  'Ottoman Empire': 'expansionist', 'Kingdom of Naples': 'merchant', 'Bavaria': 'builder', 'Kingdom of Italy': 'builder', 'Portugal': 'merchant', 'Kingdom of Holland': 'merchant',
+  'Denmark-Norway': 'merchant', 'Duchy of Warsaw': 'warlike', 'Kingdom of Saxony': 'builder', 'Swiss Confederation': 'merchant', 'Westphalia': 'builder', 'Duchy of Nassau': 'merchant', 'Belgium': 'merchant' };
 function temperOf(n) {
   if (!n || n.isBarbarian || n.isTribe) return null;
-  if (!n.temper || !TEMPERS[n.temper]) { const k = Object.keys(TEMPERS); n.temper = k[Math.floor(Math.random() * k.length)]; }
+  if (!n.temper || !TEMPERS[n.temper]) { const k = Object.keys(TEMPERS); n.temper = (mapStyle === 'europe' && EUROPE_TEMPERS[n.name]) || k[Math.floor(Math.random() * k.length)]; }
   return TEMPERS[n.temper];
 }
 function aiTurn(nationId) {
