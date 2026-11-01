@@ -7170,7 +7170,7 @@ const EUROPE_1680 = {
   aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Spanish Netherlands', 'Kingdom of Italy': 'Duchy of Milan', 'Westphalia': 'Hanover', 'Kingdom of Naples': 'Naples' },
 };
 // (the names of the day: a historical start's, or 1680's on the map of Europe)
-function curAliases() { return scen()?.aliases || (typeof mapStyle !== 'undefined' && mapStyle === 'europe' ? EUROPE_1680.aliases : null); }
+function curAliases() { if (scen()) return scen().aliases || null; return typeof mapStyle !== 'undefined' && mapStyle === 'europe' ? EUROPE_1680.aliases : null; }   // (1805's own names are the roster's)
 function scen() { return SCENS[scenario] || null; }
 // a crown's name as its own year knew it (the Dutch Republic in 1700 and 1756, not the Kingdom of Holland of 1806); the
 //  game keeps the roster's name underneath, for its own reckonings
