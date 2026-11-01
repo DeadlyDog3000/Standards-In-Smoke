@@ -9845,6 +9845,7 @@ function aiTurn(nationId) {
             n.wantsPeace[otherId] = true;
             // (a crown suing for peace while beaten offers something for it: a share of its treasury)
             n._peaceGold = (severelyOutmatched || starving) ? Math.min(200, Math.round((n.gold || 0) * 0.3)) : 0;
+            if (n._peaceGold < 20) n._peaceGold = 0;   // (a handful of coins isn't worth the mention)
             showToast(`${n.name} seeks peace${n._peaceGold > 0 ? ` and offers ${n._peaceGold} gold` : ""}. Open Kingdoms to respond.`);
           }
         } else {
