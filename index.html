@@ -9037,7 +9037,9 @@ function ambitionOffer(nid) {
   // (offered from the tier reached, never one already fulfilled or already in hand; topped up from the next tier when one runs dry)
   let pool = [];
   for (let t = tier; t <= 3 && pool.length < 3; t++) {
-    const left = AMBITIONS.filter(a => a.tier === t && !done.has(a.id) && !ambitionProgress(nid, a).done).sort(() => Math.random() - 0.5);
+    // (not one that can't be had: a navy for a crown with no town on the coast)
+    const coastal = cities.some(c => c.nationId === nid && hexNeighbors(c.x, c.y).some(nb => tiles[nb.row * MAP_COLS + nb.col]?.type === 0));
+    const left = AMBITIONS.filter(a => a.tier === t && !done.has(a.id) && !ambitionProgress(nid, a).done && (a.id !== 'fleet3' || coastal)).sort(() => Math.random() - 0.5);
     pool = pool.concat(left.slice(0, 3 - pool.length));
   }
   return pool.map(a => a.id);
@@ -9149,7 +9151,7 @@ function updateAmbitionPlaque() {
   if (cur) { const p = ambitionProgress(playerNation, cur); html = `<small>Ambition ${done + 1} of ${AMBITION_WIN}</small><b>${cur.name}</b><span class="amb-bar"><i style="width:${Math.round(100 * p.cur / p.goal)}%"></i></span><em>${p.cur} / ${p.goal}</em>`; }
   else if ((n.ambitionOffer || []).length) html = `<small>Ambitions ${done} of ${AMBITION_WIN}</small><b class="amb-choose">Choose an ambition</b>`;
   else html = `<small>Ambitions ${done} of ${AMBITION_WIN}</small>`;
-  if (el._html !== html) { el._html = html; el.innerHTML = html; }
+  if (el._html !== html) { el._html = html; el.innerHTML = html; el.title = cur ? `${cur.name}: ${cur.desc} Click to see all your ambitions.` : 'Ambitions: the goals your crown has set itself'; }
   el.style.display = '';
   // (on a phone the top bar is several rows tall: the plaque sits just under it, at the left)
   const tb = document.body.classList.contains('mobile-mode') && document.getElementById('topbar');
