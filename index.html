@@ -1037,6 +1037,7 @@
         - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
         - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
         - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
+        - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2085,6 +2086,7 @@
           - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
           - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
           - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
+          - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -7118,8 +7120,25 @@ function stallProduction(city, total) {
   }
 }
 
+// ---- town projects, after Old World: work that never finishes, for a town with nothing better to make. Half its
+//  production a turn becomes gold or learning, or the townsfolk are given a festival (less discontent) ----
+const CITY_PROJECTS = {
+  proj_fair:     { name: 'Trade Fair',    desc: 'Half the town\'s production each turn becomes gold.' },
+  proj_learning: { name: 'Learning',      desc: 'Half the town\'s production each turn becomes research.' },
+  proj_festival: { name: 'Festivals',     desc: 'Feasts and processions: 2 less discontent while they last.' },
+};
+const isProject = t => !!(t && CITY_PROJECTS[t]);
+function tickProject(city) {
+  const n = nations[city.nationId]; if (!n) return;
+  const amt = cityBaseProduction(city) * 0.5 * getCityProductionPenalty(city);
+  if (city.producing === 'proj_fair') n.gold = (n.gold || 0) + amt;
+  else if (city.producing === 'proj_learning') { if (n.currentResearch) n.researchProgress = (n.researchProgress || 0) + amt; else n.gold = (n.gold || 0) + amt * 0.5; }
+  // (a project gives way at once to anything queued behind it)
+  if (city.productionQueue && city.productionQueue.length && !isProject(city.productionQueue[0])) { city.producing = city.productionQueue.shift(); city.productionProgress = 0; }
+}
 function tickProduction(city) {
   if (!city.producing) return;
+  if (isProject(city.producing)) { tickProject(city); return; }
   if (!PRODUCTION_COSTS[city.producing] && !CITY_BUILDING_DEFS[city.producing]) {
     city.producing = null; city.productionProgress = 0; return; // unknown type — clear to prevent infinite loop
   }
@@ -7221,7 +7240,7 @@ function getRushCost(nationId) {
 }
 
 window.rushProduce = function() {
-  if (!selectedCity || !selectedCity.producing) return;
+  if (!selectedCity || !selectedCity.producing || isProject(selectedCity.producing)) return;
   if (selectedCity.nationId !== playerNation) return;
   const n = nations[selectedCity.nationId];
   const cost = getRushCost(selectedCity.nationId);
@@ -8814,6 +8833,7 @@ function openManual(tab) {
   } else if (T === 'buildings') {
     body = Object.entries(CITY_BUILDING_DEFS).map(([k, b]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(b.name)}</b>${b.wonder ? ' <span class="man-tag">wonder, one in all the world</span>' : ''}
       <p>${escHtml(b.desc)}</p><p class="man-dim">Costs ${costStr(PRODUCTION_COSTS[k])}${b.requires ? ` · needs ${escHtml(CITY_BUILDING_DEFS[b.requires]?.name || b.requires)}` : ''}</p></div></div>`).join('');
+    body += `<div class="section-title">Projects</div>` + Object.values(CITY_PROJECTS).map(pj => `<div class="man-row man-text"><div><b class="man-name">${escHtml(pj.name)}</b><p>${escHtml(pj.desc)} A project never finishes; anything else you choose takes over.</p></div></div>`).join('');
   } else if (T === 'improvements') {
     body = Object.entries(IMPROVEMENT_DEFS).map(([k, d]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(d.name)}</b>
       <p>Yields ${Object.entries(d.yields || {}).map(([r, v]) => `+${v} ${r}`).join(', ') || 'no goods'} a turn${d.desc ? '. ' + escHtml(d.desc) : ''}</p>
@@ -10234,6 +10254,7 @@ function getCityDiscontent(city) {
     order += v; orderFactors.push({ label: `Fortifications`, val: v });
   }
   if (bld.includes('granary')) { order += 0.5; orderFactors.push({ label: 'Granary', val: 0.5 }); }
+  if (city.producing === 'proj_festival') { order += 2; orderFactors.push({ label: 'Festivals', val: 2 }); }
   if (nationHasWonder(city.nationId, 'grand_cathedral')) { order += 1.5; orderFactors.push({ label: 'Grand Cathedral', val: 1.5 }); }
 
   const garrison = units.find(u => u.x === city.x && u.y === city.y && u.nationId === city.nationId && UNIT_DEFS[u.type]?.combat);
@@ -16470,7 +16491,7 @@ function showCityPanel(city) {
   if (city.producing) {
     const bld = CITY_BUILDING_DEFS[city.producing];
     const prodName = bld ? bld.name : city.producing.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-    prodStr = `${prodName} (${getProductionTurns(city)} turns)`;
+    prodStr = isProject(city.producing) ? `${CITY_PROJECTS[city.producing].name} (a project)` : `${prodName} (${getProductionTurns(city)} turns)`;
   }
   const renameBtn = city.nationId === playerNation ? ` <button onclick="renameCity()" style="font-size:11px;padding:2px 8px;background:rgba(160,140,100,0.2);border:1px solid rgba(160,140,100,0.3);color:#c8b8a0;border-radius:4px;cursor:pointer;vertical-align:middle;" title="Rename city">Rename</button>` : '';
   // the town's own engraving at the head of its page
@@ -16502,7 +16523,7 @@ function showCityPanel(city) {
   const bldgs = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]).filter(Boolean);
   if (bldgs.length > 0) html += `<div style="margin-top:3px;font-size:11px;color:#8ab;">${bldgs.map(b => `${b.icon} ${b.name}`).join(' &bull; ')}</div>`;
   html += `</div>`;
-  if (city.producing && city.nationId === playerNation) {
+  if (city.producing && city.nationId === playerNation && !isProject(city.producing)) {
     const rushCost = getRushCost(city.nationId);
     const canRush = nations[city.nationId].gold >= rushCost;
     html += `<button class="p-btn" onclick="rushProduce()" ${!canRush ? 'disabled' : ''}>Rush Produce <span class="cost">${rushCost} gold</span></button>`;
@@ -16595,6 +16616,12 @@ function showCityTab(tab) {
         html += `<button class="p-btn" onclick="setProd('${key}')" style="${wonderStyle}">${bld.icon} ${bld.name} <span class="cost">${costStr}</span></button>`;
         html += `<p style="font-size:10px;color:#c8b070;margin:-4px 0 4px 8px;">${bld.desc}</p>`;
       }
+    }
+    html += '<div class="section-title">Projects <span style="font-size:10px;color:#998;">(never finish; anything else you choose takes over)</span></div>';
+    for (const [key, pj] of Object.entries(CITY_PROJECTS)) {
+      const active = selectedCity.producing === key;
+      html += `<button class="p-btn" onclick="setProd('${key}')" ${active ? 'style="border-color:#d4a856"' : ''}>${pj.name}${active ? ' <span class="cost">under way</span>' : ''}</button>`;
+      html += `<p style="font-size:10px;color:#998;margin:-4px 0 4px 8px;">${pj.desc}</p>`;
     }
     if (cityBuildings.length > 0) {
       html += '<div class="section-title">Built</div>';
@@ -16902,6 +16929,10 @@ function setProd(type) {
     showToast(`${bld.name} is already in the production queue.`); return;
   }
   if (!selectedCity.productionQueue) selectedCity.productionQueue = [];
+  // (a project is replaced, not queued behind: it never finishes)
+  if (isProject(type) || isProject(selectedCity.producing)) {
+    if (isProject(selectedCity.producing) || !selectedCity.producing) { if (!isProject(type) && isUnitProd(type) && !prodPrepay(selectedCity, type)) { prodRefuse(selectedCity, type); return; } selectedCity.producing = type; selectedCity.productionProgress = 0; showCityPanel(selectedCity); updateUI(); return; }
+  }
   if (selectedCity.producing && selectedCity.productionQueue.length >= 3) { showToast('Production queue is full (max 3).'); return; }
   if (isUnitProd(type)) { if (!prodPrepay(selectedCity, type)) { prodRefuse(selectedCity, type); return; } SMK.coins(3); updateUI(); }
   if (selectedCity.producing) {
@@ -16921,6 +16952,7 @@ function setProd(type) {
 function getProductionName(type) {
   const bld = CITY_BUILDING_DEFS[type];
   if (bld) return bld.name;
+  if (isProject(type)) return CITY_PROJECTS[type].name;
   return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
@@ -19769,7 +19801,7 @@ window.toggleEmpirePanel = function() {
     const y = getCityYields(c), mood = getCityLoyaltyStatus(c), surplus = y.food - getCityFoodUpkeep(c);
     tot.gold += y.gold || 0; tot.food += surplus; tot.science += y.science || 0; tot.pop += c.population || 1;
     const guards = units.filter(u => u.nationId === playerNation && u.x === c.x && u.y === c.y && UNIT_DEFS[u.type]?.combat).length;
-    const prod = c.producing ? `${escHtml(getProductionName(c.producing))} <span class="emp-dim">${getProductionTurns(c)}t</span>` : '<span class="emp-warn">nothing</span>';
+    const prod = c.producing ? `${escHtml(getProductionName(c.producing))} <span class="emp-dim">${isProject(c.producing) ? 'project' : getProductionTurns(c) + 't'}</span>` : '<span class="emp-warn">nothing</span>';
     return `<tr onclick="window._empireGo(${c.x},${c.y})">
       <td><b>${escHtml(c.name)}</b>${c.isCapital ? ' <span class="emp-dim">★</span>' : ''}</td>
       <td>${c.population || 1}</td>
