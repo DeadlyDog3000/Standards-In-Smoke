@@ -88,7 +88,7 @@ The full history is in the game (pause menu, Update Log). The entries below are 
 - **Feature**: World map — all 21 nations now placed at historically accurate world-scale coordinates (formula: xFrac = (lon+180)/360, yFrac = (80-lat)/140); new World (600×360) map size added and set as default
 - **Feature**: 22 tribal/non-state peoples — Iroquois Confederacy, Cherokee Nation, Sioux Nation, Comanche, Maya, Andean Tribes, Mapuche, Guaraní, Ashanti Empire, Oyo Empire, Zulu Kingdom, Kingdom of Kongo, Ethiopian Empire, Tuareg Confederacy, Qing China, Japanese Shogunate, Maratha Confederacy, Qajar Persia, Kazakh Khanate, Hawaiian Kingdom, Maori Confederation, Aboriginal Australia — each spawned at a historically proportional world position with a settlement and 3 tribal warriors
 - **Feature**: Tribal nation diplomacy — tribes start **neutral** (not at war); discover them by sight; open Kingdoms panel to **Send Envoy** (costs 20g, establishes peace) or **Declare War**; tribes defend their settlement but never expand; shown in a dedicated "Tribal Nations" section in the Kingdoms panel
-- **Feature**: New `tribal_warrior` unit (5 ATK, 10 HP, 4 moves, 🏹) used by all tribal peoples
+- **Feature**: New `tribal_warrior` unit (5 ATK, 10 HP, 4 moves) used by all tribal peoples
 - **Feature**: Barbarians still spawn independently from tribes as before
 
 ### Beta 2.9 — 2026-04-13
