@@ -19597,6 +19597,8 @@ window._empireUnit = function (i) {
   document.getElementById('empirePanel')?.remove();
   panCameraTo(u.x, u.y); selectedCity = null; selectedUnit = u; showUnitPanel(u); updateUI(); render();
 };
+// (on a phone the top bar is several rows tall: the panel opens below it)
+function empirePanelPlace(el) { const tb = document.body.classList.contains('mobile-mode') && document.getElementById('topbar'); if (tb) { const t = Math.round(tb.getBoundingClientRect().bottom + 6); el.style.top = t + 'px'; el.style.maxHeight = `calc(100vh - ${t + 10}px)`; } }
 window._empireTab = function (tab) { window._empTab = tab; document.getElementById('empirePanel')?.remove(); toggleEmpirePanel(); };
 window.toggleEmpirePanel = function() {
   const old = document.getElementById('empirePanel');
@@ -19605,7 +19607,7 @@ window.toggleEmpirePanel = function() {
     const el = document.createElement('div'); el.id = 'empirePanel';
     const n = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
     el.innerHTML = `<div class="emp-head"><h3>Empire</h3><span class="emp-tabs"><button onclick="_empireTab('cities')">Cities</button><button class="on">Regiments</button></span><span class="emp-dim">${n} ${n === 1 ? 'regiment' : 'regiments'}</span></div>` + empireRegimentsHtml();
-    document.body.appendChild(el); return;
+    document.body.appendChild(el); empirePanelPlace(el); return;
   }
   const mine = cities.filter(c => c.nationId === playerNation && !c.ruined);
   const el = document.createElement('div'); el.id = 'empirePanel';
@@ -19629,7 +19631,7 @@ window.toggleEmpirePanel = function() {
   }).join('');
   el.innerHTML = `<div class="emp-head"><h3>Empire</h3><span class="emp-tabs"><button class="on">Cities</button><button onclick="_empireTab('regiments')">Regiments</button></span><span class="emp-dim">${mine.length} ${mine.length === 1 ? 'city' : 'cities'} · ${tot.pop} people · food ${tot.food >= 0 ? '+' : ''}${tot.food.toFixed(1)} · gold +${tot.gold.toFixed(1)} · science +${tot.science.toFixed(1)} a turn</span><button class="diplo-btn" onclick="toggleEmpirePanel()">Close</button></div>
     <table><thead><tr><th>City</th><th>Pop</th><th>Mood</th><th>Food</th><th>Gold</th><th>Science</th><th>Building</th><th>Guards</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="emp-dim">No cities yet.</td></tr>'}</tbody></table>`;
-  document.body.appendChild(el);
+  document.body.appendChild(el); empirePanelPlace(el);
 };
 window._empireGo = function(x, y) {
   document.getElementById('empirePanel')?.remove();
