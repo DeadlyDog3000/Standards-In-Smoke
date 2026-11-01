@@ -961,7 +961,7 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Start</span>
-          <select id="setupStart" class="setup-input" style="width:180px;" title="1805: the map of Europe in the year of Austerlitz, the great crowns armed and the Third Coalition already at war with France">
+          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="1805: the map of Europe in the year of Austerlitz, the great crowns armed and the Third Coalition already at war with France">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1805">1805: the Coalition</option>
           </select>
@@ -1106,6 +1106,7 @@
         - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
+        - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2192,6 +2193,7 @@
           - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
+          - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4148,6 +4150,14 @@ const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const START_YEAR = 1680;
 let scenario = null, startYear = START_YEAR;   // (the 1805 start begins its calendar there; both saved with the game)
 const TURNS_PER_YEAR = 32;
+// the setup's 'Score counted at' choices: turns for a new crown, years for 1805 (four turns a year, so turn 41 is 1815)
+function setupScoreChoices() {
+  const sel = document.getElementById('setupScoreTurn'); if (!sel) return;
+  const y1805 = document.getElementById('setupStart')?.value === '1805';
+  sel.innerHTML = (y1805 ? [[41, '1815: Congress of Vienna', 1], [81, '1825'], [0, 'Never (play on)']]
+    : [[200, 'Turn 200', 1], [300, 'Turn 300'], [0, 'Never (play on)']]).map(([v, l, on]) => `<option value="${v}"${on ? ' selected' : ''}>${l}</option>`).join('');
+}
+window.setupScoreChoices = setupScoreChoices;
 function getCurrentYear() { return startYear + Math.floor((turnNumber - 1) / (SEASON_LENGTH * 4)); }
 const SEASON_EFFECTS = {
   spring: { foodMult: 1.2, moveMod: 0, attrition: false, icon: '\uD83C\uDF31', desc: 'Fertile season, +20% food' },
@@ -9436,7 +9446,7 @@ function showVictory(type) {
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `${scenario === '1805' ? 'The year ' + getCurrentYear() : 'Turn ' + (scoreTurnLimit || turnNumber)} reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
+  const desc = type === 'score' ? `${scenario === '1805' ? (getCurrentYear() === 1815 ? 'It is 1815, and the Congress of Vienna meets.' : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
     : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
     : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
@@ -9607,7 +9617,7 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `Turn ${scoreTurnLimit || turnNumber} reached. <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
+    desc = `${scenario === '1805' ? (getCurrentYear() === 1815 ? 'It is 1815, and the Congress of Vienna meets.' : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
     desc = `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has been conquered. Your civilization is no more.`;
