@@ -4478,7 +4478,7 @@ function tickCharacterAging() {
     const sp = characters.find(c => c.id === r.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
     r.role = 'dowager'; delete r.regent;
     heir.role = 'ruler'; nations[r.nationId].rulerId = heir.id;
-    const was = heir.name; if (heir.reignName) { heir.name = heir.reignName; delete heir.reignName; }
+    const was = heir.name; crownName(heir);
     const as = was !== heir.name ? ` as ${heir.name}` : '';
     const ns = createCharacter(r.nationId, 'spouse', heir.gender === 'male' ? 'female' : 'male'); heir.spouseId = ns.id; ns.spouseId = heir.id;
     if (r.nationId === playerNation) unlockAchievement('crowned');
@@ -4508,6 +4508,11 @@ function tickCharacterAging() {
   }
 }
 
+// an heir crowned: the regnal name history gave, or else the name without the prince's title
+function crownName(c) {
+  if (c.reignName) { c.name = c.reignName; delete c.reignName; return; }
+  c.name = c.name.replace(/^(Crown Prince|Crown Princess|Prince|Princess|Grand Duke|Grand Duchess|Archduke|Archduchess) /, '').replace(/, (Dauphin of France|Prince of Wales|Prince of Asturias|Duke of Calabria|King of Rome)$/, '');
+}
 function characterDeath(character) {
   character.deathTurn = turnNumber;
   const nationId = character.nationId;
@@ -4527,7 +4532,7 @@ function characterDeath(character) {
       if (!heir && characters.some(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn)) next.regent = true;
       next.role = 'ruler';
       nations[nationId].rulerId = next.id;
-      const was = next.name; if (next.reignName) { next.name = next.reignName; delete next.reignName; }   // (a prince crowned takes his regnal name)
+      const was = next.name; if (heir) crownName(next);   // (a prince crowned takes his regnal name)
       const as = was !== next.name ? ` as ${next.name}` : '';
       const reg = next.regent ? ', as regent until the heir comes of age' : '';
       if (nationId === playerNation && heir) unlockAchievement('crowned');
@@ -6971,7 +6976,7 @@ const SCEN_1756 = {
   rulers: {
     'Prussia': ['Frederick II', 'male', 44, ['martial', 'brilliant'], 'Elisabeth Christine of Brunswick', 40, ['Prince Augustus William', 'male', 34]],
     'Great Britain': ['George II', 'male', 72, ['martial'], null, 0, ['George, Prince of Wales', 'male', 18, 'George III']],
-    'France': ['Louis XV', 'male', 46, ['charismatic', 'corrupt'], 'Marie Leszczyńska', 53, ['Louis, Dauphin of France', 'male', 26]],
+    'France': ['Louis XV', 'male', 46, ['charismatic', 'corrupt'], 'Marie Leszczyńska', 53, ['Louis, Dauphin of France', 'male', 26, 'Louis XVI']],
     'Austria': ['Maria Theresa', 'female', 39, ['industrious', 'charismatic'], 'Francis I', 47, ['Archduke Joseph', 'male', 15, 'Joseph II']],
     'Russia': ['Elizabeth', 'female', 46, ['pious'], null, 0, ['Grand Duke Peter', 'male', 28, 'Peter III']],
     'Sweden': ['Adolf Frederick', 'male', 45, ['frugal'], 'Louisa Ulrika of Prussia', 36, ['Crown Prince Gustav', 'male', 10, 'Gustav III']],
