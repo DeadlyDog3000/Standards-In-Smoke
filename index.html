@@ -6990,7 +6990,7 @@ function apply1805() {
   const scoreYear = startYear + Math.floor((scoreTurnLimit - 1) / (SEASON_LENGTH * 4));
   const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === 1815 ? 'at the Congress of Vienna, in 1815' : 'in ' + scoreYear}.` : '';
   // (the year laid before the player on a card, and written in the log)
-  logEvent(say + when);
+  setTimeout(() => logEvent(say + when), 0);   // (after the game's own first line, 'You are ...')
   const myRuler = getNationRuler(playerNation), myCap = cities.find(c => c.nationId === playerNation && c.isCapital);
   const brief = `${myRuler ? `${myRuler.name} reigns${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${say.replace(/^It is 1805\. /, '')}${when} History will move as it did, if the crowns are still placed for it: Prussia's war in 1806, Tilsit in 1807, Spain's rising in 1808, and the coalitions after.`;
   setTimeout(() => { if (!window.__film) scenChoice('Europe, 1805', brief, [['To work', () => {}]]); }, 900);
