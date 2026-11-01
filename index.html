@@ -1142,6 +1142,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+        - History's other turns of the crown: George II dies in 1760, Charles IV gives up the throne of Spain to Ferdinand VII in 1808, and a prince crowned without a regnal name drops his title<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2258,6 +2259,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+          - History's other turns of the crown: George II dies in 1760, Charles IV gives up the throne of Spain to Ferdinand VII in 1808, and a prince crowned without a regnal name drops his title<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4508,6 +4510,19 @@ function tickCharacterAging() {
   }
 }
 
+// a ruler gives up the throne alive: the eldest grown heir is crowned (nothing happens without one)
+function abdicate(nationId) {
+  const r = getNationRuler(nationId), heir = characters.filter(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn && c.age >= 16).sort((a, b) => b.age - a.age)[0];
+  if (!r || !heir) return false;
+  const sp = characters.find(c => c.id === r.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
+  r.role = 'dowager';
+  heir.role = 'ruler'; nations[nationId].rulerId = heir.id;
+  const was = heir.name; crownName(heir);
+  const ns = createCharacter(nationId, 'spouse', heir.gender === 'male' ? 'female' : 'male'); heir.spouseId = ns.id; ns.spouseId = heir.id;
+  const say = `${r.name} gives up the throne, and ${was} is crowned${was !== heir.name ? ' as ' + heir.name : ''}.`;
+  if (nationId === playerNation) { showToast(say); annal(say); } else if (discoveredNations.has(nationId)) logEvent(`News from ${nations[nationId].name}: ${say}`);
+  return true;
+}
 // an heir crowned: the regnal name history gave, or else the name without the prince's title
 function crownName(c) {
   if (c.reignName) { c.name = c.reignName; delete c.reignName; return; }
@@ -7154,7 +7169,13 @@ function tickScenario() {
     for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[fr.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
     showToast(say); annal(say.replace(/^\d{4}: /, '')); return true;
   };
-  if (year >= 1808 && !done.spain) { done.spain = true; turnOnFrance(byName('Spain'), '1808: Spain rises against the French, and Britain sends an army to help.'); }
+  if (year >= 1808 && !done.spain) {
+    done.spain = true;
+    const es = byName('Spain');
+    // (Charles IV abdicates at Aranjuez, and his son reigns as Ferdinand VII)
+    if (es && getNationRuler(es.id)?.name === 'Charles IV') abdicate(es.id);
+    turnOnFrance(es, '1808: Spain rises against the French, and Britain sends an army to help.');
+  }
   if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
   if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
   if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
