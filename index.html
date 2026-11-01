@@ -9347,6 +9347,12 @@ function openChronicle(all) {
   });
 }
 window.openChronicle = openChronicle;
+// (Esc closes the chronicle and the ambitions, as it does the Field Manual, before it opens the pause menu)
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const top = document.getElementById('chronicleOverlay') || document.getElementById('ambitionOverlay');
+  if (top) { top.remove(); e.stopImmediatePropagation(); e.preventDefault(); }
+}, true);
 
 // ---- the Field Manual: what every regiment, building, improvement, promotion and ambition does, as an Old World
 //  encyclopedia; from the pause menu or the I key ----
