@@ -18621,6 +18621,8 @@ function bfsPath(sx, sy, ex, ey, unitType, nationId) {
     }
     return top;
   };
+  // (a land march keeps to the land when the land goes there: the sea is taken only to reach another shore)
+  const sea = !UNIT_DEFS[unitType]?.naval && tiles[start].type !== 0 && tiles[end].type !== 0 && landmassAt(sx, sy) === landmassAt(ex, ey) ? 8 : 0;
   while (heap.length > 0) {
     const { k: key, c: curCost } = heapPop();
     if (key === end) break;
@@ -18631,7 +18633,7 @@ function bfsPath(sx, sy, ex, ey, unitType, nationId) {
       if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) continue;
       const nk = ny * MAP_COLS + nx;
       if (!unitCanTraverse(unitType, tiles[nk].type, nationId, nx, ny)) continue;
-      const stepCost = getMoveCost(cx, cy, nx, ny, unitType);
+      const stepCost = getMoveCost(cx, cy, nx, ny, unitType) + (sea && tiles[nk].type === 0 ? sea : 0);
       const nd = curCost + stepCost;
       if (nd >= (cost.get(nk) ?? Infinity)) continue;
       cost.set(nk, nd);
