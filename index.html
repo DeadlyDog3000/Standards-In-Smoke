@@ -18047,7 +18047,8 @@ function toggleDiploLens() {
   if (diploLens) {
     const lg = document.createElement('div'); lg.id = 'diploLegend';
     lg.innerHTML = [['mine', 'Your lands'], ['ally', 'Allies'], ['war', 'At war'], ['peace', 'At peace']].map(([k, l]) => `<span><i style="background:${LENS[k]}"></i>${l}</span>`).join('') + '<button onclick="toggleDiploLens()" title="Back to every crown in its own colour">Close</button>';
-    lg.style.top = ((document.getElementById('topbar')?.offsetHeight || 60) + 40) + 'px';   // (below the top bar and the ambition plaque, however tall the bar wraps)
+    const plq = document.getElementById('ambitionPlaque'), below = Math.max(document.getElementById('topbar')?.offsetHeight || 60, plq && plq.getClientRects().length ? plq.getBoundingClientRect().bottom : 0);
+    lg.style.top = (below + 8) + 'px';   // (below the top bar and the ambition plaque, however tall the bar wraps)
     document.body.appendChild(lg);
   }
   if (document.getElementById('kingdoms')?.style.display !== 'none') renderKingdoms();
