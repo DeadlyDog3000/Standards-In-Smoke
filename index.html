@@ -1108,6 +1108,7 @@
         - The annals use the names of the day too: Poland-Lithuania and Hanover declare war, not the Duchy of Warsaw and Westphalia<br>
         - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
         - Fix: in a historical start the crowned heads of the year no longer die of old age before the peace (Catherine the Great could die in 1793); those who died in those years die when they did<br>
+        - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2259,6 +2260,7 @@
           - The annals use the names of the day too: Poland-Lithuania and Hanover declare war, not the Duchy of Warsaw and Westphalia<br>
           - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
           - Fix: in a historical start the crowned heads of the year no longer die of old age before the peace (Catherine the Great could die in 1793); those who died in those years die when they did<br>
+          - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -5115,6 +5117,21 @@ function spawnFallenFigure(col, row, type, nid, fallRight, delay = 0) {
 }
 
 let battleReplayActive = false;
+// your own attack is watched to its end before the game goes on: the lunge or the volley, the smoke, and any who fall
+//  (the next regiment is chosen, and clicks and keys are taken, only once it has played out; a second at most)
+let attackHold = false;
+function afterAttack(then) {
+  attackHold = true; animationBlocking = true; animBlockStart = Date.now();
+  const t0 = Date.now();
+  (function frame() {
+    render();
+    const el = Date.now() - t0, falling = particles.some(p => p.kind === 'fall' && Date.now() < p.startTime + p.duration);
+    if (el < 650 || (falling && el < 1500)) { requestAnimationFrame(frame); return; }
+    attackHold = false;
+    if (!battleReplayActive && animatingUnits.length === 0) animationBlocking = false;
+    try { then && then(); } catch (e) { console.error(e); }
+  })();
+}
 function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType, defenderType, dmgToDefender, dmgToAttacker, defenderDied, attackerDied, attackerNationId, defenderNationId, isRanged) {
 
   const aTile = tiles[attackerY * MAP_COLS + attackerX];
@@ -12368,7 +12385,7 @@ function hitFamilyOpinion(nationId, amount) {
 
 function endTurn() {
   if (document.getElementById('victoryOverlay') || document.getElementById('defeatOverlay')) return;
-  if (battleReplayActive) return;
+  if (battleReplayActive || attackHold) return;   // (not while your attack is still being fought out)
   if (window._endTurnBusy) return;
   window._endTurnBusy = true;
   SMK.seal();
@@ -18191,6 +18208,7 @@ function unitAwaitsOrders(u) {
   return u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore && ordersRemaining > 0;
 }
 function cycleToNextUnit(force = false) {
+  if (attackHold) return false;
   if (!force && !autoNextUnit) return;
   const all = units.filter(u => u.nationId === playerNation && u.movesLeft > 0 && u.gotoX === undefined && !u.building && !u.fortified && !u.automated && !u.autoExplore);
   const available = all.filter(u => u !== selectedUnit);
@@ -20591,7 +20609,7 @@ canvas.addEventListener('contextmenu', (e) => {
 canvas.addEventListener('click', (e) => {
   if (dragMoved) { dragMoved = false; return; }
 
-  if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive) animationBlocking = false;
+  if (animationBlocking && animatingUnits.length === 0 && !battleReplayActive && !attackHold) animationBlocking = false;
   if (animationBlocking && Date.now() - animBlockStart > 8000) {
     // something really is stuck: let go cleanly (the units drawn where they stand, the march sound stopped)
     for (const a of animatingUnits) { a.unit._animating = false; a.unit._animX = undefined; a.unit._animY = undefined; }
@@ -20756,7 +20774,15 @@ canvas.addEventListener('click', (e) => {
         moveMode = false; reachableTiles.clear(); render(); return;
       }
       if (willAttack) {
-        doAttack(selectedUnit, mx, my);
+        const att = selectedUnit;
+        doAttack(att, mx, my);
+        moveMode = false; reachableTiles.clear(); updateUI(); render();
+        afterAttack(() => {
+          if (att && units.includes(att) && att.movesLeft > 0) { selectedUnit = att; showUnitPanel(att); }
+          else cycleToNextUnit();
+          updateUI(); render();
+        });
+        return;
       } else if (units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u !== selectedUnit)) {
 
         const otherUnit = units.find(u => u.x === mx && u.y === my && u.nationId === playerNation && u !== selectedUnit);
@@ -21037,7 +21063,7 @@ function getHexesInRange(cx, cy, range) {
 let lastAnimTime = 0;
 let _animTicking = false;
 function animationTick(timestamp) {
-  if (animatingUnits.length === 0) { _animTicking = false; if (!battleReplayActive) animationBlocking = false; return; }
+  if (animatingUnits.length === 0) { _animTicking = false; if (!battleReplayActive && !attackHold) animationBlocking = false; return; }
   const dt = lastAnimTime ? (timestamp - lastAnimTime) / 1000 : 0.016;
   lastAnimTime = timestamp;
   const speed = window.__animSpeed || 6; // (hexes a second; slower when filming)
@@ -21069,7 +21095,7 @@ function animationTick(timestamp) {
   }
   render();
   if (animatingUnits.length > 0) requestAnimationFrame(animationTick);
-  else { _animTicking = false; if (!battleReplayActive) animationBlocking = false; lastAnimTime = 0; }
+  else { _animTicking = false; if (!battleReplayActive && !attackHold) animationBlocking = false; lastAnimTime = 0; }
 }
 
 let marchTrails = [];
@@ -21146,6 +21172,7 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (_inInput) return;
+  if (attackHold) { e.preventDefault(); return; }   // (orders wait while your attack plays out)
 
   if (escMenuOpen || eventModalOpen || document.getElementById('warDeclOverlay') || document.getElementById('idleCitiesPopup') || document.getElementById('noResearchPopup') || document.getElementById('scenOverlay')) return;
 
@@ -21374,8 +21401,8 @@ window.doRangedAttack = function(tx, ty) {
   }
   rangedMode = false;
   playCombatSound(selectedUnit.type);
-  cycleToNextUnit();
   updateUI(); render();
+  afterAttack(() => { cycleToNextUnit(); updateUI(); render(); });
 };
 
 window.enterGotoMode = function() {
