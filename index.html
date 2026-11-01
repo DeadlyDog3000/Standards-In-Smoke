@@ -1070,6 +1070,7 @@
         - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
         - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
         - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2140,6 +2141,7 @@
           - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
           - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
           - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9691,7 +9693,9 @@ function aiTurn(nationId) {
         ? Math.max(3, Math.round(aiCityCount * (3 - 1.5 * playerProgress())))   // (bolder against a realm far ahead)
         : Math.max(2, aiCityCount);
 
-      const peaceUntil = n._peaceCooldown?.[otherId] || 0;
+      // (the opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal, 15 on Hard)
+      const grace = otherId === playerNation ? ({ easy: 40, hard: 15 }[gameDifficulty] ?? 25) : 0;
+      const peaceUntil = Math.max(n._peaceCooldown?.[otherId] || 0, grace);
       if (turnNumber < peaceUntil) {
         // recently made peace; refuse to redeclare for cooldown duration
       } else if (aiArmySize >= minArmyForWar || updatedLoy <= -120) {
