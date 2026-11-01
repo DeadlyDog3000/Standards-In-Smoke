@@ -21556,7 +21556,8 @@ function executePlanOrders() {
 
     if (order.isAttack) {
       if (unit.movesLeft > 0 && canAttack(unit, order.destX, order.destY)) {
-        if (tryActivateUnit(unit, true)) { doAttack(unit, order.destX, order.destY); executed++; }
+        // (each attack is fought out before the next order goes in)
+        if (tryActivateUnit(unit, true)) { doAttack(unit, order.destX, order.destY); executed++; render(); afterAttack(() => runNext(idx + 1)); return; }
       }
       runNext(idx + 1);
     } else {
