@@ -6925,7 +6925,9 @@ function apply1805() {
   const say = mySide === 'c' ? `It is 1805. You stand with the Third Coalition${friends.length ? ` (${listAnd(friends)})` : ''} against France and her allies${foes.length ? `: ${listAnd(foes)}` : ''}.`
     : mySide === 'f' ? `It is 1805. You stand with France${friends.length ? ` (${listAnd(friends)})` : ''} against the Third Coalition${foes.length ? `: ${listAnd(foes)}` : ''}.`
     : `It is 1805. Europe is at war: the Third Coalition against France. Your crown stands apart, for now.`;
-  setTimeout(() => showToast(say), 1200);   // (the toast writes it in the log too)
+  const scoreYear = startYear + Math.floor((scoreTurnLimit - 1) / (SEASON_LENGTH * 4));
+  const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === 1815 ? 'at the Congress of Vienna, in 1815' : 'in ' + scoreYear}.` : '';
+  setTimeout(() => showToast(say + when), 1200);   // (the toast writes it in the log too)
   annal(say.replace(/^It is 1805\. /, ''));
   // (all of the crowns are known to one another in 1805, and Europe is charted to its edges)
   for (const n of crowns) if (n.id !== playerNation) discoveredNations.add(n.id);
