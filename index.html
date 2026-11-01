@@ -6886,7 +6886,7 @@ function tickScenario() {
     if (pr && fr && pr.relations[fr.id] !== 'war') {
       pr.relations[fr.id] = 'war'; fr.relations[pr.id] = 'war';
       for (const n of nations) if (!n.eliminated && SCEN_1805.coalition.includes(n.name) && n.relations[fr.id] === 'war' && n.id !== pr.id && !hasAgreement(n.id, pr.id, 'war_help')) addAgreement(n.id, pr.id, 'war_help');
-      const say = `1806: Prussia joins the Fourth Coalition and declares war on France.`; showToast(say);
+      const say = `1806: Prussia joins the Fourth Coalition and declares war on France.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
     }
   }
   // (a crown turns on France: war with it, and allied to France's other enemies)
@@ -6908,7 +6908,7 @@ function tickScenario() {
       ru.relations[fr.id] = 'peace'; fr.relations[ru.id] = 'peace';
       if (!ru._peaceCooldown) ru._peaceCooldown = {}; if (!fr._peaceCooldown) fr._peaceCooldown = {};
       ru._peaceCooldown[fr.id] = turnNumber + 20; fr._peaceCooldown[ru.id] = turnNumber + 20;
-      const say = `1807: at Tilsit, the Emperor of Russia makes peace with France.`; showToast(say);
+      const say = `1807: at Tilsit, the Emperor of Russia makes peace with France.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
     }
   }
 }
