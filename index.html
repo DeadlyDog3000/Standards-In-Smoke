@@ -4598,7 +4598,7 @@ function completeElection(nationId, winner, candidates) {
   }
   if (nationId === playerNation) {
     showToast(`${winner.name} elected as new ruler!`); annal(`${winner.name} was chosen to rule.`);
-  }
+  } else if (discoveredNations.has(nationId) && !nations[nationId]?.isTribe) logEvent(`News from ${nations[nationId].name}: the nobles have chosen ${winner.name} to rule.`);
 }
 
 function showElectionModal(nationId, candidates) {
