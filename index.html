@@ -1114,6 +1114,7 @@
         - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
         - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
         - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
+        - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2208,6 +2209,7 @@
           - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
           - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
           - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
+          - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6893,7 +6895,11 @@ function apply1805() {
     }
     const cap = towns.find(c => c.isCapital) || towns[0]; if (!cap) continue;
     const army = great ? ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'] : ['musketeer', 'musketeer', 'hussar', 'field_gun'];
+    // (and the greatest armies of the age besides: the Grande Armée with its marshal, the Tsar's numbers and Cossacks, the Kaiser's whitecoats)
+    army.push(...({ 'France': ['musketeer', 'musketeer', 'grenadier', 'grenadier', 'dragoon', 'heavy_cavalry', 'field_gun', 'general'], 'Russia': ['musketeer', 'musketeer', 'cavalry', 'cavalry'], 'Austria': ['musketeer', 'hussar'] }[n.name] || []).filter(t => UNIT_DEFS[t]));
     for (const t of army) { const p = findLandNear(cap.x, cap.y, 4, true); if (p) spawnUnit(t, n.id, p.x, p.y); }
+    const marshal = n.name === 'France' && units.find(u => u.nationId === n.id && u.type === 'general');
+    if (marshal) { marshal.title = 'Marshal Davout'; marshal.traits = ['aggressive', 'swift'].filter(t => GENERAL_TRAITS[t]); }
     n.gold = (n.gold || 0) + (great ? 150 : 80); n.steel = (n.steel || 0) + 60; n.gunpowder = (n.gunpowder || 0) + 60; n.food = (n.food || 0) + 60;
     // (the sea powers keep a squadron off their coasts: Britain most of all)
     const fleet = { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] }[n.name] || [];
@@ -7274,6 +7280,7 @@ const REGIMENT_STYLE = {
 };
 function ordinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 function regimentName(u) {
+  if (u.type === 'general') return u.title || '';   // (a general has no number, only a name if history gave one)
   const style = REGIMENT_STYLE[u.type];
   const n = nations[u.nationId];
   if (!style || !n || n.isBarbarian || n.isTribe) return '';
