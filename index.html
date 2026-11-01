@@ -1084,6 +1084,7 @@
         - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
         - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
+        - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2160,6 +2161,7 @@
           - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
           - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
+          - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6543,7 +6545,7 @@ function tickCoalition() {
   const name = `the ${ORDINALS[Math.min(ORDINALS.length - 1, me._coalitions - 1)]} Coalition`;
   for (const n of members) {
     n.relations[playerNation] = 'war'; me.relations[n.id] = 'war';
-    for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(n.id, playerNation, aType);
+    for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, playerNation, aType);
     const l = getLoyalty(n.id, playerNation); if (l > -60) changeLoyalty(n.id, playerNation, -60 - l);
     for (const o of members) if (o !== n && !hasAgreement(n.id, o.id, 'war_help')) addAgreement(n.id, o.id, 'war_help');
     if (!n._warSince) n._warSince = {}; n._warSince[playerNation] = turnNumber;
@@ -9299,6 +9301,7 @@ function openManual(tab) {
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
         ['Opinion', 'Each crown thinks better of you for peace, gifts, pacts and trade, and worse for war, spies found out, refusals and borders crossed. Fall far enough and it declares war.'],
+        ['Royal marriage', 'A match between your court and another (60 gold, half back if refused), for a crown that thinks well of you. While it lasts each thinks better of the other every turn; making war on your in-laws costs 15 legitimacy.'],
         ['Tribute', 'A crown with twice your army that thinks little of you may demand gold: pay, and it keeps the peace for fifteen turns. You may demand it too of a crown with less than half your army.'],
         ['War-weariness', 'After some thirty turns of war a crown may come to terms with its enemy, or offer you peace.'],
         ['Taking towns', 'A town falls when an enemy regiment stands in it for four turns, six behind walls and eight behind bastions. A long siege starves it.'],
@@ -9760,7 +9763,7 @@ function aiTurn(nationId) {
     }
 
     if (n.relations[otherId] === 'peace' && aiCitiesAll.length > 0 && otherCities.length > 0) {
-      changeLoyalty(nationId, otherId, 0.8 + (temperOf(n)?.drift || 0));
+      changeLoyalty(nationId, otherId, 0.8 + (temperOf(n)?.drift || 0) + (hasAgreement(nationId, otherId, 'marriage') ? 0.5 : 0));
     }
 
     if (otherId === playerNation && n.relations[otherId] === 'peace' && loy >= 45) {
@@ -9829,7 +9832,7 @@ function aiTurn(nationId) {
         n.relations[otherId] = 'war';
         nations[otherId].relations[nationId] = 'war';
 
-        for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(nationId, otherId, aType);
+        for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(nationId, otherId, aType);
 
         const otherLoy = getLoyalty(otherId, nationId);
         if (otherLoy > -60) changeLoyalty(otherId, nationId, -60 - otherLoy);
@@ -9895,7 +9898,7 @@ function aiTurn(nationId) {
           if (eid === playerNation) {
             // joining a war on you: not while a peace treaty with you holds, and never without telling you
             if (turnNumber < (nations[allyId]._peaceCooldown?.[playerNation] || 0)) continue;
-            for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, allyId, aType);
+            for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, allyId, aType);
           }
           nations[allyId].relations[eid] = 'war';
           nations[eid].relations[allyId] = 'war';
@@ -17649,7 +17652,7 @@ function renderKingdoms() {
         ? `<span class="kc-pact on">✓ ${name}<button onclick="cancelAgreement(${n.id},'${type}')" title="End it">×</button></span>`
         : show ? `<button class="kc-pact" onclick="${req}">+ ${name}</button>` : '';
       const canMap = loy >= 20;
-      html += `<div class="kc-pacts">${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
+      html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
       // the trade panel, as it was
       html += `<div id="tradePanel_${n.id}" class="kc-trade" style="display:none;">`;
       const tradeMarkup = loy >= 80 ? 1.0 : loy >= 50 ? 1.25 : loy >= 20 ? 1.5 : 2.0;
@@ -17952,7 +17955,7 @@ function infiltrateNation(nationId) {
     if (nations[nationId]._caughtSpies >= 3 && nations[nationId].relations[playerNation] !== 'war') {
       nations[nationId].relations[playerNation] = 'war';
       nations[playerNation].relations[nationId] = 'war';
-      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, nationId, aType);
+      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, nationId, aType);
       showWarDeclaration(nations[nationId]);
       showToast(`Repeated espionage has driven ${nations[nationId].name} to declare war!`);
       nations[nationId]._caughtSpies = 0;
@@ -18398,6 +18401,30 @@ function _buildTechTreeOverlay() {
   signal.addEventListener('abort', () => { try { obs.disconnect(); } catch (e) {} try { tooltip.remove(); } catch (e) {} });
 }
 
+// ---- royal marriages, as Old World's: a match between the two courts (60 gold), accepted by a crown that thinks well
+//  enough of you. While it lasts each thinks better of the other every turn; declaring war on your in-laws costs 15 legitimacy ----
+function proposeMarriage(nationId) {
+  const n = nations[nationId], me = nations[playerNation];
+  if (!n || n.eliminated || me.relations[nationId] === 'war' || hasAgreement(playerNation, nationId, 'marriage')) return;
+  if ((me._marriageAsked || {})[nationId] > turnNumber) { showToast(`${n.name} will not hear another proposal so soon.`); return; }
+  if ((me.gold || 0) < 60) { showToast('A royal wedding costs 60 gold.'); return; }
+  me.gold -= 60;
+  const loy = getLoyalty(nationId, playerNation), chance = Math.max(0, Math.min(0.9, 0.3 + loy / 100 + (n.temper === 'merchant' ? 0.15 : n.temper === 'warlike' ? -0.15 : 0)));
+  if (loy >= 10 && Math.random() < chance) {
+    addAgreement(playerNation, nationId, 'marriage');
+    changeLoyalty(nationId, playerNation, 25); changeLoyalty(playerNation, nationId, 25);
+    me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3);
+    showToast(`A royal marriage joins your house to the court of ${n.name}. +3 legitimacy`);
+    try { SMK.peal(5); } catch (e) {}
+  } else {
+    me.gold += 30;   // (half the dowry comes back)
+    if (!me._marriageAsked) me._marriageAsked = {}; me._marriageAsked[nationId] = turnNumber + 15;
+    changeLoyalty(nationId, playerNation, -3);
+    showToast(`${n.name} declines the match.${loy < 10 ? ' They do not think well enough of you.' : ''}`);
+  }
+  updateUI(); renderKingdoms();
+}
+window.proposeMarriage = proposeMarriage;
 function toggleDiplomacy(nationId) {
   const pn = nations[playerNation];
   const current = pn.relations[nationId] || 'peace';
@@ -18422,9 +18449,14 @@ function toggleDiplomacy(nationId) {
     }
   }
   pn.relations[nationId] = next; nations[nationId].relations[playerNation] = next;
+  if (next === 'war' && hasAgreement(playerNation, nationId, 'marriage')) {
+    removeAgreement(playerNation, nationId, 'marriage');
+    pn.legitimacy = Math.max(0, (pn.legitimacy ?? 50) - 15);
+    showToast(`You make war on your own in-laws. -15 legitimacy`);
+  }
   if (next === 'war') {
 
-    for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, nationId, aType);
+    for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, nationId, aType);
 
     const theirLoy = getLoyalty(nationId, playerNation);
     if (theirLoy > -60) {
@@ -18447,7 +18479,7 @@ function toggleDiplomacy(nationId) {
       if (!pn.relations) pn.relations = {};
       ally.relations[playerNation] = 'war';
       pn.relations[allyId] = 'war';
-      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping']) removeAgreement(playerNation, allyId, aType);
+      for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, allyId, aType);
       showToast(`${ally.name} honors their alliance with ${nations[nationId].name} and joins the war!`);
     }
     showToast(`War declared on ${nations[nationId].name}!`);
