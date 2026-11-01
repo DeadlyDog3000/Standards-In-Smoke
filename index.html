@@ -1132,6 +1132,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
         - On the map of Europe brigands plunder a town they take but never burn it to the ground<br>
+        - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2239,6 +2240,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
           - On the map of Europe brigands plunder a town they take but never burn it to the ground<br>
+          - General Winter: on the map of Europe a foreign regiment caught in Russia's lands in winter loses men twice as fast<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4263,7 +4265,10 @@ function tickWinterAttrition() {
     const ti = u.y * MAP_COLS + u.x;
     const inOwnTerritory = tiles[ti].owner === u.nationId;
     if (!inCity && !inOwnTerritory) {
-      u.hp -= 1;
+      // General Winter: on the map of Europe a foreign army in Russia's lands suffers twice over
+      const russian = mapStyle === 'europe' && tiles[ti].owner >= 0 && nations[tiles[ti].owner]?.name === 'Russia';
+      if (russian && u.nationId === playerNation && tickWinterAttrition._told !== turnNumber) { tickWinterAttrition._told = turnNumber; showToast('General Winter: your regiments in Russia suffer twice over from the cold.'); }
+      u.hp -= russian ? 2 : 1;
       if (u.hp <= 0) {
         if (u.nationId === playerNation) addFloatingText(u.x, u.y, 'Frozen!', '#94b4d8', 1500, 12);
         removeUnit(u);
