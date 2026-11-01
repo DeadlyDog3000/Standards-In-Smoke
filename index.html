@@ -20295,7 +20295,7 @@ document.addEventListener('keydown', (e) => {
 
   if (_inInput) return;
 
-  if (escMenuOpen || eventModalOpen || document.getElementById('warDeclOverlay') || document.getElementById('idleCitiesPopup') || document.getElementById('noResearchPopup')) return;
+  if (escMenuOpen || eventModalOpen || document.getElementById('warDeclOverlay') || document.getElementById('idleCitiesPopup') || document.getElementById('noResearchPopup') || document.getElementById('scenOverlay')) return;
 
   if (e.key === 'e' && !techTreeOpen) { endTurn(); e.preventDefault(); return; }
 
