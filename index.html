@@ -1061,6 +1061,7 @@
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
         - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
+        - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2129,6 +2130,7 @@
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
           - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
           - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
+          - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9655,7 +9657,9 @@ function aiTurn(nationId) {
           if (!n.wantsPeace) n.wantsPeace = {};
           if (!n.wantsPeace[otherId]) {
             n.wantsPeace[otherId] = true;
-            showToast(`${n.name} seeks peace. Open Kingdoms to respond.`);
+            // (a crown suing for peace while beaten offers something for it: a share of its treasury)
+            n._peaceGold = (severelyOutmatched || starving) ? Math.min(200, Math.round((n.gold || 0) * 0.3)) : 0;
+            showToast(`${n.name} seeks peace${n._peaceGold > 0 ? ` and offers ${n._peaceGold} gold` : ""}. Open Kingdoms to respond.`);
           }
         } else {
           const otherLoy = getLoyalty(otherId, nationId);
@@ -17420,7 +17424,7 @@ function renderKingdoms() {
     if (theirWars.length) html += `<div class="kc-wars">At war with ${theirWars.map(o => `<b style="color:${safeColor(o.color)}">${escHtml(o.name)}</b>`).join(', ')}</div>`;
     // what they ask of you
     if (n.wantsPeace && n.wantsPeace[playerNation]) {
-      html += `<div class="kc-ask">☮ They offer peace <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
+      html += `<div class="kc-ask">☮ They offer peace${n._peaceGold > 0 ? ` and ${n._peaceGold} gold` : ''} <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
     }
     const pendingReq = rel !== 'war' && n._diploRequest && n._diploRequest[playerNation];
     if (pendingReq === 'tribute') {
@@ -17531,7 +17535,9 @@ function acceptPeace(nationId) {
   if (!n._peaceCooldown) n._peaceCooldown = {};
   pn._peaceCooldown[nationId] = turnNumber + 10;
   n._peaceCooldown[playerNation] = turnNumber + 10;
-  showToast(`Peace treaty signed with ${n.name}!`);
+  const gold = Math.min(n._peaceGold || 0, Math.floor(n.gold || 0)); n._peaceGold = 0;
+  if (gold > 0) { n.gold -= gold; pn.gold = (pn.gold || 0) + gold; try { SMK.coins(5); } catch (e) {} logEvent(`Peace with ${n.name}: they pay ${gold} gold.`); }
+  showToast(`Peace treaty signed with ${n.name}!${gold > 0 ? ` They pay ${gold} gold.` : ''}`);
   renderKingdoms();
 }
 function rejectPeace(nationId) {
