@@ -1075,6 +1075,7 @@
         - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
         - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
         - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
+        - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2136,6 +2137,7 @@
           - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
           - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
           - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
+          - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -15803,7 +15805,8 @@ function render() {
 
       // the days' marches it takes, written in a little parchment roundel
       const destPos = hexScreenPos(hoveredMX, hoveredMY);
-      const cost = previewPath.length;
+      // (what the march costs in moves, ground and rivers and boats counted, not the number of hexes)
+      let cost = 0; { let px = selectedUnit.x, py = selectedUnit.y; for (const st of previewPath) { cost += getMoveCost(px, py, st.x, st.y, selectedUnit.type); px = st.x; py = st.y; } }
       const costX = destPos.x + w * 0.75, costY = destPos.y + facePad + ch * 0.2, cr = Math.max(7, w * 0.16);
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(costX + 1, costY + 1.5, cr, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#efe0bc'; ctx.beginPath(); ctx.arc(costX, costY, cr, 0, Math.PI * 2); ctx.fill();
@@ -15812,6 +15815,46 @@ function render() {
       ctx.font = `bold ${Math.max(9, w * 0.26)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(cost, costX, costY + 1);
+      ctx.restore();
+    }
+  }
+
+  // a march beyond this turn's reach: the route inked lighter, with a roundel where each turn's march ends (as Old World shows it)
+  if ((moveMode || gotoMode) && selectedUnit && selectedUnit.nationId === pId && hoveredMX >= 0 && hoveredMY >= 0 && hoveredMX < MAP_COLS && hoveredMY < MAP_ROWS
+      && !reachableTiles.has(hoveredMY * MAP_COLS + hoveredMX) && (hoveredMX !== selectedUnit.x || hoveredMY !== selectedUnit.y)
+      && tiles[hoveredMY * MAP_COLS + hoveredMX].revealed.has(pId) && !units.some(o => o.x === hoveredMX && o.y === hoveredMY && o.nationId !== pId)) {
+    const key = units.indexOf(selectedUnit) + ':' + selectedUnit.x + ',' + selectedUnit.y + '>' + hoveredMX + ',' + hoveredMY + ':' + selectedUnit.movesLeft;
+    if (!window._farPath || window._farPath.key !== key) {
+      const path = hexDistance(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY) <= 60 ? bfsPath(selectedUnit.x, selectedUnit.y, hoveredMX, hoveredMY, selectedUnit.type, selectedUnit.nationId) : null;
+      const ends = [];
+      if (path) {
+        const full = Math.max(1, selectedUnit.maxMoves + (hasPromo(selectedUnit, 'forced') ? 1 : 0));
+        let left = selectedUnit.movesLeft, turn = 0, px = selectedUnit.x, py = selectedUnit.y;
+        path.forEach((st, k) => { const c = getMoveCost(px, py, st.x, st.y, selectedUnit.type); if (c > left) { if (k > 0) ends.push({ k: k - 1, turn: ++turn }); else turn++; left = full; } left -= c; px = st.x; py = st.y; });
+        ends.push({ k: path.length - 1, turn: turn + 1, last: true });
+      }
+      window._farPath = { key, path, ends };
+    }
+    const { path, ends } = window._farPath;
+    if (path && path.length) {
+      ctx.save();
+      const pts = [hexScreenPos(selectedUnit.x, selectedUnit.y), ...path.map(st => hexScreenPos(st.x, st.y))].map(p => [p.x + w / 2, p.y + facePad + ch / 2]);
+      const route = new Path2D(); route.moveTo(pts[0][0], pts[0][1]);
+      for (let k = 1; k < pts.length; k++) { const [x, y] = pts[k], [px, py] = pts[k - 1]; if (k < pts.length - 1) route.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2); else route.quadraticCurveTo(px, py, x, y); }
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(250, 238, 210, 0.45)'; ctx.lineWidth = Math.max(3, w * 0.08); ctx.stroke(route);
+      ctx.setLineDash([Math.max(3, w * 0.06), Math.max(4, w * 0.1)]);
+      ctx.strokeStyle = 'rgba(110, 60, 30, 0.85)'; ctx.lineWidth = Math.max(1.4, w * 0.04); ctx.stroke(route);
+      ctx.setLineDash([]);
+      const cr = Math.max(7, w * 0.15);
+      for (const e of ends) {
+        const [x, y] = pts[e.k + 1];
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(x + 1, y + 1.5, cr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = e.last ? '#efe0bc' : 'rgba(239, 224, 188, 0.85)'; ctx.beginPath(); ctx.arc(x, y, cr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(60, 36, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.02); ctx.stroke();
+        ctx.fillStyle = '#2a1c0e'; ctx.font = `bold ${Math.max(9, w * 0.24)}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(e.turn, x, y + 1);
+      }
       ctx.restore();
     }
   }
