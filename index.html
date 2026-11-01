@@ -698,6 +698,15 @@
     body.mobile-mode #owActions { display: none !important; }
     body:not(.mobile-mode) #zoomInfo { bottom: 78px; }   /* (clear of the action row) */
     @media (max-width: 1100px) { #owActions .owa-name { display: none; } }
+    /* a tip, once each */
+    #hintCard { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 220; width: min(460px, 92vw); padding: 10px 14px 9px; color: #e9dcc0;
+      background: linear-gradient(rgba(16, 26, 38, 0.96), rgba(8, 14, 22, 0.97)), var(--ow-leather); border: 1px solid var(--owk-gold); box-shadow: inset 0 0 0 2px rgba(4, 8, 14, 0.85), inset 0 0 0 3px rgba(201, 164, 90, 0.35), 0 10px 26px rgba(0, 0, 0, 0.7); animation: tbIn 0.3s ease-out; }
+    #hintCard b { font-family: 'Uncial Antiqua', Georgia, serif; font-weight: normal; color: #e8c070; font-size: 14px; }
+    #hintCard p { margin: 4px 0 8px; font-size: 13px; line-height: 1.45; color: #ddd0b2; }
+    #hintCard div { display: flex; gap: 8px; justify-content: flex-end; }
+    #hintCard button { font: 12px 'EB Garamond', Georgia, serif; padding: 3px 12px; cursor: pointer; color: #f0dcae; background: rgba(201, 164, 90, 0.14); border: 1px solid rgba(201, 164, 90, 0.5); }
+    #hintCard button + button { color: #b8a888; background: none; border-color: rgba(201, 164, 90, 0.25); }
+    body.mobile-mode #hintCard { bottom: 12px; }
     /* the title and its buttons in the same navy and gold */
     .menu-btn { background: linear-gradient(rgba(40, 62, 86, 0.55), rgba(6, 12, 20, 0.85)), var(--ow-leather); border-color: var(--owk-gold-2); color: #f0e2c0;
       box-shadow: inset 0 0 0 2px rgba(4, 8, 14, 0.9), inset 0 0 0 3px rgba(201, 164, 90, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6); }
@@ -1013,6 +1022,11 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Tips and Polish</b><br>
+        - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2053,6 +2067,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Tips and Polish</b><br>
+          - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -3233,6 +3252,10 @@
         <span style="font-size:15px;">Auto Next Unit</span>
         <button class="esc-btn" id="autoNextUnitBtn" onclick="toggleAutoNextUnit()" style="width:auto;margin:0;padding:6px 18px;">On</button>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:15px;">Tips</span>
+        <button class="esc-btn" onclick="localStorage.removeItem('sis_hints_off');localStorage.removeItem('sis_hints_seen');this.textContent='Shown again';" style="width:auto;margin:0;padding:6px 18px;">Show them again</button>
+      </div>
       <button class="esc-btn" onclick="hideOptionsPanel()">Back</button>
     </div>
   </div>
@@ -3594,6 +3617,7 @@ function owActionsSync() {
   acts.push(['disband', 'Disband (click twice)', 'Del', 'disbandSelected(this)', false]);
   const sig = u.type + '|' + regimentSize(u) + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
   bar.style.display = 'flex';
+  if (mate) hint('merge');
   if (sig === _owaSig) return; _owaSig = sig;
   bar.innerHTML = `<span class="owa-name">${escHtml(unitTypeName(u.type).replace(/^./, c => c.toUpperCase()))}${regimentSize(u) > 1 ? ' ' + (regimentSize(u) === 3 ? 'III' : 'II') : ''}</span>` +
     acts.map(([k, tip, key, fn, off]) => `<button class="${k === 'disband' ? 'danger' : ''}" title="${escHtml(tip)}${key ? ' (' + key + ')' : ''}" aria-label="${escHtml(tip)}" onclick="${fn}; owActionsSync();" ${off ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${OWA_ICONS[k]}</svg>${key ? `<kbd>${key}</kbd>` : ''}</button>`).join('');
@@ -3710,6 +3734,7 @@ function awardXP(unit, amount) {
     }
     if (unit.nationId === playerNation) {
       addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
+      if (promosPending(unit) > 0) setTimeout(() => hint('promo'), 1200);
       showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : unitTitle(unit.type)} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
     } else aiTakePromos(unit);
   }
@@ -3987,6 +4012,33 @@ function getSeasonEffect() {
   return SEASON_EFFECTS[currentSeason] || SEASON_EFFECTS.summer;
 }
 
+// ---- tips, once each: a small card the first time something comes up (the first regiment, the first town, the first
+//  promotion...). Remembered in this browser; "No more tips" turns them all off (Options can turn them on again) ----
+const HINTS = {
+  unit: 'Right-click a hex to march there, an enemy to attack, or a far hex to set out for it. Each order costs one of the turn\'s Orders, shown on the End Turn crest. The round buttons along the bottom are this regiment\'s other orders.',
+  city: 'Choose what this town makes below. Units are paid for when you press, so the stores must hold their cost. Rush Produce finishes the work this turn for gold.',
+  promo: 'A regiment of yours has earned a promotion. Select it (the gilt star marks it) and choose one of the two in its panel.',
+  ambition: 'Choose an ambition for your crown. It is shown under the top bar until fulfilled; fulfil ten to win.',
+  orders: 'No orders left this turn. Regiments that have already moved can still fire, and the next turn brings a fresh set. Press E or the crest to end the turn.',
+  winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
+  war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
+  navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
+  merge: 'Two regiments of yours stand side by side. Press J (or right-click one with the other chosen) to form them into one regiment of up to three companies that fires as one.',
+};
+function hint(id) {
+  try {
+    if (!HINTS[id] || window.__film || localStorage.getItem('sis_hints_off') === '1' || (typeof tutorialActive !== 'undefined' && tutorialActive)) return;
+    const seen = JSON.parse(localStorage.getItem('sis_hints_seen') || '[]');
+    if (seen.includes(id) || document.getElementById('hintCard')) return;
+    // (never over another window: the tip waits for its next chance)
+    if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
+    seen.push(id); localStorage.setItem('sis_hints_seen', JSON.stringify(seen));
+    const el = document.createElement('div'); el.id = 'hintCard';
+    el.innerHTML = `<b>Tip</b><p>${HINTS[id]}</p><div><button onclick="this.closest('#hintCard').remove()">Got it</button><button onclick="localStorage.setItem('sis_hints_off','1');this.closest('#hintCard').remove()">No more tips</button></div>`;
+    document.body.appendChild(el);
+  } catch (e) {}
+}
+window.hint = hint;
 function tickSeason() {
   const seasonIdx = Math.floor((turnNumber - 1) / SEASON_LENGTH) % 4;
   const newSeason = SEASONS[seasonIdx];
@@ -3994,6 +4046,7 @@ function tickSeason() {
     currentSeason = newSeason;
     const se = SEASON_EFFECTS[currentSeason];
     showToast(`${se.icon} ${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} has arrived! ${se.desc}`);
+    if (currentSeason === 'winter') hint('winter');
   }
 }
 
@@ -5568,6 +5621,7 @@ function researchTech(nationId, techKey) {
   if (!tech) return false;
   const n = nations[nationId];
   n.researched.add(techKey);
+  if (nationId === playerNation && techKey === 'navigation') setTimeout(() => hint('navigation'), 1500);
   if (n.techProgress) delete n.techProgress[techKey];
   // (a tech given some other way — an event, a treaty — leaves the one being studied as it was)
   if (n.currentResearch === techKey) {
@@ -6321,6 +6375,7 @@ function showTechBanner(techName, unlocks) {
 }
 
 function showWarDeclaration(nation) {
+  setTimeout(() => hint('war'), 2500);
   logEvent(`${nation.name} has declared war!`);
   playWarHorn();
 
@@ -6744,6 +6799,7 @@ function tryActivateUnit(unit, every = false) {
   if (!every && activatedUnits.has(unit)) return true;
   if (ordersRemaining <= 0) {
     showToast('No orders remaining!');
+    if (unit.nationId === playerNation) hint('orders');
     return false;
   }
   ordersRemaining--;
@@ -8513,7 +8569,7 @@ function tickAmbitions() {
   if (!n.ambition && !(n.ambitionOffer || []).length) { n.ambitionOffer = ambitionOffer(nid); n._ambShown = false; }
   // the card comes up by itself once per offer: not in the first turns (the research is chosen then) nor over another card; the plaque asks meanwhile
   const busy = document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('eventModal')?.classList.contains('active') || document.getElementById('tutorial-overlay')?.offsetParent;
-  if (!n.ambition && (n.ambitionOffer || []).length && !n._ambShown && turnNumber >= 3 && !busy) { n._ambShown = true; openAmbitions(); }
+  if (!n.ambition && (n.ambitionOffer || []).length && !n._ambShown && turnNumber >= 3 && !busy) { n._ambShown = true; openAmbitions(); hint('ambition'); }
   updateAmbitionPlaque();
 }
 window.setAsideAmbition = function () {
@@ -16057,6 +16113,7 @@ function cycleToNextUnit(force = false) {
 }
 
 function showUnitPanel(unit) {
+  if (unit && unit.nationId === playerNation && UNIT_DEFS[unit.type]?.combat) setTimeout(() => hint('unit'), 400);
   selectedCity = null;
   selectedUnit = unit;
   if (unit) delete unit._pendingCityName;
@@ -16305,6 +16362,7 @@ function renameCity() {
 }
 
 function showCityPanel(city) {
+  if (city && city.nationId === playerNation) setTimeout(() => hint('city'), 400);
   selectedUnit = null; moveMode = false; reachableTiles.clear();
   selectedCity = city;
   const panel = document.getElementById('panel');
