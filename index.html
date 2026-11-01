@@ -811,9 +811,9 @@
     #ambitionPlaque em { font-size: 10.5px; color: #c9b07a; font-style: normal; }
     .amb-bar { display: inline-block; vertical-align: middle; width: 100px; height: 5px; margin-right: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(201, 164, 90, 0.4); }
     .amb-bar i { display: block; height: 100%; background: linear-gradient(#e8c878, #a87c30); }
-    #ambitionOverlay { position: fixed; inset: 0; z-index: 210; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.55); }
-    #ambitionOverlay .amb-card { width: min(460px, 92vw); max-height: 86vh; overflow-y: auto; padding: 22px 24px; color: #e9dcc0; }
-    #ambitionOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: normal; }
+    #ambitionOverlay, #scenOverlay { position: fixed; inset: 0; z-index: 210; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.55); }
+    #ambitionOverlay .amb-card, #scenOverlay .amb-card { width: min(460px, 92vw); max-height: 86vh; overflow-y: auto; padding: 22px 24px; color: #e9dcc0; }
+    #ambitionOverlay h3, #scenOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: normal; }
     #ambitionOverlay .amb-count { font-family: 'EB Garamond', Georgia, serif; font-size: 13px; color: #c9a45a; margin-left: 6px; }
     #ambitionOverlay .amb-lede { font-size: 12.5px; color: #c8b896; text-align: center; margin: 0 0 12px; }
     #ambitionOverlay .amb-pick { display: block !important; width: 100%; text-align: left !important; padding: 9px 12px; }
@@ -1124,6 +1124,7 @@
         - The Kingdoms panel names each crown's ruler<br>
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
+        - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2223,6 +2224,7 @@
           - The Kingdoms panel names each crown's ruler<br>
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
+          - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6981,14 +6983,25 @@ function tickScenario() {
   const involved = n => n && (n.id === playerNation || discoveredNations.has(n.id));
   if (year >= 1810 && !done.marieLouise) {
     done.marieLouise = true;
-    if (nap && nap.name === 'Napoleon Bonaparte' && au && fr.relations[au.id] !== 'war' && !(fr.id === playerNation || au.id === playerNation)) {
-      const old = getNationSpouse(fr.id); if (old) old.role = 'dowager';
-      const ml = createCharacter(fr.id, 'spouse', 'female');
-      Object.assign(ml, { name: 'Marie Louise of Austria', age: 18, birthTurn: turnNumber - 18 * SEASON_LENGTH * 4, hale: true, spouseId: nap.id });
-      nap.spouseId = ml.id;
-      if (!hasAgreement(fr.id, au.id, 'marriage')) addAgreement(fr.id, au.id, 'marriage');
-      changeLoyalty(fr.id, au.id, 20); changeLoyalty(au.id, fr.id, 20);
-      if (involved(fr) || involved(au)) logEvent('1810: Napoleon sets Joséphine aside and marries Marie Louise of Austria.');
+    if (nap && nap.name === 'Napoleon Bonaparte' && au && fr.relations[au.id] !== 'war') {
+      const wed = () => {
+        const old = getNationSpouse(fr.id); if (old) old.role = 'dowager';
+        const ml = createCharacter(fr.id, 'spouse', 'female');
+        Object.assign(ml, { name: 'Marie Louise of Austria', age: 18, birthTurn: turnNumber - 18 * SEASON_LENGTH * 4, hale: true, spouseId: nap.id });
+        nap.spouseId = ml.id;
+        if (!hasAgreement(fr.id, au.id, 'marriage')) addAgreement(fr.id, au.id, 'marriage');
+        changeLoyalty(fr.id, au.id, 20); changeLoyalty(au.id, fr.id, 20);
+        const say = 'Napoleon sets Joséphine aside and marries Marie Louise of Austria.';
+        logEvent('1810: ' + say); if (fr.id === playerNation || au.id === playerNation) annal(say);
+      };
+      // (the Emperor or the Kaiser in the player's hands decides it; between two other crowns it simply happens)
+      if (fr.id === playerNation) scenChoice('An Austrian Match', 'Joséphine has given you no heir. The Kaiser would give you his daughter, the Archduchess Marie Louise: a son by her, and the two houses of Europe joined.', [
+        ['Marry the archduchess', () => { wed(); fr.legitimacy = Math.min(100, (fr.legitimacy ?? 50) + 5); }],
+        ['Keep Joséphine', () => { changeLoyalty(au.id, fr.id, -5); logEvent('1810: the Emperor keeps Joséphine.'); }]]);
+      else if (au.id === playerNation) scenChoice('The Emperor Asks', 'Napoleon has set his eyes on your daughter, the Archduchess Marie Louise. To give her is to bind your house to the man your armies have fought for ten years; to refuse him is an insult he will remember.', [
+        ['Give her to him', () => wed()],
+        ['Refuse', () => { changeLoyalty(fr.id, au.id, -25); logEvent('1810: the Kaiser refuses the Emperor his daughter.'); }]]);
+      else wed();
     }
   }
   if (year >= 1811 && !done.kingOfRome) {
@@ -6998,7 +7011,8 @@ function tickScenario() {
       const h = createCharacter(fr.id, 'heir', 'male');
       Object.assign(h, { name: 'Napoleon, King of Rome', age: 0, birthTurn: turnNumber, parentIds: [nap.id, ml.id], reignName: 'Napoleon II', hale: true });
       nap.childIds.push(h.id); ml.childIds.push(h.id);
-      if (involved(fr)) logEvent('1811: a son is born to the Emperor of the French: Napoleon, King of Rome.');
+      if (fr.id === playerNation) { showToast('A son is born to the Emperor: Napoleon, King of Rome!'); annal('A son is born: Napoleon, King of Rome.'); }
+      else if (involved(fr)) logEvent('1811: a son is born to the Emperor of the French: Napoleon, King of Rome.');
     }
   }
   if (year >= 1807 && !done.tilsit) {
@@ -7011,6 +7025,14 @@ function tickScenario() {
       const say = `1807: at Tilsit, the Emperor of Russia makes peace with France.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
     }
   }
+}
+// a choice history puts to the player in a scenario: a card with its answers, each a function
+function scenChoice(title, text, choices) {
+  document.getElementById('scenOverlay')?.remove();
+  window._scenFns = choices.map(c => c[1]);
+  const ov = document.createElement('div'); ov.id = 'scenOverlay';
+  ov.innerHTML = `<div class="event-card amb-card"><h3>${escHtml(title)}</h3><p>${escHtml(text)}</p>${choices.map((c, i) => `<button class="event-choice" onclick="document.getElementById('scenOverlay').remove(); (window._scenFns[${i}] || (() => {}))(); updateUI(); render();">${escHtml(c[0])}</button>`).join('')}</div>`;
+  document.body.appendChild(ov);
 }
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
