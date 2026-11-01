@@ -1146,6 +1146,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+        - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2266,6 +2267,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+          - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6698,7 +6700,7 @@ function tickCoalition() {
   const rivals = nations.filter(n => n.id !== playerNation && !n.isBarbarian && !n.isTribe && !n.eliminated && discoveredNations.has(n.id) && cities.some(c => c.nationId === n.id));
   // (who joins: crowns that think little of you and aren't already at war with you, the strongest first, up to four)
   const strength = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).length;
-  const members = rivals.filter(n => n.relations[playerNation] !== 'war' && getLoyalty(n.id, playerNation) < 15 && !(n._peaceCooldown?.[playerNation] > turnNumber))
+  const members = rivals.filter(n => n.relations[playerNation] !== 'war' && getLoyalty(n.id, playerNation) < 15 && !(n._peaceCooldown?.[playerNation] > turnNumber) && !hasAgreement(n.id, playerNation, 'war_help'))
     .sort((a, b) => strength(b) - strength(a)).slice(0, 4);
   if (members.length < 2 || Math.random() > 0.25) return;
   me._coalitionTurn = turnNumber; me._coalitions = (me._coalitions || 0) + 1;
@@ -7131,7 +7133,7 @@ function tickScenario1756() {
   // (1758 on: the Anglo-Prussian Convention, Britain's subsidy that kept Frederick's armies in the field)
   if (year >= 1758 && pr && gb && pr !== gb && hasAgreement(pr.id, gb.id, 'war_help') && (gb.gold || 0) >= 12) {
     gb.gold -= 12; pr.gold = (pr.gold || 0) + 12;
-    if (!done.subsidy) { done.subsidy = true; const say = '1758: by the Anglo-Prussian Convention Britain pays Prussia a subsidy, 12 gold a turn while they stand together.'; showToast(say); if (pr.id === playerNation || gb.id === playerNation) annal(say.slice(6)); }
+    if (!done.subsidy) { done.subsidy = true; const say = '1758: by the Anglo-Prussian Convention Britain pays Prussia a subsidy, 12 gold a turn while they stand together.'; showToast(say); if (pr.id === playerNation || gb.id === playerNation) annal('B' + say.slice(7)); }
   }
   if (year >= 1760 && !done.george2) {   // (George II dies in 1760, and his grandson is crowned George III)
     done.george2 = true;
@@ -10411,6 +10413,7 @@ function aiTurn(nationId) {
       for (let eid = 0; eid < nations.length; eid++) {
         if (eid === nationId || eid === allyId || nations[eid].eliminated || nations[eid].isBarbarian) continue;
         if (n.relations[eid] === 'war' && nations[allyId].relations[eid] !== 'war') {
+          if (hasAgreement(allyId, eid, 'war_help') || hasAgreement(allyId, eid, 'marriage')) continue;   // (a new ally does not turn on its own allies or in-laws)
           if (eid === playerNation) {
             // joining a war on you: not while a peace treaty with you holds, and never without telling you
             if (turnNumber < (nations[allyId]._peaceCooldown?.[playerNation] || 0)) continue;
