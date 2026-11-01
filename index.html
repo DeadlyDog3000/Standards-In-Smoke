@@ -5019,6 +5019,8 @@ const SMK = (() => {
     letter: () => play(t => { noise(t, { f: 900, q: 0.5, dur: 0.22, vol: 0.07, sweep: 2600 }); noise(t + 0.2, { f: 1800, q: 0.7, dur: 0.16, vol: 0.06, sweep: -900 }); knock(t + 0.05, 320, 0.04); }),
     // church bells: a town founded rings a short peal; a discovery or a wonder, a few bells; a loss, one bell tolled slow
     peal: (n = 6) => play(t => { const sc = [392, 349.2, 329.6, 293.7, 261.6, 246.9]; for (let i = 0; i < n; i++) bell(t + i * 0.32, sc[i % sc.length], 0.09); }),
+    // oars dipping and pulling, the water off the blades: a regiment going aboard or ashore
+    oars: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.55; noise(tt, { f: 900, q: 0.8, dur: 0.18, vol: 0.13, att: 0.02, sweep: -400, wet: 0.2 }); noise(tt + 0.2, { f: 2600, q: 1.2, dur: 0.12, vol: 0.06, att: 0.01, wet: 0.3 }); } }),
     chime: () => play(t => { bell(t, 523.3, 0.08, 2.2); bell(t + 0.28, 659.3, 0.07, 2.4); bell(t + 0.56, 784, 0.07, 3); }),
     toll: (n = 2) => play(t => { for (let i = 0; i < n; i++) bell(t + i * 1.5, 130.8, 0.16, 3.6); }),
     // a thing built: the smith's hammer on the anvil, then a beam set down
@@ -18482,6 +18484,7 @@ canvas.addEventListener('click', (e) => {
         const movedUnit = selectedUnit;
         const origX = selectedUnit.x, origY = selectedUnit.y;
         delete selectedUnit.gotoX; delete selectedUnit.gotoY;
+        if ((tiles[origY * MAP_COLS + origX].type === 0) !== (tiles[my * MAP_COLS + mx].type === 0) && !UNIT_DEFS[selectedUnit.type]?.naval) { try { SMK.oars(); } catch (e) {} }
         selectedUnit.x = mx; selectedUnit.y = my; selectedUnit.automated = false; // your order: it's back in your hands
         selectedUnit.movesLeft = Math.max(0, selectedUnit.movesLeft - dist);
         revealAround(mx, my, getUnitVision(selectedUnit), selectedUnit.nationId);
