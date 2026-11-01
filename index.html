@@ -6932,7 +6932,7 @@ const SCEN_1805 = {
   marshals: { 'France': ['Marshal Davout', ['aggressive', 'swift']] },
   fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] },
   flags: { 'Great Britain': ['man_of_war', 'HMS Victory'], 'France': ['frigate', 'Bucentaure'], 'Spain': ['frigate', 'Santísima Trinidad'] },
-  phrases: { c: ['with the Third Coalition', 'against France and her allies'], f: ['with France', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
+  phrases: { c: ['in the Third Coalition', 'against France and her allies'], f: [me => me.name === 'France' ? 'at the head of the French alliance' : 'on the side of France', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
   congress: { year: 1815, at: 'at the Congress of Vienna, in 1815', meets: 'It is 1815, and the Congress of Vienna meets.' },
   score: [[41, '1815: Congress of Vienna'], [81, '1825']],
   briefTail: "History will move as it did, if the crowns are still placed for it: Prussia's war in 1806, Tilsit in 1807, Spain's rising in 1808, and the coalitions after.",
@@ -6987,7 +6987,7 @@ const SCEN_1756 = {
   marshals: { 'Prussia': ['Field Marshal Schwerin', ['aggressive', 'inspiring']], 'Austria': ['Field Marshal Daun', ['cautious']] },
   fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] },
   flags: { 'Great Britain': ['man_of_war', 'HMS Royal George'], 'France': ['frigate', 'Soleil Royal'] },
-  phrases: { c: ['in the Anglo-Prussian alliance', 'against France, Austria and their allies'], f: ['in the alliance of Versailles, with France and Austria', 'against Prussia and Britain'], apart: 'Europe is at war: Prussia and Britain against France and Austria. Your crown stands apart, for now.' },
+  phrases: { c: ['in the Anglo-Prussian alliance', 'against France, Austria and their allies'], f: ['in the alliance of Versailles', 'against Prussia and Britain'], apart: 'Europe is at war: Prussia and Britain against France and Austria. Your crown stands apart, for now.' },
   congress: { year: 1763, at: 'at the Peace of Paris, in 1763', meets: 'It is 1763, and the Peace of Paris is signed.' },
   score: [[29, '1763: Peace of Paris'], [57, '1770']],
   briefTail: 'History will move as it did, if the crowns are still placed for it: Russia and Sweden come in against Prussia in 1757, Spain against Britain in 1762, and in 1762 the death of the Empress Elizabeth may yet save Frederick.',
@@ -7053,7 +7053,8 @@ function applyHistStart(S) {
   const me = nations[playerNation], mySide = side(me);
   const the = nm => /^(Kingdom|Duchy|Swiss|Ottoman)/.test(nm) ? 'the ' + nm : nm;   // (the Kingdom of Naples, the Ottoman Empire)
   const foes = crowns.filter(n => n.id !== playerNation && me.relations[n.id] === 'war').map(n => the(n.name)), friends = crowns.filter(n => n.id !== playerNation && mySide && side(n) === mySide).map(n => the(n.name));
-  const ph = S.phrases, body = mySide ? `You stand ${ph[mySide][0]}${friends.length ? ` (${listAnd(friends)})` : ''} ${ph[mySide][1]}${foes.length ? `: ${listAnd(foes)}` : ''}.` : ph.apart;
+  const ph = S.phrases, side0 = mySide && (typeof ph[mySide][0] === 'function' ? ph[mySide][0](me) : ph[mySide][0]);
+  const body = mySide ? `You stand ${side0}${friends.length ? `, with ${listAnd(friends)},` : ''} ${foes.length ? 'against ' + listAnd(foes) : ph[mySide][1]}.` : ph.apart;
   const say = `It is ${S.year}. ${body}`;
   const scoreYear = startYear + Math.floor((scoreTurnLimit - 1) / (SEASON_LENGTH * 4));
   const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === S.congress.year ? S.congress.at : 'in ' + scoreYear}.` : '';
