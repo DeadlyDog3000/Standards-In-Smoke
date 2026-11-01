@@ -930,6 +930,13 @@
           </select>
         </div>
         <div class="setup-row">
+          <span class="setup-label">Lands</span>
+          <select id="setupMapStyle" class="setup-input" style="width:180px;">
+            <option value="random" selected>Unknown lands (random)</option>
+            <option value="europe">Europe (Large or Huge best)</option>
+          </select>
+        </div>
+        <div class="setup-row">
           <span class="setup-label">Score counted at</span>
           <select id="setupScoreTurn" class="setup-input" style="width:180px;">
             <option value="200" selected>Turn 200</option>
@@ -1049,7 +1056,7 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">Tips and Polish</b><br>
+        <b style="color:#b8a070;">Europe, Tempers and Tribute</b><br>
         - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
         - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
         - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
@@ -1061,6 +1068,7 @@
         - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
         - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
         - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
+        - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2104,7 +2112,7 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">Tips and Polish</b><br>
+          <b style="color:#b8a070;">Europe, Tempers and Tribute</b><br>
           - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
           - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
           - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
@@ -2116,6 +2124,7 @@
           - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
           - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
           - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
+          - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6484,6 +6493,54 @@ function pickSprite(type, i) {
   return variants[i % variants.length];
 }
 
+// ---- the Europe map: Europe and its seas at a degree a cell (11 W to 48 E, 72 N to 34 N; # land, h hills, ^ mountains,
+//  . sea), laid over the map's own noise so the coasts stay ragged and every game's is a little different; each crown
+//  starts at its real capital ----
+let mapStyle = 'random';
+const EUROPE = { lon0: -11, lat0: 72, w: 59, h: 38, rows: ["...........................................................", "..............................############.................", "...........................####hhh##################.......", ".........................###^^^^####################..#####", "........................##^^^^######################..#####", "........................#^^^^################........######", ".......................#^^^^#####...#########......########", "......................#^^^######....##########.############", "...................###^^^######..##########################", ".................##^^^^^#####...##############.############", "................##^^^^######....#########..###.############", "................#^^^^########...#########...###############", "................##hh##########...........##################", ".................###########......#########################", "......hh...........###.#####.#..##.########################", ".....hhh#..........###.#####....###########################", ".....####..........######.......###########################", "...######...........#...#.#################################", ".####...###........########################################", ".####..######...###########################################", ".####.######..#############################################", ".....###.....##########hhhhh###############################", ".........###################hh^^^^#########################", "......###########hh##############^^^#######################", ".......#############hhhh###########^^######################", ".........#########^^^^^^^########h##^#####.###...#########.", "..........###hh##^^####..########^^^^####...##...#########.", "..........##########hh#...^^^###hh######....##...#########.", "..###hhh#######......#hh#..#^^^#########...........^^^^####", "..#######^^^^^......#.##h....#^^##^^^##..............^^^^^^", "..######hh####..........#h#...####hh####..#####......######", "..###hhh####.......##.....h#####^##..#..########hhhhh######", "..#########..#.....##......#...#^#....#############^^^^####", "..#########................#....####.####hhhhhhhhhh#^^^^###", "..#####^^#.............###.......#....#####^^^^^^##########", ".....####..###########...........#.....##..##..############", ".....#^^######hhh#####............###......###.h###########", ".....#hhhhhhhhh#######.........................############"] };
+const EUROPE_CAPITALS = { 'Great Britain': [-0.1, 51.5], 'Austria': [16.4, 48.2], 'France': [2.35, 48.9], 'Russia': [37.6, 55.75], 'Belgium': [4.35, 50.85],
+  'Kingdom of Holland': [4.9, 52.37], 'Spain': [-3.7, 40.4], 'Sweden': [18.07, 59.33], 'Portugal': [-9.14, 38.7], 'Kingdom of Italy': [12.5, 41.9],
+  'Duchy of Warsaw': [21.0, 52.23], 'Kingdom of Naples': [14.27, 40.85], 'Kingdom of Saxony': [13.74, 51.05], 'Prussia': [13.4, 52.52],
+  'Ottoman Empire': [28.98, 41.0], 'Bavaria': [11.58, 48.14], 'Duchy of Nassau': [8.24, 50.08], 'Swiss Confederation': [7.45, 46.95],
+  'Denmark-Norway': [12.57, 55.68], 'Westphalia': [9.48, 51.31] };
+// (a tile's place on the sheet in degrees; the hex columns sit half a row apart)
+const euLonLat = (x, y) => [EUROPE.lon0 + (x + 0.5) / MAP_COLS * EUROPE.w, EUROPE.lat0 - (y + 0.5 + (x % 2) * 0.5) / MAP_ROWS * EUROPE.h];
+function europeMasks() {
+  const val = (c, r, f) => { c = Math.max(0, Math.min(EUROPE.w - 1, c)); r = Math.max(0, Math.min(EUROPE.h - 1, r)); return f(EUROPE.rows[r][c]); };
+  const isLand = ch => ch === '.' ? 0 : 1, relief = ch => ch === '^' ? 1 : ch === 'h' ? 0.5 : 0;
+  const land = new Float32Array(MAP_COLS * MAP_ROWS), mtn = new Float32Array(MAP_COLS * MAP_ROWS);
+  for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
+    const [lon, lat] = euLonLat(x, y), fc = lon - EUROPE.lon0 - 0.5, fr = EUROPE.lat0 - lat - 0.5;
+    const c0 = Math.floor(fc), r0 = Math.floor(fr), tx = fc - c0, ty = fr - r0;
+    const bil = f => (val(c0, r0, f) * (1 - tx) + val(c0 + 1, r0, f) * tx) * (1 - ty) + (val(c0, r0 + 1, f) * (1 - tx) + val(c0 + 1, r0 + 1, f) * tx) * ty;
+    land[y * MAP_COLS + x] = bil(isLand); mtn[y * MAP_COLS + x] = bil(relief);
+  }
+  return { land, mtn };
+}
+// the seas and ranges of the Europe map, as the old charts lettered them: [name, lon, lat, kind, large]
+const EUROPE_NAMES = [
+  ['Oceanus Atlanticus', -8.5, 47.5, 'sea', 1], ['Oceanus Septentrionalis', 1, 65, 'sea', 1], ['Mare Germanicum', 3.5, 56, 'sea', 0], ['Mare Balticum', 18.2, 56.3, 'sea', 0],
+  ['Sinus Bothnicus', 19.5, 62.5, 'sea', 0], ['Mare Album', 37.5, 65.4, 'sea', 0], ['Mare Mediterraneum', 4.5, 38.5, 'sea', 1], ['Mare Tyrrhenum', 11.5, 40.2, 'sea', 0],
+  ['Mare Adriaticum', 15, 43.2, 'sea', 0], ['Mare Ionium', 18.5, 37.6, 'sea', 0], ['Mare Aegaeum', 25, 38.6, 'sea', 0], ['Pontus Euxinus', 34, 43.3, 'sea', 1],
+  ['Sinus Cantabricus', -5, 45.6, 'sea', 0],
+  ['Alpes', 10, 46.6, 'mount'], ['Pyrenaei Montes', 0.3, 42.6, 'mount'], ['Montes Carpathii', 23.5, 48.6, 'mount'], ['Apenninus', 13.3, 42.6, 'mount'],
+  ['Montes Sevo', 14.5, 65.3, 'mount'], ['Caucasus', 44, 42.7, 'mount'], ['Taurus', 34, 37.4, 'mount'], ['Haemus', 24.5, 42.8, 'mount'], ['Alpes Dinaricae', 17.5, 44, 'mount'],
+];
+// where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
+function europeCapitalSite(name) {
+  const ll = EUROPE_CAPITALS[name]; if (!ll) return null;
+  const cx = Math.round((ll[0] - EUROPE.lon0) / EUROPE.w * MAP_COLS - 0.5), cy = Math.round((EUROPE.lat0 - ll[1]) / EUROPE.h * MAP_ROWS - 0.5);
+  const minD = Math.max(3, Math.round(Math.min(MAP_COLS, MAP_ROWS) / 40));
+  for (let r = 0; r <= 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const x = cx + dx, y = cy + dy;
+    if (x < 1 || y < 1 || x >= MAP_COLS - 1 || y >= MAP_ROWS - 1 || hexDistance(cx, cy, x, y) !== r) continue;
+    const t = tiles[y * MAP_COLS + x];
+    if (!t || (t.type !== 1 && t.type !== 3 && t.type !== 5 && t.type !== 6)) continue;
+    if (cities.some(c => hexDistance(c.x, c.y, x, y) < minD)) continue;
+    return { x, y };
+  }
+  return null;
+}
 function generateMap() {
   const seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   const elev = makeNoise(MAP_COLS, MAP_ROWS, seed, [[4,3],[8,6],[16,12]]);
@@ -6500,10 +6557,13 @@ function generateMap() {
   const fCut = quantile(forest, 0.55);
 
   const spriteRand = mulberry32(seed + 12345);
+  const eu = mapStyle === 'europe' ? europeMasks() : null;
   tiles = new Array(MAP_COLS * MAP_ROWS);
   for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
     const i = y * MAP_COLS + x;
-    const e = remapE(elev[i]), m = moist[i], f = forest[i], h = herdNoise[i];
+    // (on the Europe map the outline decides land and sea, the noise only roughens the coast; the relief comes from the outline's mountains)
+    const e = eu ? (eu.land[i] + (elev[i] - 0.5) * 0.45 > 0.5 ? 0.40 + elev[i] * 0.16 + eu.mtn[i] * 0.26 : 0.2) : remapE(elev[i]);
+    const m = moist[i], f = forest[i], h = herdNoise[i];
     let type, color;
     if (e < 0.38) { type = 0; color = TILE_COLORS.ocean; }
     else if (e < 0.64) {
@@ -14072,6 +14132,18 @@ function owPlaceNames() {
       labels.push({ i: best, text: OW_HILL_NAMES[hillN++ % OW_HILL_NAMES.length], kind: 'mount', size: 0.3 * Math.min(3.2, Math.max(1, Math.sqrt(n) / 4)) });
     }
   }
+  // the Europe map: its seas and ranges lettered with their own names, where they lie
+  if (mapStyle === 'europe') {
+    for (let k = labels.length - 1; k >= 0; k--) if (labels[k].kind === 'sea' || labels[k].kind === 'mount') labels.splice(k, 1);
+    const sz = Math.min(4, Math.max(1, MAP_COLS / 55));
+    for (const [text, lon, lat, kind, big] of EUROPE_NAMES) {
+      const x = Math.round((lon - EUROPE.lon0) / EUROPE.w * MAP_COLS - 0.5), y = Math.round((EUROPE.lat0 - lat) / EUROPE.h * MAP_ROWS - 0.5 - (x % 2) * 0.5);
+      if (x < 2 || y < 1 || x >= MAP_COLS - 2 || y >= MAP_ROWS - 1) continue;
+      const i = y * MAP_COLS + x;
+      if (kind === 'sea' && !isWater(i)) continue;
+      labels.push({ i, text, kind, size: (kind === 'sea' ? (big ? 0.42 : 0.3) : 0.28) * sz });
+    }
+  }
   // a compass rose printed in the widest sea, clear of its name and its beasts
   const seas = groups.filter(g => g.kind === 'sea').sort((a, b) => b.cells.length - a.cells.length);
   if (seas.length && seas[0].cells.length >= 40) {
@@ -18191,6 +18263,7 @@ function confirmSetupAndStart() {
   gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
   scoreTurnLimit = parseInt(document.getElementById('setupScoreTurn')?.value ?? '200', 10); if (Number.isNaN(scoreTurnLimit)) scoreTurnLimit = 200;
   ambitionVictoryOn = document.getElementById('setupAmbitionWin')?.value !== '0';
+  mapStyle = document.getElementById('setupMapStyle')?.value === 'europe' ? 'europe' : 'random';
   const _barbDensVal = parseInt(document.getElementById('setupBarbarians').value);
   barbarianDensity = (Number.isNaN(_barbDensVal) ? 40 : _barbDensVal) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
@@ -20320,7 +20393,7 @@ function serializeGame() {
     tileAnnotations,
     tutorialActive, tutorialStep,
     eventLogEntries: eventLogEntries.slice(-200),
-    townLog, scoreTurnLimit, ambitionVictoryOn,
+    townLog, scoreTurnLimit, ambitionVictoryOn, mapStyle,
     ordersRemaining,
     activatedUnitIdx: sUnits.map((_, i) => activatedUnits.has(units[i]) ? i : -1).filter(i => i >= 0),
   });
@@ -20440,6 +20513,7 @@ function deserializeGame(json) {
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
   townLog = d.townLog && Array.isArray(d.townLog.ev) ? d.townLog : { ev: [] }; _townLast = null;
   scoreTurnLimit = typeof d.scoreTurnLimit === 'number' ? d.scoreTurnLimit : 200; ambitionVictoryOn = d.ambitionVictoryOn !== false;
+  mapStyle = d.mapStyle === 'europe' ? 'europe' : 'random';
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
   activatedUnits = new Set();
@@ -20592,7 +20666,8 @@ function findRandomCapitalSite() {
 }
 
 function spawnAINations(count) {
-  const shuffled = [...PRESET_NATIONS].sort(() => Math.random() - 0.5);
+  // (never the player's own nation twice; on the Europe map, only the crowns of Europe)
+  const shuffled = [...PRESET_NATIONS].filter(p => p.name !== nations[playerNation]?.name && (mapStyle !== 'europe' || EUROPE_CAPITALS[p.name])).sort(() => Math.random() - 0.5);
   const toSpawn = Math.min(count, shuffled.length);
   for (let i = 0; i < toSpawn; i++) {
     const preset = shuffled[i];
@@ -20608,7 +20683,7 @@ function spawnAINations(count) {
         nations[j].loyalty[nId] = 50; nations[nId].loyalty[j] = 50;
       }
     }
-    const sp = findRandomCapitalSite();
+    const sp = (mapStyle === 'europe' && europeCapitalSite(preset.name)) || findRandomCapitalSite();
     citySites.push({ x: sp.x, y: sp.y, settled: false });
     const settler = spawnUnit('settler', nId, sp.x, sp.y);
     const capitalCity = foundCity(settler, getNextHistoricalCityName(nId));
@@ -20838,7 +20913,7 @@ function generateAndPlay(pName, pColor, opponents) {
   generateMap();
   playerNation = createNation(pName, pColor, true);
 
-  const sp = findRandomCapitalSite();
+  const sp = (mapStyle === 'europe' && europeCapitalSite(pName)) || findRandomCapitalSite();
   citySites.push({ x: sp.x, y: sp.y, settled: false });
   const playerSettler = spawnUnit('settler', playerNation, sp.x, sp.y);
   const startCity = foundCity(playerSettler, getNextHistoricalCityName(playerNation));
@@ -20858,7 +20933,7 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
   spawnAINations(aiCount);
-  const tribeCount = Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));
+  const tribeCount = mapStyle === 'europe' ? 0 : Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));   // (no tribes of the New World in Europe)
   spawnTribes(tribeCount);
 
   const extraSites = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 1500));
