@@ -1085,6 +1085,7 @@
         - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
+        - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2163,6 +2164,7 @@
           - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
+          - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -15099,8 +15101,10 @@ setTimeout(function owPreload() {
 // made again only when the known world or the watched part of it changes, not as the view moves
 function owMasks(pId) {
   // (the whole map is looked over at most a few times a second, or at once when what's seen, the map or the chart changes)
+  // (the masks don't change with the season, so the season is left out of what they're kept by: they used to be redrawn every turn)
+  const chartKey = String(OW.key).replace(/:[a-z]+$/, '');
   const now = Date.now();
-  if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === OW.key && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) {
+  if (OW.masks && OW.maskTiles === tiles && OW.maskVS === currentVisionSet && OW.maskChart === chartKey && OW.maskPid === pId && now - (OW.maskCheck || 0) < 300) {
     // (a look is owed: take it once the pause is over, so land found just now isn't left blank)
     //  (only when the view has gone still: while frames keep coming, the next one after the pause takes the look itself)
     if (!OW.maskLater) OW.maskLater = setTimeout(function owe() {
@@ -15110,19 +15114,22 @@ function owMasks(pId) {
     return OW.masks;
   }
   const sameWorld = OW.maskTiles === tiles && OW.maskPid === pId;
-  OW.maskCheck = now; OW.maskTiles = tiles; OW.maskVS = currentVisionSet; OW.maskChart = OW.key; OW.maskPid = pId;
+  OW.maskCheck = now; OW.maskTiles = tiles; OW.maskVS = currentVisionSet; OW.maskChart = chartKey; OW.maskPid = pId;
   let sig = 0, vsig = 0;
   for (let i = 0; i < tiles.length; i++) {
     if (!tiles[i].revealed.has(pId)) continue;
     sig = (Math.imul(sig, 31) + i) | 0;
     if (currentVisionSet && !currentVisionSet.has(i)) vsig = (Math.imul(vsig, 31) + i) | 0;
   }
-  const key = OW.key + '|' + pId + '|' + sig + '|' + vsig;
-  if (OW.maskKey === key) return OW.masks;
-  OW.maskKey = key;
+  const kKey = chartKey + '|' + pId + '|' + sig, dKey = kKey + '|' + vsig;
+  if (OW.maskKey === dKey && OW.masks) return OW.masks;
+  const knownDirty = OW.maskKKey !== kKey || !OW.masks;
+  OW.maskKey = dKey; OW.maskKKey = kKey;
   const newLand = sameWorld && OW.maskSig !== undefined && OW.maskSig !== sig;
   OW.maskSig = sig;
-  const { K, CS, CH } = OW, sc = 24 / K, W = Math.ceil(OW.canvas.width * sc), H = Math.ceil(OW.canvas.height * sc);
+  // (kept at half the chart's resolution. The charted land is drawn again only when new land is charted; the watched land
+  //  each time the view of it changes)
+  const { K, CS, CH } = OW, sc = 12 / K, W = Math.ceil(OW.canvas.width * sc), H = Math.ceil(OW.canvas.height * sc);
   const mk = (old) => { const c = old && old.width === W && old.height === H ? old : document.createElement('canvas'); c.width = W; c.height = H; return c; };
   // keep what was known a moment ago, so newly found land can be inked in over it rather than appear at once
   if (newLand && OW.masks && OW.masks.known.width === W && OW.masks.known.height === H) {
@@ -15130,30 +15137,45 @@ function owMasks(pId) {
     pk.width = W; pk.height = H; pk.getContext('2d').drawImage(OW.masks.known, 0, 0);
     OW.prevKnown = pk; OW.fadeStart = Date.now();
   } else if (!newLand) OW.prevKnown = null;
-  const known = mk(OW.masks && OW.masks.known), dim = mk(OW.masks && OW.masks.dim);
-  const kg = known.getContext('2d'), dg = dim.getContext('2d');
-  const kp = new Path2D(), dp = new Path2D(), qx = CS / 3 * sc + 0.4, hx2 = CS * 2 / 3 * sc + 0.4, hy = CH / 2 * sc + 0.4;
+  const om = OW.masks || {};
+  const known = knownDirty ? mk(om.known) : om.known, dim = mk(om.dim);
+  // (each pixel of a sheet a third this size takes the state of the hex whose centre is nearest, at the map's edge the edge
+  //  hex's; scaled up smoothly that gives the soft border. Building the hexes as a path took seconds on a large map)
+  const lw = Math.ceil(W / 3), lh = Math.ceil(H / 3), fxp = W / lw / sc, fyp = H / lh / sc;
+  const vis = currentVisionSet;
+  const kImg = knownDirty ? new ImageData(lw, lh) : null, dImg = new ImageData(lw, lh), kd = kImg && kImg.data, dd = dImg.data;
   let any = false;
-  for (let i = 0; i < tiles.length; i++) {
-    if (!tiles[i].revealed.has(pId)) continue;
-    any = true;
-    const mx = i % MAP_COLS, my = (i - mx) / MAP_COLS, cx = (mx * CS + K / 2) * sc, cy = (my * CH + (mx & 1) * CH / 2 + CH / 2) * sc;
-    const hex = (p) => { p.moveTo(cx - hx2, cy); p.lineTo(cx - qx, cy - hy); p.lineTo(cx + qx, cy - hy); p.lineTo(cx + hx2, cy); p.lineTo(cx + qx, cy + hy); p.lineTo(cx - qx, cy + hy); p.closePath(); };
-    hex(kp);
-    // hexes on the edge of the world carry the sheet out to its border
-    if (mx === 0) kp.rect(-1, cy - hy, cx + 1, hy * 2);
-    if (mx === MAP_COLS - 1) kp.rect(cx, cy - hy, W - cx + 1, hy * 2);
-    if (my === 0) kp.rect(cx - hx2, -1, hx2 * 2, cy + 1);
-    if (my === MAP_ROWS - 1) kp.rect(cx - hx2, cy, hx2 * 2, H - cy + 1);
-    if (currentVisionSet && !currentVisionSet.has(i)) hex(dp);
+  for (let v = 0; v < lh; v++) {
+    const Y = (v + 0.5) * fyp;
+    for (let u = 0; u < lw; u++) {
+      const X = (u + 0.5) * fxp;
+      const c0 = Math.round((X - K / 2) / CS);
+      let best = -1, bd = Infinity;
+      for (let c = c0 - 1; c <= c0 + 1; c++) {
+        const cc = Math.max(0, Math.min(MAP_COLS - 1, c)), r = Math.max(0, Math.min(MAP_ROWS - 1, Math.round((Y - CH / 2 - (cc & 1) * CH / 2) / CH)));
+        const dx = X - (cc * CS + K / 2), dy = Y - (r * CH + (cc & 1) * CH / 2 + CH / 2), d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = r * MAP_COLS + cc; }
+      }
+      if (best < 0 || !tiles[best].revealed.has(pId)) continue;
+      any = true;
+      const o = (v * lw + u) * 4;
+      if (kd) kd[o + 3] = 255;
+      if (vis && !vis.has(best)) { dd[o] = 104; dd[o + 1] = 94; dd[o + 2] = 80; dd[o + 3] = 112; }   // (land known but not watched now: dimmed and browned, as an old survey not lately checked)
+    }
   }
-  kg.clearRect(0, 0, W, H); kg.filter = 'blur(3px)'; kg.fillStyle = '#000'; kg.fill(kp); kg.fill(kp); kg.filter = 'none';
-  // land known but not watched now: dimmed and browned, as an old survey not lately checked
-  dg.clearRect(0, 0, W, H); dg.filter = 'blur(2.2px)'; dg.fillStyle = 'rgba(104, 94, 80, 0.44)'; dg.fill(dp); dg.filter = 'none'; // (greyed rather than darkened, so it stays apart from the blank vellum)
+  const lo = OW._maskLo || (OW._maskLo = document.createElement('canvas'));
+  const soft = (dst, img) => {
+    if (lo.width !== lw || lo.height !== lh) { lo.width = lw; lo.height = lh; }
+    lo.getContext('2d').putImageData(img, 0, 0);
+    const g = dst.getContext('2d'); g.clearRect(0, 0, W, H); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(lo, 0, 0, W, H);
+  };
+  if (kImg) soft(known, kImg);
+  soft(dim, dImg);
   // (and smaller copies of each, for a view from afar: scaling the whole mask down every frame is slow on a big sheet)
-  const half = (src, old) => { const m = mk2(old, Math.ceil(src.width / 2), Math.ceil(src.height / 2)); const q = m.getContext('2d'); q.clearRect(0, 0, m.width, m.height); q.imageSmoothingEnabled = true; q.drawImage(src, 0, 0, m.width, m.height); return m; };
   const mk2 = (old, w2, h2) => { const c = old && old.width === w2 && old.height === h2 ? old : document.createElement('canvas'); c.width = w2; c.height = h2; return c; };
-  const om = OW.masks || {}, k1 = half(known, om.knownM && om.knownM[1]), k2 = half(k1, om.knownM && om.knownM[2]), d1 = half(dim, om.dimM && om.dimM[1]), d2 = half(d1, om.dimM && om.dimM[2]);
+  const half = (src, old) => { const m = mk2(old, Math.ceil(src.width / 2), Math.ceil(src.height / 2)); const q = m.getContext('2d'); q.clearRect(0, 0, m.width, m.height); q.imageSmoothingEnabled = true; q.drawImage(src, 0, 0, m.width, m.height); return m; };
+  const k1 = knownDirty ? half(known, om.knownM && om.knownM[1]) : om.knownM[1], k2 = knownDirty ? half(k1, om.knownM && om.knownM[2]) : om.knownM[2];
+  const d1 = half(dim, om.dimM && om.dimM[1]), d2 = half(d1, om.dimM && om.dimM[2]);
   OW.masks = { known, dim, any, sc, knownM: [known, k1, k2], dimM: [dim, d1, d2] };
   return OW.masks;
 }
