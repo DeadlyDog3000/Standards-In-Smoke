@@ -725,6 +725,7 @@
     #rulerMedal:hover { box-shadow: 0 0 0 2px rgba(4, 8, 14, 0.95), 0 0 0 4px rgba(232, 200, 120, 0.6), 0 6px 14px rgba(0, 0, 0, 0.6); }
     body:not(.mobile-mode) #minimap { left: 96px; }
     body.mobile-mode #rulerMedal { display: none !important; }
+    .kc-temper { color: #e0c070; font-style: italic; cursor: help; }
     .emp-tabs { display: inline-flex; gap: 2px; margin: 0 10px; vertical-align: middle; }
     .emp-tabs button { font: 12px 'EB Garamond', Georgia, serif; padding: 2px 10px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
     .emp-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
@@ -1027,6 +1028,7 @@
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Tips and Polish</b><br>
         - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
+        - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2072,6 +2074,7 @@
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">Tips and Polish</b><br>
           - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
+          - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -9037,9 +9040,23 @@ function aiHuntCamp(u, nationId, aiCities, combatUnits) {
   return false; // beside a guarded camp: the attack logic deals with the guards
 }
 
+// ---- each rival crown's temper, chosen once: warlike crowns arm more and take offence sooner, builders raise wonders and
+//  keep the peace longer, expansionists spread fastest, merchants are the easiest to get on with ----
+const TEMPERS = {
+  warlike:      { name: 'Warlike',      desc: 'Keeps a larger army and goes to war sooner.', warLine: -45, drift: -0.5, army: 1.4, expand: 0, wonder: 1 },
+  builder:      { name: 'Builder',      desc: 'Raises wonders and buildings and is slow to go to war.', warLine: -75, drift: 0, army: 0.8, expand: 0, wonder: 2 },
+  expansionist: { name: 'Expansionist', desc: 'Sends out settlers more eagerly than any other crown.', warLine: -60, drift: 0, army: 1, expand: 0.4, wonder: 1 },
+  merchant:     { name: 'Merchant',     desc: 'Values trade and good relations; hard to provoke.', warLine: -70, drift: 0.4, army: 0.9, expand: 0, wonder: 1 },
+};
+function temperOf(n) {
+  if (!n || n.isBarbarian || n.isTribe) return null;
+  if (!n.temper || !TEMPERS[n.temper]) { const k = Object.keys(TEMPERS); n.temper = k[Math.floor(Math.random() * k.length)]; }
+  return TEMPERS[n.temper];
+}
 function aiTurn(nationId) {
   const n = nations[nationId];
   if (n.eliminated) return;
+  const T = temperOf(n) || TEMPERS.expansionist;
   if (!n.isBarbarian && !n.isTribe) aiUseMarket(nationId);
 
   const militaryByNation = new Map();
@@ -9116,7 +9133,7 @@ function aiTurn(nationId) {
     }
 
     if (n.relations[otherId] === 'peace' && aiCitiesAll.length > 0 && otherCities.length > 0) {
-      changeLoyalty(nationId, otherId, 0.8);
+      changeLoyalty(nationId, otherId, 0.8 + (temperOf(n)?.drift || 0));
     }
 
     if (otherId === playerNation && n.relations[otherId] === 'peace' && loy >= 45) {
@@ -9155,7 +9172,7 @@ function aiTurn(nationId) {
       if (updatedLoy > -20) n._warWarned = {}; // reset if relations improve
     }
 
-    if (updatedLoy <= -60 && n.relations[otherId] !== 'war') {
+    if (updatedLoy <= (temperOf(n)?.warLine ?? -60) && n.relations[otherId] !== 'war') {
       const aiArmySize = (militaryByNation.get(nationId) || []).length;
       const aiCityCount = aiCitiesAll.length;
 
@@ -9762,7 +9779,7 @@ function aiTurn(nationId) {
       const wantsGeneral = nationHasTech(nationId, 'military_leadership') && hasGenerals < Math.max(1, Math.floor(combatCount / 6));
       const scouts = units.filter(u => u.nationId === nationId && (u.type === 'scout' || u.type === 'veteran_scout')).length;
 
-      const minArmy = Math.max(3, aiCities.length * 2);
+      const minArmy = Math.max(3, Math.round(aiCities.length * 2 * T.army));
 
       const yields = getTotalYields(nationId);
       const lowGold = n.gold < 20 && yields.gold < combatCount * UNIT_MAINTENANCE;
@@ -9778,7 +9795,7 @@ function aiTurn(nationId) {
       const freeSites = citySites.filter(s => !s.settled).length;
       const settlerFood = getScaledCosts(nationId, PRODUCTION_COSTS.settler).food;
       // (a crown's appetite for land: each its own, made once; a realm with room to grow wants to fill it)
-      if (n._expand === undefined) n._expand = 0.8 + Math.random() * 0.6;
+      if (n._expand === undefined) n._expand = 0.8 + Math.random() * 0.6 + T.expand;
       const settlersOut = units.filter(u => u.nationId === nationId && u.type === 'settler').length + aiCities.filter(ci => ci !== c && ci.producing === 'settler').length;
       const settlersAllowed = aiCities.length >= 3 ? 2 : 1;
       const haveSettler = settlersOut >= settlersAllowed;
@@ -9818,15 +9835,15 @@ function aiTurn(nationId) {
         const wonderBuilt = (w) => cities.some(ci => (ci.buildings || []).includes(w));
         if (!hasGranary && n.wood >= 20 && n.gold >= 15 && Math.random() < 0.25) {
           c.producing = 'granary';
-        } else if (!wonderBuilt('merchants_guild') && n.gold >= 80 && n.wood >= 30 && n.stone >= 20 && Math.random() < 0.2) {
+        } else if (!wonderBuilt('merchants_guild') && n.gold >= 80 && n.wood >= 30 && n.stone >= 20 && Math.random() < 0.2 * T.wonder) {
           c.producing = 'merchants_guild';
-        } else if (!wonderBuilt('war_college') && n.stone >= 40 && n.steel >= 40 && n.gold >= 50 && Math.random() < 0.15) {
+        } else if (!wonderBuilt('war_college') && n.stone >= 40 && n.steel >= 40 && n.gold >= 50 && Math.random() < 0.15 * T.wonder) {
           c.producing = 'war_college';
-        } else if (!wonderBuilt('great_library') && n.gold >= 80 && n.stone >= 40 && Math.random() < 0.15) {
+        } else if (!wonderBuilt('great_library') && n.gold >= 80 && n.stone >= 40 && Math.random() < 0.15 * T.wonder) {
           c.producing = 'great_library';
-        } else if (!wonderBuilt('grand_cathedral') && n.stone >= 60 && n.gold >= 60 && Math.random() < 0.1) {
+        } else if (!wonderBuilt('grand_cathedral') && n.stone >= 60 && n.gold >= 60 && Math.random() < 0.1 * T.wonder) {
           c.producing = 'grand_cathedral';
-        } else if (!wonderBuilt('royal_arsenal') && n.steel >= 50 && n.gunpowder >= 30 && n.gold >= 40 && Math.random() < 0.15) {
+        } else if (!wonderBuilt('royal_arsenal') && n.steel >= 50 && n.gunpowder >= 30 && n.gold >= 40 && Math.random() < 0.15 * T.wonder) {
           c.producing = 'royal_arsenal';
         } else {
           const availSites = citySites.filter(s => !s.settled).length + barbarianCamps.filter(b => !b.destroyed).length;
@@ -16880,7 +16897,7 @@ function renderKingdoms() {
     const milStrength = units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
     html += `<div class="kcard ${rel}" style="--kc:${col}">
       <div class="kc-head">${(() => { const r = getNationRuler(n.id); return r ? `<img class="portrait kc-face" src="${portraitOf(r)}" alt="" title="${escHtml(r.name)}">` : '<span class="kc-crest"></span>'; })()}
-        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
+        <div class="kc-title"><b>${escHtml(n.name)}</b><small>${n.id !== playerNation && temperOf(n) ? `<span class="kc-temper" title="${escHtml(temperOf(n).desc)}">${temperOf(n).name}</span> · ` : ''}${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
         <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
     if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
     const loy = getLoyalty(n.id, playerNation);
