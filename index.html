@@ -4638,7 +4638,7 @@ function showElectionModal(nationId, candidates) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(10,8,5,0.9);';
   let html = `<div style="background:rgba(30,25,18,0.95);border:2px solid rgba(180,140,60,0.4);border-radius:8px;padding:20px;max-width:500px;width:90%;color:#e0d0b0;">`;
   html += `<h2 style="text-align:center;color:#d4a856;margin-bottom:12px;">Election</h2>`;
-  html += `<p style="text-align:center;margin-bottom:16px;">Your ruler has died with no spouse. The people vote for a new leader.</p>`;
+  html += `<p style="text-align:center;margin-bottom:16px;">Your ruler has died with no consort and no heir of age. The great houses must choose who will rule.</p>`;
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
     const traitDescs = c.traits.map(t => `<span style="color:#d4a856">${escHtml(t)}</span>: ${escHtml(CHARACTER_TRAITS[t]?.desc || '')}`).join(', ');
