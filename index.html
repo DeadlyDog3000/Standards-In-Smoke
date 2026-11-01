@@ -1137,6 +1137,7 @@
         - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
         - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
         - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
+        - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2249,6 +2250,7 @@
           - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
           - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
           - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
+          - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6981,6 +6983,9 @@ function apply1805() {
       }
       if (best && UNIT_DEFS[t]) spawnUnit(t, n.id, best.x, best.y);
     }
+    // (the flagships of the year of Trafalgar)
+    const flag = { 'Great Britain': ['man_of_war', 'HMS Victory'], 'France': ['frigate', 'Bucentaure'], 'Spain': ['frigate', 'Santísima Trinidad'] }[n.name];
+    const ship = flag && units.find(u => u.nationId === n.id && u.type === flag[0]); if (ship) ship.title = flag[1];
   }
   const side = n => SCEN_1805.coalition.includes(n.name) ? 'c' : SCEN_1805.france.includes(n.name) ? 'f' : null;
   for (const a of crowns) for (const b of crowns) {
