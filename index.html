@@ -1029,6 +1029,7 @@
         - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
         - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
         - War-weariness: a war between two rival crowns wears both down, and after some thirty turns they may come to terms, so Europe is no longer at war with itself all game<br>
+        - Regiments can take ship: once you know Navigation, any land unit can go aboard from a coast and cross the sea in a ship's boat (going aboard or ashore costs 3 moves, each hex of sea 1). Aboard it can't attack, fire or dig in and takes half again the harm. Crowns on islands can now be reached and conquered, and the rival crowns cross the sea too when what they want lies on another shore<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -2068,6 +2069,7 @@
           - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
           - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
           - War-weariness: a war between two rival crowns wears both down, and after some thirty turns they may come to terms, so Europe is no longer at war with itself all game<br>
+          - Regiments can take ship: once you know Navigation, any land unit can go aboard from a coast and cross the sea in a ship's boat (going aboard or ashore costs 3 moves, each hex of sea 1). Aboard it can't attack, fire or dig in and takes half again the harm. Crowns on islands can now be reached and conquered, and the rival crowns cross the sea too when what they want lies on another shore<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -3486,7 +3488,7 @@ function getEffectiveAtk(unit, target) {
   bonus += cmdBonus.atkBonus;
   // (a merged regiment: each company formed into it adds four-fifths of its own fire)
   const more = (unit.merged || []).reduce((a, t) => a + (UNIT_DEFS[t]?.atk || 4) * 0.8, 0);
-  return Math.round((base + bonus + more) * formBonus.atkMult * promoAtkMult(unit, target));
+  return Math.round((base + bonus + more) * formBonus.atkMult * promoAtkMult(unit, target) * (target && isEmbarked(target) ? 1.5 : 1));
 }
 function getEffectiveMaxHp(unit) {
   const base = UNIT_DEFS[unit.type].hp || (UNIT_DEFS[unit.type].combat ? 10 : 5);
@@ -3510,6 +3512,7 @@ function mergeRegiments(lead, other) {
   if (hexDistance(lead.x, lead.y, other.x, other.y) !== 1) return 'March up beside it first.';
   if (lead.movesLeft <= 0) return 'That regiment has no moves left this turn.';
   if (other.building || lead.building) return 'That regiment is busy.';
+  if (isEmbarked(lead) || isEmbarked(other)) return 'Regiments form up on land, not aboard ship.';
   if (lead.nationId === playerNation && !tryActivateUnit(lead, true)) return '';   // (the AI's regiments do not spend your orders)
   const ox = lead.x, oy = lead.y, hpBefore = lead.hp;
   lead.merged = [...(lead.merged || []), other.type, ...(other.merged || [])];
@@ -3578,7 +3581,7 @@ function owActionsSync() {
   const show = u && units.includes(u) && u.nationId === playerNation && !document.body.classList.contains('mobile-mode') && MAP_COLS && document.getElementById('menu').style.display === 'none';
   if (!show) { if (bar.style.display !== 'none') bar.style.display = 'none'; _owaSig = ''; return; }
   const def = UNIT_DEFS[u.type] || {};
-  const mate = mergeable(u) && regimentSize(u) < MERGE_MAX && u.movesLeft > 0 && units.find(o => o !== u && o.nationId === u.nationId && mergeable(o) && regimentSize(u) + regimentSize(o) <= MERGE_MAX && hexDistance(u.x, u.y, o.x, o.y) === 1);
+  const mate = mergeable(u) && !isEmbarked(u) && regimentSize(u) < MERGE_MAX && u.movesLeft > 0 && units.find(o => o !== u && o.nationId === u.nationId && mergeable(o) && regimentSize(u) + regimentSize(o) <= MERGE_MAX && hexDistance(u.x, u.y, o.x, o.y) === 1);
   const acts = [];
   if (def.ranged) acts.push(['fire', 'Fire on an enemy', 'R', 'enterRangedMode()', !canFireNow(u) || (def.artillery && u.reloadTurns > 0)]);
   acts.push(['goto', 'March to a far hex', 'G', 'enterGotoMode()', u.movesLeft <= 0]);
@@ -5718,6 +5721,30 @@ function canEnterTerritory(nationId, tileOwner, tx, ty) {
   if (hasAgreement(nationId, tileOwner, 'open_borders')) return true;
   return false;
 }
+// ---- embarking: with Navigation a land regiment can take ship from any coast and cross the sea, slowly and exposed.
+//  Going aboard or ashore costs 3 moves, each hex of sea 1; aboard it can't attack and takes half again the harm.
+//  The other crowns embark only to reach a target on another landmass (their marches never stray to sea otherwise) ----
+let _aiMaySail = false;
+const isEmbarked = u => !!u && !UNIT_DEFS[u.type]?.naval && tiles[u.y * MAP_COLS + u.x]?.type === 0;
+let _landmass = { tiles: null, comp: null };
+function landmassAt(x, y) {
+  if (_landmass.tiles !== tiles || !_landmass.comp || _landmass.comp.length !== tiles.length) {
+    const comp = new Int32Array(tiles.length).fill(-1); let nc = 0;
+    for (let i = 0; i < tiles.length; i++) {
+      if (tiles[i].type === 0 || comp[i] >= 0) continue;
+      const q = [i]; comp[i] = nc;
+      while (q.length) { const j = q.pop(), jx = j % MAP_COLS, jy = (j - jx) / MAP_COLS;
+        for (const nb of hexNeighbors(jx, jy)) { if (nb.col < 0 || nb.row < 0 || nb.col >= MAP_COLS || nb.row >= MAP_ROWS) continue; const k = nb.row * MAP_COLS + nb.col; if (tiles[k].type !== 0 && comp[k] < 0) { comp[k] = nc; q.push(k); } } }
+      nc++;
+    }
+    _landmass = { tiles, comp };
+  }
+  return _landmass.comp[y * MAP_COLS + x];
+}
+// (an AI march may take ship when it's already at sea, or its goal lies on another shore)
+function aiSailFor(u, tx, ty) {
+  return !UNIT_DEFS[u.type]?.naval && nationHasTech(u.nationId, 'navigation') && (isEmbarked(u) || tiles[ty * MAP_COLS + tx]?.type === 0 || landmassAt(u.x, u.y) !== landmassAt(tx, ty));
+}
 function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   const def = UNIT_DEFS[unitType];
   if (nx !== undefined && ny !== undefined && nationId !== undefined) {
@@ -5726,6 +5753,7 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   }
   if (def.naval) return tileType === 0; // ships only on ocean
   if (tileType !== 0) return true; // all land units can walk on land
+  if (nationId !== undefined && (nationId === playerNation || _aiMaySail) && nationHasTech(nationId, 'navigation')) return true; // (embarked)
 
   if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
     if (nx !== undefined && ny !== undefined) {
@@ -7334,6 +7362,7 @@ function getMoveCost(fromX, fromY, toX, toY, unitType) {
   if (toTile.hasRiver !== fromTile.hasRiver) cost += 2;
 
   const def = UNIT_DEFS[unitType];
+  if (def && !def.naval && (toTile.type === 0 || fromTile.type === 0)) return toTile.type === 0 && fromTile.type === 0 ? 1 : 3; // (aboard and at sea)
   if (def && def.siege && (toTile.type === 3 || toTile.type === 7 || toTile.type === 2)) cost += 1;
   return cost;
 }
@@ -7407,6 +7436,7 @@ function canAttack(attacker, tx, ty) {
   if (def.artillery && attacker.reloadTurns > 0) return false;
 
   if (attacker.movesLeft <= 0) return false;
+  if (isEmbarked(attacker)) return false; // (troops aboard ship can't attack)
   const target = units.find(u => u.x === tx && u.y === ty && u.nationId !== attacker.nationId);
   if (!target) return false;
   if (nations[attacker.nationId].relations[target.nationId] !== 'war') return false;
@@ -8633,7 +8663,7 @@ function openManual(tab) {
   let body = '';
   if (T === 'regiments') {
     const order = ['swordsman', 'crossbowman', 'musketeer', 'grenadier', 'rifleman', 'cavalry', 'hussar', 'dragoon', 'lancer', 'heavy_cavalry', 'field_gun', 'cannon', 'mortar', 'general', 'frigate', 'galleon', 'man_of_war', 'scout', 'veteran_scout', 'worker', 'veteran_worker', 'settler'];
-    body = order.filter(t => UNIT_DEFS[t]).map(t => {
+    body = `<p class="man-lede">With Navigation, any land regiment can take ship from a coast and cross the sea: going aboard or ashore costs 3 moves and each hex of sea 1. Aboard ship it can't attack, fire or dig in, and it takes half again the harm.</p>` + order.filter(t => UNIT_DEFS[t]).map(t => {
       const d = UNIT_DEFS[t], tech = unitRequiresTech(t), up = UNIT_UPGRADES[t];
       const range = d.ranged ? (d.artillery ? 4 : t === 'rifleman' ? 3 : 2) : 0;
       const stats = d.combat ? `Attack <b>${d.atk || 4}</b> · Men <b>${d.hp || 10}</b> · Moves <b>${d.moves}</b>${range ? ` · Range <b>${range}</b> (+1 from a hill)` : ''}` : `Moves <b>${d.moves}</b> · Sight <b>${d.vision}</b>`;
@@ -9864,6 +9894,10 @@ function moveAIUnitMultiple(u, steps) {
 }
 
 function moveAIToward(u, tx, ty, steps) {
+  _aiMaySail = aiSailFor(u, tx, ty);
+  try { return moveAITowardImpl(u, tx, ty, steps); } finally { _aiMaySail = false; }
+}
+function moveAITowardImpl(u, tx, ty, steps) {
   if (!u._stuckCount) u._stuckCount = 0;
   for (let s = 0; s < steps && u.movesLeft > 0; s++) {
     const prevX = u.x, prevY = u.y;
@@ -9898,6 +9932,10 @@ function moveAIToward(u, tx, ty, steps) {
 }
 
 function moveAITowardHighGround(u, tx, ty, steps) {
+  _aiMaySail = aiSailFor(u, tx, ty);
+  try { return moveAITowardHighGroundImpl(u, tx, ty, steps); } finally { _aiMaySail = false; }
+}
+function moveAITowardHighGroundImpl(u, tx, ty, steps) {
   if (!u._stuckCount) u._stuckCount = 0;
   for (let s = 0; s < steps && u.movesLeft > 0; s++) {
     const prevX = u.x, prevY = u.y;
@@ -13125,6 +13163,28 @@ function drawWargameBlock(u, cx, cy, w, col, selected) {
   }
   ctx.restore();
 }
+// a regiment aboard ship: a ship's boat under it, mast and sail behind, the gunwale in front hiding the men's legs
+function drawEmbarkBoat(cx, baseY, w, col, part) {
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const L = w * 0.4, top = baseY - w * 0.07, keel = baseY + w * 0.09;
+  if (part === 'back') {
+    ctx.strokeStyle = 'rgba(40, 28, 14, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.025);
+    ctx.beginPath(); ctx.moveTo(cx + L * 0.25, top); ctx.lineTo(cx + L * 0.25, baseY - w * 0.62); ctx.stroke();
+    ctx.fillStyle = 'rgba(244, 234, 210, 0.95)'; ctx.beginPath();
+    ctx.moveTo(cx + L * 0.27, baseY - w * 0.6); ctx.quadraticCurveTo(cx + L * 0.85, baseY - w * 0.4, cx + L * 0.3, baseY - w * 0.16); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(cx + L * 0.25, baseY - w * 0.62); ctx.lineTo(cx + L * 0.25 + w * 0.12, baseY - w * 0.585); ctx.lineTo(cx + L * 0.25, baseY - w * 0.55); ctx.closePath(); ctx.fill();
+  } else {
+    // (a ripple under the hull, then the hull)
+    ctx.strokeStyle = 'rgba(236, 244, 236, 0.7)'; ctx.lineWidth = Math.max(0.8, w * 0.018);
+    ctx.beginPath(); ctx.moveTo(cx - L * 1.15, keel + w * 0.02); ctx.quadraticCurveTo(cx, keel + w * 0.07, cx + L * 1.15, keel + w * 0.02); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - L, top); ctx.quadraticCurveTo(cx - L * 0.85, keel, cx, keel); ctx.quadraticCurveTo(cx + L * 0.85, keel, cx + L * 1.05, top - w * 0.03); ctx.closePath();
+    ctx.fillStyle = '#6a4424'; ctx.fill(); ctx.strokeStyle = 'rgba(30, 18, 8, 0.95)'; ctx.lineWidth = Math.max(1, w * 0.022); ctx.stroke();
+    ctx.strokeStyle = 'rgba(214, 170, 110, 0.55)'; ctx.lineWidth = Math.max(0.7, w * 0.012);
+    ctx.beginPath(); ctx.moveTo(cx - L * 0.9, top + w * 0.035); ctx.quadraticCurveTo(cx, keel - w * 0.02, cx + L * 0.95, top + w * 0.01); ctx.stroke();
+    ctx.fillStyle = col; ctx.fillRect(cx - L * 0.9, top - w * 0.012, L * 1.85, Math.max(1, w * 0.02));
+  }
+  ctx.restore();
+}
 const _figSil = new WeakMap();
 function figureSilhouette(img) {
   let c = _figSil.get(img);
@@ -15388,8 +15448,10 @@ function render() {
     const cx = pos.x + w / 2 + (atGate ? w * 0.26 : 0), cy = pos.y + facePad + ch / 2 + bobY + (atGate ? ch * 0.16 : 0);
     const rad = w * 0.32 * UNIT_FIG_SCALE;
     const fig = VIEW_TILE >= 14 ? uniformFigure(unitFigure(u.type), u.type, u.nationId) : null;
-    if (charted && VIEW_TILE < 34) drawWargameBlock(u, cx, cy - bobY, w, safeColor(nCol), u === selectedUnit); // seen from afar: a wargame block
+    const aboard = isEmbarked(u);
+    if (charted && VIEW_TILE < 34) { if (aboard) drawEmbarkBoat(cx, cy - bobY + w * 0.12, w * 0.7, safeColor(nCol), 'back'); drawWargameBlock(u, cx, cy - bobY, w, safeColor(nCol), u === selectedUnit); if (aboard) drawEmbarkBoat(cx, cy - bobY + w * 0.12, w * 0.7, safeColor(nCol), 'front'); } // seen from afar: a wargame block
     else if (fig) {
+      if (aboard) drawEmbarkBoat(cx, cy - bobY + rad * 0.62, w, safeColor(nCol), 'back');
       // a figure turns to face the way it last marched
       if (u._fx !== undefined && u._fx !== u.x) u._faceLeft = u.x < u._fx;
       u._fx = u.x;
@@ -15399,7 +15461,8 @@ function render() {
         const [sx, sy] = MERGE_SPOTS[k] || [0, 0];
         drawUnitFigure(mf, cx + sx * w, cy - bobY + rad * 0.62 + sy * w, w * UNIT_FIG_SCALE * 0.9, safeColor(nCol), false, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, false, !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
       });
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit && !aboard, u._faceLeft, currentSeason === 'winter' && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
+      if (aboard) drawEmbarkBoat(cx, cy - bobY + rad * 0.62, w, safeColor(nCol), 'front');
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
@@ -16011,6 +16074,7 @@ function showUnitPanel(unit) {
     if (unit.merged && unit.merged.length) chips += chip(`${regimentSize(unit)} companies`, 'Formed from ' + [unit.type, ...unit.merged].map(unitTypeName).join(', ') + ': their men and fire together');
     if (def.siege) chips += chip('Siege', 'Strong against walls');
     if (unit.fortified) chips += chip('Fortified', 'Dug in: harder to dislodge', 'good');
+    if (isEmbarked(unit)) chips += chip('Aboard ship', 'At sea: it can\'t attack and takes half again the harm. Going ashore costs 3 moves', 'water');
 
     const unitMorale = unit.morale !== undefined ? unit.morale : MORALE_MAX;
     bars += bar('Morale', unitMorale, MORALE_MAX, unitMorale > 50 ? '#5a8ee0' : unitMorale > 25 ? '#e0a030' : '#d04040');
@@ -16145,12 +16209,13 @@ function showUnitPanel(unit) {
       html += `<p style="font-size:11px;color:#d8a040;margin:2px 0;">Reloading... ${unit.reloadTurns} turn${unit.reloadTurns > 1 ? 's' : ''} remaining</p>`;
     }
     html += `<button class="p-btn" onclick="enterRangedMode()" ${(!canRanged || (def.artillery && unit.reloadTurns > 0)) ? 'disabled' : ''}>Ranged Attack (R) <span class="cost">${getUnitRange(unit)} tile range</span></button>`;
-    if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">The guns cannot fire after moving: they fire from where they began the turn.</p>`;
+    if (isEmbarked(unit)) html += `<p style="font-size:10px;color:#a66">Aboard ship: it can fire again once it is ashore.</p>`;
+    else if (!canRanged && unit.movesLeft > 0) html += `<p style="font-size:10px;color:#a66">The guns cannot fire after moving: they fire from where they began the turn.</p>`;
     else if (unit.movesLeft <= 0) html += `<p style="font-size:10px;color:#a66">No moves left this turn.</p>`;
   }
   // (on a phone there is no right-click: a button forms up with the regiment beside it)
-  if (unit.nationId === playerNation && mergeable(unit) && regimentSize(unit) < MERGE_MAX && unit.movesLeft > 0) {
-    const mate = units.find(o => o !== unit && o.nationId === unit.nationId && mergeable(o) && regimentSize(unit) + regimentSize(o) <= MERGE_MAX && hexDistance(unit.x, unit.y, o.x, o.y) === 1);
+  if (unit.nationId === playerNation && mergeable(unit) && !isEmbarked(unit) && regimentSize(unit) < MERGE_MAX && unit.movesLeft > 0) {
+    const mate = units.find(o => o !== unit && o.nationId === unit.nationId && mergeable(o) && !isEmbarked(o) && regimentSize(unit) + regimentSize(o) <= MERGE_MAX && hexDistance(unit.x, unit.y, o.x, o.y) === 1);
     if (mate) html += `<button class="p-btn" onclick="mergeSelectedWithNeighbour()">Form up with the ${unitTypeName(mate.type)} beside it <span class="cost">1 order</span></button>`;
   }
   // disbanding: two clicks, so a regiment is never lost to a slip of the mouse (a merged one goes whole: split a company off first to keep it)
@@ -18633,7 +18698,7 @@ function processGotoOrders() {
 // Whether a ranged regiment may fire now: foot and horse with firearms may fire whenever they have a move left
 // (march, then shoot); the guns must still stand where they began the turn, unlimbered.
 function canFireNow(u) {
-  if (!u || u.movesLeft <= 0) return false;
+  if (!u || u.movesLeft <= 0 || isEmbarked(u)) return false;
   if (!UNIT_DEFS[u.type]?.artillery) return true;
   return u.movesLeft >= (u.turnStartMoves ?? u.maxMoves);
 }
@@ -19798,6 +19863,7 @@ window.fortifyUnit = function() {
   if (selectedUnit.nationId !== playerNation) return;
   if (selectedUnit.fortified) return;
   if (selectedUnit.movesLeft <= 0) return;
+  if (isEmbarked(selectedUnit)) { showToast('Troops aboard ship cannot dig in.'); return; }
   if (!tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
