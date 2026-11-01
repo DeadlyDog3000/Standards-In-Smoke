@@ -4238,7 +4238,7 @@ function hint(id) {
     const seen = JSON.parse(localStorage.getItem('sis_hints_seen') || '[]');
     if (seen.includes(id) || document.getElementById('hintCard')) return;
     // (never over another window: the tip waits for its next chance)
-    if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #coalitionInvite, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
+    if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #coalitionInvite, #scenOverlay, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
     seen.push(id); localStorage.setItem('sis_hints_seen', JSON.stringify(seen));
     const el = document.createElement('div'); el.id = 'hintCard';
     el.innerHTML = `<b>Tip</b><p>${HINTS[id]}</p><div><button onclick="this.closest('#hintCard').remove()">Got it</button><button onclick="localStorage.setItem('sis_hints_off','1');this.closest('#hintCard').remove()">No more tips</button></div>`;
@@ -6333,7 +6333,7 @@ function _reminderPopupWrap(id) {
 }
 
 function showNoResearchPopup() {
-  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('ambitionOverlay') || document.getElementById('coalitionInvite')) return;
+  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('ambitionOverlay') || document.getElementById('coalitionInvite') || document.getElementById('scenOverlay')) return;
   const n = nations[playerNation];
   if (!n) return;
   const available = Object.entries(TECHS).filter(([key]) => nationCanResearch(playerNation, key));
