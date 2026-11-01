@@ -1028,6 +1028,7 @@
         - Your ruler's likeness in the top-left corner, as in Old World: a gilt ring round it fills with your legitimacy, and a click opens the Court<br>
         - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
         - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
+        - War-weariness: a war between two rival crowns wears both down, and after some thirty turns they may come to terms, so Europe is no longer at war with itself all game<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
       <div style="margin-bottom:12px;">
@@ -2066,6 +2067,7 @@
           - Your ruler's likeness in the top-left corner, as in Old World: a gilt ring round it fills with your legitimacy, and a click opens the Court<br>
           - The Empire panel (O) has a second page, Regiments: every regiment you have, where it is, its men, rank and orders, those with a promotion to choose or still awaiting orders first; click one to go to it<br>
           - A Field Manual (I, or from the pause menu): every regiment with its picture, attack, men, moves, range, cost, the research it needs and what it upgrades to, and the buildings, land improvements, promotions and ambitions<br>
+          - War-weariness: a war between two rival crowns wears both down, and after some thirty turns they may come to terms, so Europe is no longer at war with itself all game<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.4</b></div>
         <div style="margin-bottom:12px;">
@@ -9086,6 +9088,7 @@ function aiTurn(nationId) {
       }
     }
 
+    if (n.relations[otherId] !== 'war' && n._warSince) delete n._warSince[otherId];
     if (n.relations[otherId] === 'war') {
       const ourCityCount = (citiesByNation.get(nationId) || []).length;
       const theirCityCount = (citiesByNation.get(otherId) || []).length;
@@ -9094,7 +9097,11 @@ function aiTurn(nationId) {
       const severelyOutmatched = (theirMilCount > ourMilCount * 2.5 && theirMilCount >= 4) || (ourCityCount === 0);
       // a town starving under this enemy's siege makes a realm sue for terms
       const starving = (citiesByNation.get(nationId) || []).some(c => (c.siegeTurns || 0) >= 4 && c._occupied && [...c._occupied].some(ti => units.some(v => v.nationId === otherId && v.y * MAP_COLS + v.x === ti)));
-      if (updatedLoy > 0 || severelyOutmatched || starving) {
+      // war-weariness: a long war with a rival crown wears both courts down, and after some thirty turns either may come to terms
+      if (!n._warSince) n._warSince = {};
+      if (n._warSince[otherId] === undefined) n._warSince[otherId] = turnNumber;
+      const weary = otherId !== playerNation && turnNumber - n._warSince[otherId] > 30 && Math.random() < 0.06;
+      if (updatedLoy > 0 || severelyOutmatched || starving || weary) {
         if (otherId === playerNation) {
           if (!n.wantsPeace) n.wantsPeace = {};
           if (!n.wantsPeace[otherId]) {
@@ -9103,9 +9110,11 @@ function aiTurn(nationId) {
           }
         } else {
           const otherLoy = getLoyalty(otherId, nationId);
-          if (otherLoy > 0 || severelyOutmatched) {
+          if (otherLoy > 0 || severelyOutmatched || weary) {
             n.relations[otherId] = 'peace';
             nations[otherId].relations[nationId] = 'peace';
+            if (n._warSince) delete n._warSince[otherId];
+            if (nations[otherId]._warSince) delete nations[otherId]._warSince[nationId];
             const myLoy = getLoyalty(nationId, otherId);
             if (myLoy < 10) changeLoyalty(nationId, otherId, 10 - myLoy);
             if (otherLoy < 10) changeLoyalty(otherId, nationId, 10 - otherLoy);
