@@ -1055,6 +1055,7 @@
         - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
         - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
         - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
+        - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2106,6 +2107,7 @@
           - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
           - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
           - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
+          - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -8051,6 +8053,29 @@ function getLoyaltyColor(val) {
   if (val >= -60) return '#e44';
   return '#f22';
 }
+// you can demand tribute too, of a crown with less than half your army: it pays if it fears you enough (merchants pay
+// soonest, warlike crowns hardly ever), and either way it likes you less; once in fifteen turns of each crown
+function demandTribute(nationId) {
+  const n = nations[nationId], me = nations[playerNation];
+  if (!n || n.eliminated || n.relations[playerNation] === 'war') return;
+  if (n._tributeAskedAt !== undefined && turnNumber - n._tributeAskedAt < 15) { showToast(`You asked ${n.name} too recently.`); return; }
+  const theirs = (units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat)).length, yours = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
+  if (yours < Math.max(4, theirs * 2)) { showToast(`${n.name} does not fear you enough: you need twice their army.`); return; }
+  n._tributeAskedAt = turnNumber;
+  const amt = Math.max(15, Math.min(150, Math.round((n.gold || 0) * 0.25)));
+  const fear = Math.min(0.9, (yours / Math.max(1, theirs) - 2) * 0.25 + 0.35) + ({ merchant: 0.15, builder: 0.05, warlike: -0.3 }[n.temper] || 0) + Math.max(-0.3, getLoyalty(nationId, playerNation) / 200);
+  if (Math.random() < fear && (n.gold || 0) >= amt) {
+    n.gold -= amt; me.gold = (me.gold || 0) + amt;
+    changeLoyalty(nationId, playerNation, -15);
+    showToast(`${n.name} pays you ${amt} gold in tribute.`); logEvent(`${n.name} pays ${amt} gold in tribute.`);
+    try { SMK.coins(5); } catch (e) {}
+  } else {
+    changeLoyalty(nationId, playerNation, -25);
+    showToast(`${n.name} refuses your demand, and will remember it.`); logEvent(`${n.name} refuses to pay tribute.`);
+  }
+  updateUI(); renderKingdoms();
+}
+window.demandTribute = demandTribute;
 function sendGift(nationId, resource, amount) {
   const target = nations[nationId];
   if (!target || target.isBarbarian || target.eliminated) { showToast('Cannot send a gift to that party.'); return; }
@@ -17061,6 +17086,7 @@ function renderKingdoms() {
     html += `<div class="kc-acts">
       <button class="diplo-btn ${rel === 'war' ? 'ok' : 'no'}" onclick="toggleDiplomacy(${n.id})">${rel === 'war' ? 'Seek peace' : 'Declare war'}</button>
       <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold: they think better of you">Gift 20g</button>
+      ${rel !== 'war' && units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length >= Math.max(4, 2 * units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).length) ? `<button class="diplo-btn" onclick="demandTribute(${n.id})" title="Demand gold of a crown with less than half your army: it may pay, and either way it likes you less">Demand</button>` : ''}
       ${rel !== 'war' ? `<button class="diplo-btn" onclick="toggleTradePanel(${n.id})">Trade</button>` : ''}
       <button class="diplo-btn spy" onclick="infiltrateNation(${n.id})" title="Send spies to reveal their borders — 50 gold. 25% chance of discovery">Spies 50g</button>
     </div>`;
