@@ -6801,6 +6801,16 @@ function apply1805() {
     const army = great ? ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'] : ['musketeer', 'musketeer', 'hussar', 'field_gun'];
     for (const t of army) { const p = findLandNear(cap.x, cap.y, 4, true); if (p) spawnUnit(t, n.id, p.x, p.y); }
     n.gold = (n.gold || 0) + (great ? 150 : 80); n.steel = (n.steel || 0) + 60; n.gunpowder = (n.gunpowder || 0) + 60; n.food = (n.food || 0) + 60;
+    // (the sea powers keep a squadron off their coasts: Britain most of all)
+    const fleet = { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] }[n.name] || [];
+    for (const t of fleet) {
+      let best = null, bd = Infinity;
+      for (const c of towns) for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const x = c.x + dx, y = c.y + dy; if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS || tiles[y * MAP_COLS + x].type !== 0 || units.some(u => u.x === x && u.y === y)) continue;
+        const d = hexDistance(c.x, c.y, x, y); if (d < bd) { bd = d; best = { x, y }; }
+      }
+      if (best && UNIT_DEFS[t]) spawnUnit(t, n.id, best.x, best.y);
+    }
   }
   const side = n => SCEN_1805.coalition.includes(n.name) ? 'c' : SCEN_1805.france.includes(n.name) ? 'f' : null;
   for (const a of crowns) for (const b of crowns) {
