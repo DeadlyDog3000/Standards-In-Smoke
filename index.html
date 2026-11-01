@@ -967,7 +967,7 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Start</span>
-          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; or 1700, the Spanish Succession in the west and the Great Northern War in the north">
+          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; 1740, the Austrian Succession; or 1700, the Spanish Succession in the west and the Great Northern War in the north">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1805">1805: the Coalition</option>
             <option value="1700">1700: the Spanish Succession</option>
@@ -10085,7 +10085,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
-        ['Historical starts', 'Begin in 1700, 1756 or 1805 (under Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1714, 1763 or 1815) among the great powers and you.'],
+        ['Historical starts', 'Begin in 1700, 1740, 1756 or 1805 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1714, 1748, 1763 or 1815) among the great powers and you.'],
         ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
