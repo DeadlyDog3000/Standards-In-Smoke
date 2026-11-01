@@ -1071,6 +1071,7 @@
         - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
         - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
         - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
+        - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2128,6 +2129,7 @@
           - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
           - A map of Europe: choose "Europe" under Lands when you set up a game, and the crowns begin at their real capitals (London, Paris, Vienna, Berlin, Moscow and the rest) on an engraved chart of the continent, its seas and ranges lettered with their old names (Mare Balticum, Pontus Euxinus, the Alps, the Carpathians). Best on a Large or Huge map. A rival is never the same nation as you any more<br>
           - Fix: towns' name banners near the bottom-left corner printed over the event log<br>
+          - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6529,6 +6531,75 @@ const EUROPE_NAMES = [
   ['Alpes', 10, 46.6, 'mount'], ['Pyrenaei Montes', 0.3, 42.6, 'mount'], ['Montes Carpathii', 23.5, 48.6, 'mount'], ['Apenninus', 13.3, 42.6, 'mount'],
   ['Montes Sevo', 14.5, 65.3, 'mount'], ['Caucasus', 44, 42.7, 'mount'], ['Taurus', 34, 37.4, 'mount'], ['Haemus', 24.5, 42.8, 'mount'], ['Alpes Dinaricae', 17.5, 44, 'mount'],
 ];
+// the great rivers of the Europe map, each from its source to its mouth (or to the river it joins), as [lon, lat] points
+const EUROPE_RIVERS = [
+  ['Rhenus', [[9.2, 46.6], [9.6, 47.5], [7.6, 47.56], [7.75, 48.6], [8.3, 50.0], [7.6, 50.4], [6.95, 50.94], [6.6, 51.8], [5.9, 51.85], [4.1, 51.95]]],
+  ['Danubius', [[8.5, 48.0], [10.0, 48.4], [12.1, 49.0], [13.5, 48.6], [16.4, 48.2], [17.1, 48.1], [18.9, 47.8], [19.05, 47.5], [18.9, 46.0], [20.45, 44.8], [22.5, 44.6], [24.0, 43.7], [26.0, 44.0], [28.0, 44.1], [28.2, 45.4], [29.7, 45.2]]],
+  ['Albis', [[15.6, 50.7], [14.4, 50.6], [13.7, 51.05], [11.6, 52.1], [10.0, 53.55], [8.7, 53.9]]],
+  ['Visurgis', [[9.6, 51.4], [9.2, 52.3], [8.8, 53.1], [8.5, 53.7]]],
+  ['Viadrus', [[17.8, 49.8], [17.0, 51.1], [14.6, 52.3], [14.4, 53.4], [14.3, 54.0]]],
+  ['Vistula', [[18.9, 49.6], [19.9, 50.05], [21.0, 51.0], [21.0, 52.25], [18.6, 53.0], [18.8, 54.5]]],
+  ['Mosa', [[5.6, 48.0], [5.7, 49.6], [4.8, 50.0], [5.6, 50.6], [5.7, 51.4], [4.3, 51.8]]],
+  ['Sequana', [[4.7, 47.5], [4.1, 48.3], [2.35, 48.85], [1.1, 49.4], [0.0, 49.5]]],
+  ['Liger', [[4.2, 44.9], [4.0, 46.2], [3.1, 47.0], [1.9, 47.9], [0.7, 47.4], [-1.55, 47.2], [-2.4, 47.27]]],
+  ['Rhodanus', [[8.4, 46.6], [6.2, 46.2], [4.85, 45.75], [4.8, 44.0], [4.6, 43.2]]],
+  ['Garumna', [[0.6, 42.8], [1.44, 43.6], [0.5, 44.2], [-0.6, 44.85], [-1.2, 45.7]]],
+  ['Padus', [[7.1, 44.7], [7.7, 45.05], [9.7, 45.1], [11.0, 45.0], [12.6, 44.95]]],
+  ['Tagus', [[-1.8, 40.5], [-3.6, 40.0], [-6.0, 39.7], [-8.3, 39.4], [-9.4, 38.7]]],
+  ['Iberus', [[-4.0, 43.0], [-2.4, 42.5], [-0.9, 41.65], [0.5, 41.0], [1.0, 40.6]]],
+  ['Durius', [[-2.9, 41.8], [-4.7, 41.5], [-6.8, 41.2], [-8.9, 41.15]]],
+  ['Tamesis', [[-2.0, 51.7], [-1.25, 51.75], [-0.1, 51.5], [1.0, 51.5]]],
+  ['Borysthenes', [[33.0, 55.8], [30.5, 54.5], [30.3, 53.0], [30.5, 51.5], [30.5, 50.45], [32.0, 49.4], [35.1, 47.8], [33.6, 46.8], [32.3, 46.5]]],
+  ['Rha', [[32.5, 57.2], [35.9, 56.9], [40.0, 57.6], [44.0, 56.3], [47.95, 55.9]]],
+  ['Tanais', [[38.0, 53.9], [39.2, 51.7], [41.0, 49.5], [42.5, 48.8], [41.0, 47.4], [39.7, 47.25], [38.8, 47.1]]],
+  ['Tyras', [[23.0, 49.3], [25.0, 48.8], [27.6, 48.3], [29.5, 47.0], [30.3, 46.3]]],
+  ['Duna', [[32.5, 56.5], [30.2, 55.5], [26.5, 55.9], [24.1, 56.95], [23.8, 57.3]]],
+  ['Tiberis', [[12.0, 43.7], [12.4, 42.5], [12.5, 41.9], [12.1, 41.7]]],
+  ['Hebrus', [[23.7, 42.2], [24.75, 42.15], [26.5, 41.7], [26.0, 40.7]]],
+  ['Tibiscus', [[24.2, 48.0], [22.0, 48.2], [20.1, 46.3], [20.3, 45.2]]],
+  ['Moenus', [[11.9, 50.1], [10.0, 49.8], [8.7, 50.1], [8.3, 50.0]]],
+  ['Mosella', [[7.0, 47.9], [6.2, 48.7], [6.2, 49.6], [6.6, 49.75], [7.6, 50.36]]],
+  ['Dvina', [[46.0, 61.2], [43.0, 62.5], [41.5, 64.0], [40.3, 64.7]]],
+  ['Halys', [[38.0, 39.8], [35.5, 39.4], [34.0, 40.0], [35.0, 41.0], [36.0, 41.8]]],
+];
+function euTile(lon, lat) {
+  const x = Math.max(0, Math.min(MAP_COLS - 1, Math.round((lon - EUROPE.lon0) / EUROPE.w * MAP_COLS - 0.5)));
+  const y = Math.max(0, Math.min(MAP_ROWS - 1, Math.round((EUROPE.lat0 - lat) / EUROPE.h * MAP_ROWS - 0.5 - (x % 2) * 0.5)));
+  return y * MAP_COLS + x;
+}
+// each river walked hex by hex from point to point: it runs until the sea, or into a river already laid (a tributary)
+function traceEuropeRivers() {
+  for (const [name, pts] of EUROPE_RIVERS) {
+    let cur = euTile(pts[0][0], pts[0][1]), prev = -1;
+    const seen = new Set();
+    outer: for (let k = 1; k < pts.length; k++) {
+      const target = euTile(pts[k][0], pts[k][1]), tx = target % MAP_COLS, ty = (target - tx) / MAP_COLS;
+      for (let guard = 0; guard < 400 && cur !== target; guard++) {
+        const t = tiles[cur];
+        if (t.type === 0) { if (prev >= 0 && tiles[prev].riverTo === undefined) tiles[prev].riverTo = cur; break outer; }
+        if (t.hasRiver && t.riverName && t.riverName !== name) { if (prev >= 0) tiles[prev].riverTo = cur; break outer; }   // (joins the greater river)
+        if (t.type !== 2) { t.hasRiver = true; t.riverName = name; }
+        seen.add(cur);
+        const cx = cur % MAP_COLS, cy = (cur - cx) / MAP_COLS;
+        let best = -1, bd = Infinity;
+        for (const nb of hexNeighbors(cx, cy)) {
+          if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
+          const ni = nb.row * MAP_COLS + nb.col; if (seen.has(ni)) continue;
+          const d = hexDistance(nb.col, nb.row, tx, ty) + (tiles[ni].type === 2 ? 0.6 : 0);
+          if (d < bd) { bd = d; best = ni; }
+        }
+        if (best < 0) break outer;
+        if (t.type !== 2) t.riverTo = best;
+        prev = cur; cur = best;
+      }
+    }
+    // (the last stretch: on into the sea if it lies beside it)
+    const last = tiles[cur];
+    if (last && last.type !== 0 && last.type !== 2) { last.hasRiver = true; last.riverName = last.riverName || name;
+      const cx = cur % MAP_COLS, cy = (cur - cx) / MAP_COLS, sea = hexNeighbors(cx, cy).find(nb => tiles[nb.row * MAP_COLS + nb.col]?.type === 0);
+      if (sea && last.riverTo === undefined) last.riverTo = sea.row * MAP_COLS + sea.col; }
+  }
+}
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
   const ll = EUROPE_CAPITALS[name]; if (!ll) return null;
@@ -6583,7 +6654,8 @@ function generateMap() {
     tiles[i] = { type, color, baseColor: color, owner: -1, improvement: null, revealed: new Set(), spriteKey, hasRiver: false, animal: null };
   }
 
-  const riverCount = Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 500));
+  const riverCount = eu ? 0 : Math.max(4, Math.floor(MAP_COLS * MAP_ROWS / 500));
+  if (eu) traceEuropeRivers();
   const mountainStarts = [];
   for (let i = 0; i < tiles.length; i++) { if (tiles[i].type === 2) mountainStarts.push(i); }
   for (let r = 0; r < riverCount; r++) {
@@ -6624,7 +6696,7 @@ function generateMap() {
     if (moist[i] < 0.68) continue; // wet areas only
     lakeCandidates.push(i);
   }
-  const numLakes = Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 250));
+  const numLakes = eu ? 0 : Math.max(3, Math.floor(MAP_COLS * MAP_ROWS / 250));   // (Europe keeps the lakes its outline has)
   const usedForLake = new Set();
   let lakesCreated = 0;
 
@@ -14186,7 +14258,7 @@ function owPlaceNames() {
       if (steep) ang = 0;
       const at0 = stem[k], ax = at0 % MAP_COLS, ay = (at0 - ax) / MAP_COLS;
       if (labels.some(l => Math.hypot(l.i % MAP_COLS - ax, Math.floor(l.i / MAP_COLS) - ay) < 6)) continue;
-      labels.push({ i: at0, text: 'Fl. ' + OW_RIVER_NAMES[rN++ % OW_RIVER_NAMES.length], kind: 'river', size: 0.3, ang, steep, stem });
+      labels.push({ i: at0, text: 'Fl. ' + (tiles[m].riverName || tiles[at0].riverName || OW_RIVER_NAMES[rN % OW_RIVER_NAMES.length]), kind: 'river', size: 0.3, ang, steep, stem }); rN++;
     }
   }
   OW.labels = labels; OW.decor = decor;
@@ -20349,6 +20421,7 @@ function serializeGame() {
     if (t.spriteKey) ct.s = t.spriteKey;
     if (t.hasRiver) ct.rv = true;
     if (t.riverTo !== undefined) ct.rt = t.riverTo;
+    if (t.riverName) ct.rn = t.riverName;
     if (t.ruins) ct.ru = 1;
     if (t.wonder) { ct.nw = t.wonder; if (t.wonderSeen) ct.ns = 1; }
     if (t.animal) ct.an = t.animal;
@@ -20413,7 +20486,7 @@ function deserializeGame(json) {
       const type = d.v >= 10 ? t.t : (t.t === 7 ? 2 : t.t); // v10+ has hills (7) and rivers (8)
       const color = TILE_COLOR_BY_TYPE[type] || TILE_COLORS.land;
       const spriteKey = t.s || pickSprite(type, Math.floor(Math.random() * 997));
-      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, ruins: !!t.ru, wonder: t.nw || undefined, wonderSeen: !!t.ns, animal: t.an || null, battle: t.bt || undefined };
+      return { type, color, baseColor: color, owner: t.o, improvement: t.i || null, revealed: new Set(t.r), spriteKey, hasRiver: !!t.rv, riverTo: t.rt, riverName: t.rn || undefined, ruins: !!t.ru, wonder: t.nw || undefined, wonderSeen: !!t.ns, animal: t.an || null, battle: t.bt || undefined };
     });
   } else {
 
