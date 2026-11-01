@@ -1060,6 +1060,7 @@
         - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
         - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
         - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
+        - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2114,6 +2115,7 @@
           - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
           - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
           - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
+          - Long wars with you wear your enemies down too: after some thirty-five turns a crown may offer peace (warlike crowns hold out longer); the choice is yours, in the Kingdoms panel<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -9368,7 +9370,7 @@ function aiTurn(nationId) {
       // war-weariness: a long war with a rival crown wears both courts down, and after some thirty turns either may come to terms
       if (!n._warSince) n._warSince = {};
       if (n._warSince[otherId] === undefined) n._warSince[otherId] = turnNumber;
-      const weary = otherId !== playerNation && turnNumber - n._warSince[otherId] > 30 && Math.random() < 0.06;
+      const weary = turnNumber - n._warSince[otherId] > (otherId === playerNation ? 35 : 30) && Math.random() < (otherId === playerNation ? 0.04 : 0.06) && n.temper !== 'warlike' || (n.temper === 'warlike' && turnNumber - n._warSince[otherId] > 50 && Math.random() < 0.04);   // (with you it only offers: the choice is yours)
       if (updatedLoy > 0 || severelyOutmatched || starving || weary) {
         if (otherId === playerNation) {
           if (!n.wantsPeace) n.wantsPeace = {};
