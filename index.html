@@ -726,6 +726,8 @@
     body:not(.mobile-mode) #minimap { left: 96px; }
     body.mobile-mode #rulerMedal { display: none !important; }
     .kc-temper { color: #e0c070; font-style: italic; cursor: help; }
+    .reg-name { margin: -2px 0 4px; font-style: italic; color: #e0c890; font-size: 13px; }
+    .reg-name button { font: 11px 'EB Garamond', Georgia, serif; padding: 0 7px; margin-left: 6px; cursor: pointer; color: #c8b8a0; background: rgba(160, 140, 100, 0.15); border: 1px solid rgba(160, 140, 100, 0.35); border-radius: 3px; font-style: normal; }
     .kc-wars { font-size: 11.5px; color: #c8a890; margin: 2px 0 4px; } .kc-wars b { font-weight: normal; color: #e9dcc0; border-bottom: 2px solid; padding-bottom: 0; }
     .emp-tabs { display: inline-flex; gap: 2px; margin: 0 10px; vertical-align: middle; }
     .emp-tabs button { font: 12px 'EB Garamond', Georgia, serif; padding: 2px 10px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
@@ -1103,6 +1105,7 @@
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
+        - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2188,6 +2191,7 @@
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
+          - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -7226,8 +7230,18 @@ function regimentName(u) {
     n._regiments[style] = (n._regiments[style] || 0) + 1;
     u.regiment = n._regiments[style];
   }
-  return `${ordinal(u.regiment)} ${style}`;
+  return u.title || `${ordinal(u.regiment)} ${style}`;
 }
+// a regiment of yours can be given a name of its own (kept in your saves; it appears wherever the regiment is named)
+function renameRegiment() {
+  const u = selectedUnit; if (!u || u.nationId !== playerNation || !UNIT_DEFS[u.type]?.combat) return;
+  const nm = prompt('Name this regiment:', regimentName(u));
+  if (nm === null) return;
+  const clean = nm.trim().replace(/'/g, '\u2019').replace(/[<>"&`]/g, '').substring(0, 32);   // (an apostrophe kept, as a printer's one)
+  if (clean) u.title = clean; else delete u.title;   // (an empty name gives back its number)
+  showUnitPanel(u); render();
+}
+window.renameRegiment = renameRegiment;
 
 function spawnUnit(type, nationId, x, y) {
   const def = UNIT_DEFS[type];
@@ -16992,7 +17006,8 @@ function showUnitPanel(unit) {
   startSelectionFlash();
   const panel = document.getElementById('panel');
   const def = UNIT_DEFS[unit.type];
-  const typeName = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
+  const typeName = unitTitle(unit.type);
+  const regName = UNIT_DEFS[unit.type]?.combat ? regimentName(unit) : '';
   const effectiveMaxHp = getEffectiveMaxHp(unit);
   const unitLevel = getUnitLevel(unit);
   // (its state at a glance: health and morale as bars, then what it can do and what the ground gives it, as chips)
@@ -17049,7 +17064,7 @@ function showUnitPanel(unit) {
       generalHtml = `<p style="font-size:11px;color:#b8cc84;margin:2px 0;">Under command of General (${traitNames})</p>`;
     }
   }
-  let html = `${UNIT_DEFS[unit.type] ? `<div class="city-plate unit-plate"><img src="units/${unit.type}.png" alt=""></div>` : ''}<h3>${unitIco(unit.type)} ${typeName}</h3>${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
+  let html = `${UNIT_DEFS[unit.type] ? `<div class="city-plate unit-plate"><img src="units/${unit.type}.png" alt=""></div>` : ''}<h3>${unitIco(unit.type)} ${typeName}</h3>${regName ? `<p class="reg-name">${escHtml(regName)}${unit.nationId === playerNation ? ` <button onclick="renameRegiment()" title="Give this regiment a name of your own">Rename</button>` : ''}</p>` : ''}${rankHtml ? `<p style="font-size:12px;margin-bottom:4px;">${rankHtml}</p>` : ''}<p>${def.desc}</p>${statsLine}${abilityHtml}${formationHtml}${traitsHtml}${generalHtml}`;
 
   html += promoPanelHtml(unit);
   if (unit.nationId === playerNation && UNIT_UPGRADES[unit.type]) {
