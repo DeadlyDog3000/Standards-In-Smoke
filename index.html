@@ -6582,7 +6582,7 @@ window.answerCoalition = function (join) {
   const me = nations[playerNation], lead = nations[inv.lead];
   me.relations[lead.id] = 'war'; lead.relations[playerNation] = 'war';
   for (const id of inv.members) { changeLoyalty(id, playerNation, 20); if (!hasAgreement(playerNation, id, 'war_help')) addAgreement(playerNation, id, 'war_help'); }
-  logEvent(`You join the coalition against ${lead.name}.`); showToast(`You are at war with ${lead.name}, at the side of the coalition.`);
+  showToast(`You join the coalition against ${lead.name}: you are at war with it, at the coalition's side.`);
   try { playWarHorn(); } catch (e) {}
   updateUI();
 };
@@ -8468,11 +8468,11 @@ function demandTribute(nationId) {
   if (Math.random() < fear && (n.gold || 0) >= amt) {
     n.gold -= amt; me.gold = (me.gold || 0) + amt;
     changeLoyalty(nationId, playerNation, -15);
-    showToast(`${n.name} pays you ${amt} gold in tribute.`); logEvent(`${n.name} pays ${amt} gold in tribute.`);
+    showToast(`${n.name} pays you ${amt} gold in tribute.`, true); logEvent(`${n.name} pays ${amt} gold in tribute.`);
     try { SMK.coins(5); } catch (e) {}
   } else {
     changeLoyalty(nationId, playerNation, -25);
-    showToast(`${n.name} refuses your demand, and will remember it.`); logEvent(`${n.name} refuses to pay tribute.`);
+    showToast(`${n.name} refuses your demand, and will remember it.`, true); logEvent(`${n.name} refuses to pay tribute.`);
   }
   updateUI(); renderKingdoms();
 }
@@ -9040,7 +9040,7 @@ function tickAmbitions() {
     n.legitimacy = Math.min(100, (n.legitimacy ?? 50) + 10);
     const k = n.ambitionsDone.length;
     logEvent(`Ambition fulfilled: ${cur.name} (${k} of ${AMBITION_WIN}). +10 legitimacy`);
-    showToast(`Ambition fulfilled: ${cur.name}! (${k} of ${AMBITION_WIN})`);
+    showToast(`Ambition fulfilled: ${cur.name}! (${k} of ${AMBITION_WIN})`, true);
     try { SMK.peal(4); } catch (e) {}
     if (k >= AMBITION_WIN && !n.scoreSettled && ambitionVictoryOn) { updateAmbitionPlaque(); showVictory('ambition'); return; }
   }
@@ -9432,7 +9432,7 @@ function unlockAchievement(id) {
   const a = ACHIEVEMENTS.find(x => x[0] === id); if (!a) return;
   got[id] = new Date().toLocaleDateString();
   try { localStorage.setItem('sis_achievements', JSON.stringify(got)); } catch (e) {}
-  showToast(`Achievement: ${a[1]}`); logEvent(`Achievement: ${a[1]} (${a[2].replace(/\.$/, '')})`);
+  showToast(`Achievement: ${a[1]}`, true); logEvent(`Achievement: ${a[1]} (${a[2].replace(/\.$/, '')})`);
   try { SMK.peal(3); } catch (e) {}
 }
 function tickAchievements() {
@@ -9766,7 +9766,7 @@ function aiTurn(nationId) {
         n._tributeAsk = Math.round(25 + turnNumber * 0.4 + Math.min(150, (nations[playerNation].gold || 0) * 0.1));
         n._diploRequest[playerNation] = 'tribute';
         n._tributeUntil = turnNumber + 20;   // (asked at most once in twenty turns)
-        showToast(`${n.name} demands ${n._tributeAsk} gold in tribute. Open Kingdoms to answer.`);
+        showToast(`${n.name} demands ${n._tributeAsk} gold in tribute. Open Kingdoms to answer.`, true);
         logEvent(`${n.name} demands ${n._tributeAsk} gold in tribute.`);
       }
     }
@@ -17723,7 +17723,7 @@ function acceptPeace(nationId) {
   pn._peaceCooldown[nationId] = turnNumber + 10;
   n._peaceCooldown[playerNation] = turnNumber + 10;
   const gold = Math.min(n._peaceGold || 0, Math.floor(n.gold || 0)); n._peaceGold = 0;
-  if (gold > 0) { n.gold -= gold; pn.gold = (pn.gold || 0) + gold; try { SMK.coins(5); } catch (e) {} logEvent(`Peace with ${n.name}: they pay ${gold} gold.`); }
+  if (gold > 0) { n.gold -= gold; pn.gold = (pn.gold || 0) + gold; try { SMK.coins(5); } catch (e) {} }
   showToast(`Peace treaty signed with ${n.name}!${gold > 0 ? ` They pay ${gold} gold.` : ''}`);
   renderKingdoms();
 }
@@ -17851,7 +17851,7 @@ function acceptRequest(nationId, type) {
     changeLoyalty(nationId, playerNation, 30);
     if (!n._peaceCooldown) n._peaceCooldown = {}; n._peaceCooldown[playerNation] = turnNumber + 15;
     me.legitimacy = Math.max(0, (me.legitimacy ?? 50) - 3);
-    showToast(`You pay ${n.name} ${amt} gold. They will keep the peace for a while.`); logEvent(`Tribute of ${amt} gold paid to ${n.name}. -3 legitimacy`);
+    showToast(`You pay ${n.name} ${amt} gold. They will keep the peace for a while.`, true); logEvent(`Tribute of ${amt} gold paid to ${n.name}. -3 legitimacy`);
     try { SMK.coins(4); } catch (e) {}
     updateUI(); renderKingdoms(); return;
   }
@@ -17867,7 +17867,7 @@ function rejectRequest(nationId, type) {
     delete nations[nationId]._diploRequest[playerNation];
     changeLoyalty(nationId, playerNation, -25);
     const me = nations[playerNation]; me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 2);
-    showToast(`You refuse ${nations[nationId].name}'s demand. They will not forget it.`); logEvent(`${nations[nationId].name}'s demand for tribute refused. +2 legitimacy`);
+    showToast(`You refuse ${nations[nationId].name}'s demand. They will not forget it.`, true); logEvent(`${nations[nationId].name}'s demand for tribute refused. +2 legitimacy`);
     renderKingdoms(); return;
   }
   delete nations[nationId]._diploRequest[playerNation];
