@@ -1087,6 +1087,7 @@
         - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
         - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
         - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
+        - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2167,6 +2168,7 @@
           - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
           - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
           - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
+          - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -13832,7 +13834,12 @@ const UNIFORMS = {
   'United States':       { coat: '#1f2c5c', facing: '#b8302a' },   // dark blue, red
   'Ottoman Empire':      { coat: '#9a2a1e', facing: '#2e6a3a' },   // a red coat, green
 };
-const UNIFORM_TYPES = new Set(['musketeer', 'grenadier', 'general']);
+const UNIFORM_TYPES = new Set(['musketeer', 'grenadier', 'general', 'dragoon', 'field_gun', 'cannon']);
+// the dragoons' coats and the gunners', where a nation dressed them apart from its foot (otherwise they wear its line coat)
+const DRAGOON_COATS = { 'France': '#2c5a34', 'Great Britain': '#b3241e', 'Austria': '#ede6d6', 'Prussia': '#7aa6d0', 'Russia': '#24432a', 'Spain': '#d8b23a', 'Bavaria': '#5d8fc8', 'Kingdom of Saxony': '#ece5d4', 'Duchy of Warsaw': '#24432a' };
+const GUNNER_COATS = { 'France': '#25366e', 'Great Britain': '#1e2a4a', 'Austria': '#6a4a2e', 'Prussia': '#1f2a4e', 'Russia': '#24432a', 'Spain': '#24315a', 'Sweden': '#26407a', 'Kingdom of Saxony': '#2c4a2e' };
+// (each figure's own cloth to repaint: the hue it was drawn in and where on the figure it lies)
+const CLOTH = { dragoon: { h0: 80, h1: 175, y0: 0.08, y1: 0.62, coats: DRAGOON_COATS }, field_gun: { h0: 195, h1: 250, y0: 0, y1: 1, coats: GUNNER_COATS }, cannon: { h0: 195, h1: 250, y0: 0, y1: 1, coats: GUNNER_COATS } };
 const _uniformCache = new Map();
 function uniformFigure(img, type, nid) {
   if (!img || !UNIFORM_TYPES.has(type)) return img;
@@ -13848,6 +13855,18 @@ function uniformFigure(img, type, nid) {
     const coat = rgb(u.coat), fac = rgb(u.facing);
     // the coat's own shade, how light it is against the lightest of the white coat, put onto the new cloth
     const paint = (i, col, shade) => { for (let k = 0; k < 3; k++) px[i + k] = Math.max(0, Math.min(255, Math.round(col[k] * shade))); };
+    const cloth = CLOTH[type];
+    if (cloth) {
+      // (a coloured coat: its hue found where it lies on the figure, repainted in the nation's colour with the engraving's light kept)
+      const col = rgb(cloth.coats[n.name] || u.coat), light = (col[0] + col[1] + col[2]) / 765 > 0.75;
+      for (let y = Math.floor(H * cloth.y0); y < Math.ceil(H * cloth.y1); y++) for (let x = 0; x < c.width; x++) {
+        const i = (y * c.width + x) * 4; if (px[i + 3] < 40) continue;
+        const r = px[i] / 255, gg = px[i + 1] / 255, b = px[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2;
+        let h = 0; if (mx !== mn) { h = mx === r ? ((gg - b) / (mx - mn)) % 6 : mx === gg ? (b - r) / (mx - mn) + 2 : (r - gg) / (mx - mn) + 4; h *= 60; if (h < 0) h += 360; }
+        if (h >= cloth.h0 && h <= cloth.h1 && mx - mn > 0.1) paint(i, col, light ? Math.min(1.05, 0.45 + l * 1.1) : Math.min(1.4, 0.3 + l * 1.5));
+      }
+      g.putImageData(d, 0, 0); _uniformCache.set(key, c); return c;
+    }
     for (let y = Math.floor(H * 0.2); y < Math.ceil(H * 0.66); y++) for (let x = 0; x < c.width; x++) {
       const i = (y * c.width + x) * 4; if (px[i + 3] < 40) continue;
       const r = px[i] / 255, gg = px[i + 1] / 255, b = px[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2;
