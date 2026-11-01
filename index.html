@@ -1123,6 +1123,7 @@
         - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
         - The Kingdoms panel names each crown's ruler<br>
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
+        - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2221,6 +2222,7 @@
           - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
           - The Kingdoms panel names each crown's ruler<br>
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
+          - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6973,6 +6975,32 @@ function tickScenario() {
   if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
   if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
   if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
+  // (1810: the Emperor sets Joséphine aside for an Austrian archduchess, if he still reigns and Austria is at peace with him;
+  //  1811: their son, the King of Rome)
+  const au = nations.find(n => n.name === 'Austria' && !n.eliminated), nap = fr && getNationRuler(fr.id);
+  const involved = n => n && (n.id === playerNation || discoveredNations.has(n.id));
+  if (year >= 1810 && !done.marieLouise) {
+    done.marieLouise = true;
+    if (nap && nap.name === 'Napoleon Bonaparte' && au && fr.relations[au.id] !== 'war' && !(fr.id === playerNation || au.id === playerNation)) {
+      const old = getNationSpouse(fr.id); if (old) old.role = 'dowager';
+      const ml = createCharacter(fr.id, 'spouse', 'female');
+      Object.assign(ml, { name: 'Marie Louise of Austria', age: 18, birthTurn: turnNumber - 18 * SEASON_LENGTH * 4, hale: true, spouseId: nap.id });
+      nap.spouseId = ml.id;
+      if (!hasAgreement(fr.id, au.id, 'marriage')) addAgreement(fr.id, au.id, 'marriage');
+      changeLoyalty(fr.id, au.id, 20); changeLoyalty(au.id, fr.id, 20);
+      if (involved(fr) || involved(au)) logEvent('1810: Napoleon sets Joséphine aside and marries Marie Louise of Austria.');
+    }
+  }
+  if (year >= 1811 && !done.kingOfRome) {
+    done.kingOfRome = true;
+    const ml = fr && getNationSpouse(fr.id);
+    if (nap && nap.name === 'Napoleon Bonaparte' && ml && ml.name === 'Marie Louise of Austria') {
+      const h = createCharacter(fr.id, 'heir', 'male');
+      Object.assign(h, { name: 'Napoleon, King of Rome', age: 0, birthTurn: turnNumber, parentIds: [nap.id, ml.id], reignName: 'Napoleon II', hale: true });
+      nap.childIds.push(h.id); ml.childIds.push(h.id);
+      if (involved(fr)) logEvent('1811: a son is born to the Emperor of the French: Napoleon, King of Rome.');
+    }
+  }
   if (year >= 1807 && !done.tilsit) {
     done.tilsit = true;
     const ru = byName('Russia');
