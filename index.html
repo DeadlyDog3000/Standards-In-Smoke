@@ -1036,6 +1036,7 @@
         - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
         - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
         - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
+        - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2083,6 +2084,7 @@
           - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
           - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
           - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
+          - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -15978,11 +15980,11 @@ function updateCityLabels() {
     if (city.contested && city.captureProgress) prog = Math.max(0, ...Object.values(city.captureProgress));
     const bldIcons = (city.buildings || []).map(b => CITY_BUILDING_DEFS[b]?.icon).filter(Boolean).join('');
     const col = safeColor(nations[city.nationId].color);
-    const key = [city.name, city.population, city.isCapital, prog, bldIcons, col].join('|');
+    const key = [city.name, city.population, city.isCapital, prog, bldIcons, col, cityWallLevel(city)].join('|');
     if (el._key !== key) {
       el._key = key;
       el.style.setProperty('--nc', col);
-      el.innerHTML = `<span class="cl-pop">${city.population || 1}</span><span class="cl-name">${city.isCapital ? '★ ' : ''}${escHtml(city.name)}</span>${prog > 0 ? `<span class="cl-siege">⚔ ${prog}/4</span>` : ''}${bldIcons ? `<span class="cl-bld">${bldIcons}</span>` : ''}`;
+      el.innerHTML = `<span class="cl-pop">${city.population || 1}</span><span class="cl-name">${city.isCapital ? '★ ' : ''}${escHtml(city.name)}</span>${prog > 0 ? `<span class="cl-siege" title="Turns an enemy has held it, of the ${WALL_HOLD[cityWallLevel(city)]} it needs to take it">⚔ ${prog}/${WALL_HOLD[cityWallLevel(city)]}</span>` : ''}${bldIcons ? `<span class="cl-bld">${bldIcons}</span>` : ''}`;
     }
     el.classList.toggle('contested', prog > 0);
     el.style.display = '';
