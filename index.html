@@ -1112,6 +1112,7 @@
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
         - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
+        - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2204,6 +2205,7 @@
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
           - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
           - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
+          - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -20837,24 +20839,27 @@ function renderCourtPanel() {
     html += `</div>`;
   }
 
-  if (ruler) {
-    const children = characters.filter(c => c.parentIds.includes(ruler.id) && !c.deathTurn);
-    if (children.length > 0) {
-      html += `<div class="section-title">Children</div>`;
-      for (const child of children) {
-        html += `<div style="padding:4px 6px;font-size:11px;border-bottom:1px solid rgba(180,140,60,0.1);">`;
-        html += `${escHtml(child.name)} (Age ${child.age}, ${child.gender})`;
-        html += ` — ${child.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ')}`;
-        html += `</div>`;
-      }
+  // the line of succession: every living prince or princess of the house, eldest first; the eldest grown one takes the throne
+  const heirs = characters.filter(c => c.nationId === playerNation && c.role === 'heir' && !c.deathTurn).sort((a, b) => b.age - a.age);
+  if (ruler && (heirs.length || spouse)) {
+    const next = heirs.find(c => c.age >= 16);
+    html += `<div class="section-title">Line of Succession</div>`;
+    for (const child of heirs) {
+      html += `<div style="padding:4px 6px;font-size:11px;border-bottom:1px solid rgba(180,140,60,0.1);">`;
+      html += `${child === next ? '<b style="color:#e0c880">' : ''}${escHtml(child.name)}${child === next ? '</b>' : ''} (Age ${child.age}, ${child.gender})`;
+      html += ` — ${child.traits.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ')}${child === next ? ' <span style="color:#d4a856">· next in line</span>' : ''}`;
+      html += `</div>`;
     }
+    if (!next) html += `<div style="padding:4px 6px;font-size:11px;color:#a89878;">${heirs.length ? 'No heir is yet of age (16): ' : 'There is no heir: '}${spouse ? 'the consort would rule' : 'the nobles would choose a ruler'}.</div>`;
   }
+  const dowager = characters.find(c => c.nationId === playerNation && c.role === 'dowager' && !c.deathTurn);
+  if (dowager) html += `<div style="padding:4px 6px;font-size:11px;color:#a89878;">The dowager: ${escHtml(dowager.name)} (Age ${dowager.age})</div>`;
 
   const recentDeaths = characters.filter(c => c.nationId === playerNation && c.deathTurn && turnNumber - c.deathTurn < 50);
   if (recentDeaths.length > 0) {
     html += `<div class="section-title" style="margin-top:8px;">Recent Deaths</div>`;
     for (const d of recentDeaths.slice(-5)) {
-      html += `<div style="font-size:10px;color:#a89878;padding:2px 0;">${escHtml(d.name)} (died age ${d.age}, turn ${d.deathTurn})</div>`;
+      html += `<div style="font-size:10px;color:#a89878;padding:2px 0;">${escHtml(d.name)} (died age ${d.age}, in ${startYear + Math.floor((d.deathTurn - 1) / (SEASON_LENGTH * 4))})</div>`;
     }
   }
 
