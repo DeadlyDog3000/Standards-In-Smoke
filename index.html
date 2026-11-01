@@ -1111,6 +1111,7 @@
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
+        - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2202,6 +2203,7 @@
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
           - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
+          - A grown heir now comes to the throne before the widowed consort, who stays at court; the 1805 crowns have their heirs, and a prince crowned takes his regnal name (the Prince of Wales becomes George IV)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4437,32 +4439,22 @@ function characterDeath(character) {
       showToast(`Your ruler ${character.name} has died at age ${character.age}!`); annal(`${character.name} died, aged ${character.age}.`);
     }
 
+    // (a grown heir comes first, the eldest; failing one the consort rules; failing both, an election)
     const spouse = characters.find(c => c.id === character.spouseId && !c.deathTurn);
-    if (spouse) {
-
-      spouse.role = 'ruler';
-      nations[nationId].rulerId = spouse.id;
-      if (character.nationId === playerNation) {
-        showToast(`${spouse.name} succeeds as ruler.`); annal(`${spouse.name} came to the throne.`);
-      }
-
-      const newSpouseGender = spouse.gender === 'male' ? 'female' : 'male';
-      const newSpouse = createCharacter(nationId, 'spouse', newSpouseGender);
-      spouse.spouseId = newSpouse.id;
-      newSpouse.spouseId = spouse.id;
+    const heir = characters.filter(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn && c.age >= 16).sort((a, b) => b.age - a.age)[0];
+    const next = heir || spouse;
+    if (next) {
+      if (heir && spouse) spouse.role = 'dowager';   // (the widowed consort stays at court, no longer the ruler's spouse)
+      next.role = 'ruler';
+      nations[nationId].rulerId = next.id;
+      const was = next.name; if (next.reignName) { next.name = next.reignName; delete next.reignName; }   // (a prince crowned takes his regnal name)
+      const as = was !== next.name ? ` as ${next.name}` : '';
+      if (nationId === playerNation) { showToast(heir ? `${was} has ascended the throne${as}.` : `${was} succeeds as ruler.`); annal(`${was} came to the throne${as}.`); }
+      const newSpouse = createCharacter(nationId, 'spouse', next.gender === 'male' ? 'female' : 'male');
+      next.spouseId = newSpouse.id;
+      newSpouse.spouseId = next.id;
     } else {
-      const heir = characters.find(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn && c.age >= 16);
-      if (heir) {
-        heir.role = 'ruler';
-        nations[nationId].rulerId = heir.id;
-        if (nationId === playerNation) { showToast(`${heir.name} has ascended as your new ruler.`); annal(`${heir.name} came to the throne.`); }
-        const newSpouseGender = heir.gender === 'male' ? 'female' : 'male';
-        const newSpouse = createCharacter(nationId, 'spouse', newSpouseGender);
-        heir.spouseId = newSpouse.id;
-        newSpouse.spouseId = heir.id;
-      } else {
-        triggerElection(nationId);
-      }
+      triggerElection(nationId);
     }
   } else if (character.role === 'noble') {
     for (const f of families) {
@@ -6844,21 +6836,21 @@ const SCEN_1805 = {
   coalition: ['Great Britain', 'Austria', 'Russia', 'Sweden', 'Kingdom of Naples'],
   france: ['France', 'Kingdom of Italy', 'Bavaria', 'Kingdom of Holland', 'Spain', 'Swiss Confederation', 'Duchy of Nassau', 'Westphalia', 'Duchy of Warsaw', 'Belgium'],
   great: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia'],
-  // the crowns' heads in 1805 and their consorts: [name, gender, age, traits, consort, consort's age] (where a regent
+  // the crowns' heads in 1805 and their consorts: [name, gender, age, traits, consort, consort's age, heir] (where a regent
   //  governed, the regent; a crown without a consort keeps the one it was given)
   rulers: {
     'France': ['Napoleon Bonaparte', 'male', 35, ['martial', 'charismatic'], 'Joséphine de Beauharnais', 42],
-    'Great Britain': ['George III', 'male', 66, ['pious', 'frugal'], 'Charlotte of Mecklenburg', 61],
-    'Austria': ['Francis II', 'male', 37, ['industrious'], 'Maria Theresa of Naples', 33],
-    'Russia': ['Alexander I', 'male', 27, ['diplomatic', 'charismatic'], 'Elizabeth Alexeievna', 26],
-    'Prussia': ['Frederick William III', 'male', 35, ['frugal'], 'Louise of Mecklenburg', 29],
-    'Spain': ['Charles IV', 'male', 56, ['pious'], 'Maria Luisa of Parma', 53],
-    'Sweden': ['Gustav IV Adolf', 'male', 26, ['pious', 'reckless'], 'Frederica of Baden', 23],
-    'Ottoman Empire': ['Selim III', 'male', 43, ['brilliant'], null],
-    'Kingdom of Naples': ['Ferdinand IV', 'male', 54, ['frugal'], 'Maria Carolina of Austria', 52],
-    'Bavaria': ['Maximilian Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29],
+    'Great Britain': ['George III', 'male', 66, ['pious', 'frugal'], 'Charlotte of Mecklenburg', 61, ['George, Prince of Wales', 'male', 43, 'George IV']],
+    'Austria': ['Francis II', 'male', 37, ['industrious'], 'Maria Theresa of Naples', 33, ['Archduke Ferdinand', 'male', 12, 'Ferdinand I']],
+    'Russia': ['Alexander I', 'male', 27, ['diplomatic', 'charismatic'], 'Elizabeth Alexeievna', 26, ['Grand Duke Constantine', 'male', 26, 'Constantine I']],
+    'Prussia': ['Frederick William III', 'male', 35, ['frugal'], 'Louise of Mecklenburg', 29, ['Crown Prince Frederick William', 'male', 10, 'Frederick William IV']],
+    'Spain': ['Charles IV', 'male', 56, ['pious'], 'Maria Luisa of Parma', 53, ['Ferdinand, Prince of Asturias', 'male', 21, 'Ferdinand VII']],
+    'Sweden': ['Gustav IV Adolf', 'male', 26, ['pious', 'reckless'], 'Frederica of Baden', 23, ['Crown Prince Gustav', 'male', 6, 'Gustav V']],
+    'Ottoman Empire': ['Selim III', 'male', 43, ['brilliant'], null, ['Prince Mustafa', 'male', 26, 'Mustafa IV']],
+    'Kingdom of Naples': ['Ferdinand IV', 'male', 54, ['frugal'], 'Maria Carolina of Austria', 52, ['Francis, Duke of Calabria', 'male', 28, 'Francis I']],
+    'Bavaria': ['Maximilian Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29, ['Crown Prince Ludwig', 'male', 19, 'Ludwig I']],
     'Kingdom of Italy': ['Eugène de Beauharnais', 'male', 23, ['martial'], 'Augusta of Bavaria', 17],
-    'Portugal': ['John, Prince Regent', 'male', 38, ['diplomatic'], 'Carlota Joaquina', 30],
+    'Portugal': ['John, Prince Regent', 'male', 38, ['diplomatic'], 'Carlota Joaquina', 30, ['Prince Pedro', 'male', 6, 'Pedro IV']],
     'Kingdom of Holland': ['Louis Bonaparte', 'male', 26, ['diplomatic'], 'Hortense de Beauharnais', 22],
     'Denmark-Norway': ['Frederick, Crown Prince', 'male', 37, ['industrious'], 'Marie of Hesse-Kassel', 37],
     'Kingdom of Saxony': ['Frederick Augustus', 'male', 54, ['pious'], 'Amalie of Zweibrücken', 53],
@@ -6875,6 +6867,11 @@ function apply1805() {
       const sp = getNationSpouse(n.id);
       if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4 });
       else if (sp && sp.gender === hist[1]) { sp.gender = hist[1] === 'male' ? 'female' : 'male'; sp.name = generateCharacterName(sp.gender, n.id); }
+      if (hist[6]) {   // (the heir: the eldest son, or the brother next in line)
+        const h = createCharacter(n.id, 'heir', hist[6][1]);
+        Object.assign(h, { name: hist[6][0], age: hist[6][2], birthTurn: turnNumber - hist[6][2] * SEASON_LENGTH * 4, parentIds: [ruler.id], reignName: hist[6][3] });
+        ruler.childIds.push(h.id);
+      }
     }
     for (const t of SCEN_1805.techs) if (TECHS[t]) n.researched.add(t);
     const great = SCEN_1805.great.includes(n.name);
