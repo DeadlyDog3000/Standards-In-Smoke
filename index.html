@@ -9768,7 +9768,7 @@ function aiTurn(nationId) {
       else if (_bld && _bld.wonder && cities.some(ci => ci !== c && (ci.producing === c.producing || (ci.buildings || []).includes(c.producing)))) c.producing = bestCombat;
     }
     // a full treasury hurries the work, as Rush Produce does for you: one town a turn, for what it needs most
-    if (!aiRushed && c.producing && (n.gold || 0) >= getRushCost(nationId) + 160 && (UNIT_DEFS[c.producing] ? (UNIT_DEFS[c.producing].combat ? (atWar || threatLevel > 0) : c.producing === 'settler') : true)) {
+    if (!aiRushed && gameDifficulty !== 'easy' && c.producing && (n.gold || 0) >= getRushCost(nationId) + (gameDifficulty === 'hard' ? 100 : 160) && (UNIT_DEFS[c.producing] ? (UNIT_DEFS[c.producing].combat ? (atWar || threatLevel > 0) : c.producing === 'settler') : true)) {
       const costs = getScaledCosts(nationId, PRODUCTION_COSTS[c.producing] || {});
       let total = 0; for (const k in costs) total += costs[k];
       if ((c.productionProgress || 0) < total && total - (c.productionProgress || 0) > cityBaseProduction(c)) { n.gold -= getRushCost(nationId); c.productionProgress = total; aiRushed = true; }
