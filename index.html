@@ -927,6 +927,21 @@
             <option value="hard">Hard</option>
           </select>
         </div>
+        <div class="setup-row">
+          <span class="setup-label">Score counted at</span>
+          <select id="setupScoreTurn" class="setup-input" style="width:180px;">
+            <option value="200" selected>Turn 200</option>
+            <option value="300">Turn 300</option>
+            <option value="0">Never (play on)</option>
+          </select>
+        </div>
+        <div class="setup-row">
+          <span class="setup-label">Ambition victory</span>
+          <select id="setupAmbitionWin" class="setup-input" style="width:180px;">
+            <option value="1" selected>On (ten ambitions win)</option>
+            <option value="0">Off</option>
+          </select>
+        </div>
       </div>
 
 
@@ -1039,6 +1054,7 @@
         - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
         - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
         - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
+        - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2089,6 +2105,7 @@
           - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
           - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
           - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
+          - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -8479,7 +8496,7 @@ function checkElimination() {
     return;
   }
 
-  if (turnNumber >= 200 && !nations[playerNation].scoreSettled) {
+  if (scoreTurnLimit > 0 && turnNumber >= scoreTurnLimit && !nations[playerNation].scoreSettled) {
     let bestId = playerNation, bestScore = getScore(playerNation);
     for (let i = 0; i < nations.length; i++) {
       if (nations[i].eliminated || nations[i].isBarbarian || nations[i].isTribe || nations[i].isPlayer) continue;
@@ -8557,6 +8574,7 @@ const AMBITIONS = (() => {
   ];
 })();
 const AMBITION_WIN = 10;
+let scoreTurnLimit = 200, ambitionVictoryOn = true;   // (chosen when the game is set up; saved with it)
 const ambitionById = id => AMBITIONS.find(a => a.id === id);
 function ambitionProgress(nid, a) { const g = a.goal(), c = Math.max(0, a.cur(nid) || 0); return { cur: Math.min(c, g), goal: g, done: c >= g }; }
 function ambitionOffer(nid) {
@@ -8598,7 +8616,7 @@ function tickAmbitions() {
     logEvent(`Ambition fulfilled: ${cur.name} (${k} of ${AMBITION_WIN}). +10 legitimacy`);
     showToast(`Ambition fulfilled: ${cur.name}! (${k} of ${AMBITION_WIN})`);
     try { SMK.peal(4); } catch (e) {}
-    if (k >= AMBITION_WIN && !n.scoreSettled) { updateAmbitionPlaque(); showVictory('ambition'); return; }
+    if (k >= AMBITION_WIN && !n.scoreSettled && ambitionVictoryOn) { updateAmbitionPlaque(); showVictory('ambition'); return; }
   }
   if (!n.ambition && !(n.ambitionOffer || []).length) { n.ambitionOffer = ambitionOffer(nid); n._ambShown = false; }
   // the card comes up by itself once per offer: not in the first turns (the research is chosen then) nor over another card; the plaque asks meanwhile
@@ -8629,7 +8647,7 @@ function openAmbitions() {
   const done = n.ambitionsDone || [], cur = n.ambition && ambitionById(n.ambition), offer = (n.ambitionOffer || []).map(ambitionById).filter(Boolean);
   const bar = p => `<span class="amb-bar"><i style="width:${Math.round(100 * p.cur / p.goal)}%"></i></span><span class="amb-num">${p.cur} / ${p.goal}</span>`;
   let h = `<h3>Ambitions <span class="amb-count">${done.length} of ${AMBITION_WIN}</span></h3>`;
-  h += `<p class="amb-lede">Set the crown one goal at a time. Each one fulfilled gives +10 legitimacy and 15 points of score, and the ${AMBITION_WIN}th is a victory.</p>`;
+  h += `<p class="amb-lede">Set the crown one goal at a time. Each one fulfilled gives +10 legitimacy and 15 points of score${ambitionVictoryOn ? `, and the ${AMBITION_WIN}th is a victory` : ' (ambition victory is off in this game)'}.</p>`;
   if (offer.length) {
     h += `<div class="section-title">Choose the next</div>`;
     for (const a of offer) h += `<button class="event-choice amb-pick" onclick="chooseAmbition('${a.id}')"><b>${a.name}</b><span class="event-effect">${a.desc}</span>${bar(ambitionProgress(playerNation, a))}</button>`;
@@ -8865,7 +8883,7 @@ function showVictory(type) {
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `Turn 200 reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
+  const desc = type === 'score' ? `Turn ${scoreTurnLimit || turnNumber} reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
     : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
     : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
@@ -8968,7 +8986,7 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `Turn 200 reached. <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
+    desc = `Turn ${scoreTurnLimit || turnNumber} reached. <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
     desc = `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has been conquered. Your civilization is no more.`;
@@ -18122,6 +18140,8 @@ function confirmSetupAndStart() {
   const sizes = { small: [60, 40], medium: [120, 80], large: [200, 130], huge: [300, 200] };
   const [cols, rows] = sizes[mapSize] || sizes.medium;
   gameDifficulty = document.getElementById('setupDifficulty').value || 'normal';
+  scoreTurnLimit = parseInt(document.getElementById('setupScoreTurn')?.value ?? '200', 10); if (Number.isNaN(scoreTurnLimit)) scoreTurnLimit = 200;
+  ambitionVictoryOn = document.getElementById('setupAmbitionWin')?.value !== '0';
   const _barbDensVal = parseInt(document.getElementById('setupBarbarians').value);
   barbarianDensity = (Number.isNaN(_barbDensVal) ? 40 : _barbDensVal) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
@@ -20236,7 +20256,7 @@ function serializeGame() {
     tileAnnotations,
     tutorialActive, tutorialStep,
     eventLogEntries: eventLogEntries.slice(-200),
-    townLog,
+    townLog, scoreTurnLimit, ambitionVictoryOn,
     ordersRemaining,
     activatedUnitIdx: sUnits.map((_, i) => activatedUnits.has(units[i]) ? i : -1).filter(i => i >= 0),
   });
@@ -20355,6 +20375,7 @@ function deserializeGame(json) {
   try { updateSieges(false); for (const c of cities) { c._siegeShown = c._besieged; c._blockShown = c._blockaded; } } catch(e) { console.error('updateSieges error:', e); }
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
   townLog = d.townLog && Array.isArray(d.townLog.ev) ? d.townLog : { ev: [] }; _townLast = null;
+  scoreTurnLimit = typeof d.scoreTurnLimit === 'number' ? d.scoreTurnLimit : 200; ambitionVictoryOn = d.ambitionVictoryOn !== false;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
   activatedUnits = new Set();
