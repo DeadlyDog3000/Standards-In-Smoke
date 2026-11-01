@@ -4408,8 +4408,9 @@ function tickCharacterAging() {
     if (nations[c.nationId]?.eliminated) continue;
     if (turnNumber % turnsPerYear === 0) c.age++;
 
-    if (c.age > 50 && turnNumber % turnsPerYear === 0) {
-      const deathChance = (c.age - 50) * 0.02;
+    const frail = c.hale ? 60 : 50;   // (the 1805 crowns' heads and heirs are hale: they lived long, and should not all be gone by Austerlitz)
+    if (c.age > frail && turnNumber % turnsPerYear === 0) {
+      const deathChance = (c.age - frail) * 0.02;
       if (Math.random() < deathChance) {
         characterDeath(c);
       }
@@ -6872,13 +6873,13 @@ function apply1805() {
   for (const n of crowns) {
     const hist = SCEN_1805.rulers[n.name], ruler = hist && getNationRuler(n.id);
     if (ruler) {
-      Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4 });
+      Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4, hale: true });
       const sp = getNationSpouse(n.id);
-      if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4 });
+      if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4, hale: true });
       else if (sp && sp.gender === hist[1]) { sp.gender = hist[1] === 'male' ? 'female' : 'male'; sp.name = generateCharacterName(sp.gender, n.id); }
       if (hist[6]) {   // (the heir: the eldest son, or the brother next in line)
         const h = createCharacter(n.id, 'heir', hist[6][1]);
-        Object.assign(h, { name: hist[6][0], age: hist[6][2], birthTurn: turnNumber - hist[6][2] * SEASON_LENGTH * 4, parentIds: [ruler.id], reignName: hist[6][3] });
+        Object.assign(h, { name: hist[6][0], age: hist[6][2], birthTurn: turnNumber - hist[6][2] * SEASON_LENGTH * 4, parentIds: [ruler.id], reignName: hist[6][3], hale: true });
         ruler.childIds.push(h.id);
       }
     }
