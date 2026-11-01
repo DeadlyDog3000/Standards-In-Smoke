@@ -1143,11 +1143,12 @@
         - The Annals keep your wars and your peaces: war declared, and peace made<br>
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
+        - The Annals can be copied as text, year by year, to paste wherever you like<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Achievements, kept in your browser across every game: twenty of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
-        - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
         - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
@@ -2275,11 +2276,12 @@
           - The Annals keep your wars and your peaces: war declared, and peace made<br>
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
+          - The Annals can be copied as text, year by year, to paste wherever you like<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Achievements, kept in your browser across every game: twenty of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
-          - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
           - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
@@ -9882,10 +9884,20 @@ function openAnnals(all) {
   card.innerHTML = `<h3>The Annals of the Reign</h3>
     <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button class="on">Annals</button></div>
     <div class="ann-list">${html || '<p class="amb-lede">Nothing is written yet: the annals keep your towns founded and lost, the reigns begun and ended, the battles named, the ambitions fulfilled, wonders, marriages and wars of coalition.</p>'}</div>
+    ${list.length ? '<button class="event-choice" onclick="copyAnnals(this)">Copy the annals as text</button>' : ''}
     <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button>`;
   const l = card.querySelector('.ann-list'); if (l) l.scrollTop = l.scrollHeight;
 }
 window.openAnnals = openAnnals;
+// the annals as plain text, year by year, to paste where the player likes
+function copyAnnals(btn) {
+  const me = nations[playerNation], list = me?._annals || [];
+  let txt = `The Annals of ${crownName1(me)}\n`, lastY = null;
+  for (const a of list) { if (a.y !== lastY) { txt += `\n${a.y}\n`; lastY = a.y; } txt += `  ${a.t}\n`; }
+  const done = () => { if (btn) btn.textContent = 'Copied'; };
+  try { navigator.clipboard.writeText(txt).then(done, () => { window.prompt('The annals:', txt); }); } catch (e) { window.prompt('The annals:', txt); }
+}
+window.copyAnnals = copyAnnals;
 function openChronicle(all) {
   document.getElementById('chronicleOverlay')?.remove();
   const shown = nations.filter(n => !n.isBarbarian && !n.isTribe && n.scoreHist && n.scoreHist.v.length && (all || n.id === playerNation || discoveredNations.has(n.id)));
