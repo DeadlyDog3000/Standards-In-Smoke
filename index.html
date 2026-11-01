@@ -1086,6 +1086,7 @@
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
         - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
+        - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2165,6 +2166,7 @@
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
           - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
+          - A friendly crown at war with your own enemy may propose a war alliance against it, and courts that think well of you may propose a royal marriage themselves (answered in the Kingdoms panel)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9774,6 +9776,10 @@ function aiTurn(nationId) {
       if (!n._diploRequest[playerNation] && !hasAgreement(nationId, playerNation, 'open_borders') && Math.random() < 0.05) {
         n._diploRequest[playerNation] = 'open_borders';
         showToast(`${n.name} requests Open Borders.`);
+      } else if (!n._diploRequest[playerNation] && loy >= 30 && !hasAgreement(nationId, playerNation, 'war_help') && Math.random() < 0.05
+          && Object.entries(n.relations).some(([id, r]) => r === 'war' && +id !== playerNation && nations[id] && !nations[id].isBarbarian && nations[playerNation].relations[id] === 'war')) {
+        n._diploRequest[playerNation] = 'war_help';   // (a common enemy: they propose an alliance against it)
+        showToast(`${n.name} proposes a war alliance against your common enemy. Open Kingdoms to answer.`);
       } else if (!n._diploRequest[playerNation] && loy >= 55 && !hasAgreement(nationId, playerNation, 'marriage') && Math.random() < 0.012) {
         n._diploRequest[playerNation] = 'marriage';   // (a friendly court proposes a match itself)
         showToast(`${n.name} proposes a royal marriage. Open Kingdoms to answer.`);
