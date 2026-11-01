@@ -1136,6 +1136,7 @@
         - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
         - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
         - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
+        - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2247,6 +2248,7 @@
           - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
           - In 1805 Russia's capital is St Petersburg, where the Tsar's court sat<br>
           - The Continental System: from 1806, while France stands, she and her allies will not trade with a British player, and an ally of France that trades with Britain angers her<br>
+          - At the end of an 1805 game the great crowns are summed up as they stand at the Congress: their towns and who reigns<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9649,7 +9651,7 @@ function showVictory(type) {
   overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,8,3,0.45),rgba(10,8,3,0.88) 70%),url('events/victory.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
     <h1 style="color:#e0b860;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 26px rgba(212,168,86,0.45);">${typeLabel}!</h1>
-    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
+    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>${congressSummary()}
     <div style="background:rgba(40,35,20,0.6);border:1px solid rgba(212,168,86,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Score Breakdown</h3>
       <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
@@ -9804,6 +9806,15 @@ function deleteVictoryEntry(index) {
   showVictoryHistory();
 }
 
+// at the end of an 1805 game, how the great crowns stand when the score is counted: their rulers and their towns
+function congressSummary() {
+  if (scenario !== '1805') return '';
+  const rows = SCEN_1805.great.map(nm => nations.find(n => n.name === nm)).filter(Boolean).map(n => {
+    const towns = cities.filter(c => c.nationId === n.id).length, r = getNationRuler(n.id);
+    return `<span style="white-space:nowrap"><b style="color:${safeColor(n.color)}">${escHtml(n.name)}</b> ${n.eliminated ? 'fallen' : `${towns} town${towns === 1 ? '' : 's'}${r ? ', ' + escHtml(r.name) : ''}`}</span>`;
+  });
+  return `<p style="font-size:13px;color:#a89878;margin:-12px auto 22px;max-width:560px;line-height:1.7;">${rows.join(' &middot; ')}</p>`;
+}
 function showDefeat(type, winnerId) {
   window._gameOver = true;
   hidePanel();
@@ -9822,7 +9833,7 @@ function showDefeat(type, winnerId) {
   overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,5,3,0.5),rgba(10,5,3,0.9) 70%),url('events/defeat.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;max-width:420px;padding:40px;">
     <h1 style="color:#d8553a;font-size:42px;margin-bottom:8px;font-family:Uncial Antiqua,cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 22px rgba(200,60,30,0.4);">${title}</h1>
-    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>
+    <p style="font-size:16px;color:#c8b8a0;margin-bottom:24px;line-height:1.6;">${desc}</p>${congressSummary()}
     <div style="background:rgba(40,30,20,0.6);border:1px solid rgba(160,100,60,0.3);border-radius:8px;padding:20px;margin-bottom:24px;text-align:left;">
       <h3 style="color:#e0c880;font-size:16px;margin-bottom:12px;text-align:center;font-family:Uncial Antiqua,cursive;">Final Score: ${s.total}</h3>
       <div style="font-size:13px;color:#c8b8a0;line-height:1.8;">
