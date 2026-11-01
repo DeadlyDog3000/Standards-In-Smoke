@@ -726,6 +726,7 @@
     body:not(.mobile-mode) #minimap { left: 96px; }
     body.mobile-mode #rulerMedal { display: none !important; }
     .kc-temper { color: #e0c070; font-style: italic; cursor: help; }
+    .kc-wars { font-size: 11.5px; color: #c8a890; margin: 2px 0 4px; } .kc-wars b { font-weight: normal; filter: brightness(1.35); }
     .emp-tabs { display: inline-flex; gap: 2px; margin: 0 10px; vertical-align: middle; }
     .emp-tabs button { font: 12px 'EB Garamond', Georgia, serif; padding: 2px 10px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
     .emp-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
@@ -1058,6 +1059,7 @@
         - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
         - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
         - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
+        - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2111,6 +2113,7 @@
           - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
           - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
           - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
+          - The Kingdoms panel says whom each crown is at war with, so the wars of Europe can be read at a glance<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -17076,6 +17079,9 @@ function renderKingdoms() {
     html += `<div class="kc-op"><span>Opinion</span><div class="kc-bar"><i style="width:${Math.max(3, Math.min(100, (loy + 100) / 2))}%;background:${getLoyaltyColor(loy)}"></i></div><b style="color:${getLoyaltyColor(loy)}">${getLoyaltyLabel(loy)}</b></div>`;
     const ratio = myMil > 0 ? milStrength / myMil : (milStrength > 0 ? 9 : 1);
     html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b><em style="color:${ratio > 1.3 ? '#e07050' : ratio < 0.75 ? '#7ab870' : '#c8b890'}">${ratio > 1.3 ? 'stronger than yours' : ratio < 0.75 ? 'weaker than yours' : 'about as strong as yours'}</em></div>`;
+    // their own wars with the crowns you know (you hear of them through your envoys)
+    const theirWars = Object.entries(n.relations || {}).filter(([id, r]) => r === 'war' && +id !== playerNation && nations[id] && !nations[id].isBarbarian && !nations[id].isTribe && !nations[id].eliminated && discoveredNations.has(+id)).map(([id]) => nations[id]);
+    if (theirWars.length) html += `<div class="kc-wars">At war with ${theirWars.map(o => `<b style="color:${safeColor(o.color)}">${escHtml(o.name)}</b>`).join(', ')}</div>`;
     // what they ask of you
     if (n.wantsPeace && n.wantsPeace[playerNation]) {
       html += `<div class="kc-ask">☮ They offer peace <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
