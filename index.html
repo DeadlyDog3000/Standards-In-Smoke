@@ -9872,7 +9872,8 @@ const FIRST_ORDERS = [
   ['research', 'Choose what to research (T)', n => !!n.currentResearch],
   ['prod', 'Set a town to making something', n => cities.some(c => c.nationId === playerNation && c.producing)],
   ['moved', 'March a regiment (right-click a hex)', n => !!(n._tut && n._tut.moved)],
-  ['settle', 'Found another town with a settler', n => cities.filter(c => c.nationId === playerNation).length >= (scen() ? 4 : 2)],
+  // (in a historical start Europe is full and at war: the town to win is an enemy's)
+  ['settle', () => scen() ? 'Take a town from your enemies' : 'Found another town with a settler', n => scen() ? cities.some(c => c.nationId === playerNation && c.originalNationId !== undefined && c.originalNationId !== playerNation) : cities.filter(c => c.nationId === playerNation).length >= 2],
   ['improve', 'Have a worker improve a hex', n => tiles.some(t => t.owner === playerNation && t.improvement)],
   ['ambition', 'Choose an ambition (the plaque at the top)', n => !!n.ambition || (n.ambitionsDone || []).length > 0],
   ['turn', 'End the turn (E, or the crest)', n => turnNumber >= 2],
@@ -9886,7 +9887,7 @@ function updateFirstOrders() {
   if (done.every(Boolean)) { (n._tut || (n._tut = {})).closed = true; if (el) el.style.display = 'none'; showToast('Well begun. The rest is yours to command.', true); return; }
   if (!el) { el = document.createElement('div'); el.id = 'firstOrders'; document.body.appendChild(el); }
   const html = `<b>First orders</b><button title="Hide this list in this game" onclick="(nations[playerNation]._tut || (nations[playerNation]._tut = {})).closed = true; updateFirstOrders();">&times;</button>` +
-    FIRST_ORDERS.map(([id, label], k) => `<div class="${done[k] ? 'fo-done' : ''}"><i>${done[k] ? '\u2713' : ''}</i>${label}</div>`).join('') +
+    FIRST_ORDERS.map(([id, label], k) => `<div class="${done[k] ? 'fo-done' : ''}"><i>${done[k] ? '\u2713' : ''}</i>${typeof label === 'function' ? label() : label}</div>`).join('') +
     `<a href="#" onclick="event.preventDefault(); try { localStorage.setItem('sis_first_orders_off', '1'); } catch (e) {} updateFirstOrders();">Don't show this in new games</a>`;
   if (el._html !== html) { el._html = html; el.innerHTML = html; }
   el.style.display = '';
