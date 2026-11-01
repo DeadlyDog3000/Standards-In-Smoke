@@ -969,6 +969,7 @@
           <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="1805: the map of Europe in the year of Austerlitz, the great crowns armed and the Third Coalition already at war with France">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1805">1805: the Coalition</option>
+            <option value="1756">1756: the Seven Years' War</option>
           </select>
         </div>
         <div class="setup-row">
@@ -1138,6 +1139,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+        - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2251,6 +2253,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+          - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -3977,9 +3980,9 @@ function playerProgress() {
   let v = 0;
   if (me && !me.eliminated) {
     // (an 1805 start counts only what was gained since: every crown began with the learning and towns of the age)
-    const base = scenario === '1805' ? SCEN_1805.techs.length : 0;
+    const base = scen() ? scen().techs.length : 0;
     const techShare = Math.max(0, (me.researched ? me.researched.size : 0) - base) / Math.max(1, Object.keys(TECHS).length - base);
-    const myCities = Math.max(0, cities.filter(c => c.nationId === playerNation).length - (scenario === '1805' ? 2 : 0));
+    const myCities = Math.max(0, cities.filter(c => c.nationId === playerNation).length - (scen() ? 2 : 0));
     const rivals = nations.filter((n, i) => i !== playerNation && !n.eliminated && !n.isBarbarian && !n.isTribe);
     const avg = rivals.length ? rivals.reduce((a, n) => a + getScore(nations.indexOf(n)), 0) / rivals.length : 0;
     const lead = avg > 0 ? Math.max(0, Math.min(1, (getScore(playerNation) / avg - 1) / 1.5)) : 0;
@@ -4210,8 +4213,8 @@ const TURNS_PER_YEAR = SEASON_LENGTH * 4;   // (was 32, from when a season was e
 // the setup's 'Score counted at' choices: turns for a new crown, years for 1805 (four turns a year, so turn 41 is 1815)
 function setupScoreChoices() {
   const sel = document.getElementById('setupScoreTurn'); if (!sel) return;
-  const y1805 = document.getElementById('setupStart')?.value === '1805';
-  sel.innerHTML = (y1805 ? [[41, '1815: Congress of Vienna', 1], [81, '1825'], [0, 'Never (play on)']]
+  const S = SCENS[document.getElementById('setupStart')?.value];
+  sel.innerHTML = (S ? [[S.score[0][0], S.score[0][1], 1], S.score[1], [0, 'Never (play on)']]
     : [[200, 'Turn 200', 1], [300, 'Turn 300'], [0, 'Never (play on)']]).map(([v, l, on]) => `<option value="${v}"${on ? ' selected' : ''}>${l}</option>`).join('');
 }
 window.setupScoreChoices = setupScoreChoices;
@@ -6920,6 +6923,17 @@ const SCEN_1805 = {
   coalition: ['Great Britain', 'Austria', 'Russia', 'Sweden', 'Kingdom of Naples'],
   france: ['France', 'Kingdom of Italy', 'Bavaria', 'Kingdom of Holland', 'Spain', 'Swiss Confederation', 'Duchy of Nassau', 'Westphalia', 'Duchy of Warsaw', 'Belgium'],
   great: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia'],
+  year: 1805,
+  army: { great: ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'], small: ['musketeer', 'musketeer', 'hussar', 'field_gun'],
+    // (the Grande Armée with its marshal, the Tsar's numbers and Cossacks, the Kaiser's whitecoats)
+    extra: { 'France': ['musketeer', 'musketeer', 'grenadier', 'grenadier', 'dragoon', 'heavy_cavalry', 'field_gun', 'general'], 'Russia': ['musketeer', 'musketeer', 'cavalry', 'cavalry'], 'Austria': ['musketeer', 'hussar'] } },
+  marshals: { 'France': ['Marshal Davout', ['aggressive', 'swift']] },
+  fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] },
+  flags: { 'Great Britain': ['man_of_war', 'HMS Victory'], 'France': ['frigate', 'Bucentaure'], 'Spain': ['frigate', 'Santísima Trinidad'] },
+  phrases: { c: ['with the Third Coalition', 'against France and her allies'], f: ['with France', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
+  congress: { year: 1815, at: 'at the Congress of Vienna, in 1815', meets: 'It is 1815, and the Congress of Vienna meets.' },
+  score: [[41, '1815: Congress of Vienna'], [81, '1825']],
+  briefTail: "History will move as it did, if the crowns are still placed for it: Prussia's war in 1806, Tilsit in 1807, Spain's rising in 1808, and the coalitions after.",
   // the crowns' heads in 1805 and their consorts: [name, gender, age, traits, consort, consort's age, heir] (where a regent
   //  governed, the regent; a crown without a consort keeps the one it was given)
   rulers: {
@@ -6941,11 +6955,49 @@ const SCEN_1805 = {
   },
   techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
 };
-function apply1805() {
-  startYear = 1805;
+// ---- the 1756 start: the Seven Years' War. After the Diplomatic Revolution Prussia and Britain stand against France, Austria
+//  and Saxony; Russia and Sweden come in against Frederick in 1757, Spain against Britain in 1762 ----
+const SCEN_1756 = {
+  year: 1756,
+  first: ['Prussia', 'Great Britain', 'France', 'Austria', 'Russia', 'Sweden', 'Spain', 'Ottoman Empire', 'Kingdom of Saxony', 'Portugal', 'Denmark-Norway', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Holland', 'Swiss Confederation', 'Duchy of Nassau', 'Westphalia', 'Kingdom of Italy', 'Duchy of Warsaw', 'Belgium'],
+  coalition: ['Prussia', 'Great Britain'],
+  france: ['France', 'Austria', 'Kingdom of Saxony'],
+  great: ['Prussia', 'Great Britain', 'France', 'Austria', 'Russia'],
+  techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'cartography'],
+  rulers: {
+    'Prussia': ['Frederick II', 'male', 44, ['martial', 'brilliant'], 'Elisabeth Christine of Brunswick', 40, ['Prince Augustus William', 'male', 34]],
+    'Great Britain': ['George II', 'male', 72, ['martial'], null, 0, ['George, Prince of Wales', 'male', 18, 'George III']],
+    'France': ['Louis XV', 'male', 46, ['charismatic', 'corrupt'], 'Marie Leszczyńska', 53, ['Louis, Dauphin of France', 'male', 26]],
+    'Austria': ['Maria Theresa', 'female', 39, ['industrious', 'charismatic'], 'Francis I', 47, ['Archduke Joseph', 'male', 15, 'Joseph II']],
+    'Russia': ['Elizabeth', 'female', 46, ['pious'], null, 0, ['Grand Duke Peter', 'male', 28, 'Peter III']],
+    'Sweden': ['Adolf Frederick', 'male', 45, ['frugal'], 'Louisa Ulrika of Prussia', 36, ['Crown Prince Gustav', 'male', 10, 'Gustav III']],
+    'Spain': ['Ferdinand VI', 'male', 42, ['pious'], 'Barbara of Portugal', 44],
+    'Ottoman Empire': ['Osman III', 'male', 57, ['frugal'], null, 0, ['Prince Mustafa', 'male', 39, 'Mustafa III']],
+    'Kingdom of Saxony': ['Frederick Augustus II', 'male', 59, ['pious'], 'Maria Josepha of Austria', 57, ['Prince Frederick Christian', 'male', 33]],
+    'Portugal': ['Joseph I', 'male', 41, ['diplomatic'], 'Mariana Victoria of Spain', 37, ['Princess Maria', 'female', 21, 'Maria I']],
+    'Denmark-Norway': ['Frederick V', 'male', 32, ['frugal'], 'Juliana Maria of Brunswick', 26, ['Crown Prince Christian', 'male', 7, 'Christian VII']],
+    'Kingdom of Naples': ['Charles VII', 'male', 40, ['industrious'], 'Maria Amalia of Saxony', 31],
+    'Bavaria': ['Maximilian III Joseph', 'male', 29, ['brilliant'], 'Maria Anna of Saxony', 27],
+  },
+  army: { great: ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'cavalry', 'cannon'], small: ['musketeer', 'musketeer', 'cavalry', 'cannon'],
+    // (Frederick's drilled battalions, the Empress-Queen's army made over after Silesia, the Tsarina's hosts)
+    extra: { 'Prussia': ['musketeer', 'musketeer', 'grenadier', 'grenadier', 'hussar', 'general'], 'Austria': ['musketeer', 'musketeer', 'grenadier', 'cavalry', 'general'], 'Russia': ['musketeer', 'musketeer', 'cavalry'], 'France': ['musketeer', 'grenadier'] } },
+  marshals: { 'Prussia': ['Field Marshal Schwerin', ['aggressive', 'inspiring']], 'Austria': ['Field Marshal Daun', ['cautious']] },
+  fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] },
+  flags: { 'Great Britain': ['man_of_war', 'HMS Royal George'], 'France': ['frigate', 'Soleil Royal'] },
+  phrases: { c: ['in the Anglo-Prussian alliance', 'against France, Austria and their allies'], f: ['in the alliance of Versailles, with France and Austria', 'against Prussia and Britain'], apart: 'Europe is at war: Prussia and Britain against France and Austria. Your crown stands apart, for now.' },
+  congress: { year: 1763, at: 'at the Peace of Paris, in 1763', meets: 'It is 1763, and the Peace of Paris is signed.' },
+  score: [[29, '1763: Peace of Paris'], [57, '1770']],
+  briefTail: 'History will move as it did, if the crowns are still placed for it: Russia and Sweden come in against Prussia in 1757, Spain against Britain in 1762, and in 1762 the death of the Empress Elizabeth may yet save Frederick.',
+};
+const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756 };
+function scen() { return SCENS[scenario] || null; }
+// a historical start (1805, 1756): the crowns as they stood, with the arms, learning, rulers and alliances of the year
+function applyHistStart(S) {
+  startYear = S.year;
   const crowns = nations.filter(n => !n.isBarbarian && !n.isTribe);
   for (const n of crowns) {
-    const hist = SCEN_1805.rulers[n.name], ruler = hist && getNationRuler(n.id);
+    const hist = S.rulers[n.name], ruler = hist && getNationRuler(n.id);
     if (ruler) {
       Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4, hale: true });
       const sp = getNationSpouse(n.id);
@@ -6957,10 +7009,10 @@ function apply1805() {
         ruler.childIds.push(h.id);
       }
     }
-    for (const t of SCEN_1805.techs) if (TECHS[t]) n.researched.add(t);
-    const great = SCEN_1805.great.includes(n.name);
+    for (const t of S.techs) if (TECHS[t]) n.researched.add(t);
+    const great = S.great.includes(n.name);
     const towns = cities.filter(c => c.nationId === n.id);
-    // (in 1805 the Tsar's court sat at St Petersburg, not Moscow)
+    // (the Tsar's court sat at St Petersburg, not Moscow)
     if (n.name === 'Russia') { const spb = towns.find(c => /Petersburg/.test(c.name)), old = towns.find(c => c.isCapital); if (spb && old && spb !== old) { old.isCapital = false; spb.isCapital = true; } }
     for (const c of towns) {
       c.population = Math.max(c.population || 1, c.isCapital ? (great ? 6 : 4) : 3);
@@ -6968,15 +7020,15 @@ function apply1805() {
       if (typeof setCityTiles === 'function') setCityTiles(c);
     }
     const cap = towns.find(c => c.isCapital) || towns[0]; if (!cap) continue;
-    const army = great ? ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'] : ['musketeer', 'musketeer', 'hussar', 'field_gun'];
-    // (and the greatest armies of the age besides: the Grande Armée with its marshal, the Tsar's numbers and Cossacks, the Kaiser's whitecoats)
-    army.push(...({ 'France': ['musketeer', 'musketeer', 'grenadier', 'grenadier', 'dragoon', 'heavy_cavalry', 'field_gun', 'general'], 'Russia': ['musketeer', 'musketeer', 'cavalry', 'cavalry'], 'Austria': ['musketeer', 'hussar'] }[n.name] || []).filter(t => UNIT_DEFS[t]));
+    const army = [...(great ? S.army.great : S.army.small)];
+    // (and the greatest armies of the age besides, each with its marshal)
+    army.push(...(S.army.extra[n.name] || []).filter(t => UNIT_DEFS[t]));
     for (const t of army) { const p = findLandNear(cap.x, cap.y, 4, true); if (p) spawnUnit(t, n.id, p.x, p.y); }
-    const marshal = n.name === 'France' && units.find(u => u.nationId === n.id && u.type === 'general');
-    if (marshal) { marshal.title = 'Marshal Davout'; marshal.traits = ['aggressive', 'swift'].filter(t => GENERAL_TRAITS[t]); }
+    const mh = S.marshals[n.name], marshal = mh && units.find(u => u.nationId === n.id && u.type === 'general');
+    if (marshal) { marshal.title = mh[0]; marshal.traits = mh[1].filter(t => GENERAL_TRAITS[t]); }
     n.gold = (n.gold || 0) + (great ? 150 : 80); n.steel = (n.steel || 0) + 60; n.gunpowder = (n.gunpowder || 0) + 60; n.food = (n.food || 0) + 60;
     // (the sea powers keep a squadron off their coasts: Britain most of all)
-    const fleet = { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] }[n.name] || [];
+    const fleet = S.fleets[n.name] || [];
     for (const t of fleet) {
       let best = null, bd = Infinity;
       for (const c of towns) for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
@@ -6985,11 +7037,11 @@ function apply1805() {
       }
       if (best && UNIT_DEFS[t]) spawnUnit(t, n.id, best.x, best.y);
     }
-    // (the flagships of the year of Trafalgar)
-    const flag = { 'Great Britain': ['man_of_war', 'HMS Victory'], 'France': ['frigate', 'Bucentaure'], 'Spain': ['frigate', 'Santísima Trinidad'] }[n.name];
+    // (the flagships of the year, under their own names)
+    const flag = S.flags[n.name];
     const ship = flag && units.find(u => u.nationId === n.id && u.type === flag[0]); if (ship) ship.title = flag[1];
   }
-  const side = n => SCEN_1805.coalition.includes(n.name) ? 'c' : SCEN_1805.france.includes(n.name) ? 'f' : null;
+  const side = n => S.coalition.includes(n.name) ? 'c' : S.france.includes(n.name) ? 'f' : null;
   for (const a of crowns) for (const b of crowns) {
     if (a === b || !side(a) || !side(b)) continue;
     if (side(a) !== side(b)) { a.relations[b.id] = 'war'; if (getLoyalty(a.id, b.id) > -40) changeLoyalty(a.id, b.id, -40 - getLoyalty(a.id, b.id)); }
@@ -6999,24 +7051,73 @@ function apply1805() {
   const me = nations[playerNation], mySide = side(me);
   const the = nm => /^(Kingdom|Duchy|Swiss|Ottoman)/.test(nm) ? 'the ' + nm : nm;   // (the Kingdom of Naples, the Ottoman Empire)
   const foes = crowns.filter(n => n.id !== playerNation && me.relations[n.id] === 'war').map(n => the(n.name)), friends = crowns.filter(n => n.id !== playerNation && mySide && side(n) === mySide).map(n => the(n.name));
-  const say = mySide === 'c' ? `It is 1805. You stand with the Third Coalition${friends.length ? ` (${listAnd(friends)})` : ''} against France and her allies${foes.length ? `: ${listAnd(foes)}` : ''}.`
-    : mySide === 'f' ? `It is 1805. You stand with France${friends.length ? ` (${listAnd(friends)})` : ''} against the Third Coalition${foes.length ? `: ${listAnd(foes)}` : ''}.`
-    : `It is 1805. Europe is at war: the Third Coalition against France. Your crown stands apart, for now.`;
+  const ph = S.phrases, body = mySide ? `You stand ${ph[mySide][0]}${friends.length ? ` (${listAnd(friends)})` : ''} ${ph[mySide][1]}${foes.length ? `: ${listAnd(foes)}` : ''}.` : ph.apart;
+  const say = `It is ${S.year}. ${body}`;
   const scoreYear = startYear + Math.floor((scoreTurnLimit - 1) / (SEASON_LENGTH * 4));
-  const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === 1815 ? 'at the Congress of Vienna, in 1815' : 'in ' + scoreYear}.` : '';
+  const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === S.congress.year ? S.congress.at : 'in ' + scoreYear}.` : '';
   // (the year laid before the player on a card, and written in the log)
   setTimeout(() => logEvent(say + when), 0);   // (after the game's own first line, 'You are ...')
   const myRuler = getNationRuler(playerNation), myCap = cities.find(c => c.nationId === playerNation && c.isCapital);
-  const brief = `${myRuler ? `${myRuler.name} reigns${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${say.replace(/^It is 1805\. /, '')}${when} History will move as it did, if the crowns are still placed for it: Prussia's war in 1806, Tilsit in 1807, Spain's rising in 1808, and the coalitions after.`;
-  setTimeout(() => { if (!window.__film) scenChoice('Europe, 1805', brief, [['To work', () => {}]]); }, 900);
-  annal(say.replace(/^It is 1805\. /, ''));
-  // (all of the crowns are known to one another in 1805, and Europe is charted to its edges)
+  const brief = `${myRuler ? `${myRuler.name} reigns${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
+  setTimeout(() => { if (!window.__film) scenChoice('Europe, ' + S.year, brief, [['To work', () => {}]]); }, 900);
+  annal(body);
+  // (all of the crowns are known to one another, and Europe is charted to its edges)
   for (const n of crowns) if (n.id !== playerNation) discoveredNations.add(n.id);
   for (const t of tiles) for (const n of crowns) t.revealed.add(n.id);
   visionDirty = true; minimapDirty = true;
 }
 // the years after 1805, as they went (if the crowns in question are still there and still as they were)
+// the years after 1756, as they went (if the crowns in question are still there and still as they were)
+function tickScenario1756() {
+  const byName = nm => nations.find(n => n.name === nm && !n.eliminated && n.id !== playerNation);
+  const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const pr = anyName('Prussia'), gb = anyName('Great Britain'), fr = anyName('France');
+  const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const tell = (say, n) => { showToast(say); if (n && (n.id === playerNation || involvedWith(n))) annal(cap1(say.replace(/^\d{4}: /, ''))); };
+  const involvedWith = n => n && (n.relations[playerNation] === 'war' || hasAgreement(n.id, playerNation, 'war_help'));
+  // (a crown comes into the war against a foe, allied to the foe's other enemies)
+  const joinAgainst = (n, foe) => {
+    if (!n || !foe || n.relations[foe.id] === 'war') return false;
+    for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, foe.id, t);
+    n.relations[foe.id] = 'war'; foe.relations[n.id] = 'war';
+    if (!n._warSince) n._warSince = {}; n._warSince[foe.id] = turnNumber;
+    for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[foe.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+    return true;
+  };
+  const makePeace = (a, b) => {
+    if (!a || !b || a.relations[b.id] !== 'war') return false;
+    a.relations[b.id] = 'peace'; b.relations[a.id] = 'peace';
+    for (const [x, y] of [[a, b], [b, a]]) { if (!x._peaceCooldown) x._peaceCooldown = {}; x._peaceCooldown[y.id] = turnNumber + 20; }
+    return true;
+  };
+  if (year >= 1757 && !done.ruswe) {
+    done.ruswe = true;
+    for (const nm of ['Russia', 'Sweden']) { const n = byName(nm); if (joinAgainst(n, pr)) tell(`1757: ${nm} comes into the war against Prussia.`, n); }
+  }
+  if (year >= 1762 && !done.miracle) {
+    done.miracle = true;
+    // (the Miracle of the House of Brandenburg: the Empress Elizabeth dies, and her heir, an admirer of Frederick, makes peace)
+    const ru = byName('Russia'), el = ru && getNationRuler(ru.id);
+    if (ru && el && el.name === 'Elizabeth' && pr && ru.relations[pr.id] === 'war') {
+      characterDeath(el);
+      makePeace(ru, pr); for (const t of ['war_help']) for (const o of nations) if (o.relations[pr.id] === 'war') removeAgreement(ru.id, o.id, t);
+      const sw = byName('Sweden'); if (sw && pr && makePeace(sw, pr)) {}
+      tell('1762: the Empress Elizabeth is dead, and the new Tsar, an admirer of Frederick, makes peace with Prussia; Sweden follows. The Miracle of the House of Brandenburg.', pr);
+    }
+  }
+  if (year >= 1762 && !done.spain) {
+    done.spain = true;
+    const sp = byName('Spain');
+    if (sp && gb && joinAgainst(sp, gb)) {
+      if (fr && !hasAgreement(sp.id, fr.id, 'war_help')) addAgreement(sp.id, fr.id, 'war_help');
+      tell('1762: Spain comes into the war against Britain, on the side of France.', sp);
+      const po = byName('Portugal'); if (po && joinAgainst(po, sp)) { if (!hasAgreement(po.id, gb.id, 'war_help')) addAgreement(po.id, gb.id, 'war_help'); tell('1762: Spain marches on Portugal, and Portugal stands with Britain.', po); }
+    }
+  }
+}
 function tickScenario() {
+  if (scenario === '1756') return tickScenario1756();
   if (scenario !== '1805') return;
   const byName = nm => nations.find(n => n.name === nm && !n.eliminated && n.id !== playerNation);
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
@@ -7536,7 +7637,7 @@ function canFoundCity(x, y, nationId) {
 
 function foundCity(unit, cityName) {
   const name = (mapStyle === 'europe' && unit && europeTownName(unit.x, unit.y)) || cityName || randomCityName();
-  if (unit && unit.nationId === playerNation && !(scenario === '1805' && turnNumber <= 1)) try { annal(`${name} founded.`); } catch (e) {}
+  if (unit && unit.nationId === playerNation && !(scen() && turnNumber <= 1)) try { annal(`${name} founded.`); } catch (e) {}
   // a town founded where you can see it is stamped onto the chart with the realm's seal
   if (unit && (unit.nationId === playerNation || (currentVisionSet && currentVisionSet.has(unit.y * MAP_COLS + unit.x)))) particles.push({ kind: 'seal', col: unit.x, row: unit.y, vx: 0, vy: 0, color: nations[unit.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
 
@@ -9397,7 +9498,7 @@ const FIRST_ORDERS = [
   ['research', 'Choose what to research (T)', n => !!n.currentResearch],
   ['prod', 'Set a town to making something', n => cities.some(c => c.nationId === playerNation && c.producing)],
   ['moved', 'March a regiment (right-click a hex)', n => !!(n._tut && n._tut.moved)],
-  ['settle', 'Found another town with a settler', n => cities.filter(c => c.nationId === playerNation).length >= (scenario === '1805' ? 4 : 2)],
+  ['settle', 'Found another town with a settler', n => cities.filter(c => c.nationId === playerNation).length >= (scen() ? 4 : 2)],
   ['improve', 'Have a worker improve a hex', n => tiles.some(t => t.owner === playerNation && t.improvement)],
   ['ambition', 'Choose an ambition (the plaque at the top)', n => !!n.ambition || (n.ambitionsDone || []).length > 0],
   ['turn', 'End the turn (E, or the crest)', n => turnNumber >= 2],
@@ -9650,7 +9751,7 @@ function showVictory(type) {
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `${scenario === '1805' ? (getCurrentYear() === 1815 ? 'It is 1815, and the Congress of Vienna meets.' : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
+  const desc = type === 'score' ? `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
     : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
     : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
@@ -9816,8 +9917,8 @@ function deleteVictoryEntry(index) {
 
 // at the end of an 1805 game, how the great crowns stand when the score is counted: their rulers and their towns
 function congressSummary() {
-  if (scenario !== '1805') return '';
-  const rows = SCEN_1805.great.map(nm => nations.find(n => n.name === nm)).filter(Boolean).map(n => {
+  if (!scen()) return '';
+  const rows = scen().great.map(nm => nations.find(n => n.name === nm)).filter(Boolean).map(n => {
     const towns = cities.filter(c => c.nationId === n.id).length, r = getNationRuler(n.id);
     return `<span style="white-space:nowrap"><b style="color:${safeColor(n.color)}">${escHtml(n.name)}</b> ${n.eliminated ? 'fallen' : `${towns} town${towns === 1 ? '' : 's'}${r ? ', ' + escHtml(r.name) : ''}`}</span>`;
   });
@@ -9831,7 +9932,7 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `${scenario === '1805' ? (getCurrentYear() === 1815 ? 'It is 1815, and the Congress of Vienna meets.' : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
+    desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${winner.color}">${escHtml(winner.name)}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
     desc = `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has been conquered. Your civilization is no more.`;
@@ -19235,8 +19336,8 @@ function confirmSetupAndStart() {
   scoreTurnLimit = parseInt(document.getElementById('setupScoreTurn')?.value ?? '200', 10); if (Number.isNaN(scoreTurnLimit)) scoreTurnLimit = 200;
   ambitionVictoryOn = document.getElementById('setupAmbitionWin')?.value !== '0';
   mapStyle = document.getElementById('setupMapStyle')?.value === 'europe' ? 'europe' : 'random';
-  scenario = document.getElementById('setupStart')?.value === '1805' ? '1805' : null; startYear = 1680;
-  if (scenario === '1805') mapStyle = 'europe';   // (1805 is played on the map of Europe)
+  { const v = document.getElementById('setupStart')?.value; scenario = SCENS[v] ? v : null; } startYear = 1680;
+  if (scenario) mapStyle = 'europe';   // (the historical starts are played on the map of Europe)
   const _barbDensVal = parseInt(document.getElementById('setupBarbarians').value);
   barbarianDensity = (Number.isNaN(_barbDensVal) ? 40 : _barbDensVal) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
@@ -21649,7 +21750,7 @@ function findRandomCapitalSite() {
 function spawnAINations(count) {
   // (never the player's own nation twice; on the Europe map, only the crowns of Europe)
   let shuffled = [...PRESET_NATIONS].filter(p => p.name !== nations[playerNation]?.name && (mapStyle !== 'europe' || EUROPE_CAPITALS[p.name])).sort(() => Math.random() - 0.5);
-  if (scenario === '1805') shuffled.sort((a, b) => (SCEN_1805.first.indexOf(a.name) + 99) % 99 - (SCEN_1805.first.indexOf(b.name) + 99) % 99);   // (the great crowns first)
+  if (scen()) shuffled.sort((a, b) => (scen().first.indexOf(a.name) + 99) % 99 - (scen().first.indexOf(b.name) + 99) % 99);   // (the great crowns first)
   const toSpawn = Math.min(count, shuffled.length);
   for (let i = 0; i < toSpawn; i++) {
     const preset = shuffled[i];
@@ -21919,7 +22020,7 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
   spawnAINations(aiCount);
-  if (scenario === '1805') apply1805();
+  if (scen()) applyHistStart(scen());
   const tribeCount = mapStyle === 'europe' ? 0 : Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));   // (no tribes of the New World in Europe)
   spawnTribes(tribeCount);
 
@@ -21931,7 +22032,7 @@ function generateAndPlay(pName, pColor, opponents) {
   // after the camps, so neither lands on a camp
   scatterRuins();
   placeNaturalWonders();
-  if (scenario === '1805') for (const t of tiles) if (t.wonder) t.wonderSeen = true;   // (on the charted continent of 1805 the wonders of nature are long known: no explorer's gift for them)
+  if (scen()) for (const t of tiles) if (t.wonder) t.wonderSeen = true;   // (on the charted continent of 1805 the wonders of nature are long known: no explorer's gift for them)
 
   selectedUnit = null; selectedCity = null;
   moveMode = false; reachableTiles.clear(); buyTileMode = false; workerBuyMode = false;
