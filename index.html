@@ -9677,6 +9677,7 @@ function checkElimination() {
       const s = getScore(i);
       if (s > bestScore) { bestScore = s; bestId = i; }
     }
+    if (scen() && getCurrentYear() === scen().congress.year) { const m = scen().congress.meets.replace(/^It is \d+, and /, ''); annal(m.charAt(0).toUpperCase() + m.slice(1)); }   // (the annals close with the peace)
     if (bestId === playerNation) showVictory('score');
     else showDefeat('score', bestId);
     return;
