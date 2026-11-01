@@ -7238,7 +7238,7 @@ const SCEN_1683 = {
   marshals: { 'Austria': ['Charles of Lorraine', ['cautious', 'inspiring']], 'Duchy of Warsaw': ['Hetman Jabłonowski', ['aggressive', 'swift']], 'France': ['Marshal de Luxembourg', ['aggressive', 'inspiring']] },
   fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate'], 'Kingdom of Holland': ['frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Ottoman Empire': ['frigate'], 'Kingdom of Italy': ['frigate'] },
   flags: { 'Great Britain': ['man_of_war', 'HMS Britannia'], 'France': ['frigate', 'Soleil Royal'] },
-  phrases: { c: [me => me.name === 'Austria' ? 'at the head of the Empire' : 'with the Emperor', 'against the Ottoman Empire'], f: [me => me.name === 'Ottoman Empire' ? 'at the gates of Vienna' : 'with the Sultan', 'against the Emperor and his allies'],
+  phrases: { c: [me => me.name === 'Austria' ? 'at the head of the Empire' : me.name === 'Duchy of Warsaw' ? 'sworn to ride to the relief of Vienna' : "in the Emperor's cause", 'against the Ottoman Empire'], f: [me => me.name === 'Ottoman Empire' ? 'at the gates of Vienna' : 'with the Sultan', 'against the Emperor and his allies'],
     apartWar: 'The Turks are at the gates of Vienna, and in the west you are at war with', apart: 'The Turks are at the gates of Vienna, and in the west Louis XIV presses Spain for the Reunions. Your crown stands apart, for now.' },
   congress: { year: 1699, at: 'at the Peace of Karlowitz, in 1699', meets: 'It is 1699, and the Peace of Karlowitz is signed.' },
   score: [[65, '1699: Peace of Karlowitz'], [93, '1706']],
