@@ -6920,7 +6920,8 @@ function apply1805() {
   }
   for (const n of crowns) { n._warSince = {}; for (const [id, r] of Object.entries(n.relations)) if (r === 'war' && nations[id] && !nations[id].isBarbarian) n._warSince[id] = 1; }
   const me = nations[playerNation], mySide = side(me);
-  const foes = crowns.filter(n => n.id !== playerNation && me.relations[n.id] === 'war').map(n => n.name), friends = crowns.filter(n => n.id !== playerNation && mySide && side(n) === mySide).map(n => n.name);
+  const the = nm => /^(Kingdom|Duchy|Swiss|Ottoman)/.test(nm) ? 'the ' + nm : nm;   // (the Kingdom of Naples, the Ottoman Empire)
+  const foes = crowns.filter(n => n.id !== playerNation && me.relations[n.id] === 'war').map(n => the(n.name)), friends = crowns.filter(n => n.id !== playerNation && mySide && side(n) === mySide).map(n => the(n.name));
   const say = mySide === 'c' ? `It is 1805. You stand with the Third Coalition${friends.length ? ` (${listAnd(friends)})` : ''} against France and her allies${foes.length ? `: ${listAnd(foes)}` : ''}.`
     : mySide === 'f' ? `It is 1805. You stand with France${friends.length ? ` (${listAnd(friends)})` : ''} against the Third Coalition${foes.length ? `: ${listAnd(foes)}` : ''}.`
     : `It is 1805. Europe is at war: the Third Coalition against France. Your crown stands apart, for now.`;
