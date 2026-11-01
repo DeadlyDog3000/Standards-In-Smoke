@@ -9483,14 +9483,16 @@ function aiTurn(nationId) {
     if (u.movesLeft > 0 && UNIT_UPGRADES[u.type]) {
       const upg = UNIT_UPGRADES[u.type];
       if (nationHasTech(nationId, upg.tech) && cities.some(c => c.x === u.x && c.y === u.y && c.nationId === nationId)) {
+        const same = 1 + (u.merged || []).filter(t => t === u.type).length;   // (a merged regiment re-arms whole)
         let canAfford = true;
-        for (const [r, amt] of Object.entries(upg.cost)) { if ((n[r] || 0) < amt) { canAfford = false; break; } }
+        for (const [r, amt] of Object.entries(upg.cost)) { if ((n[r] || 0) < amt * same) { canAfford = false; break; } }
         if (canAfford) {
-          for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt;
-          const oldDef = UNIT_DEFS[u.type], newDef = UNIT_DEFS[upg.to];
-          const hpRatio = u.hp / (oldDef.hp || 10);
+          for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt * same;
+          const newDef = UNIT_DEFS[upg.to], oldType = u.type;
+          const hpRatio = u.hp / Math.max(1, getEffectiveMaxHp(u));
           u.type = upg.to;
-          u.hp = Math.max(1, Math.round(hpRatio * (newDef.hp || 10)));
+          if (u.merged) u.merged = u.merged.map(t => t === oldType ? upg.to : t);
+          u.hp = Math.max(1, Math.round(hpRatio * getEffectiveMaxHp(u)));
           u.maxMoves = newDef.moves;
           u.movesLeft = 0;
           u.vision = newDef.vision;
