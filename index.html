@@ -1081,7 +1081,7 @@
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
-        - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
+        - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
         - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
@@ -2161,7 +2161,7 @@
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
-          - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
+          - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
           - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Royal marriages, as in Old World: propose a match between your court and another in the Kingdoms panel (60 gold, half back if refused). A crown that thinks well of you may accept; while the marriage lasts each of you thinks better of the other every turn, and making war on your in-laws costs 15 legitimacy<br>
@@ -6859,6 +6859,18 @@ function tickScenario() {
       const say = `1806: Prussia joins the Fourth Coalition and declares war on France.`; showToast(say);
     }
   }
+  // (a crown turns on France: war with it, and allied to France's other enemies)
+  const turnOnFrance = (n, say) => {
+    if (!n || !fr || n.relations[fr.id] === 'war') return false;
+    for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, fr.id, t);
+    n.relations[fr.id] = 'war'; fr.relations[n.id] = 'war';
+    for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[fr.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+    showToast(say); return true;
+  };
+  if (year >= 1808 && !done.spain) { done.spain = true; turnOnFrance(byName('Spain'), '1808: Spain rises against the French, and Britain sends an army to help.'); }
+  if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
+  if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
+  if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
   if (year >= 1807 && !done.tilsit) {
     done.tilsit = true;
     const ru = byName('Russia');
