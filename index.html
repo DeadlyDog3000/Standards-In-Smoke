@@ -1125,6 +1125,7 @@
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
         - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
+        - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2225,6 +2226,7 @@
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
           - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
+          - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6977,6 +6979,16 @@ function tickScenario() {
   if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
   if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
   if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
+  // (1806: the Holy Roman Empire is dissolved, and its last emperor reigns on as Emperor of Austria)
+  if (year >= 1806 && !done.hre) {
+    done.hre = true;
+    const aus = nations.find(n => n.name === 'Austria' && !n.eliminated), fz = aus && getNationRuler(aus.id);
+    if (fz && fz.name === 'Francis II') {
+      fz.name = 'Francis I';
+      const say = 'The Holy Roman Empire is dissolved after a thousand years: Francis II lays down its crown and reigns on as Francis I of Austria.';
+      if (aus.id === playerNation) { showToast(say); annal(say); } else logEvent('1806: ' + say);
+    }
+  }
   // (1810: the Emperor sets Joséphine aside for an Austrian archduchess, if he still reigns and Austria is at peace with him;
   //  1811: their son, the King of Rome)
   const au = nations.find(n => n.name === 'Austria' && !n.eliminated), nap = fr && getNationRuler(fr.id);
