@@ -1143,6 +1143,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+        - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2260,6 +2261,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+          - In the historical starts the rival crowns make for the towns they fought over: Austria for Breslau in Silesia, Frederick for Dresden and Prague, Napoleon for Vienna and Berlin<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6957,6 +6959,7 @@ const SCEN_1805 = {
   phrases: { c: ['in the Third Coalition', 'against France and her allies'], f: [me => me.name === 'France' ? 'at the head of the French alliance' : 'on the side of France', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
   congress: { year: 1815, at: 'at the Congress of Vienna, in 1815', meets: 'It is 1815, and the Congress of Vienna meets.' },
   score: [[41, '1815: Congress of Vienna'], [81, '1825']],
+  aims: { 'France': ['Vienna', 'Berlin', 'Ulm'], 'Austria': ['Munich', 'Milan', 'Venice'], 'Russia': ['Warsaw', 'Königsberg'], 'Prussia': ['Hanover'], 'Great Britain': ['Copenhagen'] },
   briefTail: "History will move as it did, if the crowns are still placed for it: Prussia's war in 1806, Tilsit in 1807, Spain's rising in 1808, and the coalitions after.",
   // the crowns' heads in 1805 and their consorts: [name, gender, age, traits, consort, consort's age, heir] (where a regent
   //  governed, the regent; a crown without a consort keeps the one it was given)
@@ -7012,6 +7015,7 @@ const SCEN_1756 = {
   phrases: { c: ['in the Anglo-Prussian alliance', 'against France, Austria and their allies'], f: ['in the alliance of Versailles', 'against Prussia and Britain'], apart: 'Europe is at war: Prussia and Britain against France and Austria. Your crown stands apart, for now.' },
   congress: { year: 1763, at: 'at the Peace of Paris, in 1763', meets: 'It is 1763, and the Peace of Paris is signed.' },
   score: [[29, '1763: Peace of Paris'], [57, '1770']],
+  aims: { 'Austria': ['Breslau', 'Berlin'], 'Prussia': ['Dresden', 'Leipzig', 'Prague'], 'Russia': ['Königsberg', 'Berlin'], 'France': ['Hanover'], 'Sweden': ['Stettin'], 'Spain': ['Lisbon'] },
   briefTail: 'History will move as it did, if the crowns are still placed for it: Russia and Sweden come in against Prussia in 1757, Spain against Britain in 1762, and in 1762 the death of the Empress Elizabeth may yet save Frederick.',
 };
 const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756 };
@@ -10445,7 +10449,8 @@ function aiTurn(nationId) {
     for (const c of cities) {
       if (c.nationId === nationId || n.relations[c.nationId] !== 'war') continue;
       const defenders = units.filter(eu => eu.nationId === c.nationId && UNIT_DEFS[eu.type]?.combat && hexDistance(eu.x, eu.y, c.x, c.y) <= 2).length;
-      const sc = 100 - hexDistance(Math.round(mx), Math.round(my), c.x, c.y) - defenders * 8 - cityWallLevel(c) * 6 + (c.siegeTurns || 0) * 3 + (c.captureProgress?.[nationId] || 0) * 20;
+      const sc = 100 - hexDistance(Math.round(mx), Math.round(my), c.x, c.y) - defenders * 8 - cityWallLevel(c) * 6 + (c.siegeTurns || 0) * 3 + (c.captureProgress?.[nationId] || 0) * 20
+        + ((scen()?.aims?.[n.name] || []).includes(c.name) ? 25 : 0);   // (in a historical start a crown makes for the towns it fought over)
       if (sc > best) { best = sc; campaignTarget = c; }
     }
   }
