@@ -749,6 +749,12 @@
     #chronicleOverlay .chron-card { width: min(640px, 94vw); max-height: 90vh; overflow-y: auto; padding: 20px 22px; color: #e9dcc0; }
     #chronicleOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 4px; font-size: 22px; font-weight: normal; }
     .chron-wrap { position: relative; }
+    .chron-tabs { display: flex; gap: 3px; justify-content: center; margin: 2px 0 8px; }
+    .chron-tabs button, .chron-play button { font: 13px 'EB Garamond', Georgia, serif; padding: 3px 14px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
+    .chron-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
+    .chron-map { width: 100%; height: auto; display: block; border: 1px solid rgba(201, 164, 90, 0.4); image-rendering: auto; }
+    .chron-play { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; } .chron-play input { flex: 1; accent-color: #c9a45a; } .chron-play button { font-style: normal; color: #f0dcae; }
+    .chron-t { font-size: 12px; color: #c9b07a; min-width: 62px; text-align: right; }
     .chron-svg { width: 100%; height: auto; display: block; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.3); }
     .chron-grid { stroke: rgba(201, 164, 90, 0.14); stroke-width: 1; }
     .chron-ax { fill: #b8a888; font: 10px Georgia, serif; }
@@ -1029,6 +1035,7 @@
         <b style="color:#b8a070;">Tips and Polish</b><br>
         - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
         - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
+        - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2075,6 +2082,7 @@
           <b style="color:#b8a070;">Tips and Polish</b><br>
           - Tips, once each: the first time you choose a regiment or a town, earn a promotion, run out of orders, meet winter or war, learn Navigation or have two regiments side by side, a short card says what you can do. "No more tips" turns them off, and Options can bring them back<br>
           - Every rival crown has a temper, shown in the Kingdoms panel: Warlike crowns keep larger armies and go to war sooner, Builders raise wonders and keep the peace longer, Expansionists spread fastest, and Merchants are the easiest to get on with<br>
+          - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -8664,12 +8672,77 @@ function recordScores() {
     if (n.eliminated) n.scoreHist.out = true;
   }
 }
+// ---- the map through the years: every town's founding, change of crown and fall, logged turn by turn (a diff of the
+//  towns, so nothing that moves a town can slip past it), and played back as dots on a small map of the world ----
+let townLog = { ev: [] };   // ev: [turn, x, y, nationId] (nationId -1: the town is gone)
+let _townLast = null;
+function townLogState(upTo) {
+  const m = new Map();
+  for (const [t, x, y, nid] of townLog.ev) { if (t > upTo) break; if (nid < 0) m.delete(x + ',' + y); else m.set(x + ',' + y, nid); }
+  return m;
+}
+function recordTowns() {
+  if (!_townLast) _townLast = townLogState(Infinity);
+  const now = new Map();
+  for (const c of cities) if (!c.ruined) now.set(c.x + ',' + c.y, c.nationId);
+  for (const [k, nid] of now) if (_townLast.get(k) !== nid) { const [x, y] = k.split(',').map(Number); townLog.ev.push([turnNumber, x, y, nid]); }
+  for (const k of _townLast.keys()) if (!now.has(k)) { const [x, y] = k.split(',').map(Number); townLog.ev.push([turnNumber, x, y, -1]); }
+  _townLast = now;
+}
+function drawTownMap(cv, upTo, all) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const cw = W / (MAP_COLS + 0.5), chh = H / MAP_ROWS;
+  if (!cv._base || cv._base.k !== MAP_COLS + 'x' + MAP_ROWS + (all ? 'a' : 'm')) {
+    const b = document.createElement('canvas'); b.width = W; b.height = H; const bg = b.getContext('2d');
+    bg.fillStyle = '#20384a'; bg.fillRect(0, 0, W, H);
+    for (let y = 0; y < MAP_ROWS; y++) for (let x = 0; x < MAP_COLS; x++) {
+      const t = tiles[y * MAP_COLS + x]; if (t.type === 0) continue;
+      const known = all || t.revealed.has(playerNation);
+      bg.fillStyle = known ? (t.type === 2 ? '#a89a7a' : t.type === 5 ? '#8f9a62' : '#c9b78a') : '#5a5444';
+      bg.fillRect(Math.floor(x * cw + (y % 2 ? cw / 2 : 0)), Math.floor(y * chh), Math.ceil(cw) + 1, Math.ceil(chh) + 1);
+    }
+    cv._base = { k: MAP_COLS + 'x' + MAP_ROWS + (all ? 'a' : 'm'), c: b };
+  }
+  g.drawImage(cv._base.c, 0, 0);
+  const r = Math.max(2.5, Math.min(6, cw * 1.6));
+  for (const [k, nid] of townLogState(upTo)) {
+    const [x, y] = k.split(',').map(Number), n = nations[nid];
+    if (!n || (!all && !tiles[y * MAP_COLS + x].revealed.has(playerNation))) continue;
+    const px = x * cw + (y % 2 ? cw / 2 : 0) + cw / 2, py = y * chh + chh / 2;
+    g.beginPath(); g.arc(px, py, nid === playerNation ? r * 1.25 : r, 0, Math.PI * 2);
+    g.fillStyle = safeColor(n.color); g.fill(); g.lineWidth = 1; g.strokeStyle = 'rgba(10, 8, 4, 0.85)'; g.stroke();
+  }
+}
+function openTownMap(all) {
+  const ov = document.getElementById('chronicleOverlay'); if (!ov) return;
+  const card = ov.querySelector('.chron-card');
+  const tMin = townLog.ev.length ? townLog.ev[0][0] : turnNumber, tMax = turnNumber;
+  const W = 560, H = Math.round(560 * MAP_ROWS / (MAP_COLS + 0.5) * 0.87);
+  card.innerHTML = `<h3>The Map Through the Years</h3>
+    <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button class="on">Map</button></div>
+    <canvas class="chron-map" width="${W}" height="${H}"></canvas>
+    <div class="chron-play"><button class="chron-pp">Play</button><input type="range" min="${tMin}" max="${tMax}" value="${tMax}"><span class="chron-t">Turn ${tMax}</span></div>
+    <p class="amb-lede">Every town, in the colour of the crown that held it${all ? '' : ' (the lands you have seen)'}.</p>
+    <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button>`;
+  const cv = card.querySelector('canvas'), sl = card.querySelector('input'), lab = card.querySelector('.chron-t'), pp = card.querySelector('.chron-pp');
+  const show = t => { drawTownMap(cv, t, all); lab.textContent = 'Turn ' + t; };
+  show(tMax);
+  sl.addEventListener('input', () => show(+sl.value));
+  let timer = 0;
+  pp.addEventListener('click', () => {
+    if (timer) { clearInterval(timer); timer = 0; pp.textContent = 'Play'; return; }
+    if (+sl.value >= tMax) sl.value = tMin;
+    pp.textContent = 'Pause';
+    timer = setInterval(() => { if (!cv.isConnected || +sl.value >= tMax) { clearInterval(timer); timer = 0; pp.textContent = 'Play'; return; } sl.value = +sl.value + 1; show(+sl.value); }, Math.max(40, 6000 / Math.max(1, tMax - tMin)));
+  });
+}
+window.openTownMap = openTownMap;
 function openChronicle(all) {
   document.getElementById('chronicleOverlay')?.remove();
   const shown = nations.filter(n => !n.isBarbarian && !n.isTribe && n.scoreHist && n.scoreHist.v.length && (all || n.id === playerNation || discoveredNations.has(n.id)));
   const ov = document.createElement('div'); ov.id = 'chronicleOverlay';
   if (!shown.length || shown.every(n => n.scoreHist.v.length < 2)) {
-    ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3><p class="amb-lede">The chronicle begins with the first turns: end a turn or two and come back.</p><button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
+    ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3><div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button></div><p class="amb-lede">The chronicle begins with the first turns: end a turn or two and come back.</p><button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
     document.body.appendChild(ov); return;
   }
   const W = 560, H = 260, L = 40, R = 12, T = 12, B = 26;
@@ -8689,6 +8762,7 @@ function openChronicle(all) {
   const last = n => n.scoreHist.v[n.scoreHist.v.length - 1];
   const legend = shown.slice().sort((a, b) => last(b) - last(a)).map(n => `<span class="chron-key${n.id === playerNation ? ' me' : ''}" data-n="${n.id}"><i style="background:${safeColor(n.color)}"></i>${escHtml(n.name)} <b>${last(n)}</b>${n.eliminated ? ' <em>fallen</em>' : ''}</span>`).join('');
   ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3>
+    <div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button></div>
     <p class="amb-lede">Each crown's score, turn by turn${all ? '' : ' (the realms you have met)'}. Hover over the chart for the turn.</p>
     <div class="chron-wrap"><svg viewBox="0 0 ${W} ${H}" class="chron-svg">${grid}${lines}<line class="chron-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" style="display:none"/></svg><div class="chron-tip" style="display:none"></div></div>
     <div class="chron-legend">${legend}</div>
@@ -10611,7 +10685,7 @@ function _finishEndTurnImpl() {
     }
   }
   turnNumber++;
-  try { recordScores(); } catch (e) { console.error('recordScores error:', e); }
+  try { recordScores(); recordTowns(); } catch (e) { console.error('recordScores error:', e); }
   // the alarm of Europe rising, a stage at a time, told once each
   try {
     const P = playerProgress(), stage = P >= 0.8 ? 3 : P >= 0.55 ? 2 : P >= 0.3 ? 1 : 0, me = nations[playerNation];
@@ -20091,6 +20165,7 @@ function serializeGame() {
     tileAnnotations,
     tutorialActive, tutorialStep,
     eventLogEntries: eventLogEntries.slice(-200),
+    townLog,
     ordersRemaining,
     activatedUnitIdx: sUnits.map((_, i) => activatedUnits.has(units[i]) ? i : -1).filter(i => i >= 0),
   });
@@ -20208,6 +20283,7 @@ function deserializeGame(json) {
   deriveRiverFlow();
   try { updateSieges(false); for (const c of cities) { c._siegeShown = c._besieged; c._blockShown = c._blockaded; } } catch(e) { console.error('updateSieges error:', e); }
   if (Array.isArray(d.eventLogEntries)) eventLogEntries = d.eventLogEntries;
+  townLog = d.townLog && Array.isArray(d.townLog.ev) ? d.townLog : { ev: [] }; _townLast = null;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
   activatedUnits = new Set();
@@ -20557,6 +20633,7 @@ window.skipTutorial = function() {
 
 function startGame(cols, rows, pName, pColor, opponents) {
   MAP_COLS = cols; MAP_ROWS = rows;
+  townLog = { ev: [] }; _townLast = null;
   document.getElementById('menu').style.display = 'none';
   stopMenuSlideshow();
   document.getElementById('game').style.display = 'block';
