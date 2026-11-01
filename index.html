@@ -9787,6 +9787,11 @@ function aiTurn(nationId) {
       }
     }
 
+    // (two friendly crowns now and then join their houses)
+    if (otherId !== playerNation && otherId > nationId && n.relations[otherId] === 'peace' && loy >= 55 && !hasAgreement(nationId, otherId, 'marriage') && Math.random() < 0.004) {
+      addAgreement(nationId, otherId, 'marriage');
+      if (discoveredNations.has(nationId) && discoveredNations.has(otherId)) logEvent(`A royal marriage joins the houses of ${n.name} and ${nations[otherId].name}.`);
+    }
     if (otherId !== playerNation && n.relations[otherId] === 'peace' && loy >= 50) {
       if (!hasAgreement(nationId, otherId, 'open_borders')) addAgreement(nationId, otherId, 'open_borders');
     }
@@ -17625,6 +17630,8 @@ function renderKingdoms() {
     html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b><em style="color:${ratio > 1.3 ? '#e07050' : ratio < 0.75 ? '#7ab870' : '#c8b890'}">${ratio > 1.3 ? 'stronger than yours' : ratio < 0.75 ? 'weaker than yours' : 'about as strong as yours'}</em></div>`;
     // their own wars with the crowns you know (you hear of them through your envoys)
     const theirWars = Object.entries(n.relations || {}).filter(([id, r]) => r === 'war' && +id !== playerNation && nations[id] && !nations[id].isBarbarian && !nations[id].isTribe && !nations[id].eliminated && discoveredNations.has(+id)).map(([id]) => nations[id]);
+    const theirKin = nations.filter(o => o.id !== n.id && o.id !== playerNation && !o.eliminated && discoveredNations.has(o.id) && hasAgreement(n.id, o.id, 'marriage'));
+    if (theirKin.length) html += `<div class="kc-wars">Married into ${listAnd(theirKin.map(o => `<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
     if (theirWars.length) html += `<div class="kc-wars">At war with ${listAnd(theirWars.map(o => `<b style="border-bottom-color:${safeColor(o.color)}">${escHtml(o.name)}</b>`))}</div>`;
     // what they ask of you
     if (n.wantsPeace && n.wantsPeace[playerNation]) {
