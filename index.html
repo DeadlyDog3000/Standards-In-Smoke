@@ -7100,6 +7100,11 @@ function tickScenario1756() {
     done.ruswe = true;
     for (const nm of ['Russia', 'Sweden']) { const n = byName(nm); if (joinAgainst(n, pr)) tell(`1757: ${nm} comes into the war against Prussia.`, n); }
   }
+  if (year >= 1760 && !done.george2) {   // (George II dies in 1760, and his grandson is crowned George III)
+    done.george2 = true;
+    const g2 = gb && getNationRuler(gb.id);
+    if (g2 && g2.name === 'George II') characterDeath(g2);
+  }
   if (year >= 1762 && !done.miracle) {
     done.miracle = true;
     // (the Miracle of the House of Brandenburg: the Empress Elizabeth dies, and her heir, an admirer of Frederick, makes peace)
