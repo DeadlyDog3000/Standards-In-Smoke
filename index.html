@@ -1038,6 +1038,7 @@
         - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
         - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
         - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
+        - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2087,6 +2088,7 @@
           - The Map Through the Years: beside the score chart, a small map of the world with every town in the colour of the crown that held it, played back turn by turn (only the lands you have seen while the game goes on, all of it at the end)<br>
           - Fix: a town's banner counted a siege out of 4 turns even behind walls (6) or bastions (8); it now shows the real number, and says so on hover<br>
           - Town projects, as in Old World, for a town with nothing better to make: a Trade Fair turns half its production into gold, Learning into research, and Festivals ease its discontent. They never finish, and anything you choose takes over at once<br>
+          - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -9238,6 +9240,19 @@ function aiTurn(nationId) {
       if (!n._diploRequest[playerNation] && !hasAgreement(nationId, playerNation, 'open_borders') && Math.random() < 0.05) {
         n._diploRequest[playerNation] = 'open_borders';
         showToast(`${n.name} requests Open Borders.`);
+      }
+    }
+    // a strong crown that thinks little of you may demand tribute: pay and it keeps the peace for a while, refuse and it
+    // remembers (warlike crowns ask most often)
+    if (otherId === playerNation && n.relations[otherId] === 'peace' && loy < -15 && loy > -60 && turnNumber > 20 && !(n._tributeUntil > turnNumber)) {
+      const theirs = (militaryByNation.get(nationId) || []).length, yours = (militaryByNation.get(playerNation) || []).length;
+      if (!n._diploRequest) n._diploRequest = {};
+      if (!n._diploRequest[playerNation] && theirs >= Math.max(4, yours * 2) && Math.random() < (n.temper === 'warlike' ? 0.06 : 0.025)) {
+        n._tributeAsk = Math.round(25 + turnNumber * 0.4 + Math.min(150, (nations[playerNation].gold || 0) * 0.1));
+        n._diploRequest[playerNation] = 'tribute';
+        n._tributeUntil = turnNumber + 20;   // (asked at most once in twenty turns)
+        showToast(`${n.name} demands ${n._tributeAsk} gold in tribute. Open Kingdoms to answer.`);
+        logEvent(`${n.name} demands ${n._tributeAsk} gold in tribute.`);
       }
     }
 
@@ -17018,7 +17033,9 @@ function renderKingdoms() {
       html += `<div class="kc-ask">☮ They offer peace <span><button class="diplo-btn ok" onclick="acceptPeace(${n.id})">Accept</button><button class="diplo-btn no" onclick="rejectPeace(${n.id})">Reject</button></span></div>`;
     }
     const pendingReq = rel !== 'war' && n._diploRequest && n._diploRequest[playerNation];
-    if (pendingReq) {
+    if (pendingReq === 'tribute') {
+      html += `<div class="kc-ask">They demand ${n._tributeAsk || 30} gold in tribute <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'tribute')" title="Pay: they keep the peace for 15 turns and think better of you; -3 legitimacy">Pay</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'tribute')" title="Refuse: they think much worse of you; +2 legitimacy">Refuse</button></span></div>`;
+    } else if (pendingReq) {
       const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Barbarian Pact' };
       html += `<div class="kc-ask">They ask for ${reqLabels[pendingReq] || escHtml(String(pendingReq))} <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button></span></div>`;
     }
@@ -17242,6 +17259,18 @@ function toggleTradePanel(nationId) {
 }
 function acceptRequest(nationId, type) {
   if (!nations[nationId]._diploRequest) return;
+  if (type === 'tribute') {
+    const n = nations[nationId], amt = n._tributeAsk || 30, me = nations[playerNation];
+    if ((me.gold || 0) < amt) { showToast(`The treasury holds only ${Math.floor(me.gold || 0)} gold.`); return; }
+    me.gold -= amt; n.gold = (n.gold || 0) + amt;
+    delete n._diploRequest[playerNation];
+    changeLoyalty(nationId, playerNation, 30);
+    if (!n._peaceCooldown) n._peaceCooldown = {}; n._peaceCooldown[playerNation] = turnNumber + 15;
+    me.legitimacy = Math.max(0, (me.legitimacy ?? 50) - 3);
+    showToast(`You pay ${n.name} ${amt} gold. They will keep the peace for a while.`); logEvent(`Tribute of ${amt} gold paid to ${n.name}. -3 legitimacy`);
+    try { SMK.coins(4); } catch (e) {}
+    updateUI(); renderKingdoms(); return;
+  }
   delete nations[nationId]._diploRequest[playerNation];
   addAgreement(playerNation, nationId, type);
   changeLoyalty(nationId, playerNation, 5);
@@ -17250,6 +17279,13 @@ function acceptRequest(nationId, type) {
 }
 function rejectRequest(nationId, type) {
   if (!nations[nationId]._diploRequest) return;
+  if (type === 'tribute') {
+    delete nations[nationId]._diploRequest[playerNation];
+    changeLoyalty(nationId, playerNation, -25);
+    const me = nations[playerNation]; me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 2);
+    showToast(`You refuse ${nations[nationId].name}'s demand. They will not forget it.`); logEvent(`${nations[nationId].name}'s demand for tribute refused. +2 legitimacy`);
+    renderKingdoms(); return;
+  }
   delete nations[nationId]._diploRequest[playerNation];
   changeLoyalty(nationId, playerNation, -8);
   showToast(`Rejected ${type.replace(/_/g, ' ')} request from ${nations[nationId].name}.`);
