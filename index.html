@@ -1129,6 +1129,8 @@
         - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
         - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         - In 1805 the wonders of nature are long known: the charted map no longer hands out every explorer's gift on the first turn<br>
+        - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
+        - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2233,6 +2235,8 @@
           - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
           - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
           - In 1805 the wonders of nature are long known: the charted map no longer hands out every explorer's gift on the first turn<br>
+          - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
+          - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9304,6 +9308,13 @@ window.chooseAmbition = function (id) {
   logEvent(`The crown's ambition: ${ambitionById(id).name}`);
   updateAmbitionPlaque();
 };
+// an overlay closed by a click on its backdrop: on the whole click, not the press, or the rest of the click falls through
+//  to whatever lies beneath (an event's answer chosen unasked)
+function dismissOnBackdrop(ov) {
+  let down = false;
+  ov.addEventListener('mousedown', e => { down = e.target === ov; });
+  ov.addEventListener('click', e => { if (down && e.target === ov) ov.remove(); down = false; });
+}
 function openAmbitions() {
   document.getElementById('ambitionOverlay')?.remove();
   const n = nations[playerNation]; if (!n) return;
@@ -9325,7 +9336,7 @@ function openAmbitions() {
   h += `<button class="event-choice" onclick="document.getElementById('ambitionOverlay').remove()">${offer.length ? 'Decide later' : 'Close'}</button>`;
   const ov = document.createElement('div'); ov.id = 'ambitionOverlay';
   ov.innerHTML = `<div class="event-card amb-card">${h}</div>`;
-  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  dismissOnBackdrop(ov);
   document.body.appendChild(ov);
 }
 window.openAmbitions = openAmbitions;
@@ -9509,7 +9520,7 @@ function openChronicle(all) {
     <div class="chron-wrap"><svg viewBox="0 0 ${W} ${H}" class="chron-svg">${grid}${lines}<line class="chron-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" style="display:none"/></svg><div class="chron-tip" style="display:none"></div></div>
     <div class="chron-legend">${legend}</div>
     <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
-  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  dismissOnBackdrop(ov);
   document.body.appendChild(ov);
   const svg = ov.querySelector('svg'), cross = ov.querySelector('.chron-cross'), tip = ov.querySelector('.chron-tip');
   svg.addEventListener('mousemove', e => {
@@ -9594,7 +9605,7 @@ function openManual(tab) {
     <div class="man-tabs">${tabs.map(([k, l]) => `<button class="${k === T ? 'on' : ''}" onclick="openManual('${k}')">${l}</button>`).join('')}</div>
     <div class="man-body">${body}</div>
     <button class="event-choice" onclick="this.closest('#manualOverlay').remove()">Close</button></div>`;
-  ov.addEventListener('mousedown', e => { if (e.target === ov) ov.remove(); });
+  dismissOnBackdrop(ov);
   document.body.appendChild(ov);
   if (!window._manEsc) { window._manEsc = true; document.addEventListener('keydown', e => { const m = document.getElementById('manualOverlay'); if (m && e.key === 'Escape') { m.remove(); e.stopImmediatePropagation(); e.preventDefault(); } }, true); }
 }
@@ -11496,6 +11507,7 @@ function finishEndTurn() {
 }
 
 function _finishEndTurnImpl() {
+  try { owSchedulePrebuild(); } catch(e) {}
   try { tickWorkerBuilds(); } catch(e) { console.error('tickWorkerBuilds error:', e); }
   try { tickBarbarianCamps(); } catch(e) { console.error('tickBarbarianCamps error:', e); }
   try { tickPillaged(); } catch(e) { console.error('tickPillaged error:', e); }
@@ -14381,10 +14393,57 @@ function worldChartKey() {
   for (let i = 0; i < tiles.length; i++) h = (Math.imul(h, 31) + tiles[i].type) | 0;
   return MAP_COLS + 'x' + MAP_ROWS + ':' + h + ':' + currentSeason;
 }
+// the next season's sheet, drawn ahead into a spare canvas while the player is idle (the season turns every turn, and
+//  a new sheet costs a quarter of a second or more; only where memory allows the second copy)
+function owCanPrebuild() {
+  return !window.__film && !('ontouchstart' in window) && !(navigator.deviceMemory && navigator.deviceMemory < 4);
+}
+function owPrebuildNextSeason() {
+  if (!OW.canvas || !tiles.length || !owCanPrebuild()) return;
+  const order = ['spring', 'summer', 'autumn', 'winter'], nxt = order[(order.indexOf(currentSeason) + 1) % 4];
+  const key = worldChartKey().replace(/:[a-z]+$/, ':' + nxt);
+  if (OW.next && OW.next.key === key) return;
+  const save = { canvas: OW.canvas, mips: OW.mips, key: OW.key, season: OW.season, K: OW.K, CS: OW.CS, CH: OW.CH }, cs = currentSeason;
+  OW.canvas = OW.spare || null; OW.mips = OW.spareMips || [];
+  currentSeason = nxt;
+  try { buildWorldChart(key); OW.next = { canvas: OW.canvas, mips: OW.mips, key, season: OW.season }; OW.spare = null; OW.spareMips = null; }
+  catch (e) { OW.next = null; }
+  finally { currentSeason = cs; Object.assign(OW, save); }
+}
+// (tried once the turn is over and the player has left the mouse and keys alone a moment)
+let _owIdleTries = 0;
+function owSchedulePrebuild() {
+  if (!owCanPrebuild()) return;
+  _owIdleTries = 0;
+  const tryIt = () => {
+    if (++_owIdleTries > 30) return;
+    if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 1200 || !OW.canvas) { setTimeout(tryIt, 700); return; }
+    const key = worldChartKey();
+    if (OW.key !== key) { OW.landLate = 0; try { buildWorldChart(key); } catch (e) { console.error(e); } setTimeout(tryIt, 700); return; }   // (the land changed: this season's sheet first)
+    owPrebuildNextSeason();
+  };
+  setTimeout(tryIt, 1500);
+}
+for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, () => { window._lastInput = performance.now(); }, { passive: true, capture: true });
 function getWorldChart() {
   if (!tiles.length || !MAP_COLS) return null;
   const key = worldChartKey();
-  if (OW.key !== key) { try { buildWorldChart(key); } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } }
+  // (a key is 'WxH:land:season'; what matters here is whether only the land differs, a few hexes cleared or drained)
+  const split = k => { const i = (k || '').lastIndexOf(':'); return { dims: (k || '').split(':')[0], season: (k || '').slice(i + 1) }; };
+  const want = split(key);
+  if (OW.key !== key && OW.next) {   // (the sheet drawn ahead for this season: swap it in, and keep the old one as the spare)
+    const nx = split(OW.next.key);
+    if (nx.season === want.season && nx.dims === want.dims) {
+      OW.spare = OW.canvas; OW.spareMips = OW.mips;
+      OW.canvas = OW.next.canvas; OW.mips = OW.next.mips; OW.season = OW.next.season; OW.key = OW.next.key; OW.next = null;
+    } else if (nx.season !== split(OW.key).season && nx.season !== want.season) OW.next = null;
+  }
+  if (OW.key !== key) {
+    // only the land has changed: the sheet stands a few seconds more and is drawn again when the player is idle
+    const have = split(OW.key), onlyLand = OW.canvas && have.season === want.season && have.dims === want.dims && owCanPrebuild();
+    if (onlyLand && !OW.landLate) { OW.landLate = performance.now(); owSchedulePrebuild(); }
+    if (!onlyLand || performance.now() - OW.landLate > 10000) { OW.landLate = 0; try { buildWorldChart(key); } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } if (!OW.next) owSchedulePrebuild(); }
+  }
   return OW.canvas;
 }
 // every tree, peak, hill, reed and wave on the sheet (also drawn again sharp over the view when the sheet is shown larger than it was drawn)
