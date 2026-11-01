@@ -1127,6 +1127,7 @@
         - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
         - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
         - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
+        - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2229,6 +2230,7 @@
           - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
           - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
           - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
+          - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -5936,6 +5938,13 @@ function getResearchTurnsLeft(nationId) {
   return Math.max(1, Math.ceil(remaining / sciPerTurn));
 }
 
+// a regiment its crown no longer raises: the drill that upgrades it is learned and the newer regiment can be raised (the
+//  siege guns stay, being of their own use)
+function unitObsolete(type, nId) {
+  const up = UNIT_UPGRADES[type]; if (!up || UNIT_DEFS[type]?.siege) return false;
+  const req = unitRequiresTech(up.to);
+  return nationHasTech(nId, up.tech) && (!req || nationHasTech(nId, req));
+}
 function unitRequiresTech(unitType) {
   for (const key in TECHS) {
     if (TECHS[key].unlocks.includes(unitType)) return key;
@@ -6378,6 +6387,7 @@ function showIdleCitiesPopup(idleCities) {
     for (const type of allUnitTypes) {
       const techReq = unitRequiresTech(type);
       if (techReq && !nationHasTech(nId, techReq)) continue;
+      if (unitObsolete(type, nId)) continue;
       const def = UNIT_DEFS[type];
       if (!def) continue;
       const costs = PRODUCTION_COSTS[type] ? getScaledCosts(nId, PRODUCTION_COSTS[type]) : null;
@@ -17496,6 +17506,7 @@ function showCityTab(tab) {
     for (const type of growthUnits) {
       const techReq = unitRequiresTech(type);
       if (techReq && !nationHasTech(nId, techReq)) continue;
+      if (unitObsolete(type, nId) && selectedCity.producing !== type) continue;
       html += prodBtn(type);
     }
     html += '<div class="section-title">Military</div>';
@@ -17503,6 +17514,7 @@ function showCityTab(tab) {
     for (const type of militaryUnits) {
       const techReq = unitRequiresTech(type);
       if (techReq && !nationHasTech(nId, techReq)) continue;
+      if (unitObsolete(type, nId) && selectedCity.producing !== type) continue;
       html += prodBtn(type);
     }
 
@@ -17513,6 +17525,7 @@ function showCityTab(tab) {
       for (const type of navalUnits) {
         const techReq = unitRequiresTech(type);
         if (techReq && !nationHasTech(nId, techReq)) continue;
+        if (unitObsolete(type, nId) && selectedCity.producing !== type) continue;
         html += prodBtn(type);
       }
     }
