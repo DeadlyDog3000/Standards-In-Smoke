@@ -1095,6 +1095,7 @@
         <b style="color:#b8a070;">1756 and 1805: Kings, Coalitions and Heirs</b><br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
         - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
+        - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
         - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
@@ -2214,6 +2215,7 @@
           <b style="color:#b8a070;">1756 and 1805: Kings, Coalitions and Heirs</b><br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
           - A second start, 1756: the Seven Years' War. Frederick the Great, Maria Theresa, the Empress Elizabeth, Louis XV and George II on their thrones; Prussia and Britain against France, Austria and Saxony, with Russia and Sweden coming in in 1757, Spain and Portugal in 1762, and in 1762 the death of the Empress Elizabeth that saved Frederick. The score is counted at the Peace of Paris in 1763<br>
+          - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
           - The flagships of the year of Trafalgar sail under their own names: HMS Victory, the Bucentaure and the Santísima Trinidad<br>
@@ -7125,6 +7127,11 @@ function tickScenario1756() {
   if (year >= 1757 && !done.ruswe) {
     done.ruswe = true;
     for (const nm of ['Russia', 'Sweden']) { const n = byName(nm); if (joinAgainst(n, pr)) tell(`1757: ${nm} comes into the war against Prussia.`, n); }
+  }
+  // (1758 on: the Anglo-Prussian Convention, Britain's subsidy that kept Frederick's armies in the field)
+  if (year >= 1758 && pr && gb && pr !== gb && hasAgreement(pr.id, gb.id, 'war_help') && (gb.gold || 0) >= 12) {
+    gb.gold -= 12; pr.gold = (pr.gold || 0) + 12;
+    if (!done.subsidy) { done.subsidy = true; const say = '1758: by the Anglo-Prussian Convention Britain pays Prussia a subsidy, 12 gold a turn while they stand together.'; showToast(say); if (pr.id === playerNation || gb.id === playerNation) annal(say.slice(6)); }
   }
   if (year >= 1760 && !done.george2) {   // (George II dies in 1760, and his grandson is crowned George III)
     done.george2 = true;
