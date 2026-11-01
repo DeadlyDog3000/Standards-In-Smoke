@@ -1110,6 +1110,7 @@
         - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
+        - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2200,6 +2201,7 @@
           - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
+          - The Annals keep the reigns: a ruler's death and who came to the throne after<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4432,7 +4434,7 @@ function characterDeath(character) {
 
   if (character.role === 'ruler') {
     if (character.nationId === playerNation) {
-      showToast(`Your ruler ${character.name} has died at age ${character.age}!`);
+      showToast(`Your ruler ${character.name} has died at age ${character.age}!`); annal(`${character.name} died, aged ${character.age}.`);
     }
 
     const spouse = characters.find(c => c.id === character.spouseId && !c.deathTurn);
@@ -4441,7 +4443,7 @@ function characterDeath(character) {
       spouse.role = 'ruler';
       nations[nationId].rulerId = spouse.id;
       if (character.nationId === playerNation) {
-        showToast(`${spouse.name} succeeds as ruler.`);
+        showToast(`${spouse.name} succeeds as ruler.`); annal(`${spouse.name} came to the throne.`);
       }
 
       const newSpouseGender = spouse.gender === 'male' ? 'female' : 'male';
@@ -4453,7 +4455,7 @@ function characterDeath(character) {
       if (heir) {
         heir.role = 'ruler';
         nations[nationId].rulerId = heir.id;
-        if (nationId === playerNation) showToast(`${heir.name} has ascended as your new ruler.`);
+        if (nationId === playerNation) { showToast(`${heir.name} has ascended as your new ruler.`); annal(`${heir.name} came to the throne.`); }
         const newSpouseGender = heir.gender === 'male' ? 'female' : 'male';
         const newSpouse = createCharacter(nationId, 'spouse', newSpouseGender);
         heir.spouseId = newSpouse.id;
@@ -4527,7 +4529,7 @@ function completeElection(nationId, winner, candidates) {
     if (c !== winner) c.deathTurn = turnNumber; // just mark them as inactive
   }
   if (nationId === playerNation) {
-    showToast(`${winner.name} elected as new ruler!`);
+    showToast(`${winner.name} elected as new ruler!`); annal(`${winner.name} was chosen to rule.`);
   }
 }
 
@@ -9350,7 +9352,7 @@ function openAnnals(all) {
   if (lastY !== null) html += '</div>';
   card.innerHTML = `<h3>The Annals of the Reign</h3>
     <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button class="on">Annals</button></div>
-    <div class="ann-list">${html || '<p class="amb-lede">Nothing is written yet: the annals keep your towns founded and lost, the battles named, the ambitions fulfilled, wonders, marriages and wars of coalition.</p>'}</div>
+    <div class="ann-list">${html || '<p class="amb-lede">Nothing is written yet: the annals keep your towns founded and lost, the reigns begun and ended, the battles named, the ambitions fulfilled, wonders, marriages and wars of coalition.</p>'}</div>
     <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button>`;
   const l = card.querySelector('.ann-list'); if (l) l.scrollTop = l.scrollHeight;
 }
