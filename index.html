@@ -1126,6 +1126,7 @@
         - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
         - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
         - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
+        - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2227,6 +2228,7 @@
           - In 1810, if Napoleon still reigns and Austria is at peace with him, he sets Joséphine aside and marries Marie Louise of Austria, joining the two houses; in 1811 their son, the King of Rome, is born<br>
           - Playing France or Austria, the Austrian match of 1810 is yours to make or refuse<br>
           - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
+          - Regencies: when the heir is a child the consort rules as regent, and the heir is crowned at sixteen<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4436,6 +4438,20 @@ function tickCharacterAging() {
     }
   }
 
+  // a regency ends when the eldest heir comes of age: the heir is crowned, and the regent withdraws to the dowager's house
+  for (const r of characters) {
+    if (r.deathTurn || r.role !== 'ruler' || !r.regent) continue;
+    const heir = characters.filter(c => c.nationId === r.nationId && c.role === 'heir' && !c.deathTurn && c.age >= 16).sort((a, b) => b.age - a.age)[0];
+    if (!heir) { if (!characters.some(c => c.nationId === r.nationId && c.role === 'heir' && !c.deathTurn)) delete r.regent; continue; }
+    const sp = characters.find(c => c.id === r.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
+    r.role = 'dowager'; delete r.regent;
+    heir.role = 'ruler'; nations[r.nationId].rulerId = heir.id;
+    const was = heir.name; if (heir.reignName) { heir.name = heir.reignName; delete heir.reignName; }
+    const as = was !== heir.name ? ` as ${heir.name}` : '';
+    const ns = createCharacter(r.nationId, 'spouse', heir.gender === 'male' ? 'female' : 'male'); heir.spouseId = ns.id; ns.spouseId = heir.id;
+    if (r.nationId === playerNation) { showToast(`${was} comes of age and is crowned${as}; the regency of ${r.name} is over.`); annal(`${was} came of age and was crowned${as}.`); }
+    else if (discoveredNations.has(r.nationId)) logEvent(`News from ${nations[r.nationId].name}: ${was} comes of age and is crowned${as}.`);
+  }
   for (const c of characters) {
     if (c.deathTurn || c.role !== 'ruler') continue;
     const spouse = characters.find(s => s.id === c.spouseId && !s.deathTurn);
@@ -4474,11 +4490,14 @@ function characterDeath(character) {
     const next = heir || spouse;
     if (next) {
       if (heir && spouse) spouse.role = 'dowager';   // (the widowed consort stays at court, no longer the ruler's spouse)
+      // (a consort who rules while the heir is a child is a regent, until the heir comes of age)
+      if (!heir && characters.some(c => c.nationId === nationId && c.role === 'heir' && !c.deathTurn)) next.regent = true;
       next.role = 'ruler';
       nations[nationId].rulerId = next.id;
       const was = next.name; if (next.reignName) { next.name = next.reignName; delete next.reignName; }   // (a prince crowned takes his regnal name)
       const as = was !== next.name ? ` as ${next.name}` : '';
-      if (nationId === playerNation) { showToast(heir ? `${was} has ascended the throne${as}.` : `${was} succeeds as ruler.`); annal(`${was} came to the throne${as}.`); }
+      const reg = next.regent ? ', as regent until the heir comes of age' : '';
+      if (nationId === playerNation) { showToast(heir ? `${was} has ascended the throne${as}.` : `${was} succeeds as ruler${reg}.`); annal(`${was} came to the throne${as}${reg}.`); }
       else if (discoveredNations.has(nationId) && !nations[nationId].isTribe) logEvent(`News from ${nations[nationId].name}: ${character.name} has died, and ${was} has come to the throne${as}.`);
       const newSpouse = createCharacter(nationId, 'spouse', next.gender === 'male' ? 'female' : 'male');
       next.spouseId = newSpouse.id;
@@ -20940,7 +20959,7 @@ function renderCourtPanel() {
     html += `<div style="padding:8px;background:rgba(180,140,60,0.1);border:1px solid rgba(180,140,60,0.3);border-radius:4px;margin-bottom:8px;">`;
     html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">`;
     html += `<img class="portrait" src="${portraitOf(ruler)}" alt="" style="width:54px;height:54px;border-color:${safeColor(nations[playerNation].color)}">`;
-    html += `<div><b style="color:#e0c880">${escHtml(ruler.name)}</b><br><span style="font-size:11px;">Ruler | Age ${ruler.age} | ${ruler.gender}</span></div>`;
+    html += `<div><b style="color:#e0c880">${escHtml(ruler.name)}</b><br><span style="font-size:11px;">${ruler.regent ? 'Regent, until the heir is sixteen' : 'Ruler'} | Age ${ruler.age} | ${ruler.gender}</span></div>`;
     html += `</div>`;
     html += `<div style="font-size:11px;">Traits: ${traitDescs}</div>`;
     html += `<div style="font-size:10px;color:#a89878;margin-top:2px;">Bonuses: ${rulerBonuses}</div>`;
