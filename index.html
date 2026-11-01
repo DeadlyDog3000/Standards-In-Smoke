@@ -1109,6 +1109,8 @@
         - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
         - Fix: in a historical start the crowned heads of the year no longer die of old age before the peace (Catherine the Great could die in 1793); those who died in those years die when they did<br>
         - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
+        - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
+        - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2261,6 +2263,8 @@
           - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
           - Fix: in a historical start the crowned heads of the year no longer die of old age before the peace (Catherine the Great could die in 1793); those who died in those years die when they did<br>
           - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
+          - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
+          - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7299,7 +7303,7 @@ const SCEN_1792 = {
   aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Austrian Netherlands', 'Kingdom of Italy': 'Duchy of Milan', 'Westphalia': 'Hanover' },
   // (the names the Revolution gave: the French Republic from 1792, the Batavian Republic from 1795)
   laterAliases(d) { const a = {}; if (d.republic) a['France'] = 'French Republic'; if (d.batavia) a['Kingdom of Holland'] = 'Batavian Republic'; return a; },
-  aims: { 'France': ['Brussels', 'Mainz', 'Milan', 'Amsterdam'], 'Austria': ['Lille', 'Strasbourg'], 'Prussia': ['Paris', 'Warsaw', 'Danzig'], 'Russia': ['Warsaw', 'Vilna'], 'Great Britain': ['Antwerp'] },
+  aims: { 'France': ['Brussels', 'Mainz', 'Milan', 'Amsterdam', 'Utrecht', 'Prague', 'Vienna'], 'Austria': ['Lille', 'Strasbourg', 'Lyon', 'Paris'], 'Prussia': ['Paris', 'Warsaw', 'Danzig'], 'Russia': ['Warsaw', 'Vilna'], 'Great Britain': ['Antwerp'] },
   briefTail: "History will move as it did, if the crowns are still placed for it: Valmy and the Republic in 1792, the King's death and the First Coalition in 1793, the end of Poland, Bonaparte in Italy in 1796, the Second Coalition, Brumaire in 1799, and peace at Amiens in 1802.",
 };
 const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792 };
@@ -10296,13 +10300,21 @@ function updateRulerMedal() {
   if (el.title !== tip) el.title = tip;
   el.style.display = '';
 }
+// the town a crown fought for in its historical start, held now by a crown it is at war with (null if none is)
+function histAimTown() {
+  const me = nations[playerNation], aims = me && scen()?.aims?.[me.name]; if (!aims) return null;
+  for (const nm of aims) { const c = cities.find(x => x.name === nm); if (c && c.nationId !== playerNation && me.relations[c.nationId] === 'war') return c; }
+  return null;
+}
 // ---- first orders: a short list in the corner for the opening of a game, each line ticked off as it is done ----
 const FIRST_ORDERS = [
   ['research', 'Choose what to research (T)', n => !!n.currentResearch],
   ['prod', 'Set a town to making something', n => cities.some(c => c.nationId === playerNation && c.producing)],
   ['moved', 'March a regiment (right-click a hex)', n => !!(n._tut && n._tut.moved)],
   // (in a historical start Europe is full and at war: the town to win is an enemy's)
-  ['settle', () => scen() ? 'Take a town from your enemies' : 'Found another town with a settler', n => scen() ? cities.some(c => c.nationId === playerNation && c.originalNationId !== undefined && c.originalNationId !== playerNation) : cities.filter(c => c.nationId === playerNation).length >= 2],
+  //  (and where the year had the crown fighting for a town, that one: Breslau for Austria in 1740, Vienna for the Sultan in 1683)
+  ['settle', () => { if (!scen()) return 'Found another town with a settler'; const a = histAimTown(); return a ? `Take ${escHtml(a.name)} from ${escHtml(theCrown(nations[a.nationId]))}` : 'Take a town from your enemies'; },
+    n => scen() ? cities.some(c => c.nationId === playerNation && c.originalNationId !== undefined && c.originalNationId !== playerNation) : cities.filter(c => c.nationId === playerNation).length >= 2],
   ['improve', 'Have a worker improve a hex', n => tiles.some(t => t.owner === playerNation && t.improvement)],
   ['ambition', 'Choose an ambition (the plaque at the top)', n => !!n.ambition || (n.ambitionsDone || []).length > 0],
   ['turn', 'End the turn (E, or the crest)', n => turnNumber >= 2],
@@ -10538,7 +10550,18 @@ function openManual(tab) {
       ['1805: the Coalition', [['1805', 'Trafalgar and Austerlitz'], ['1806', 'The Holy Roman Empire ends; Prussia goes to war and is broken at Jena; the Continental System'], ['1807', 'Tilsit: Russia may make peace with France'], ['1808', 'Charles IV gives up the throne of Spain, and Spain rises'], ['1809', 'Austria takes up arms again'], ['1810', 'Napoleon marries Marie Louise'], ['1811', 'The King of Rome is born; the Regency in Britain'], ['1812', 'Russia and France at war'], ['1813', 'The Sixth Coalition, and Leipzig'], ['1815', 'The Congress of Vienna: the score is counted']]],
     ];
     body = `<p class="man-lede">In a historical start history moves as it did, while the crowns are still placed for it; the great battles are fought only among crowns that aren't yours.</p>` +
-      H.map(([t, rows]) => `<div class="section-title">${escHtml(t)}</div>` + rows.map(([y, d]) => `<div class="man-row man-text"><div><b class="man-name">${y}</b><p>${escHtml(d)}</p></div></div>`).join('')).join('');
+      // (in a game begun in one of them, that one first, with the years gone by dimmed and a mark where you stand)
+      (() => {
+        const mine = MAP_COLS && scen() ? H.find(([t]) => t.startsWith(scenario + ':')) : null, now = mine ? getCurrentYear() : 0;
+        return (mine ? [mine, ...H.filter(h => h !== mine)] : H).map(h => {
+          const [t, rows] = h, cur = h === mine; let marked = false;
+          return `<div class="section-title">${escHtml(t)}${cur ? ' (your game)' : ''}</div>` + [...rows].sort((a, b) => a[0] - b[0]).map(([y, d]) => {
+            let mark = '';
+            if (cur && !marked && +y >= now) { marked = true; mark = `<div class="man-row man-text"><div><b class="man-name" style="color:#e0c880">Now, ${now}</b></div></div>`; }
+            return mark + `<div class="man-row man-text"${cur && +y < now ? ' style="opacity:.55"' : ''}><div><b class="man-name">${y}</b><p>${escHtml(d)}</p></div></div>`;
+          }).join('') + (cur && !marked ? `<div class="man-row man-text"><div><b class="man-name" style="color:#e0c880">Now, ${now}</b></div></div>` : '');
+        }).join('');
+      })();
   } else if (T === 'crowns') {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
