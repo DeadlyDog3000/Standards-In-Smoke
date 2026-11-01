@@ -1124,7 +1124,7 @@
         - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-        - Achievements, kept in your browser across every game: seventeen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - Achievements, kept in your browser across every game: eighteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -2237,7 +2237,7 @@
           - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-          - Achievements, kept in your browser across every game: seventeen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - Achievements, kept in your browser across every game: eighteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -4474,6 +4474,7 @@ function tickCharacterAging() {
     const was = heir.name; if (heir.reignName) { heir.name = heir.reignName; delete heir.reignName; }
     const as = was !== heir.name ? ` as ${heir.name}` : '';
     const ns = createCharacter(r.nationId, 'spouse', heir.gender === 'male' ? 'female' : 'male'); heir.spouseId = ns.id; ns.spouseId = heir.id;
+    if (r.nationId === playerNation) unlockAchievement('crowned');
     if (r.nationId === playerNation) { showToast(`${was} comes of age and is crowned${as}; the regency of ${r.name} is over.`); annal(`${was} came of age and was crowned${as}.`); }
     else if (discoveredNations.has(r.nationId)) logEvent(`News from ${nations[r.nationId].name}: ${was} comes of age and is crowned${as}.`);
   }
@@ -4522,6 +4523,7 @@ function characterDeath(character) {
       const was = next.name; if (next.reignName) { next.name = next.reignName; delete next.reignName; }   // (a prince crowned takes his regnal name)
       const as = was !== next.name ? ` as ${next.name}` : '';
       const reg = next.regent ? ', as regent until the heir comes of age' : '';
+      if (nationId === playerNation && heir) unlockAchievement('crowned');
       if (nationId === playerNation) { showToast(heir ? `${was} has ascended the throne${as}.` : `${was} succeeds as ruler${reg}.`); annal(`${was} came to the throne${as}${reg}.`); }
       else if (discoveredNations.has(nationId) && !nations[nationId].isTribe) logEvent(`News from ${nations[nationId].name}: ${character.name} has died, and ${was} has come to the throne${as}.`);
       const newSpouse = createCharacter(nationId, 'spouse', next.gender === 'male' ? 'female' : 'male');
@@ -9759,6 +9761,7 @@ const ACHIEVEMENTS = [
   ['towns20', 'An Empire of Twenty', 'Hold twenty towns.'],
   ['amb5', 'Five Ambitions', 'Fulfil five ambitions in one game.'],
   ['rich', 'The Bank of Europe', 'Have 2000 gold in the treasury.'],
+  ['crowned', 'Long Live the King', 'See your heir crowned.'],
 ];
 function achievementsGot() { try { return JSON.parse(localStorage.getItem('sis_achievements') || '{}'); } catch (e) { return {}; } }
 function unlockAchievement(id) {
