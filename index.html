@@ -1101,6 +1101,7 @@
         - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
         - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
         - In 1700 and 1756 the crowns bear the names of their own day, on the map and in the Kingdoms panel: the Dutch Republic, the Electorate of Saxony, Poland-Lithuania, Hanover, the Spanish or Austrian Netherlands<br>
+        - A new game on the map of Europe begins with the crowned heads of 1680: Louis XIV, Charles II of England, Leopold I, the Great Elector, Charles XI, John III Sobieski and the rest, with their consorts and heirs, and the Dutch Republic and the Electorate of Saxony under their own names<br>
         - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
         - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
@@ -1145,9 +1146,9 @@
         - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
-        - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
         - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
         - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
@@ -2227,6 +2228,7 @@
           - Historical Starts on the title screen: the three years laid out, each opening the setup with its year, the map of Europe and its leading crown chosen<br>
           - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
           - In 1700 and 1756 the crowns bear the names of their own day, on the map and in the Kingdoms panel: the Dutch Republic, the Electorate of Saxony, Poland-Lithuania, Hanover, the Spanish or Austrian Netherlands<br>
+          - A new game on the map of Europe begins with the crowned heads of 1680: Louis XIV, Charles II of England, Leopold I, the Great Elector, Charles XI, John III Sobieski and the rest, with their consorts and heirs, and the Dutch Republic and the Electorate of Saxony under their own names<br>
           - In 1756 games, from 1758 Britain pays Prussia a subsidy of 12 gold a turn while the two stand together, as by the Anglo-Prussian Convention<br>
           - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
@@ -2271,9 +2273,9 @@
           - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
-          - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
           - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
           - Much faster turns on large maps: the shading that marks the land you know and the land you can see now was redrawn from 26,000 hex outlines (and blurred) every time the view changed, some four seconds a turn on a large map of Europe; it is now worked out a pixel at a time at a third of the size, the same soft edge in a fiftieth of a second, and no longer redrawn at all when only the season changes<br>
@@ -6354,7 +6356,7 @@ function escHtml(s) {
 let toastTimer = null;
 // (a message names the crowns as their own year knew them, in a historical start)
 function ofTheDay(msg) {
-  const al = typeof scen === 'function' && scen()?.aliases; if (!al || typeof msg !== 'string') return msg;
+  const al = typeof curAliases === 'function' && curAliases(); if (!al || typeof msg !== 'string') return msg;
   for (const k in al) if (msg.includes(k)) msg = msg.split(k).join(al[k]);
   return msg;
 }
@@ -7089,27 +7091,51 @@ const SCEN_1700 = {
   briefTail: 'History will move as it did, if the crowns are still placed for it: Denmark makes peace with Sweden in 1700, William III dies in 1702 and Anne reigns, Saxony gives in to Sweden in 1706, and Poltava in 1709 may break the power of Sweden.',
 };
 const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700 };
+// the crowns of 1680, for a new game on the map of Europe (no armies or wars laid on: only who reigns, and the names of the day)
+const EUROPE_1680 = {
+  rulers: {
+    'France': ['Louis XIV', 'male', 41, ['charismatic', 'martial'], 'Maria Theresa of Spain', 41, ['Louis, Grand Dauphin', 'male', 18, 'Louis XV']],
+    'Great Britain': ['Charles II', 'male', 50, ['charismatic'], 'Catherine of Braganza', 41, ['James, Duke of York', 'male', 46, 'James II']],
+    'Austria': ['Leopold I', 'male', 39, ['pious'], 'Eleonore Magdalene of Neuburg', 25, ['Archduke Joseph', 'male', 1, 'Joseph I']],
+    'Spain': ['Charles II', 'male', 18, ['pious'], 'Marie Louise of Orléans', 17],
+    'Prussia': ['Frederick William, the Great Elector', 'male', 60, ['industrious', 'martial'], 'Sophie Dorothea of Holstein', 43, ['Prince Frederick', 'male', 22, 'Frederick I']],
+    'Sweden': ['Charles XI', 'male', 24, ['frugal'], 'Ulrika Eleonora of Denmark', 23, ['Crown Prince Charles', 'male', 0, 'Charles XII']],
+    'Russia': ['Feodor III', 'male', 18, ['brilliant'], 'Agafya Grushetskaya', 17, ['Tsarevich Ivan', 'male', 13, 'Ivan V']],
+    'Ottoman Empire': ['Mehmed IV', 'male', 38, ['pious'], null, 0, ['Prince Mustafa', 'male', 16, 'Mustafa II']],
+    'Denmark-Norway': ['Christian V', 'male', 34, ['industrious'], 'Charlotte Amalie of Hesse-Kassel', 29, ['Crown Prince Frederick', 'male', 8, 'Frederick IV']],
+    'Portugal': ['Peter, Prince Regent', 'male', 31, ['diplomatic'], 'Maria Francisca of Savoy', 33],
+    'Kingdom of Holland': ['William III of Orange', 'male', 29, ['martial', 'diplomatic'], 'Mary Stuart', 18],
+    'Bavaria': ['Maximilian II Emanuel', 'male', 18, ['martial'], null, 0],
+    'Kingdom of Saxony': ['John George III', 'male', 33, ['martial'], 'Anna Sophie of Denmark', 32, ['Prince John George', 'male', 1, 'John George IV']],
+    'Duchy of Warsaw': ['John III Sobieski', 'male', 51, ['martial', 'pious'], 'Marie Casimire', 39, ['Prince James Louis', 'male', 13]],
+  },
+  aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Spanish Netherlands', 'Kingdom of Italy': 'Duchy of Milan', 'Westphalia': 'Hanover', 'Kingdom of Naples': 'Naples' },
+};
+// (the names of the day: a historical start's, or 1680's on the map of Europe)
+function curAliases() { return scen()?.aliases || (typeof mapStyle !== 'undefined' && mapStyle === 'europe' ? EUROPE_1680.aliases : null); }
 function scen() { return SCENS[scenario] || null; }
 // a crown's name as its own year knew it (the Dutch Republic in 1700 and 1756, not the Kingdom of Holland of 1806); the
 //  game keeps the roster's name underneath, for its own reckonings
-function crownName1(n) { return (n && scen()?.aliases?.[n.name]) || (n ? n.name : ''); }
+function crownName1(n) { return (n && curAliases()?.[n.name]) || (n ? n.name : ''); }
+// a crown's ruler, consort and heir as history had them: [name, gender, age, traits, consort, consort's age, heir]
+function setHistRuler(n, hist) {
+  const ruler = hist && getNationRuler(n.id); if (!ruler) return;
+  Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4, hale: true });
+  const sp = getNationSpouse(n.id);
+  if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4, hale: true });
+  else if (sp && sp.gender === hist[1]) { sp.gender = hist[1] === 'male' ? 'female' : 'male'; sp.name = generateCharacterName(sp.gender, n.id); }
+  if (hist[6]) {   // (the heir: the eldest son, or the brother next in line)
+    const h = createCharacter(n.id, 'heir', hist[6][1]);
+    Object.assign(h, { name: hist[6][0], age: hist[6][2], birthTurn: turnNumber - hist[6][2] * SEASON_LENGTH * 4, parentIds: [ruler.id], reignName: hist[6][3], hale: true });
+    ruler.childIds.push(h.id);
+  }
+}
 // a historical start (1805, 1756): the crowns as they stood, with the arms, learning, rulers and alliances of the year
 function applyHistStart(S) {
   startYear = S.year;
   const crowns = nations.filter(n => !n.isBarbarian && !n.isTribe);
   for (const n of crowns) {
-    const hist = S.rulers[n.name], ruler = hist && getNationRuler(n.id);
-    if (ruler) {
-      Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4, hale: true });
-      const sp = getNationSpouse(n.id);
-      if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4, hale: true });
-      else if (sp && sp.gender === hist[1]) { sp.gender = hist[1] === 'male' ? 'female' : 'male'; sp.name = generateCharacterName(sp.gender, n.id); }
-      if (hist[6]) {   // (the heir: the eldest son, or the brother next in line)
-        const h = createCharacter(n.id, 'heir', hist[6][1]);
-        Object.assign(h, { name: hist[6][0], age: hist[6][2], birthTurn: turnNumber - hist[6][2] * SEASON_LENGTH * 4, parentIds: [ruler.id], reignName: hist[6][3], hale: true });
-        ruler.childIds.push(h.id);
-      }
-    }
+    setHistRuler(n, S.rulers[n.name]);
     for (const t of S.techs) if (TECHS[t]) n.researched.add(t);
     const great = S.great.includes(n.name);
     const towns = cities.filter(c => c.nationId === n.id);
@@ -22240,6 +22266,7 @@ function generateAndPlay(pName, pColor, opponents) {
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
   spawnAINations(aiCount);
   if (scen()) applyHistStart(scen());
+  else if (mapStyle === 'europe') for (const n of nations) setHistRuler(n, EUROPE_1680.rulers[n.name]);   // (Europe in 1680: its crowned heads)
   const tribeCount = mapStyle === 'europe' ? 0 : Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));   // (no tribes of the New World in Europe)
   spawnTribes(tribeCount);
 
