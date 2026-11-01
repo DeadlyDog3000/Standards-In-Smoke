@@ -1077,12 +1077,13 @@
         - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
         - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
         - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
-        - Achievements, kept in your browser across every game: sixteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - Achievements, kept in your browser across every game: seventeen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
         - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
         - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
+        - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2152,12 +2153,13 @@
           - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
           - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
           - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
-          - Achievements, kept in your browser across every game: sixteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - Achievements, kept in your browser across every game: seventeen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
           - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, and in 1807 Russia may make peace with France at Tilsit<br>
           - On the map of Europe the crowns have the tempers history gave them: France, Prussia, Sweden and Warsaw warlike, Britain and the Dutch merchants, Austria a builder, Russia and the Porte expansionist, and so on<br>
+          - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -8360,6 +8362,7 @@ function tickCityCapture() {
           }
 
           const wasCapital = city.isCapital;
+          if (wasCapital && nations[oldOwner] && !nations[oldOwner].isBarbarian && !nations[oldOwner].isTribe) city._capitalOf = oldOwner;   // (remembered: a crown's capital, taken)
           if (nations[oldOwner] && !nations[oldOwner].isBarbarian) {
             nations[oldOwner]._lastCapturedBy = occupier.nationId;
           }
@@ -8997,6 +9000,7 @@ const AMBITIONS = (() => {
     A('wonder3', 3, 'Builder of Wonders', 'Build three wonders.', () => 3, wonders),
     A('pop60', 3, 'Teeming Cities', 'Sixty citizens across your towns.', () => 60, pop),
     A('conquest3', 3, 'Conqueror', 'Hold three towns taken from other crowns.', () => 3, taken),
+    A('capital', 3, 'The Capital Falls', 'Hold a town that was a rival crown\'s capital when you took it.', () => 1, n => mine(n).filter(c => c._capitalOf !== undefined && c._capitalOf !== n).length),
     A('topple', 3, 'Topple a Crown', 'Bring down a rival kingdom.', () => 1, n => nations.filter(o => o.eliminated && !o.isBarbarian && o.eliminatedBy === n).length),
     A('gold1000', 3, 'The Bank of Europe', 'Have 1000 gold in the treasury.', () => 1000, n => Math.floor(nations[n].gold || 0)),
     A('walled5', 3, 'A Realm of Fortresses', 'City Walls in five towns.', () => 5, n => withB(n, 'fortifications')),
@@ -9423,6 +9427,7 @@ const ACHIEVEMENTS = [
   ['legend', 'Legendary', 'Bring a regiment to Legendary rank.'],
   ['wonder', 'Builder of the Age', 'Build a wonder.'],
   ['topple', 'Kingmaker', 'Bring down a rival crown.'],
+  ['capital', 'The Capital Falls', 'Take a rival crown\'s capital.'],
   ['coalition', 'The Scourge of Europe', 'Have a coalition formed against you.'],
   ['towns20', 'An Empire of Twenty', 'Hold twenty towns.'],
   ['amb5', 'Five Ambitions', 'Fulfil five ambitions in one game.'],
@@ -9447,6 +9452,7 @@ function tickAchievements() {
   if (mine.some(u => UNIT_DEFS[u.type]?.combat && getUnitLevel(u) === XP_LEVELS[XP_LEVELS.length - 1])) unlockAchievement('legend');
   if (cities.some(c => c.nationId === playerNation && (c.buildings || []).some(b => CITY_BUILDING_DEFS[b]?.wonder))) unlockAchievement('wonder');
   if (nations.some(n => n.eliminated && !n.isBarbarian && n.eliminatedBy === playerNation)) unlockAchievement('topple');
+  if (cities.some(c => c.nationId === playerNation && c._capitalOf !== undefined && c._capitalOf !== playerNation)) unlockAchievement('capital');
   if ((me._coalitions || 0) > 0) unlockAchievement('coalition');
   if (cities.filter(c => c.nationId === playerNation && !c.ruined).length >= 20) unlockAchievement('towns20');
   if ((me.ambitionsDone || []).length >= 5) unlockAchievement('amb5');
@@ -20819,7 +20825,7 @@ function serializeGame() {
     population: c.population || 1, discontent: c.discontent || 0,
     buildings: c.buildings || [],
     productionQueue: c.productionQueue || [], paid: c.paid || [],
-    originalNationId: c.originalNationId,
+    originalNationId: c.originalNationId, _capitalOf: c._capitalOf,
     foundedTurn: c.foundedTurn,
     capturedTurn: c.capturedTurn,
     burnTurn: c.burnTurn,
