@@ -22058,7 +22058,7 @@ function generateAndPlay(pName, pColor, opponents) {
     const pn = nations[playerNation];
     for (const r of ['gold', 'food', 'wood', 'stone', 'steel']) pn[r] += startDiff.playerBonusResources;
   }
-  showToast(scenario === "1805" ? `You are ${pName}, in the year 1805.` : `You are ${pName}. Found your empire!`);
+  showToast(scen() ? `You are ${pName}, in the year ${startYear}.` : `You are ${pName}. Found your empire!`);
   showUpdateLogPopup();
   startTutorial();
   setTimeout(checkEndTurnReminders, 1200);
