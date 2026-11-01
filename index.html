@@ -766,6 +766,10 @@
     #chronicleOverlay .chron-card { width: min(640px, 94vw); max-height: 90vh; overflow-y: auto; padding: 20px 22px; color: #e9dcc0; }
     #chronicleOverlay h3 { font-family: 'Uncial Antiqua', Georgia, serif; color: #f0dcae; text-align: center; margin: 0 0 4px; font-size: 22px; font-weight: normal; }
     .chron-wrap { position: relative; }
+    .ann-list { max-height: 52vh; overflow-y: auto; text-align: left; margin: 4px 0 12px; padding-right: 6px; scrollbar-color: rgba(201, 164, 90, 0.45) transparent; }
+    .ann-year { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid rgba(201, 164, 90, 0.12); flex-wrap: wrap; }
+    .ann-year b { flex: none; width: 44px; font-family: 'Uncial Antiqua', Georgia, serif; font-weight: normal; color: #e0c070; font-size: 13px; }
+    .ann-year p { margin: 0; flex: 1 1 calc(100% - 60px); font-size: 13px; color: #ddd0b2; } .ann-year p + p { margin-left: 56px; }
     .chron-tabs { display: flex; gap: 3px; justify-content: center; margin: 2px 0 8px; }
     .chron-tabs button, .chron-play button { font: 13px 'EB Garamond', Georgia, serif; padding: 3px 14px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
     .chron-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
@@ -1098,6 +1102,7 @@
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
+        - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2181,6 +2186,7 @@
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - First orders: at the start of a game a short list in the corner of what to do first (choose research, set a town's work, march a regiment, found a second town, improve a hex, choose an ambition, end the turn), ticked off as you do each. It goes when they are all done, or with its &times;, and can be turned off for new games<br>
+          - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4934,7 +4940,7 @@ function addBattleEvent(attackerX, attackerY, defenderX, defenderY, attackerType
     const bt = tiles[at]; bt.battle = getCurrentYear(); bt.battleDead = (bt.battleDead || 0) + (defenderDied ? 1 : 0) + (attackerDied ? 1 : 0);
     // (a field where several regiments fell is named, as history names its battles, after the nearest town)
     if (!bt.battleName) { const ax = at % MAP_COLS, ay = (at - ax) / MAP_COLS; let near = null, nd = 5; for (const c of cities) { const d = hexDistance(c.x, c.y, ax, ay); if (d < nd) { nd = d; near = c; } } if (near) bt.battleName = near.name; }
-    if (bt.battleName && bt.battleDead >= 3 && !bt.battleTold) { bt.battleTold = true; logEvent(`The battle of ${bt.battleName}, ${bt.battle}.`); }
+    if (bt.battleName && bt.battleDead >= 3 && !bt.battleTold) { bt.battleTold = true; logEvent(`The battle of ${bt.battleName}, ${bt.battle}.`); if (attackerNationId === playerNation || defenderNationId === playerNation) annal(`The battle of ${bt.battleName}.`); }
   }
   if (seen && attackerDied) battleScars.push({ ti: attackerY * MAP_COLS + attackerX, turn: turnNumber });
   if (attackerNationId === playerNation) {
@@ -6573,6 +6579,7 @@ function tickCoalition() {
     if (!n._warSince) n._warSince = {}; n._warSince[playerNation] = turnNumber;
   }
   logEvent(`${name.charAt(0).toUpperCase() + name.slice(1)} is formed against you: ${listAnd(members.map(n => n.name))}.`);
+  annal(`${name.charAt(0).toUpperCase() + name.slice(1)} formed against you.`);
   showCoalition(name, members);
 }
 // and against a rival crown that has grown too great (a third of all the towns, and well ahead in score): the others band
@@ -6882,7 +6889,7 @@ function tickScenario() {
     for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, fr.id, t);
     n.relations[fr.id] = 'war'; fr.relations[n.id] = 'war';
     for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[fr.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
-    showToast(say); return true;
+    showToast(say); annal(say.replace(/^\d{4}: /, '')); return true;
   };
   if (year >= 1808 && !done.spain) { done.spain = true; turnOnFrance(byName('Spain'), '1808: Spain rises against the French, and Britain sends an army to help.'); }
   if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
@@ -7310,6 +7317,7 @@ function canFoundCity(x, y, nationId) {
 
 function foundCity(unit, cityName) {
   const name = (mapStyle === 'europe' && unit && europeTownName(unit.x, unit.y)) || cityName || randomCityName();
+  if (unit && unit.nationId === playerNation && !(scenario === '1805' && turnNumber <= 1)) try { annal(`${name} founded.`); } catch (e) {}
   // a town founded where you can see it is stamped onto the chart with the realm's seal
   if (unit && (unit.nationId === playerNation || (currentVisionSet && currentVisionSet.has(unit.y * MAP_COLS + unit.x)))) particles.push({ kind: 'seal', col: unit.x, row: unit.y, vx: 0, vy: 0, color: nations[unit.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
 
@@ -7646,6 +7654,7 @@ function tickProduction(city) {
           if (city.nationId === playerNation) {
             const isWonder = bld.wonder;
             showToast(`${city.name} built ${bld.name}!${isWonder ? ' A wonder of the world!' : ''}`);
+            if (isWonder) annal(`The ${bld.name} raised at ${city.name}.`);
             addFloatingText(city.x, city.y, `${bld.icon} ${bld.name}!`, isWonder ? '#e0c880' : '#9cc070', 2000, 14);
             if (isWonder) SMK.peal(6); else SMK.hammer();
           }
@@ -8404,6 +8413,7 @@ function tickCityCapture() {
           }
           if (city.originalNationId === undefined) city.originalNationId = oldOwner;
           if (occupier.nationId === playerNation) SMK.peal(6); else if (oldOwner === playerNation) SMK.toll(2);
+          try { if (occupier.nationId === playerNation) annal(`${city.name} taken from ${nations[oldOwner]?.name || 'its masters'}.`); else if (oldOwner === playerNation) annal(`${city.name} lost to ${nations[occupier.nationId]?.name || 'the enemy'}.`); } catch (e) {}
           city.nationId = occupier.nationId;
           city.paid = []; // (regiments paid for in a fallen town are lost with it)
           city.capturedTurn = turnNumber;
@@ -8945,7 +8955,7 @@ function checkElimination() {
         u.movesLeft = 0;
         revealAround(u.x, u.y, getUnitVision(u), conqueror);
       }
-      if (conqueror === playerNation) showToast(`${n.name} has been conquered! Their resources and units are yours.`);
+      if (conqueror === playerNation) { showToast(`${n.name} has been conquered! Their resources and units are yours.`); annal(`${n.name} brought down.`); }
       else showToast(`${n.name} has been eliminated by ${nations[conqueror].name}!`);
 
       if (agreements[n.id]) delete agreements[n.id];
@@ -9084,7 +9094,7 @@ function tickAmbitions() {
     n.ambitionsDone.push(cur.id); n.ambition = null;
     n.legitimacy = Math.min(100, (n.legitimacy ?? 50) + 10);
     const k = n.ambitionsDone.length;
-    logEvent(`Ambition fulfilled: ${cur.name} (${k} of ${AMBITION_WIN}). +10 legitimacy`);
+    logEvent(`Ambition fulfilled: ${cur.name} (${k} of ${AMBITION_WIN}). +10 legitimacy`); annal(`Ambition fulfilled: ${cur.name}.`);
     showToast(`Ambition fulfilled: ${cur.name}! (${k} of ${AMBITION_WIN})`, true);
     try { SMK.peal(4); } catch (e) {}
     if (k >= AMBITION_WIN && !n.scoreSettled && ambitionVictoryOn) { updateAmbitionPlaque(); showVictory('ambition'); return; }
@@ -9255,7 +9265,7 @@ function openTownMap(all) {
   const tMin = townLog.ev.length ? townLog.ev[0][0] : turnNumber, tMax = turnNumber;
   const W = 560, H = Math.round(560 * MAP_ROWS / (MAP_COLS + 0.5) * 0.87);
   card.innerHTML = `<h3>The Map Through the Years</h3>
-    <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button class="on">Map</button></div>
+    <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button class="on">Map</button><button onclick="openAnnals(${all ? 'true' : ''})">Annals</button></div>
     <canvas class="chron-map" width="${W}" height="${H}"></canvas>
     <div class="chron-play"><button class="chron-pp">Play</button><input type="range" min="${tMin}" max="${tMax}" value="${tMax}"><span class="chron-t">Turn ${tMax}</span></div>
     <p class="amb-lede">Every town, in the colour of the crown that held it${all ? '' : ' (the lands you have seen)'}.</p>
@@ -9273,12 +9283,25 @@ function openTownMap(all) {
   });
 }
 window.openTownMap = openTownMap;
+function openAnnals(all) {
+  const ov = document.getElementById('chronicleOverlay'); if (!ov) return;
+  const card = ov.querySelector('.chron-card'), list = nations[playerNation]?._annals || [];
+  let html = '', lastY = null;
+  for (const a of list) { if (a.y !== lastY) { if (lastY !== null) html += '</div>'; html += `<div class="ann-year"><b>${a.y}</b>`; lastY = a.y; } html += `<p>${escHtml(a.t)}</p>`; }
+  if (lastY !== null) html += '</div>';
+  card.innerHTML = `<h3>The Annals of the Reign</h3>
+    <div class="chron-tabs"><button onclick="openChronicle(${all ? 'true' : ''})">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button class="on">Annals</button></div>
+    <div class="ann-list">${html || '<p class="amb-lede">Nothing is written yet: the annals keep your towns founded and lost, the battles named, the ambitions fulfilled, wonders, marriages and wars of coalition.</p>'}</div>
+    <button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button>`;
+  const l = card.querySelector('.ann-list'); if (l) l.scrollTop = l.scrollHeight;
+}
+window.openAnnals = openAnnals;
 function openChronicle(all) {
   document.getElementById('chronicleOverlay')?.remove();
   const shown = nations.filter(n => !n.isBarbarian && !n.isTribe && n.scoreHist && n.scoreHist.v.length && (all || n.id === playerNation || discoveredNations.has(n.id)));
   const ov = document.createElement('div'); ov.id = 'chronicleOverlay';
   if (!shown.length || shown.every(n => n.scoreHist.v.length < 2)) {
-    ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3><div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button></div><p class="amb-lede">The chronicle begins with the first turns: end a turn or two and come back.</p><button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
+    ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3><div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button onclick="openAnnals(${all ? 'true' : ''})">Annals</button></div><p class="amb-lede">The chronicle begins with the first turns: end a turn or two and come back.</p><button class="event-choice" onclick="this.closest('#chronicleOverlay').remove()">Close</button></div>`;
     document.body.appendChild(ov); return;
   }
   const W = 560, H = 260, L = 40, R = 12, T = 12, B = 26;
@@ -9298,7 +9321,7 @@ function openChronicle(all) {
   const last = n => n.scoreHist.v[n.scoreHist.v.length - 1];
   const legend = shown.slice().sort((a, b) => last(b) - last(a)).map(n => `<span class="chron-key${n.id === playerNation ? ' me' : ''}" data-n="${n.id}"><i style="background:${safeColor(n.color)}"></i>${escHtml(n.name)} <b>${last(n)}</b>${n.eliminated ? ' <em>fallen</em>' : ''}</span>`).join('');
   ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3>
-    <div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button></div>
+    <div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button onclick="openAnnals(${all ? 'true' : ''})">Annals</button></div>
     <p class="amb-lede">Each crown's score, turn by turn${all ? '' : ' (the realms you have met)'}. Hover over the chart for the turn.</p>
     <div class="chron-wrap"><svg viewBox="0 0 ${W} ${H}" class="chron-svg">${grid}${lines}<line class="chron-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" style="display:none"/></svg><div class="chron-tip" style="display:none"></div></div>
     <div class="chron-legend">${legend}</div>
@@ -9476,6 +9499,12 @@ function showVictoryHistory() {
     </div>
   `;
   }).join('');
+}
+// ---- the annals of your reign: its notable moments with their years, kept with the game ----
+function annal(text) {
+  const me = nations[playerNation]; if (!me || window.__film) return;
+  (me._annals || (me._annals = [])).push({ y: getCurrentYear(), t: text });
+  if (me._annals.length > 300) me._annals.shift();
 }
 // ---- achievements: kept in this browser across every game ----
 const ACHIEVEMENTS = [
@@ -17988,7 +18017,7 @@ function acceptRequest(nationId, type) {
   delete nations[nationId]._diploRequest[playerNation];
   addAgreement(playerNation, nationId, type);
   changeLoyalty(nationId, playerNation, 5);
-  if (type === 'marriage') { changeLoyalty(nationId, playerNation, 20); changeLoyalty(playerNation, nationId, 25); const me = nations[playerNation]; me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3); try { SMK.peal(5); } catch (e) {} }
+  if (type === 'marriage') { annal(`A royal marriage with the house of ${nations[nationId].name}.`); changeLoyalty(nationId, playerNation, 20); changeLoyalty(playerNation, nationId, 25); const me = nations[playerNation]; me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3); try { SMK.peal(5); } catch (e) {} }
   showToast(`Accepted ${type.replace(/_/g, ' ')} with ${nations[nationId].name}.`);
   renderKingdoms();
 }
@@ -18528,7 +18557,7 @@ function proposeMarriage(nationId) {
     addAgreement(playerNation, nationId, 'marriage');
     changeLoyalty(nationId, playerNation, 25); changeLoyalty(playerNation, nationId, 25);
     me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3);
-    showToast(`A royal marriage joins your house to the court of ${n.name}. +3 legitimacy`);
+    showToast(`A royal marriage joins your house to the court of ${n.name}. +3 legitimacy`); annal(`A royal marriage with the house of ${n.name}.`);
     try { SMK.peal(5); } catch (e) {}
   } else {
     me.gold += 30;   // (half the dowry comes back)
