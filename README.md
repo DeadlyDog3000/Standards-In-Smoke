@@ -17,6 +17,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 ## Features
 
 - An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
+- A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
 - Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
