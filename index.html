@@ -4527,7 +4527,7 @@ function completeElection(nationId, winner, candidates) {
   spouse.spouseId = winner.id;
 
   for (const c of candidates) {
-    if (c !== winner) c.deathTurn = turnNumber; // just mark them as inactive
+    if (c !== winner) { c.deathTurn = turnNumber; c.retired = true; } // just mark them as inactive (not dead: kept out of the court's deaths)
   }
   if (nationId === playerNation) {
     showToast(`${winner.name} elected as new ruler!`); annal(`${winner.name} was chosen to rule.`);
@@ -20862,7 +20862,7 @@ function renderCourtPanel() {
   const dowager = characters.find(c => c.nationId === playerNation && c.role === 'dowager' && !c.deathTurn);
   if (dowager) html += `<div style="padding:4px 6px;font-size:11px;color:#a89878;">The dowager: ${escHtml(dowager.name)} (Age ${dowager.age})</div>`;
 
-  const recentDeaths = characters.filter(c => c.nationId === playerNation && c.deathTurn && turnNumber - c.deathTurn < 50);
+  const recentDeaths = characters.filter(c => c.nationId === playerNation && c.deathTurn && !c.retired && turnNumber - c.deathTurn < 50);
   if (recentDeaths.length > 0) {
     html += `<div class="section-title" style="margin-top:8px;">Recent Deaths</div>`;
     for (const d of recentDeaths.slice(-5)) {
