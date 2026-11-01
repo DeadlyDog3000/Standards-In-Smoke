@@ -8426,6 +8426,7 @@ window._keepPlaying = function(id) {
 const AMBITIONS = (() => {
   const mine = nid => cities.filter(c => c.nationId === nid && !c.ruined);
   const regs = nid => units.filter(u => u.nationId === nid && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval);
+  const companies = nid => regs(nid).filter(u => u.type !== 'general').reduce((a, u) => a + regimentSize(u), 0);
   const ships = nid => units.filter(u => u.nationId === nid && UNIT_DEFS[u.type]?.naval).length;
   const techs = nid => nations[nid].researched ? nations[nid].researched.size : 0;
   const pop = nid => mine(nid).reduce((a, c) => a + (c.population || 1), 0);
@@ -8438,7 +8439,7 @@ const AMBITIONS = (() => {
   return [
     A('towns3', 1, 'A Realm of Towns', 'Hold three towns.', () => 3, n => mine(n).length),
     A('learn6', 1, 'Patron of Learning', 'Know six technologies.', () => 6, techs),
-    A('army6', 1, 'A Standing Army', 'Field six regiments.', () => 6, n => regs(n).length),
+    A('army6', 1, 'A Standing Army', 'Field six companies of foot, horse or guns (a merged regiment counts each of its companies).', () => 6, n => companies(n)),
     A('granary', 1, 'Full Barns', 'Build a granary.', () => 1, n => withB(n, 'granary')),
     A('walls1', 1, 'Curtain Walls', 'Raise City Walls round a town.', () => 1, n => withB(n, 'fortifications')),
     A('gold300', 1, 'A Full Treasury', 'Have 300 gold in the treasury.', () => 300, n => Math.floor(nations[n].gold || 0)),
@@ -8446,7 +8447,7 @@ const AMBITIONS = (() => {
     A('improve8', 1, 'Cultivated Land', 'Eight improved hexes (farms, mines, markets and the like).', () => 8, improved),
     A('towns6', 2, 'A Crown of Cities', 'Hold six towns.', () => 6, n => mine(n).length),
     A('learn14', 2, 'An Enlightened Court', 'Know fourteen technologies.', () => 14, techs),
-    A('army12', 2, 'A Field Army', 'Field twelve regiments.', () => 12, n => regs(n).length),
+    A('army12', 2, 'A Field Army', 'Field twelve companies of foot, horse or guns.', () => 12, n => companies(n)),
     A('merged', 2, 'Brigaded', 'Field a regiment of three companies (merge two into a third).', () => 1, n => regs(n).filter(u => (u.merged || []).length >= 2).length),
     A('wonder1', 2, 'A Wonder of the Age', 'Build a wonder.', () => 1, wonders),
     A('bastions', 2, 'Star Forts', 'Raise Bastions in a town.', () => 1, n => withB(n, 'star_fort')),
@@ -8456,7 +8457,7 @@ const AMBITIONS = (() => {
     A('fleet3', 2, 'A Navy', 'Keep three warships.', () => 3, ships),
     A('towns10', 3, 'An Empire', 'Hold ten towns.', () => 10, n => mine(n).length),
     A('learnAll', 3, 'The Age of Reason', 'Know all but two of the technologies.', () => Math.max(1, nTech() - 2), techs),
-    A('army25', 3, 'La Grande Armée', 'Field twenty-five regiments.', () => 25, n => regs(n).length),
+    A('army25', 3, 'La Grande Armée', 'Field twenty-five companies of foot, horse or guns.', () => 25, n => companies(n)),
     A('wonder3', 3, 'Builder of Wonders', 'Build three wonders.', () => 3, wonders),
     A('pop60', 3, 'Teeming Cities', 'Sixty citizens across your towns.', () => 60, pop),
     A('conquest3', 3, 'Conqueror', 'Hold three towns taken from other crowns.', () => 3, taken),
