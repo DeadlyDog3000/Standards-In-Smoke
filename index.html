@@ -789,6 +789,11 @@
     .chron-key { display: inline-flex; align-items: center; gap: 5px; cursor: default; } .chron-key:hover { color: #fff; } .chron-key b { color: #f0dcae; font-weight: normal; } .chron-key.me { color: #f4e4bc; } .chron-key em { color: #a08060; }
     .kc-chron { float: right; font: 11px 'EB Garamond', Georgia, serif; padding: 2px 9px; margin-top: 3px; cursor: pointer; color: #f0dcae; background: rgba(201, 164, 90, 0.12); border: 1px solid rgba(201, 164, 90, 0.5); border-radius: 2px; }
     .kc-chron:hover { background: rgba(201, 164, 90, 0.28); }
+    .kc-chron + .kc-chron { margin-right: 6px; }
+    .kc-chron.on { background: rgba(201, 164, 90, 0.4); color: #fff4d6; }
+    #diploLegend { position: fixed; left: 50%; transform: translateX(-50%); top: 96px; z-index: 21; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; max-width: calc(100vw - 32px); padding: 6px 12px; font: 13px 'EB Garamond', Georgia, serif; color: #f0dcae; background: rgba(16, 24, 38, 0.92); border: 1px solid rgba(201, 164, 90, 0.6); border-radius: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); pointer-events: auto; }
+    #diploLegend i { display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.5); }
+    #diploLegend button { font: inherit; font-size: 12px; padding: 1px 8px; cursor: pointer; color: #f0dcae; background: rgba(201, 164, 90, 0.15); border: 1px solid rgba(201, 164, 90, 0.5); border-radius: 2px; }
     /* promotions: those held as small gilt labels, those earned as choices */
     .promo-held { margin: 2px 0 6px; display: flex; flex-wrap: wrap; gap: 4px; }
     .promo-held span { font-size: 10.5px; color: #f0dcae; padding: 1px 7px; border: 1px solid rgba(201, 164, 90, 0.55); border-radius: 9px; background: rgba(201, 164, 90, 0.12); cursor: help; }
@@ -1115,6 +1120,7 @@
         - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
         - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
+        - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2210,6 +2216,7 @@
           - The Royal Court shows the line of succession, eldest first, with who is next in line, the dowager, and the years of recent deaths<br>
           - The court ages with the calendar: rulers, consorts and children grew a year older only every eight years, so a reign never ended; now children are born, grow up and come to the throne<br>
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
+          - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -15800,10 +15807,11 @@ function render() {
         if (t.owner < 0 || !t.revealed.has(pId) || isBarbarianNation(t.owner)) continue;
         const sx = mx * cs - camXcs, fy = baseWorldY + (mx & 1) * halfCh + facePad;
         if (sx < -w * 2 || fy < -ch * 2 || sx > viewW + w || fy > viewH + ch) continue;
-        pts.push(sx, fy); cols.push(nations[t.owner].color);
+        const lc = diploLens ? lensColor(t.owner) : nations[t.owner].color; if (!lc) continue;
+        pts.push(sx, fy); cols.push(lc);
       }
     }
-    drawHexLayer(pts, w, faceH, charted ? 0.08 : 0.13, null, null, 0, cols);
+    drawHexLayer(pts, w, faceH, diploLens ? 0.42 : charted ? 0.08 : 0.13, null, null, 0, cols);
   }
   // the sea: surf along every shore, and a few wave strokes on open water (the chart has its own water-lining)
   if (VIEW_TILE >= 16 && !charted) {
@@ -17820,9 +17828,32 @@ function toggleKingdoms() {
   if (el.style.display === 'block') renderKingdoms();
 }
 
+// the lens of allies and foes: every crown's lands tinted by how it stands with yours (from the Kingdoms panel)
+let diploLens = false;
+const LENS = { mine: '#d9a441', ally: '#3f8a4e', war: '#b8322a', peace: '#8c877a' };
+function lensColor(owner) {
+  if (owner === playerNation) return LENS.mine;
+  const n = nations[owner]; if (!n || n.eliminated || !discoveredNations.has(owner)) return null;
+  if (nations[playerNation].relations[owner] === 'war') return LENS.war;
+  if (hasAgreement(playerNation, owner, 'war_help') || hasAgreement(playerNation, owner, 'marriage')) return LENS.ally;
+  return LENS.peace;
+}
+function toggleDiploLens() {
+  diploLens = !diploLens;
+  document.getElementById('diploLegend')?.remove();
+  if (diploLens) {
+    const lg = document.createElement('div'); lg.id = 'diploLegend';
+    lg.innerHTML = [['mine', 'Your lands'], ['ally', 'Allies'], ['war', 'At war'], ['peace', 'At peace']].map(([k, l]) => `<span><i style="background:${LENS[k]}"></i>${l}</span>`).join('') + '<button onclick="toggleDiploLens()" title="Back to every crown in its own colour">Close</button>';
+    lg.style.top = ((document.getElementById('topbar')?.offsetHeight || 60) + 40) + 'px';   // (below the top bar and the ambition plaque, however tall the bar wraps)
+    document.body.appendChild(lg);
+  }
+  if (document.getElementById('kingdoms')?.style.display !== 'none') renderKingdoms();
+  render();
+}
+window.toggleDiploLens = toggleDiploLens;
 function renderKingdoms() {
   const el = document.getElementById('kingdoms');
-  let html = '<h3>Kingdoms <button class="kc-chron" onclick="openChronicle()" title="Every crown\'s score, turn by turn">The race</button></h3>';
+  let html = `<h3>Kingdoms <button class="kc-chron" onclick="openChronicle()" title="Every crown's score, turn by turn">The race</button><button class="kc-chron${diploLens ? ' on' : ''}" onclick="toggleDiploLens()" title="Tint every crown's lands by how it stands with yours">Allies &amp; foes</button></h3>`;
   // each realm a card: its colours and name, how it stands with you, what it thinks of you, what it asks; then what
   //  you can do, in one row, and your pacts with it as chips you can sign or tear up
   const myMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).reduce((sum, u) => sum + getEffectiveAtk(u), 0);
