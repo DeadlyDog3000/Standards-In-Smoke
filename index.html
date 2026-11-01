@@ -9181,7 +9181,7 @@ function updateFirstOrders() {
   let el = document.getElementById('firstOrders');
   const n = nations[playerNation], inGame = MAP_COLS && n && document.getElementById('menu').style.display === 'none';
   let off = false; try { off = localStorage.getItem('sis_first_orders_off') === '1'; } catch (e) {}
-  if (!inGame || off || (n._tut && n._tut.closed) || turnNumber > 40 || document.body.classList.contains('mobile-mode')) { if (el) el.style.display = 'none'; return; }
+  if (!inGame || off || (n._tut && n._tut.closed) || turnNumber > 40 || document.body.classList.contains('mobile-mode') || (typeof tutorialActive !== 'undefined' && tutorialActive)) { if (el) el.style.display = 'none'; return; }
   const done = FIRST_ORDERS.map(([id, , f]) => { try { return !!f(n); } catch (e) { return false; } });
   if (done.every(Boolean)) { (n._tut || (n._tut = {})).closed = true; if (el) el.style.display = 'none'; showToast('Well begun. The rest is yours to command.', true); return; }
   if (!el) { el = document.createElement('div'); el.id = 'firstOrders'; document.body.appendChild(el); }
@@ -21474,6 +21474,7 @@ function showTutorialStep() {
     overlay.style.display = 'none'; tutorialActive = false;
     localStorage.setItem('sis_tutorial_done', 'true');
     endTutorialShade();
+    try { updateFirstOrders(); } catch (e) {}
     return;
   }
   const s = TUTORIAL_STEPS[tutorialStep];
@@ -21511,6 +21512,7 @@ window.skipTutorial = function() {
   tutorialActive = false;
   localStorage.setItem('sis_tutorial_done', 'true');
   endTutorialShade();
+  try { updateFirstOrders(); } catch (e) {}
 };
 
 function startGame(cols, rows, pName, pColor, opponents) {
