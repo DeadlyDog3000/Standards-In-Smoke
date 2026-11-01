@@ -9722,6 +9722,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
+        ['Historical starts', 'Begin in 1756 or 1805 (under Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1763 or 1815) among the great powers and you.'],
         ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
