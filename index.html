@@ -9828,7 +9828,7 @@ function openChronicle(all) {
     return `<polyline data-n="${n.id}" points="${pts}" fill="none" stroke="${safeColor(n.color)}" stroke-width="${n.id === playerNation ? 3 : 2}" stroke-linejoin="round" stroke-linecap="round"${n.eliminated ? ' stroke-dasharray="4 3"' : ''}/>`;
   }).join('');
   const last = n => n.scoreHist.v[n.scoreHist.v.length - 1];
-  const legend = shown.slice().sort((a, b) => last(b) - last(a)).map(n => `<span class="chron-key${n.id === playerNation ? ' me' : ''}" data-n="${n.id}"><i style="background:${safeColor(n.color)}"></i>${escHtml(n.name)} <b>${last(n)}</b>${n.eliminated ? ' <em>fallen</em>' : ''}</span>`).join('');
+  const legend = shown.slice().sort((a, b) => last(b) - last(a)).map(n => `<span class="chron-key${n.id === playerNation ? ' me' : ''}" data-n="${n.id}"><i style="background:${safeColor(n.color)}"></i>${escHtml(crownName1(n))} <b>${last(n)}</b>${n.eliminated ? ' <em>fallen</em>' : ''}</span>`).join('');
   ov.innerHTML = `<div class="event-card chron-card"><h3>The Race for Europe</h3>
     <div class="chron-tabs"><button class="on">Scores</button><button onclick="openTownMap(${all ? 'true' : ''})">Map</button><button onclick="openAnnals(${all ? 'true' : ''})">Annals</button></div>
     <p class="amb-lede">Each crown's score, turn by turn${all ? '' : ' (the realms you have met)'}. Hover over the chart for the turn.</p>
@@ -9843,7 +9843,7 @@ function openChronicle(all) {
     const t = Math.max(tMin, Math.min(tMax, Math.round(tMin + (x - L) / (W - L - R) * (tMax - tMin))));
     cross.setAttribute('x1', X(t)); cross.setAttribute('x2', X(t)); cross.style.display = '';
     const rows = shown.map(n => ({ n, v: n.scoreHist.v[t - n.scoreHist.t0] })).filter(o => o.v !== undefined).sort((a, b) => b.v - a.v);
-    tip.innerHTML = `<b>Turn ${t}</b>` + rows.map(o => `<div><i style="background:${safeColor(o.n.color)}"></i>${escHtml(o.n.name)}<span>${o.v}</span></div>`).join('');
+    tip.innerHTML = `<b>Turn ${t}</b>` + rows.map(o => `<div><i style="background:${safeColor(o.n.color)}"></i>${escHtml(crownName1(o.n))}<span>${o.v}</span></div>`).join('');
     tip.style.display = ''; const px = X(t) / W * r.width;
     tip.style.left = (px > r.width / 2 ? px - tip.offsetWidth - 12 : px + 12) + 'px';
   });
