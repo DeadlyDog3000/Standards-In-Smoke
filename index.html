@@ -1150,6 +1150,7 @@
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2273,6 +2274,7 @@
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - Choosing a historical start sets the game up for it: the map of Europe, and a dozen crowns about you unless you choose fewer<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4233,6 +4235,10 @@ const TURNS_PER_YEAR = SEASON_LENGTH * 4;   // (was 32, from when a season was e
 function setupScoreChoices() {
   const sel = document.getElementById('setupScoreTurn'); if (!sel) return;
   const S = SCENS[document.getElementById('setupStart')?.value];
+  // (a historical start is played on the map of Europe: the Lands choice shows it, and is held there)
+  const lands = document.getElementById('setupMapStyle'); if (lands) { if (S) lands.value = 'europe'; lands.disabled = !!S; }
+  // (and wants the crowns of the age about it: a dozen at least, unless the player chooses fewer afterwards)
+  const opp = document.getElementById('setupOpponents'); if (S && opp && +opp.value < 12) opp.value = '12';
   sel.innerHTML = (S ? [[S.score[0][0], S.score[0][1], 1], S.score[1], [0, 'Never (play on)']]
     : [[200, 'Turn 200', 1], [300, 'Turn 300'], [0, 'Never (play on)']]).map(([v, l, on]) => `<option value="${v}"${on ? ' selected' : ''}>${l}</option>`).join('');
 }
