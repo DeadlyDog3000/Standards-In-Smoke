@@ -17517,7 +17517,7 @@ function render() {
   if (!render._ambientTick) render._ambientTick = 0;
   if (++render._ambientTick % 5 === 0) { updateAmbientBirds(); updateAmbientTown(); }
   const scoreIn = scoreTurnLimit > 0 ? scoreTurnLimit - turnNumber : 0;   // (the last stretch before the score is counted is shown beside the turn)
-  const turnStr = 'Turn ' + turnNumber + (scoreIn > 0 && scoreIn <= 20 ? ` \u00b7 score counted in ${scoreIn} turn${scoreIn === 1 ? '' : 's'}` : ''), zoomStr = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+  const turnStr = 'Turn ' + turnNumber + (scoreIn > 0 && scoreIn <= 20 ? ` \u00b7 ${scen() ? 'the peace' : 'score counted'} in ${scoreIn} turn${scoreIn === 1 ? '' : 's'}` : ''), zoomStr = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
   const ti = document.getElementById('turnInfo'); if (ti.textContent !== turnStr) ti.textContent = turnStr;
   const zi = document.getElementById('zoomInfo'); if (zi.textContent !== zoomStr) zi.textContent = zoomStr;
 
