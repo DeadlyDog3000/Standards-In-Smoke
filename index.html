@@ -1122,6 +1122,7 @@
         - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
         - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
         - The Kingdoms panel names each crown's ruler<br>
+        - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2219,6 +2220,7 @@
           - In 1805 the greatest armies are greatest: France begins with the Grande Armée and Marshal Davout, Russia with its numbers and Cossacks, Austria with more whitecoats; and a general can be given a name like a regiment<br>
           - Allies &amp; foes, a lens for the map (in the Kingdoms panel): every crown's lands tinted by how it stands with yours, your own in gold, allies green, enemies red, the rest grey<br>
           - The Kingdoms panel names each crown's ruler<br>
+          - News of the other courts: when a crown you know loses its ruler, the log says who has come to the throne<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4471,6 +4473,7 @@ function characterDeath(character) {
       const was = next.name; if (next.reignName) { next.name = next.reignName; delete next.reignName; }   // (a prince crowned takes his regnal name)
       const as = was !== next.name ? ` as ${next.name}` : '';
       if (nationId === playerNation) { showToast(heir ? `${was} has ascended the throne${as}.` : `${was} succeeds as ruler.`); annal(`${was} came to the throne${as}.`); }
+      else if (discoveredNations.has(nationId) && !nations[nationId].isTribe) logEvent(`News from ${nations[nationId].name}: ${character.name} has died, and ${was} has come to the throne${as}.`);
       const newSpouse = createCharacter(nationId, 'spouse', next.gender === 'male' ? 'female' : 'male');
       next.spouseId = newSpouse.id;
       newSpouse.spouseId = next.id;
