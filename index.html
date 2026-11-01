@@ -4510,8 +4510,8 @@ function tickCharacterAging() {
     if (c.deathTurn || c.role !== 'ruler') continue;
     const spouse = characters.find(s => s.id === c.spouseId && !s.deathTurn);
     if (!spouse) continue;
-    const mother = c.gender === 'female' ? c : spouse;   // (no children past the mother's forty-fifth year)
-    if (c.childIds.length < 4 && mother.age <= 45 && turnNumber % Math.floor(turnsPerYear * 1.5) === 0 && Math.random() < 0.3) {
+    const mother = c.gender === 'female' ? c : spouse;   // (children only while the mother is between sixteen and forty-five)
+    if (c.childIds.length < 4 && mother.age >= 16 && mother.age <= 45 && turnNumber % Math.floor(turnsPerYear * 1.5) === 0 && Math.random() < 0.3) {
       const childGender = Math.random() < 0.5 ? 'male' : 'female';
       const child = createCharacter(c.nationId, 'heir', childGender);
       child.parentIds = [c.id, spouse.id];
