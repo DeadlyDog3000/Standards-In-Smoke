@@ -6868,6 +6868,7 @@ function apply1805() {
     : mySide === 'f' ? `It is 1805. You stand with France${friends.length ? ` (${listAnd(friends)})` : ''} against the Third Coalition${foes.length ? `: ${listAnd(foes)}` : ''}.`
     : `It is 1805. Europe is at war: the Third Coalition against France. Your crown stands apart, for now.`;
   setTimeout(() => showToast(say), 1200);   // (the toast writes it in the log too)
+  annal(say.replace(/^It is 1805\. /, ''));
   // (all of the crowns are known to one another in 1805, and Europe is charted to its edges)
   for (const n of crowns) if (n.id !== playerNation) discoveredNations.add(n.id);
   for (const t of tiles) for (const n of crowns) t.revealed.add(n.id);
