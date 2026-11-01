@@ -1060,6 +1060,7 @@
         <b style="color:#b8a070;">The Road Ahead</b><br>
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
+        - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2127,6 +2128,7 @@
           <b style="color:#b8a070;">The Road Ahead</b><br>
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
           - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
+          - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -4107,7 +4109,7 @@ function hint(id) {
     const seen = JSON.parse(localStorage.getItem('sis_hints_seen') || '[]');
     if (seen.includes(id) || document.getElementById('hintCard')) return;
     // (never over another window: the tip waits for its next chance)
-    if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
+    if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #coalitionInvite, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
     seen.push(id); localStorage.setItem('sis_hints_seen', JSON.stringify(seen));
     const el = document.createElement('div'); el.id = 'hintCard';
     el.innerHTML = `<b>Tip</b><p>${HINTS[id]}</p><div><button onclick="this.closest('#hintCard').remove()">Got it</button><button onclick="localStorage.setItem('sis_hints_off','1');this.closest('#hintCard').remove()">No more tips</button></div>`;
@@ -6164,7 +6166,7 @@ function _reminderPopupWrap(id) {
 }
 
 function showNoResearchPopup() {
-  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('ambitionOverlay')) return;
+  if (eventModalOpen || techTreeOpen || document.getElementById('noResearchPopup') || document.getElementById('idleCitiesPopup') || document.getElementById('ambitionOverlay') || document.getElementById('coalitionInvite')) return;
   const n = nations[playerNation];
   if (!n) return;
   const available = Object.entries(TECHS).filter(([key]) => nationCanResearch(playerNation, key));
@@ -6476,6 +6478,7 @@ function showWarDeclaration(nation) {
 
 // ---- coalitions: when your crown stands far ahead (the second alarm of Europe and after), the crowns that distrust you
 //  band together and declare war as one, as Europe did against France: the First Coalition, then the Second... ----
+const listAnd = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];   // (A, B and C)
 const ORDINALS = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
 function tickCoalition() {
   const me = nations[playerNation]; if (!me || me.eliminated) return;
@@ -6496,9 +6499,49 @@ function tickCoalition() {
     for (const o of members) if (o !== n && !hasAgreement(n.id, o.id, 'war_help')) addAgreement(n.id, o.id, 'war_help');
     if (!n._warSince) n._warSince = {}; n._warSince[playerNation] = turnNumber;
   }
-  logEvent(`${name.charAt(0).toUpperCase() + name.slice(1)} is formed against you: ${members.map(n => n.name).join(', ')}.`);
+  logEvent(`${name.charAt(0).toUpperCase() + name.slice(1)} is formed against you: ${listAnd(members.map(n => n.name))}.`);
   showCoalition(name, members);
 }
+// and against a rival crown that has grown too great (a third of all the towns, and well ahead in score): the others band
+// together against it, and you are asked to join
+function tickRivalCoalition() {
+  const live = nations.filter(n => !n.isBarbarian && !n.isTribe && !n.eliminated && cities.some(c => c.nationId === n.id));
+  const nCities = cities.filter(c => !c.ruined).length; if (nCities < 12 || live.length < 4) return;
+  const towns = n => cities.filter(c => c.nationId === n.id && !c.ruined).length;
+  const lead = live.filter(n => n.id !== playerNation).sort((a, b) => towns(b) - towns(a))[0]; if (!lead) return;
+  const scores = live.map(n => getScore(n.id)).sort((a, b) => b - a);
+  if (towns(lead) < Math.max(6, nCities / 3) || getScore(lead.id) < (scores[1] || 0) * 1.25) return;
+  if (turnNumber - (lead._coalitionAgainst ?? -999) < 40 || Math.random() > 0.2) return;
+  const members = live.filter(n => n.id !== lead.id && n.id !== playerNation && n.relations[lead.id] !== 'war' && getLoyalty(n.id, lead.id) < 30);
+  if (members.length < 2) return;
+  lead._coalitionAgainst = turnNumber;
+  for (const n of members) {
+    n.relations[lead.id] = 'war'; lead.relations[n.id] = 'war';
+    for (const o of members) if (o !== n && !hasAgreement(n.id, o.id, 'war_help')) addAgreement(n.id, o.id, 'war_help');
+  }
+  logEvent(`A coalition forms against ${lead.name}: ${listAnd(members.map(n => n.name))}.`);
+  if (!discoveredNations.has(lead.id) || nations[playerNation].relations[lead.id] === 'war') return;
+  window._coalitionInvite = { lead: lead.id, members: members.map(n => n.id) };
+  const ov = document.createElement('div'); ov.id = 'coalitionInvite';
+  ov.style.cssText = "position:fixed;inset:0;z-index:160;display:flex;align-items:center;justify-content:center;background:rgba(2,5,9,0.6);";
+  ov.innerHTML = `<div class="event-card" style="max-width:520px;padding:24px 26px;text-align:center;color:#e9dcc0;">
+    <h3 style="font-family:'Uncial Antiqua',Georgia,serif;font-weight:normal;color:#f0dcae;font-size:22px;margin:0 0 8px;">A Coalition Against ${escHtml(lead.name)}</h3>
+    <p style="font-size:14px;margin:0 0 6px;">${escHtml(lead.name)} has grown too great for Europe. ${listAnd(members.map(n => escHtml(n.name)))} have joined together against it, and they ask you to join them.</p>
+    <p style="font-size:12.5px;color:#b8a888;margin:0 0 14px;">Join, and you are at war with ${escHtml(lead.name)} and the coalition thinks well of you. Decline, and nothing changes.</p>
+    <button class="event-choice" onclick="answerCoalition(true)">Join the coalition<span class="event-effect">war with ${escHtml(lead.name)}</span></button>
+    <button class="event-choice" onclick="answerCoalition(false)">Stay out of it</button></div>`;
+  document.body.appendChild(ov);
+}
+window.answerCoalition = function (join) {
+  const inv = window._coalitionInvite; window._coalitionInvite = null; document.getElementById('coalitionInvite')?.remove();
+  if (!inv || !join) { if (inv) logEvent('You stay out of the coalition.'); return; }
+  const me = nations[playerNation], lead = nations[inv.lead];
+  me.relations[lead.id] = 'war'; lead.relations[playerNation] = 'war';
+  for (const id of inv.members) { changeLoyalty(id, playerNation, 20); if (!hasAgreement(playerNation, id, 'war_help')) addAgreement(playerNation, id, 'war_help'); }
+  logEvent(`You join the coalition against ${lead.name}.`); showToast(`You are at war with ${lead.name}, at the side of the coalition.`);
+  try { playWarHorn(); } catch (e) {}
+  updateUI();
+};
 function showCoalition(name, members) {
   playWarHorn();
   document.getElementById('warDeclOverlay')?.remove();
@@ -6507,7 +6550,7 @@ function showCoalition(name, members) {
   overlay.innerHTML = `<div style="text-align:center;padding:40px;max-width:640px;">
     <div style="display:flex;gap:14px;justify-content:center;margin-bottom:16px;">${members.map(n => { const r = getNationRuler(n.id), c = safeColor(n.color); return r ? `<img class="portrait" src="${portraitOf(r)}" alt="" title="${escHtml(n.name)}" style="width:84px;height:84px;border:3px solid ${c};">` : ''; }).join('')}</div>
     <h1 style="color:#d8553a;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9);margin-bottom:10px;">${escHtml(name.replace(/^the /, 'The '))}</h1>
-    <p style="font-size:17px;color:#e8dcc8;margin-bottom:6px;">${members.map(n => `<strong style="color:#f6ead0;border-bottom:3px solid ${safeColor(n.color)};padding-bottom:1px;">${escHtml(n.name)}</strong>`).join(', ')} have joined together against you.</p>
+    <p style="font-size:17px;color:#e8dcc8;margin-bottom:6px;">${listAnd(members.map(n => `<strong style="color:#f6ead0;border-bottom:3px solid ${safeColor(n.color)};padding-bottom:1px;">${escHtml(n.name)}</strong>`))} have joined together against you.</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Your rise has alarmed Europe. Each of them is at war with you, and they are allies of one another.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
@@ -11026,6 +11069,7 @@ function _finishEndTurnImpl() {
     }
   } catch (e) {}
   try { tickCoalition(); } catch (e) { console.error('tickCoalition error:', e); }
+  try { tickRivalCoalition(); } catch (e) { console.error('tickRivalCoalition error:', e); }
   tickSeason();
   try { tickWinterAttrition(); } catch(e) { console.error('tickWinterAttrition error:', e); }
   try { tickSupply(); } catch(e) { console.error('tickSupply error:', e); }
