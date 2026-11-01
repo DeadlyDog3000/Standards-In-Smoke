@@ -8892,6 +8892,7 @@ function saveVictoryToHistory(type, scoreBreakdown) {
     techs: scoreBreakdown.techCount,
     military: scoreBreakdown.combatCount,
     conquests: scoreBreakdown.eliminated,
+    ambitions: scoreBreakdown.ambitions || 0,
     date: new Date().toLocaleDateString()
   });
 
@@ -8918,7 +8919,7 @@ function showVictoryHistory() {
       <div style="font-size:12px;color:#c8b8a0;line-height:1.7;">
         Score: <strong style="color:#d4a856;">${v.score | 0}</strong> &nbsp;|&nbsp; Turn ${v.turn | 0}<br>
         Cities: ${v.cities | 0} &nbsp; Territory: ${v.territory | 0} &nbsp; Techs: ${v.techs | 0}<br>
-        Military: ${v.military | 0} &nbsp; Conquests: ${v.conquests | 0}
+        Military: ${v.military | 0} &nbsp; Conquests: ${v.conquests | 0}${v.ambitions ? ` &nbsp; Ambitions: ${v.ambitions | 0}` : ''}
       </div>
       <div style="font-size:10px;color:#666;margin-top:6px;">${escHtml(v.date || '')}</div>
       <button onclick="deleteVictoryEntry(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#664;cursor:pointer;font-size:14px;" title="Delete">&times;</button>
