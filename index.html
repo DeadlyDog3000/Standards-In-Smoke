@@ -729,7 +729,8 @@
     .emp-tabs { display: inline-flex; gap: 2px; margin: 0 10px; vertical-align: middle; }
     .emp-tabs button { font: 12px 'EB Garamond', Georgia, serif; padding: 2px 10px; cursor: pointer; color: #b8a078; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(201, 164, 90, 0.35); font-style: italic; }
     .emp-tabs button.on { color: #f2dca8; background: rgba(201, 164, 90, 0.2); border-color: #c8a050; font-style: normal; }
-    #empirePanel .emp-ready { color: #e8c070; } #empirePanel .emp-promo { color: #f2c94c; }
+    #empirePanel .emp-ready { color: #e8c070; }
+    #empirePanel .emp-up { font: 11px 'EB Garamond', Georgia, serif; margin-left: 6px; padding: 1px 7px; cursor: pointer; color: #f0dcae; background: rgba(201, 164, 90, 0.15); border: 1px solid rgba(201, 164, 90, 0.5); } #empirePanel .emp-promo { color: #f2c94c; }
     /* the Field Manual */
     #manualOverlay { position: fixed; inset: 0; z-index: 215; display: flex; align-items: center; justify-content: center; background: rgba(2, 5, 9, 0.6); }
     #manualOverlay .man-card { width: min(680px, 94vw); max-width: none !important; height: min(80vh, 760px); display: flex; flex-direction: column; padding: 18px 20px; color: #e9dcc0; }
@@ -1056,6 +1057,7 @@
         - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
         - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
         - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
+        - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2108,6 +2110,7 @@
           - Demands for tribute: a crown with twice your army that thinks little of you may demand gold (warlike crowns most often, at most once in twenty turns). Pay and it keeps the peace for fifteen turns, at a little legitimacy; refuse and it thinks much worse of you, but your people respect it<br>
           - Choose how a game can be won when you set it up: the score counted at turn 200, at turn 300 or never, and ambition victory on or off<br>
           - You can demand tribute too (Kingdoms, when your army is twice theirs): a crown pays if it fears you enough (merchants soonest, warlike crowns hardly ever), and likes you less either way<br>
+          - Upgrading a merged regiment re-arms every company of its kind (at the cost of each) and keeps its men in proportion; before, its companies stayed as they were and it could end up with more men than it could hold. The Regiments page has an Upgrade button for any regiment that can be upgraded where it stands<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -19853,7 +19856,7 @@ function empireRegimentsHtml() {
       <td>${where(u)}</td>
       <td style="color:${u.hp < mx * 0.5 ? '#e08070' : '#cfc0a0'}">${u.hp}/${mx}</td>
       <td style="color:${lv.color}">${lv.rank}</td>
-      <td class="${st === 'ready' ? 'emp-ready' : 'emp-dim'}">${st}</td>
+      <td class="${st === 'ready' ? 'emp-ready' : 'emp-dim'}">${st}${canUpgradeNow(u) ? ` <button class="emp-up" onclick="event.stopPropagation(); _empireUpgrade(${units.indexOf(u)})" title="Re-arm as ${escHtml(unitTitle(UNIT_UPGRADES[u.type].to))}">Upgrade</button>` : ''}</td>
     </tr>`;
   }).join('');
   return `<table><thead><tr><th>Regiment</th><th>Where</th><th>Men</th><th>Rank</th><th>Orders</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="emp-dim">No regiments yet.</td></tr>'}</tbody></table>`;
@@ -20174,25 +20177,40 @@ window.upgradeUnit = function() {
     showToast('Must be within a city\'s borders to upgrade.'); return;
   }
   const n = nations[playerNation];
+  // (a merged regiment is re-armed whole: every company of the same kind, at the cost of each)
+  const same = 1 + (selectedUnit.merged || []).filter(t => t === selectedUnit.type).length;
   for (const [r, amt] of Object.entries(upg.cost)) {
-    if ((n[r] || 0) < amt) { showToast('Not enough resources!'); return; }
+    if ((n[r] || 0) < amt * same) { showToast('Not enough resources!'); return; }
   }
   if (!tryActivateUnit(selectedUnit)) return;
 
-  for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt;
+  for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt * same;
 
-  const oldDef = UNIT_DEFS[selectedUnit.type];
   const newDef = UNIT_DEFS[upg.to];
-  const hpRatio = selectedUnit.hp / (oldDef.hp || 10);
+  const hpRatio = selectedUnit.hp / Math.max(1, getEffectiveMaxHp(selectedUnit));
+  const oldType = selectedUnit.type;
   selectedUnit.type = upg.to;
-  selectedUnit.hp = Math.max(1, Math.round(hpRatio * (newDef.hp || 10)));
+  if (selectedUnit.merged) selectedUnit.merged = selectedUnit.merged.map(t => t === oldType ? upg.to : t);
+  selectedUnit.hp = Math.max(1, Math.round(hpRatio * getEffectiveMaxHp(selectedUnit)));
   selectedUnit.maxMoves = newDef.moves;
   selectedUnit.movesLeft = 0; // upgrade uses the turn
   selectedUnit.vision = newDef.vision;
   // a formation only carries over if the new kind of unit can keep one (a column hussar made a lancer kept +2 moves for ever)
   if (FORMATION_UNITS.has(upg.to)) selectedUnit.formation = selectedUnit.formation || 'line'; else delete selectedUnit.formation;
-  showToast(`Upgraded to ${newDef.icon} ${upg.to.replace(/_/g, ' ')}!`);
+  showToast(`Upgraded to ${newDef.icon} ${unitTitle(upg.to)}${same > 1 ? ` (all ${same} companies)` : ''}!`);
   showUnitPanel(selectedUnit); updateUI(); render();
+};
+// (can this regiment be upgraded where it stands, now?)
+function canUpgradeNow(u) {
+  const upg = UNIT_UPGRADES[u.type]; if (!upg || u.nationId !== playerNation || !nationHasTech(playerNation, upg.tech) || u.movesLeft <= 0) return false;
+  const ti = u.y * MAP_COLS + u.x; if (!cities.some(c => c.nationId === playerNation && (c.ownedTiles || new Set()).has(ti))) return false;
+  const same = 1 + (u.merged || []).filter(t => t === u.type).length, n = nations[playerNation];
+  return Object.entries(upg.cost).every(([r, amt]) => (n[r] || 0) >= amt * same) && (activatedUnits.has(u) || ordersRemaining > 0);
+}
+window._empireUpgrade = function (i) {
+  const u = units[i]; if (!u) return;
+  selectedCity = null; selectedUnit = u; upgradeUnit();
+  document.getElementById('empirePanel')?.remove(); window._empTab = 'regiments'; toggleEmpirePanel();
 };
 
 window.restUnit = function() {
