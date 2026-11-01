@@ -7217,6 +7217,7 @@ function scenChoice(title, text, choices) {
   const ov = document.createElement('div'); ov.id = 'scenOverlay';
   ov.innerHTML = `<div class="event-card amb-card"><h3>${escHtml(title)}</h3><p>${escHtml(text)}</p>${choices.map((c, i) => `<button class="event-choice" onclick="document.getElementById('scenOverlay').remove(); (window._scenFns[${i}] || (() => {}))(); updateUI(); render();">${escHtml(c[0])}</button>`).join('')}</div>`;
   document.body.appendChild(ov);
+  setTimeout(() => ov.querySelector('.event-choice')?.focus(), 50);   // (Enter takes the first answer)
 }
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
