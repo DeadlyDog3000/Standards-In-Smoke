@@ -1076,7 +1076,7 @@
         - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
         - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
         - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
-        - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - Achievements, kept in your browser across every game: sixteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
         - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
@@ -2149,7 +2149,7 @@
           - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
           - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
           - A crown that sues for peace while badly beaten or starving under your siege offers gold with it, a share of its treasury<br>
-          - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - Achievements, kept in your browser across every game: sixteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
           - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns, the armies and the fleets of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
@@ -9292,7 +9292,7 @@ function showVictory(type) {
   hidePanel();
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory';
-  const desc = type === 'score' ? `Turn ${scoreTurnLimit || turnNumber} reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
+  const desc = type === 'score' ? `${scenario === '1805' ? 'The year ' + getCurrentYear() : 'Turn ' + (scoreTurnLimit || turnNumber)} reached. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has the highest score!`
     : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
     : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
   const overlay = document.createElement('div');
@@ -9386,6 +9386,7 @@ const ACHIEVEMENTS = [
   ['score_win', 'The Tally', 'Win on score.'],
   ['hard_win', 'Against the Odds', 'Win on Hard.'],
   ['europe_win', 'Europe Is Yours', 'Win on the map of Europe.'],
+  ['austerlitz', 'The Sun of Austerlitz', 'Win a game begun in 1805.'],
   ['sea', 'Across the Water', 'Put a regiment ashore on another landmass.'],
   ['brigade', 'A Full Regiment', 'Field a regiment of three companies.'],
   ['legend', 'Legendary', 'Bring a regiment to Legendary rank.'],
@@ -9427,6 +9428,7 @@ function achievementsOnVictory(type) {
   if (type === 'score') unlockAchievement('score_win');
   if (gameDifficulty === 'hard') unlockAchievement('hard_win');
   if (mapStyle === 'europe') unlockAchievement('europe_win');
+  if (scenario === '1805') unlockAchievement('austerlitz');
 }
 function renderAchievements() {
   const el = document.getElementById('achievementsList'); if (!el) return;
