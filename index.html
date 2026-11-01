@@ -1074,6 +1074,7 @@
         - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
         - On the map of Europe a town founded near a real city takes its name (Hamburg, Lyon, Kiev and some 150 more), whichever crown founds it<br>
         - On the map of Europe every crown begins with up to three of its own towns where they stood: Prussia with Berlin, Königsberg and Breslau, Austria with Vienna, Prague and Buda, Russia with Moscow, St. Petersburg and Kiev, and so on<br>
+        - Meeting a crown tells you its temper, on the first-contact card and in the log<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
       <div style="margin-bottom:12px;">
@@ -2134,6 +2135,7 @@
           - The map of Europe has its great rivers where they run, the Rhine, Danube, Elbe, Vistula, Seine, Loire, Rhone, Po, Tagus, Thames, Dnieper, Volga, Don and more, lettered with their Latin names<br>
           - On the map of Europe a town founded near a real city takes its name (Hamburg, Lyon, Kiev and some 150 more), whichever crown founds it<br>
           - On the map of Europe every crown begins with up to three of its own towns where they stood: Prussia with Berlin, Königsberg and Breslau, Austria with Vienna, Prague and Buda, Russia with Moscow, St. Petersburg and Kiev, and so on<br>
+          - Meeting a crown tells you its temper, on the first-contact card and in the log<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.5</b></div>
         <div style="margin-bottom:12px;">
@@ -6290,7 +6292,8 @@ function safeColor(c, fallback) {
 }
 
 function showFirstContact(nation) {
-  logEvent(`Discovered ${nation.name}!`);
+  const temper = temperOf(nation);
+  logEvent(`Discovered ${nation.name}!${temper ? ` A ${temper.name.toLowerCase()} crown: ${temper.desc.charAt(0).toLowerCase() + temper.desc.slice(1)}` : ''}`);
   SMK.letter(); SMK.chime();
   const sc = safeColor(nation.color);
   const overlay = document.createElement('div');
@@ -6301,7 +6304,7 @@ function showFirstContact(nation) {
       : `<div style="width:70px;height:70px;border-radius:50%;background:${sc};border:3px solid rgba(255,255,255,0.3);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px ${sc}40;"><span style="font-size:32px;">\uD83C\uDFF3\uFE0F</span></div>`; })()}
     <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:16px;text-shadow:0 0 10px rgba(180,140,60,0.4);">First Contact</div>
     <div style="color:#fff;font-size:26px;font-family:'Uncial Antiqua',cursive;margin:6px 0;text-shadow:0 0 15px ${sc}60;">${/^(Kingdom|Empire|Duchy|Grand|Holy|United|Republic|Ottoman|Dutch|Polish|Swiss|Papal|Iroquois|Mughal|Qing|Russian|Aztec|Inca|Maori|Zulu|Comanche|Maya)\b|Confederacy|Empire|Kingdom|Republic|States|Union|Federation|Commonwealth|League$/.test(nation.name) ? 'The ' : ''}<span style="color:${sc}">${escHtml(nation.name)}</span></div>
-    <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.</div>
+    <div style="color:#a89878;font-size:13px;">A new civilization has been discovered.${temper ? ` <span style="color:#e0c070;font-style:italic;">${temper.name}</span>: ${escHtml(temper.desc)}` : ''}</div>
   </div>`;
   // (held back while an event card is open, so the banner never lies over a choice being made)
   const game = tiles; // (the banner belongs to this game: dropped if the player has quit or loaded another meanwhile)
