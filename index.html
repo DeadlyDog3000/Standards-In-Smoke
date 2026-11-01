@@ -945,6 +945,13 @@
           </select>
         </div>
         <div class="setup-row">
+          <span class="setup-label">Start</span>
+          <select id="setupStart" class="setup-input" style="width:180px;" title="1805: the map of Europe in the year of Austerlitz, the great crowns armed and the Third Coalition already at war with France">
+            <option value="1680" selected>1680: a new crown</option>
+            <option value="1805">1805: the Coalition</option>
+          </select>
+        </div>
+        <div class="setup-row">
           <span class="setup-label">Score counted at</span>
           <select id="setupScoreTurn" class="setup-input" style="width:180px;">
             <option value="200" selected>Turn 200</option>
@@ -1064,7 +1071,7 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">The Road Ahead</b><br>
+        <b style="color:#b8a070;">1805, Coalitions and the Road Ahead</b><br>
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
         - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
         - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
@@ -1072,6 +1079,7 @@
         - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
         - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
+        - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns and the armies of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2136,7 +2144,7 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">The Road Ahead</b><br>
+          <b style="color:#b8a070;">1805, Coalitions and the Road Ahead</b><br>
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
           - Coalitions: once your crown stands far ahead (the second alarm of Europe), the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another: the First Coalition, then the Second, no sooner than some thirty-five turns apart<br>
           - And when a rival crown grows too great (a third of all the towns and well ahead in score), the others band together against it and ask you to join them: join, and you are at war with it at the coalition's side<br>
@@ -2144,6 +2152,7 @@
           - Achievements, kept in your browser across every game: fifteen of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - The opening turns are your own: no crown declares war on you before turn 40 on Easy, 25 on Normal or 15 on Hard (unless you start one)<br>
           - The other crowns' battles at the end of a turn can be shown, played quickly, or left out unless you fight in them (Options, Their battles), and Space or Esc skips the rest of a replay<br>
+          - A new start, 1805: the Coalition (under Start when you set up a game). The map of Europe in the year of Austerlitz, charted to its edges: the great crowns come first, every crown begins with the learning, the towns and the armies of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with France and her allies, while Prussia, Saxony, Denmark and the Porte stand apart. Choose your side by choosing your crown<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -3869,8 +3878,10 @@ function playerProgress() {
   const me = nations[playerNation];
   let v = 0;
   if (me && !me.eliminated) {
-    const techShare = (me.researched ? me.researched.size : 0) / Math.max(1, Object.keys(TECHS).length);
-    const myCities = cities.filter(c => c.nationId === playerNation).length;
+    // (an 1805 start counts only what was gained since: every crown began with the learning and towns of the age)
+    const base = scenario === '1805' ? SCEN_1805.techs.length : 0;
+    const techShare = Math.max(0, (me.researched ? me.researched.size : 0) - base) / Math.max(1, Object.keys(TECHS).length - base);
+    const myCities = Math.max(0, cities.filter(c => c.nationId === playerNation).length - (scenario === '1805' ? 2 : 0));
     const rivals = nations.filter((n, i) => i !== playerNation && !n.eliminated && !n.isBarbarian && !n.isTribe);
     const avg = rivals.length ? rivals.reduce((a, n) => a + getScore(nations.indexOf(n)), 0) / rivals.length : 0;
     const lead = avg > 0 ? Math.max(0, Math.min(1, (getScore(playerNation) / avg - 1) / 1.5)) : 0;
@@ -4096,8 +4107,9 @@ let currentSeason = 'spring';
 const SEASON_LENGTH = 1; // turns per season
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const START_YEAR = 1680;
+let scenario = null, startYear = START_YEAR;   // (the 1805 start begins its calendar there; both saved with the game)
 const TURNS_PER_YEAR = 32;
-function getCurrentYear() { return START_YEAR + Math.floor((turnNumber - 1) / (SEASON_LENGTH * 4)); }
+function getCurrentYear() { return startYear + Math.floor((turnNumber - 1) / (SEASON_LENGTH * 4)); }
 const SEASON_EFFECTS = {
   spring: { foodMult: 1.2, moveMod: 0, attrition: false, icon: '\uD83C\uDF31', desc: 'Fertile season, +20% food' },
   summer: { foodMult: 1.0, moveMod: 0, attrition: false, icon: '\u2600\uFE0F', desc: 'Clear weather, normal conditions' },
@@ -6762,6 +6774,51 @@ function europeExtraTowns(nId, presetName) {
       foundCity(settler, nm); made++; done = true;
     }
   }
+}
+// ---- the 1805 start: Europe in the year of Austerlitz. The great crowns come first, every crown begins with the arms
+//  and learning of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with
+//  France and her allies; Prussia, Saxony, Denmark and the Porte stand apart ----
+const SCEN_1805 = {
+  first: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia', 'Spain', 'Sweden', 'Ottoman Empire', 'Kingdom of Naples', 'Bavaria', 'Kingdom of Italy', 'Portugal', 'Kingdom of Holland', 'Denmark-Norway', 'Duchy of Warsaw', 'Kingdom of Saxony', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau', 'Belgium'],
+  coalition: ['Great Britain', 'Austria', 'Russia', 'Sweden', 'Kingdom of Naples'],
+  france: ['France', 'Kingdom of Italy', 'Bavaria', 'Kingdom of Holland', 'Spain', 'Swiss Confederation', 'Duchy of Nassau', 'Westphalia', 'Duchy of Warsaw', 'Belgium'],
+  great: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia'],
+  techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
+};
+function apply1805() {
+  startYear = 1805;
+  const crowns = nations.filter(n => !n.isBarbarian && !n.isTribe);
+  for (const n of crowns) {
+    for (const t of SCEN_1805.techs) if (TECHS[t]) n.researched.add(t);
+    const great = SCEN_1805.great.includes(n.name);
+    const towns = cities.filter(c => c.nationId === n.id);
+    for (const c of towns) {
+      c.population = Math.max(c.population || 1, c.isCapital ? (great ? 6 : 4) : 3);
+      if (c.isCapital) { c.buildings = c.buildings || []; if (!c.buildings.includes('fortifications')) c.buildings.push('fortifications'); }
+      if (typeof setCityTiles === 'function') setCityTiles(c);
+    }
+    const cap = towns.find(c => c.isCapital) || towns[0]; if (!cap) continue;
+    const army = great ? ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'] : ['musketeer', 'musketeer', 'hussar', 'field_gun'];
+    for (const t of army) { const p = findLandNear(cap.x, cap.y, 4, true); if (p) spawnUnit(t, n.id, p.x, p.y); }
+    n.gold = (n.gold || 0) + (great ? 150 : 80); n.steel = (n.steel || 0) + 60; n.gunpowder = (n.gunpowder || 0) + 60; n.food = (n.food || 0) + 60;
+  }
+  const side = n => SCEN_1805.coalition.includes(n.name) ? 'c' : SCEN_1805.france.includes(n.name) ? 'f' : null;
+  for (const a of crowns) for (const b of crowns) {
+    if (a === b || !side(a) || !side(b)) continue;
+    if (side(a) !== side(b)) { a.relations[b.id] = 'war'; if (getLoyalty(a.id, b.id) > -40) changeLoyalty(a.id, b.id, -40 - getLoyalty(a.id, b.id)); }
+    else { if (!hasAgreement(a.id, b.id, 'war_help')) addAgreement(a.id, b.id, 'war_help'); if (getLoyalty(a.id, b.id) < 40) changeLoyalty(a.id, b.id, 40 - getLoyalty(a.id, b.id)); }
+  }
+  for (const n of crowns) { n._warSince = {}; for (const [id, r] of Object.entries(n.relations)) if (r === 'war' && nations[id] && !nations[id].isBarbarian) n._warSince[id] = 1; }
+  const me = nations[playerNation], mySide = side(me);
+  const foes = crowns.filter(n => n.id !== playerNation && me.relations[n.id] === 'war').map(n => n.name), friends = crowns.filter(n => n.id !== playerNation && mySide && side(n) === mySide).map(n => n.name);
+  const say = mySide === 'c' ? `It is 1805. You stand with the Third Coalition${friends.length ? ` (${listAnd(friends)})` : ''} against France and her allies${foes.length ? `: ${listAnd(foes)}` : ''}.`
+    : mySide === 'f' ? `It is 1805. You stand with France${friends.length ? ` (${listAnd(friends)})` : ''} against the Third Coalition${foes.length ? `: ${listAnd(foes)}` : ''}.`
+    : `It is 1805. Europe is at war: the Third Coalition against France. Your crown stands apart, for now.`;
+  setTimeout(() => showToast(say), 1200);   // (the toast writes it in the log too)
+  // (all of the crowns are known to one another in 1805, and Europe is charted to its edges)
+  for (const n of crowns) if (n.id !== playerNation) discoveredNations.add(n.id);
+  for (const t of tiles) for (const n of crowns) t.revealed.add(n.id);
+  visionDirty = true; minimapDirty = true;
 }
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
 function europeCapitalSite(name) {
@@ -18612,6 +18669,8 @@ function confirmSetupAndStart() {
   scoreTurnLimit = parseInt(document.getElementById('setupScoreTurn')?.value ?? '200', 10); if (Number.isNaN(scoreTurnLimit)) scoreTurnLimit = 200;
   ambitionVictoryOn = document.getElementById('setupAmbitionWin')?.value !== '0';
   mapStyle = document.getElementById('setupMapStyle')?.value === 'europe' ? 'europe' : 'random';
+  scenario = document.getElementById('setupStart')?.value === '1805' ? '1805' : null; startYear = 1680;
+  if (scenario === '1805') mapStyle = 'europe';   // (1805 is played on the map of Europe)
   const _barbDensVal = parseInt(document.getElementById('setupBarbarians').value);
   barbarianDensity = (Number.isNaN(_barbDensVal) ? 40 : _barbDensVal) / 100;
   barbSpawnTurn = parseInt(document.getElementById('setupBarbSpawnTurn').value) || 3;
@@ -20742,7 +20801,7 @@ function serializeGame() {
     tileAnnotations,
     tutorialActive, tutorialStep,
     eventLogEntries: eventLogEntries.slice(-200),
-    townLog, scoreTurnLimit, ambitionVictoryOn, mapStyle,
+    townLog, scoreTurnLimit, ambitionVictoryOn, mapStyle, scenario, startYear,
     ordersRemaining,
     activatedUnitIdx: sUnits.map((_, i) => activatedUnits.has(units[i]) ? i : -1).filter(i => i >= 0),
   });
@@ -20863,6 +20922,7 @@ function deserializeGame(json) {
   townLog = d.townLog && Array.isArray(d.townLog.ev) ? d.townLog : { ev: [] }; _townLast = null;
   scoreTurnLimit = typeof d.scoreTurnLimit === 'number' ? d.scoreTurnLimit : 200; ambitionVictoryOn = d.ambitionVictoryOn !== false;
   mapStyle = d.mapStyle === 'europe' ? 'europe' : 'random';
+  scenario = d.scenario || null; startYear = typeof d.startYear === 'number' ? d.startYear : 1680;
   if (typeof d.tutorialActive === 'boolean') { tutorialActive = d.tutorialActive; tutorialStep = d.tutorialStep || 0; }
   ordersRemaining = (typeof d.ordersRemaining === 'number') ? d.ordersRemaining : getMaxOrders(playerNation);
   activatedUnits = new Set();
@@ -21016,7 +21076,8 @@ function findRandomCapitalSite() {
 
 function spawnAINations(count) {
   // (never the player's own nation twice; on the Europe map, only the crowns of Europe)
-  const shuffled = [...PRESET_NATIONS].filter(p => p.name !== nations[playerNation]?.name && (mapStyle !== 'europe' || EUROPE_CAPITALS[p.name])).sort(() => Math.random() - 0.5);
+  let shuffled = [...PRESET_NATIONS].filter(p => p.name !== nations[playerNation]?.name && (mapStyle !== 'europe' || EUROPE_CAPITALS[p.name])).sort(() => Math.random() - 0.5);
+  if (scenario === '1805') shuffled.sort((a, b) => (SCEN_1805.first.indexOf(a.name) + 99) % 99 - (SCEN_1805.first.indexOf(b.name) + 99) % 99);   // (the great crowns first)
   const toSpawn = Math.min(count, shuffled.length);
   for (let i = 0; i < toSpawn; i++) {
     const preset = shuffled[i];
@@ -21284,6 +21345,7 @@ function generateAndPlay(pName, pColor, opponents) {
 
   const aiCount = opponents || Math.max(1, Math.min(4, Math.floor(MAP_COLS * MAP_ROWS / 3000)));
   spawnAINations(aiCount);
+  if (scenario === '1805') apply1805();
   const tribeCount = mapStyle === 'europe' ? 0 : Math.max(2, Math.min(8, Math.floor(MAP_COLS * MAP_ROWS / 2000)));   // (no tribes of the New World in Europe)
   spawnTribes(tribeCount);
 
@@ -21309,7 +21371,7 @@ function generateAndPlay(pName, pColor, opponents) {
     const pn = nations[playerNation];
     for (const r of ['gold', 'food', 'wood', 'stone', 'steel']) pn[r] += startDiff.playerBonusResources;
   }
-  showToast(`You are ${pName}. Found your empire!`);
+  showToast(scenario === "1805" ? `You are ${pName}, in the year 1805.` : `You are ${pName}. Found your empire!`);
   showUpdateLogPopup();
   startTutorial();
   setTimeout(checkEndTurnReminders, 1200);
