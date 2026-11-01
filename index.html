@@ -1149,6 +1149,7 @@
         - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+        - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2271,6 +2272,7 @@
           - Faster turns: the next season's map is drawn ahead while you think (on computers with the memory for it), so the end of a turn on a large map no longer waits a third of a second to recolour the sheet<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
           - Closing a panel by clicking beside it no longer lets the click fall through to what lies beneath<br>
+          - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -10506,8 +10508,12 @@ function aiTurn(nationId) {
         if (n.relations[eid] === 'war' && nations[allyId].relations[eid] !== 'war') {
           if (hasAgreement(allyId, eid, 'war_help') || hasAgreement(allyId, eid, 'marriage')) continue;   // (a new ally does not turn on its own allies or in-laws)
           if (eid === playerNation) {
-            // joining a war on you: not while a peace treaty with you holds, and never without telling you
+            // joining a war on you: not while a peace treaty with you holds, not in your opening turns, not from the far
+            //  side of the world (a crown with no town within reach of yours stays out), and never without telling you
             if (turnNumber < (nations[allyId]._peaceCooldown?.[playerNation] || 0)) continue;
+            if (turnNumber < ({ easy: 40, hard: 15 }[gameDifficulty] ?? 25)) continue;
+            const mine = cities.filter(c => c.nationId === playerNation);
+            if (!cities.some(c => c.nationId === allyId && mine.some(m => hexDistance(m.x, m.y, c.x, c.y) <= 22))) continue;
             for (const aType of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(playerNation, allyId, aType);
           }
           nations[allyId].relations[eid] = 'war';
