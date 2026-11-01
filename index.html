@@ -14728,7 +14728,7 @@ function owPrebuildNextSeason() {
   const save = { canvas: OW.canvas, mips: OW.mips, key: OW.key, season: OW.season, K: OW.K, CS: OW.CS, CH: OW.CH }, cs = currentSeason;
   OW.canvas = OW.spare || null; OW.mips = OW.spareMips || [];
   currentSeason = nxt;
-  try { buildWorldChart(key); OW.next = { canvas: OW.canvas, mips: OW.mips, key, season: OW.season }; OW.spare = null; OW.spareMips = null; }
+  try { buildWorldChart(key); OW.next = { canvas: OW.canvas, mips: OW.mips, key, season: OW.season, tilesRef: tiles }; OW.spare = null; OW.spareMips = null; }
   catch (e) { OW.next = null; }
   finally { currentSeason = cs; Object.assign(OW, save); }
 }
@@ -14741,7 +14741,7 @@ function owSchedulePrebuild() {
     if (++_owIdleTries > 30) return;
     if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 1200 || !OW.canvas) { setTimeout(tryIt, 700); return; }
     const key = worldChartKey();
-    if (OW.key !== key) { OW.landLate = 0; try { buildWorldChart(key); } catch (e) { console.error(e); } setTimeout(tryIt, 700); return; }   // (the land changed: this season's sheet first)
+    if (OW.key !== key) { OW.landLate = 0; try { buildWorldChart(key); OW.sheetTiles = tiles; } catch (e) { console.error(e); } setTimeout(tryIt, 700); return; }   // (the land changed: this season's sheet first)
     owPrebuildNextSeason();
   };
   setTimeout(tryIt, 1500);
@@ -14753,18 +14753,20 @@ function getWorldChart() {
   // (a key is 'WxH:land:season'; what matters here is whether only the land differs, a few hexes cleared or drained)
   const split = k => { const i = (k || '').lastIndexOf(':'); return { dims: (k || '').split(':')[0], season: (k || '').slice(i + 1) }; };
   const want = split(key);
+  // (a sheet drawn for another game, new or loaded, is never shown for this one: each is tied to its game's tiles)
+  if (OW.next && OW.next.tilesRef !== tiles) OW.next = null;
   if (OW.key !== key && OW.next) {   // (the sheet drawn ahead for this season: swap it in, and keep the old one as the spare)
     const nx = split(OW.next.key);
     if (nx.season === want.season && nx.dims === want.dims) {
       OW.spare = OW.canvas; OW.spareMips = OW.mips;
-      OW.canvas = OW.next.canvas; OW.mips = OW.next.mips; OW.season = OW.next.season; OW.key = OW.next.key; OW.next = null;
+      OW.canvas = OW.next.canvas; OW.mips = OW.next.mips; OW.season = OW.next.season; OW.key = OW.next.key; OW.sheetTiles = tiles; OW.next = null;
     } else if (nx.season !== split(OW.key).season && nx.season !== want.season) OW.next = null;
   }
   if (OW.key !== key) {
     // only the land has changed: the sheet stands a few seconds more and is drawn again when the player is idle
-    const have = split(OW.key), onlyLand = OW.canvas && have.season === want.season && have.dims === want.dims && owCanPrebuild();
+    const have = split(OW.key), onlyLand = OW.canvas && OW.sheetTiles === tiles && have.season === want.season && have.dims === want.dims && owCanPrebuild();
     if (onlyLand && !OW.landLate) { OW.landLate = performance.now(); owSchedulePrebuild(); }
-    if (!onlyLand || performance.now() - OW.landLate > 10000) { OW.landLate = 0; try { buildWorldChart(key); } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } if (!OW.next) owSchedulePrebuild(); }
+    if (!onlyLand || performance.now() - OW.landLate > 10000) { OW.landLate = 0; try { buildWorldChart(key); OW.sheetTiles = tiles; } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } if (!OW.next) owSchedulePrebuild(); }
   }
   return OW.canvas;
 }
