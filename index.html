@@ -1109,6 +1109,7 @@
         - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
         - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
         - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
+        - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2198,6 +2199,7 @@
           - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
           - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
           - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
+          - In 1805 the crowns are ruled by the men of the age: Napoleon, George III, Francis II, Alexander I, Frederick William III and the rest, with their consorts and something of their tempers<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -6840,12 +6842,38 @@ const SCEN_1805 = {
   coalition: ['Great Britain', 'Austria', 'Russia', 'Sweden', 'Kingdom of Naples'],
   france: ['France', 'Kingdom of Italy', 'Bavaria', 'Kingdom of Holland', 'Spain', 'Swiss Confederation', 'Duchy of Nassau', 'Westphalia', 'Duchy of Warsaw', 'Belgium'],
   great: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia'],
+  // the crowns' heads in 1805 and their consorts: [name, gender, age, traits, consort, consort's age] (where a regent
+  //  governed, the regent; a crown without a consort keeps the one it was given)
+  rulers: {
+    'France': ['Napoleon Bonaparte', 'male', 35, ['martial', 'charismatic'], 'Joséphine de Beauharnais', 42],
+    'Great Britain': ['George III', 'male', 66, ['pious', 'frugal'], 'Charlotte of Mecklenburg', 61],
+    'Austria': ['Francis II', 'male', 37, ['industrious'], 'Maria Theresa of Naples', 33],
+    'Russia': ['Alexander I', 'male', 27, ['diplomatic', 'charismatic'], 'Elizabeth Alexeievna', 26],
+    'Prussia': ['Frederick William III', 'male', 35, ['frugal'], 'Louise of Mecklenburg', 29],
+    'Spain': ['Charles IV', 'male', 56, ['pious'], 'Maria Luisa of Parma', 53],
+    'Sweden': ['Gustav IV Adolf', 'male', 26, ['pious', 'reckless'], 'Frederica of Baden', 23],
+    'Ottoman Empire': ['Selim III', 'male', 43, ['brilliant'], null],
+    'Kingdom of Naples': ['Ferdinand IV', 'male', 54, ['frugal'], 'Maria Carolina of Austria', 52],
+    'Bavaria': ['Maximilian Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29],
+    'Kingdom of Italy': ['Eugène de Beauharnais', 'male', 23, ['martial'], 'Augusta of Bavaria', 17],
+    'Portugal': ['John, Prince Regent', 'male', 38, ['diplomatic'], 'Carlota Joaquina', 30],
+    'Kingdom of Holland': ['Louis Bonaparte', 'male', 26, ['diplomatic'], 'Hortense de Beauharnais', 22],
+    'Denmark-Norway': ['Frederick, Crown Prince', 'male', 37, ['industrious'], 'Marie of Hesse-Kassel', 37],
+    'Kingdom of Saxony': ['Frederick Augustus', 'male', 54, ['pious'], 'Amalie of Zweibrücken', 53],
+  },
   techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
 };
 function apply1805() {
   startYear = 1805;
   const crowns = nations.filter(n => !n.isBarbarian && !n.isTribe);
   for (const n of crowns) {
+    const hist = SCEN_1805.rulers[n.name], ruler = hist && getNationRuler(n.id);
+    if (ruler) {
+      Object.assign(ruler, { name: hist[0], gender: hist[1], age: hist[2], traits: hist[3].filter(t => CHARACTER_TRAITS[t]), birthTurn: turnNumber - hist[2] * SEASON_LENGTH * 4 });
+      const sp = getNationSpouse(n.id);
+      if (sp && hist[4]) Object.assign(sp, { name: hist[4], gender: hist[1] === 'male' ? 'female' : 'male', age: hist[5], birthTurn: turnNumber - hist[5] * SEASON_LENGTH * 4 });
+      else if (sp && sp.gender === hist[1]) { sp.gender = hist[1] === 'male' ? 'female' : 'male'; sp.name = generateCharacterName(sp.gender, n.id); }
+    }
     for (const t of SCEN_1805.techs) if (TECHS[t]) n.researched.add(t);
     const great = SCEN_1805.great.includes(n.name);
     const towns = cities.filter(c => c.nationId === n.id);
