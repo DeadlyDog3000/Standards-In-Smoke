@@ -1110,6 +1110,7 @@
         - Blenheim: in a 1700 game where none of France, Bavaria, Britain or Austria is yours, Marlborough and Prince Eugene destroy the Franco-Bavarian army in the field in 1704<br>
         - The great battles of 1756 among the crowns you don't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759<br>
         - The great battles of 1805 among the crowns you don't hold: Austerlitz, Jena and Auerstedt, Leipzig<br>
+        - Field Manual: a History page with the turns history takes in each of the three starts<br>
         - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
         - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
         - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
@@ -1145,9 +1146,9 @@
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
         - Achievements, kept in your browser across every game: twenty of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
-        - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
         - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+        - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
         - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
         - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
@@ -2241,6 +2242,7 @@
           - Blenheim: in a 1700 game where none of France, Bavaria, Britain or Austria is yours, Marlborough and Prince Eugene destroy the Franco-Bavarian army in the field in 1704<br>
           - The great battles of 1756 among the crowns you don't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759<br>
           - The great battles of 1805 among the crowns you don't hold: Austerlitz, Jena and Auerstedt, Leipzig<br>
+          - Field Manual: a History page with the turns history takes in each of the three starts<br>
           - An 1805 game opens with a card laying out the year: who reigns, your side and your enemies, when the score is counted, and what history has in store<br>
           - In a game begun in 1805, history moves as it did if the crowns are still placed for it: in 1806 Prussia joins the Fourth Coalition against France, in 1807 Russia may make peace with France at Tilsit, in 1808 Spain rises against the French, in 1809 Austria takes up arms again, in 1812 Russia and France come to war, and in 1813 the Sixth Coalition forms<br>
           - In 1806 the Holy Roman Empire is dissolved, and Francis II reigns on as Francis I of Austria<br>
@@ -2276,9 +2278,9 @@
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
           - Achievements, kept in your browser across every game: twenty of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
-          - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Fix: a crown that signs a war alliance no longer turns on its own allies or in-laws to join its new friend's wars, and your allies never join a coalition against you (Britain could declare war on its Prussian ally)<br>
           - Fewer wars out of nowhere: a crown that joins its new ally's war on you now keeps to your opening turns' peace like any other, and one with no town within reach of yours stays out of it<br>
+          - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
           - A town no longer offers regiments your crown has outgrown: once the drill that upgrades one is learned, only the newer is offered (swordsmen give way to grenadiers, crossbowmen to musketeers; siege guns stay)<br>
           - Pointing at a hex beyond this turn's march shows the whole route, with a numbered roundel where each turn's march will end; and the number on a march within reach now counts the moves it costs (woods, hills, rivers and boats included), not the hexes<br>
@@ -9973,6 +9975,15 @@ function openManual(tab) {
   } else if (T === 'promotions') {
     body = `<p class="man-lede">A regiment earns a promotion at each rank (Trained, Veteran, Elite, Legendary) and chooses it from two in its panel.</p>` +
       Object.entries(PROMOTIONS).map(([k, p]) => `<div class="man-row man-text"><div><b class="man-name">${escHtml(p.name)}</b><p>${escHtml(p.desc)}</p></div></div>`).join('');
+  } else if (T === 'history') {
+    // (the turns history takes in each historical start, if the crowns are still placed for it; the battles only among crowns you don't hold)
+    const H = [
+      ['1700: the Spanish Succession', [['1700', 'Denmark makes peace with Sweden at Travendal'], ['1702', 'William III dies, and Anne reigns'], ['1704', 'Blenheim: Marlborough and Eugene destroy the Franco-Bavarian army'], ['1706', 'Saxony makes peace with Sweden at Altranstädt'], ['1709', 'Poltava: the army of Charles XII is broken in Russia'], ['1714', 'The Peace of Utrecht and Rastatt: the score is counted']]],
+      ["1756: the Seven Years' War", [['1757', 'Russia and Sweden come in against Prussia; Rossbach and Leuthen'], ['1758', "Britain's subsidy to Prussia"], ['1759', 'Kunersdorf'], ['1760', 'George II dies, and George III reigns'], ['1762', 'The Empress Elizabeth dies and Russia makes peace with Prussia; Spain and Portugal come into the war'], ['1763', 'The Peace of Paris: the score is counted']]],
+      ['1805: the Coalition', [['1805', 'Trafalgar and Austerlitz'], ['1806', 'The Holy Roman Empire ends; Prussia goes to war and is broken at Jena; the Continental System'], ['1807', 'Tilsit: Russia may make peace with France'], ['1808', 'Charles IV gives up the throne of Spain, and Spain rises'], ['1809', 'Austria takes up arms again'], ['1810', 'Napoleon marries Marie Louise'], ['1811', 'The King of Rome is born; the Regency in Britain'], ['1812', 'Russia and France at war'], ['1813', 'The Sixth Coalition, and Leipzig'], ['1815', 'The Congress of Vienna: the score is counted']]],
+    ];
+    body = `<p class="man-lede">In a historical start history moves as it did, while the crowns are still placed for it; the great battles are fought only among crowns that aren't yours.</p>` +
+      H.map(([t, rows]) => `<div class="section-title">${escHtml(t)}</div>` + rows.map(([y, d]) => `<div class="man-row man-text"><div><b class="man-name">${y}</b><p>${escHtml(d)}</p></div></div>`).join('')).join('');
   } else if (T === 'crowns') {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
@@ -9995,7 +10006,7 @@ function openManual(tab) {
       [1, 2, 3].map(tier => `<div class="section-title">${['', 'First ambitions', 'Grander ambitions', 'The grandest'][tier]}</div>` +
         AMBITIONS.filter(a => a.tier === tier).map(a => `<div class="man-row man-text"><div><b class="man-name">${escHtml(a.name)}</b><p>${escHtml(a.desc)}</p></div></div>`).join('')).join('');
   }
-  const tabs = [['regiments', 'Regiments'], ['buildings', 'Buildings'], ['improvements', 'Improvements'], ['promotions', 'Promotions'], ['ambitions', 'Ambitions'], ['crowns', 'Crowns']];
+  const tabs = [['regiments', 'Regiments'], ['buildings', 'Buildings'], ['improvements', 'Improvements'], ['promotions', 'Promotions'], ['ambitions', 'Ambitions'], ['crowns', 'Crowns'], ['history', 'History']];
   const ov = document.createElement('div'); ov.id = 'manualOverlay';
   ov.innerHTML = `<div class="event-card man-card"><h3>Field Manual</h3>
     <div class="man-tabs">${tabs.map(([k, l]) => `<button class="${k === T ? 'on' : ''}" onclick="openManual('${k}')">${l}</button>`).join('')}</div>
