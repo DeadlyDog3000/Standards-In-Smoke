@@ -1107,6 +1107,7 @@
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
+        - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2194,6 +2195,7 @@
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
+          - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -16741,7 +16743,8 @@ function render() {
 
   if (!render._ambientTick) render._ambientTick = 0;
   if (++render._ambientTick % 5 === 0) { updateAmbientBirds(); updateAmbientTown(); }
-  const turnStr = 'Turn ' + turnNumber, zoomStr = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
+  const scoreIn = scoreTurnLimit > 0 ? scoreTurnLimit - turnNumber : 0;   // (the last stretch before the score is counted is shown beside the turn)
+  const turnStr = 'Turn ' + turnNumber + (scoreIn > 0 && scoreIn <= 20 ? ` \u00b7 score counted in ${scoreIn} turn${scoreIn === 1 ? '' : 's'}` : ''), zoomStr = `Zoom: ${Math.round(VIEW_TILE / 24 * 100)}%`;
   const ti = document.getElementById('turnInfo'); if (ti.textContent !== turnStr) ti.textContent = turnStr;
   const zi = document.getElementById('zoomInfo'); if (zi.textContent !== zoomStr) zi.textContent = zoomStr;
 
