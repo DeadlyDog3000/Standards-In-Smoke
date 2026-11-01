@@ -1108,6 +1108,7 @@
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
         - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
+        - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
       <div style="margin-bottom:12px;">
@@ -2196,6 +2197,7 @@
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - An 1805 game counts its score at 1815, when the Congress of Vienna meets, or at 1825 (a new crown keeps Turn 200 or 300)<br>
           - In the last twenty turns before the score is counted, the turn counter says how many are left<br>
+          - The Map Through the Years shows the towns from the first turn (it was empty until a turn had ended)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.6</b></div>
         <div style="margin-bottom:12px;">
@@ -9289,6 +9291,7 @@ function drawTownMap(cv, upTo, all) {
 }
 function openTownMap(all) {
   const ov = document.getElementById('chronicleOverlay'); if (!ov) return;
+  recordTowns();   // (the towns as they stand now, so the first turn's map has its towns too)
   const card = ov.querySelector('.chron-card');
   const tMin = townLog.ev.length ? townLog.ev[0][0] : turnNumber, tMax = turnNumber;
   const W = 560, H = Math.round(560 * MAP_ROWS / (MAP_COLS + 0.5) * 0.87);
