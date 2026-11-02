@@ -1126,6 +1126,7 @@
         - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
         - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
         - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
+        - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2293,6 +2294,7 @@
           - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
           - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
           - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
+          - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -8352,6 +8354,9 @@ function tickScenario() {
       pr.relations[fr.id] = 'war'; fr.relations[pr.id] = 'war';
       for (const n of nations) if (!n.eliminated && SCEN_1805.coalition.includes(n.name) && n.relations[fr.id] === 'war' && n.id !== pr.id && !hasAgreement(n.id, pr.id, 'war_help')) addAgreement(n.id, pr.id, 'war_help');
       const say = `1806: Prussia joins the Fourth Coalition and declares war on France.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
+    } else {
+      const p2 = nations.find(x => x.name === 'Prussia' && !x.eliminated);
+      if (p2 && p2.id === playerNation && fr && fr.id !== playerNation && p2.relations[fr.id] !== 'war' && !window.__film) scenChoice('The Fourth Coalition', 'The French have marched through Prussian Ansbach and offered Hanover to Britain behind your back. The court cries for war.', [['Go to war with France', () => { p2.relations[fr.id] = 'war'; fr.relations[p2.id] = 'war'; for (const n of nations) if (!n.eliminated && SCEN_1805.coalition.includes(n.name) && n.relations[fr.id] === 'war' && n.id !== p2.id && !hasAgreement(n.id, p2.id, 'war_help')) addAgreement(n.id, p2.id, 'war_help'); const say = 'Prussia joins the Fourth Coalition and declares war on France.'; showToast(say); annal(say); }], ['Keep the peace', () => { annal('The Fourth Coalition: we kept the peace.'); }]]);
     }
   }
   // (a crown turns on France: war with it, and allied to France's other enemies)
@@ -8362,14 +8367,21 @@ function tickScenario() {
     for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[fr.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
     showToast(say); annal(say.replace(/^\d{4}: /, '')); return true;
   };
+  // (and if the crown is yours, history's war is put to you: take up arms against France, or keep the peace)
+  const offerArms = (nm, title, text, say) => {
+    const n = nations.find(x => x.name === nm && !x.eliminated);
+    if (!n || n.id !== playerNation || !fr || fr.id === playerNation || n.relations[fr.id] === 'war' || window.__film) return;
+    scenChoice(title, text, [['Go to war with France', () => turnOnFrance(n, say)], ['Keep the peace', () => { annal(`${title}: we kept the peace.`); }]]);
+  };
   if (year >= 1808 && !done.spain) {
     done.spain = true;
     const es = byName('Spain');
     // (Charles IV abdicates at Aranjuez, and his son reigns as Ferdinand VII)
     if (es && getNationRuler(es.id)?.name === 'Charles IV') abdicate(es.id);
     turnOnFrance(es, '1808: Spain rises against the French, and Britain sends an army to help.');
+    offerArms('Spain', 'The Dos de Mayo', 'Madrid has risen against the French garrison, and the provinces are taking up arms. Britain offers an army.', '1808: Spain rises against the French, and Britain sends an army to help.');
   }
-  if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
+  if (year >= 1809 && !done.austria) { done.austria = true; turnOnFrance(byName('Austria'), '1809: Austria takes up arms against France again, the Fifth Coalition.'); offerArms('Austria', 'The Fifth Coalition', 'With the Emperor of the French busy in Spain, Britain offers subsidies if Austria takes up arms again.', '1809: Austria takes up arms against France again, the Fifth Coalition.'); }
   // (1811: the King's mind fails, and the Prince of Wales governs as Prince Regent; he is crowned George IV when his father dies)
   if (year >= 1811 && !done.regency) {
     done.regency = true;
@@ -8383,8 +8395,8 @@ function tickScenario() {
       if (uk.id === playerNation) { showToast(say); annal(say.slice(6)); } else logEvent(say);
     }
   }
-  if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
-  if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; }
+  if (year >= 1812 && !done.russia) { done.russia = true; turnOnFrance(byName('Russia'), '1812: the alliance of Tilsit is broken: France and Russia are at war.'); offerArms('Russia', 'The End of Tilsit', 'The Continental System is ruining Russian trade, and the Grande Armée is gathering on the Niemen. Break with France?', '1812: the alliance of Tilsit is broken: France and Russia are at war.'); }
+  if (year >= 1813 && !done.sixth) { done.sixth = true; let any = false; for (const nm of ['Prussia', 'Austria', 'Sweden']) any = turnOnFrance(byName(nm), `1813: ${nm} joins the Sixth Coalition against France.`) || any; for (const nm of ['Prussia', 'Austria', 'Sweden']) offerArms(nm, 'The Sixth Coalition', 'The Grande Armée has died in the Russian snows, and the Tsar asks you to join the war against France.', `1813: ${nm} joins the Sixth Coalition against France.`); }
   // (the great battles of the wars, fought among the crowns the player doesn't hold: Austerlitz, Jena, Leipzig)
   const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
   const battle = (key, ok, winner, losers, k, say) => {
