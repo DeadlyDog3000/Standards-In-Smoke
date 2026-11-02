@@ -1119,6 +1119,7 @@
         - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
         - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
         - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
+        - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2279,6 +2280,7 @@
           - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
           - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
           - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
+          - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -6234,6 +6236,8 @@ function boardSelectedShip() {
   updateUI(); render();
 }
 window.boardSelectedShip = boardSelectedShip;
+function cargoFirst(k) { const s = selectedUnit; if (!s || !s.cargo || !s.cargo[k]) return; s.cargo.unshift(s.cargo.splice(k, 1)[0]); showUnitPanel(s); }
+window.cargoFirst = cargoFirst;
 // ---- the other crowns' transports: a ship with regiments aboard sails for the coast nearest their target and lands them
 //  (or, after long enough at sea, at home); an empty one fetches a regiment of its crown waiting on a coast to cross ----
 function seaBeside(d) {
@@ -18861,6 +18865,11 @@ function showUnitPanel(unit) {
       html += `<button class="p-btn" onclick="setFormation('${fKey}')" style="${style};flex:1;min-width:60px;font-size:11px">${fKey.charAt(0).toUpperCase() + fKey.slice(1)}${active ? ' *' : ''}</button>`;
     }
     html += '</div>';
+  }
+  // (a ship of yours with regiments aboard: who they are, and which goes ashore at the next right-click on the coast)
+  if (unit.nationId === playerNation && (unit.cargo || []).length) {
+    html += `<div class="p-section" style="margin:6px 0"><div style="font-size:11px;color:#b8a070;margin-bottom:3px">Aboard (right-click the coast beside her to land the first)</div>` +
+      unit.cargo.map((c, k) => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0"><span style="flex:1">${k === 0 ? '<b>' : ''}${escHtml(cargoName(c))}${k === 0 ? '</b> <span style="color:#9a8a6a">(lands first)</span>' : ''}</span>${k ? `<button class="p-btn" style="margin:0;padding:2px 8px;width:auto;font-size:11px" onclick="cargoFirst(${k})">Land first</button>` : ''}</div>`).join('') + '</div>';
   }
   // (a regiment beside a ship of yours with room aboard: it can go aboard from here as well as by right-clicking the ship)
   if (unit.nationId === playerNation && !UNIT_DEFS[unit.type]?.naval && unit.movesLeft > 0 && !isEmbarked(unit)) {
