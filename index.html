@@ -1083,6 +1083,10 @@
         <span style="font-size:15px;color:#c8b89a;">Auto Next Unit</span>
         <button class="menu-btn" id="menuAutoNextUnitToggle" onclick="toggleAutoNextUnit();this.textContent=autoNextUnit?'On':'Off'" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:15px;color:#c8b89a;" title="Land you have charted but can't see now is washed a dim brown, as an old survey not lately checked">Dim land out of sight</span>
+        <button class="menu-btn dim-unseen-btn" onclick="toggleDimUnseen()" style="min-width:60px;padding:6px 12px;font-size:14px;">On</button>
+      </div>
     </div>
     <div style="background:rgba(30,25,18,0.7);border:1px solid rgba(160,140,100,0.25);border-radius:8px;padding:18px 22px;margin-bottom:14px;">
       <div style="font-family:'Uncial Antiqua',cursive;color:#e0c880;font-size:15px;margin-bottom:12px;">Saved Games</div>
@@ -1150,6 +1154,7 @@
         - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
         - Demanding tribute says its odds on hovering, as peace and pacts do<br>
         - And so does a proposal of marriage<br>
+        - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2340,6 +2345,7 @@
           - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
           - Demanding tribute says its odds on hovering, as peace and pacts do<br>
           - And so does a proposal of marriage<br>
+          - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -3614,6 +3620,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;">Auto Next Unit</span>
         <button class="esc-btn" id="autoNextUnitBtn" onclick="toggleAutoNextUnit()" style="width:auto;margin:0;padding:6px 18px;">On</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:15px;" title="Land you have charted but can't see now is washed a dim brown, as an old survey not lately checked">Dim land out of sight</span>
+        <button class="esc-btn dim-unseen-btn" onclick="toggleDimUnseen()" style="width:auto;margin:0;padding:6px 18px;">On</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:15px;" title="The battles of the other crowns' turns. Space or Esc skips the rest of a replay">Their battles</span>
@@ -17103,9 +17113,9 @@ function owMasks(pId) {
   for (let i = 0; i < tiles.length; i++) {
     if (!tiles[i].revealed.has(pId)) continue;
     sig = (Math.imul(sig, 31) + i) | 0;
-    if (currentVisionSet && !currentVisionSet.has(i)) vsig = (Math.imul(vsig, 31) + i) | 0;
+    if (dimUnseen && currentVisionSet && !currentVisionSet.has(i)) vsig = (Math.imul(vsig, 31) + i) | 0;
   }
-  const kKey = chartKey + '|' + pId + '|' + sig, dKey = kKey + '|' + vsig;
+  const kKey = chartKey + '|' + pId + '|' + sig, dKey = kKey + '|' + vsig + '|' + dimUnseen;
   if (OW.maskKey === dKey && OW.masks) return OW.masks;
   const knownDirty = OW.maskKKey !== kKey || !OW.masks;
   OW.maskKey = dKey; OW.maskKKey = kKey;
@@ -17126,7 +17136,7 @@ function owMasks(pId) {
   // (each pixel of a sheet a third this size takes the state of the hex whose centre is nearest, at the map's edge the edge
   //  hex's; scaled up smoothly that gives the soft border. Building the hexes as a path took seconds on a large map)
   const lw = Math.ceil(W / 3), lh = Math.ceil(H / 3), fxp = W / lw / sc, fyp = H / lh / sc;
-  const vis = currentVisionSet;
+  const vis = dimUnseen ? currentVisionSet : null;
   const kImg = knownDirty ? new ImageData(lw, lh) : null, dImg = new ImageData(lw, lh), kd = kImg && kImg.data, dd = dImg.data;
   let any = false;
   for (let v = 0; v < lh; v++) {
@@ -17490,7 +17500,7 @@ function render() {
 
   const evenNbr = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]];
   const oddNbr  = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
-  if (currentVisionSet && !charted) { // (on the chart, the unseen land is dimmed in its own cached layer)
+  if (currentVisionSet && dimUnseen && !charted) { // (on the chart, the unseen land is dimmed in its own cached layer)
     // the dimmed hexes, as two even layers (a lighter band next to what you can see)
     const fogEdge = [], fogDeep = [];
     for (let my = startRow; my < endRow; my++) {
@@ -20712,9 +20722,15 @@ function showOptionsPanel() {
   document.getElementById('escOptions').style.display = 'block';
   document.getElementById('musicToggleBtn').textContent = musicEnabled ? 'On' : 'Off';
   document.getElementById('autoNextUnitBtn').textContent = autoNextUnit ? 'On' : 'Off';
+  syncDimUnseen();
   document.getElementById('escVolumes').innerHTML = volumeSlidersHtml();
   try { document.getElementById('replayModeSel').value = localStorage.getItem('sis_replay') || 'show'; } catch (e) {}
 }
+// (the brown wash over land charted but out of sight: on by default, off for those who'd rather see the map plain)
+let dimUnseen = true; try { dimUnseen = localStorage.getItem('sis_dim_unseen') !== '0'; } catch (e) {}
+function syncDimUnseen() { document.querySelectorAll('.dim-unseen-btn').forEach(b => b.textContent = dimUnseen ? 'On' : 'Off'); }
+function toggleDimUnseen() { dimUnseen = !dimUnseen; try { localStorage.setItem('sis_dim_unseen', dimUnseen ? '1' : '0'); } catch (e) {} syncDimUnseen(); if (typeof OW !== 'undefined') OW.maskKey = null; if (MAP_COLS) render(); }
+window.toggleDimUnseen = toggleDimUnseen;
 function toggleAutoNextUnit() {
   autoNextUnit = !autoNextUnit;
   const escBtn = document.getElementById('autoNextUnitBtn');
@@ -20932,6 +20948,7 @@ function showMenuOptions() {
   document.getElementById('menuMusicToggle').textContent = musicEnabled ? 'On' : 'Off';
   document.getElementById('menuVolumes').innerHTML = volumeSlidersHtml();
   refreshMenuSaveSlots();
+  syncDimUnseen();
 }
 function hideMenuOptions() {
   document.getElementById('menuOptions').style.display = 'none';
