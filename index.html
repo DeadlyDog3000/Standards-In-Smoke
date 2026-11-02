@@ -12353,7 +12353,7 @@ function moveAIToward(u, tx, ty, steps) {
     if (ship && boardShip(u, ship) === null) { ship._dest = { x: tx, y: ty }; ship._cargoTurns = 0; delete ship._fetch; _aiMaySail = false; u._waited = 0; return; }
     const coming = isCoastal(u.x, u.y) && units.some(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) <= 14);
     if (coming && (u._waited || 0) < 3) { u._waited = (u._waited || 0) + 1; _aiMaySail = false; return; }
-  }
+  } else if (!_aiMaySail && u._waited) u._waited = 0;   // (on dry land again: it may wait for a ship another time)
   try { return moveAITowardImpl(u, tx, ty, steps); } finally { _aiMaySail = false; }
 }
 function moveAITowardImpl(u, tx, ty, steps) {
