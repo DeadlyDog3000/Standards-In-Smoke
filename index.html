@@ -1143,6 +1143,7 @@
         - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
         - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
         - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
+        - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2327,6 +2328,7 @@
           - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
           - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
           - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
+          - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -11751,6 +11753,13 @@ function aiTurn(nationId) {
             if (!nations[otherId]._peaceCooldown) nations[otherId]._peaceCooldown = {};
             n._peaceCooldown[otherId] = turnNumber + 10;
             nations[otherId]._peaceCooldown[nationId] = turnNumber + 10;
+            // (a crown beaten in the field buys its peace with the town the victor's regiments stand before)
+            const victor = nations[otherId];
+            if (severelyOutmatched && !n.isBarbarian && !n.isTribe && victor && !victor.isBarbarian && !victor.isTribe && ourCityCount >= 3) {
+              const vu = (militaryByNation.get(otherId) || []).filter(u => !UNIT_DEFS[u.type]?.naval);
+              const tgt = (citiesByNation.get(nationId) || []).filter(c => !c.isCapital && !c.ruined && c.nationId === nationId).map(c => ({ c, k: vu.filter(u => hexDistance(u.x, u.y, c.x, c.y) <= 2).length })).filter(o => o.k).sort((a, b) => b.k - a.k)[0];
+              if (tgt) { const nm = tgt.c.name; cedeTown(tgt.c, otherId); if (discoveredNations.has(nationId) && discoveredNations.has(otherId)) logEvent(`By the peace between them ${theCrown(n)} cedes ${nm} to ${theCrown(victor)}.`); }
+            }
           }
         }
       }
