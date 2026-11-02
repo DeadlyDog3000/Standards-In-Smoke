@@ -1121,6 +1121,7 @@
         - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
         - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
         - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
+        - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2283,6 +2284,7 @@
           - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
           - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
           - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
+          - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7836,7 +7838,8 @@ function tickScenario1740() {
     if (ai(sw, ru) && sw.relations[ru.id] !== 'war') { sw.relations[ru.id] = 'war'; ru.relations[sw.id] = 'war'; tell("1741: Sweden goes to war with Russia to win back Peter the Great's conquests: the Hats' War.", sw, ru); }
   }
   if (year >= 1743 && !done.abo) { done.abo = true; const sw = anyName('Sweden'), ru = anyName('Russia'); if (ai(sw, ru) && makePeace(sw, ru)) tell('1743: by the Peace of Åbo Sweden makes peace with Russia.', sw, ru); }
-  if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au); }
+  if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au);
+    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Breslau', pr.id === playerNation ? 'Maria Theresa, hard pressed by France and Bavaria, will leave Silesia to you if Prussia leaves the war.' : 'Frederick will leave the war if Silesia is left to him, and you may turn on France and Bavaria.', () => makePeace(pr, au), 'The Peace of Breslau is made.'); }
   if (year >= 1744 && !done.second) {
     done.second = true;
     if (ai(pr, au) && pr.relations[au.id] !== 'war') {
@@ -7852,7 +7855,13 @@ function tickScenario1740() {
   }
   battle('fontenoy', 1745, fr, [gb, anyName('Kingdom of Holland')], 2, '1745: at Fontenoy Marshal de Saxe beats the British and the Dutch.');
   battle('hohenfriedberg', 1745, pr, [au, anyName('Kingdom of Saxony')], 2, '1745: at Hohenfriedberg Frederick routs the Austrians and the Saxons.');
-  if (year >= 1746 && !done.dresden) { done.dresden = true; if (ai(pr, au) && makePeace(pr, au)) tell('1745: by the Peace of Dresden Austria again leaves Silesia to Prussia.', pr, au); }
+  if (year >= 1746 && !done.dresden) { done.dresden = true; if (ai(pr, au) && makePeace(pr, au)) tell('1745: by the Peace of Dresden Austria again leaves Silesia to Prussia.', pr, au);
+    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Dresden', pr.id === playerNation ? 'Austria offers peace again, Silesia to stay yours.' : 'Frederick offers peace again, Silesia to stay his.', () => makePeace(pr, au), 'The Peace of Dresden is made.'); }
+}
+// a peace history made, offered to you when your crown is one of the parties (accepted, it is made as it was)
+function peaceOffer(title, text, accept, said) {
+  if (window.__film) return;
+  scenChoice(title, text, [['Make peace', () => { accept(); showToast(said); annal(said); }], ['Fight on', () => { annal(`${title}: we fought on.`); }]]);
 }
 // the years after 1683, as they went (if the crowns in question are still there and still as they were)
 function tickScenario1683() {
@@ -7973,6 +7982,11 @@ function tickScenario1683() {
       const was = nations.filter(o => o !== fr && !o.isBarbarian && o.id !== playerNation && o.relations[fr.id] === 'war' && ['Kingdom of Holland', 'Austria', 'Spain', 'Bavaria', 'Kingdom of Saxony', 'Prussia', 'Belgium', 'Great Britain'].includes(o.name));
       let any = false; for (const o of was) if (makePeace(fr, o)) any = true;
       if (any) tell("1697: by the Peace of Ryswick France makes peace with the Grand Alliance, and the Nine Years' War is over.", fr, ...was);
+      const me = nations[playerNation];
+      if (me.relations[fr.id] === 'war') peaceOffer('The Peace of Ryswick', "France offers peace to the Grand Alliance, giving back what it took since Nijmegen.", () => makePeace(me, fr), 'Peace is made with France at Ryswick.');
+    } else if (fr) {
+      const was = nations.filter(o => o !== fr && !o.isBarbarian && o.relations[fr.id] === 'war' && ['Kingdom of Holland', 'Austria', 'Spain', 'Bavaria', 'Kingdom of Saxony', 'Prussia', 'Belgium', 'Great Britain'].includes(o.name));
+      if (was.length) peaceOffer('The Peace of Ryswick', `The Grand Alliance is weary of the war: ${listAnd(was.map(theCrown))} will make peace if you give back what you took since Nijmegen.`, () => { for (const o of was) makePeace(fr, o); }, "The Peace of Ryswick ends the Nine Years' War.");
     }
   }
 }
@@ -8050,6 +8064,8 @@ function tickScenario1792() {
   if (year >= 1795 && !done.basel) {   // (the Peace of Basel: Prussia and then Spain leave the war; the Dutch Republic falls to France)
     done.basel = true;
     for (const o of [pr, sp]) if (ai(fr, o) && makePeace(fr, o)) tell(`1795: by the Peace of Basel ${o.name} makes peace with France.`, fr, o);
+    if (fr && fr.id === playerNation) { const was = [pr, sp].filter(o => o && o.relations[fr.id] === 'war'); if (was.length) peaceOffer('The Peace of Basel', `${listAnd(was.map(theCrown))} will make peace with the Republic.`, () => { for (const o of was) makePeace(fr, o); }, 'The Peace of Basel is made.'); }
+    else if (fr && [pr, sp].some(o => o && o.id === playerNation && o.relations[fr.id] === 'war')) peaceOffer('The Peace of Basel', 'The French Republic offers peace, and the war in the west goes badly.', () => makePeace(nations[playerNation], fr), 'Peace is made with France at Basel.');
     if (ai(fr, nl) && nl.relations[fr.id] === 'war') {
       makePeace(fr, nl); done.batavia = true;
       installRuler(nl, 'Rutger Jan Schimmelpenninck', 'male', 34, ['diplomatic']);
@@ -8072,7 +8088,8 @@ function tickScenario1792() {
   }
   battle('rivoli', 1797, fr, [au], 3, '1797: at Rivoli Bonaparte breaks the last Austrian army in Italy.');
   if (year >= 1797 && !done.fw2) { done.fw2 = true; dies(pr, 'Frederick William II'); }
-  if (year >= 1797 && !done.campo) { done.campo = true; if (ai(fr, au) && makePeace(fr, au)) tell('1797: by the Treaty of Campo Formio Austria makes peace with France and gives up the Netherlands.', fr, au); }
+  if (year >= 1797 && !done.campo) { done.campo = true; if (ai(fr, au) && makePeace(fr, au)) tell('1797: by the Treaty of Campo Formio Austria makes peace with France and gives up the Netherlands.', fr, au);
+    else if (fr && au && fr.relations[au.id] === 'war') peaceOffer('The Treaty of Campo Formio', fr.id === playerNation ? 'Austria, beaten in Italy, will make peace and give up the Netherlands.' : 'General Bonaparte is at Leoben, a hundred miles from Vienna, and offers peace for the Netherlands.', () => makePeace(fr, au), 'Peace is made at Campo Formio.'); }
   if (year >= 1798 && !done.nile) {   // (the Nile: Nelson destroys the fleet that carried Bonaparte to Egypt)
     done.nile = true;
     if (ai(fr) && gb && gb.id !== playerNation && gb.relations[fr.id] === 'war') {
@@ -8249,6 +8266,7 @@ function tickScenario1672() {
   if (at(1674, 0) && !done.westminster) {   // (the Treaty of Westminster: Parliament will pay no more for a war at France's side)
     done.westminster = true;
     if (ai(en, nl) && makePeace(en, nl)) { if (br) makePeace(en, br); tell('1674: by the Treaty of Westminster England makes peace with the Dutch.', en, nl); }
+    else if (en && nl && en.relations[nl.id] === 'war') peaceOffer('The Treaty of Westminster', en.id === playerNation ? 'Parliament will pay no more for a war at the side of France, and the Dutch offer peace.' : 'Parliament will pay no more for the war, and England offers peace.', () => { makePeace(en, nl); if (br) makePeace(en, br); }, 'Peace is made at Westminster.');
     const ms = anyName('Westphalia'); if (ai(ms, nl) && makePeace(ms, nl)) { if (br) makePeace(ms, br); tell('1674: the Bishop of Münster makes peace with the Dutch.', ms, nl); }
   }
   if (at(1674, 3) && !done.sweden) {   // (Sweden, France's ally, invades Brandenburg)
@@ -8268,7 +8286,9 @@ function tickScenario1672() {
   if (at(1676, 3) && !done.zurawno) { done.zurawno = true; if (ai(pl, ot) && makePeace(pl, ot)) tell('1676: by the Truce of Żurawno Poland and the Sultan make peace.', pl, ot); }
   if (at(1678, 2) && !done.nijmegen) {   // (the Peace of Nijmegen: the Dutch lose nothing, and France keeps Franche-Comté)
     done.nijmegen = true;
-    if (fr && ai(fr)) { const was = nations.filter(o => o !== fr && !o.isBarbarian && o.id !== playerNation && o.relations[fr.id] === 'war'); let any = false; for (const o of was) if (makePeace(fr, o)) any = true; if (any) tell('1678: by the Peace of Nijmegen France makes peace with the Dutch and their allies.', fr, ...was); }
+    if (fr && ai(fr)) { const was = nations.filter(o => o !== fr && !o.isBarbarian && o.id !== playerNation && o.relations[fr.id] === 'war'); let any = false; for (const o of was) if (makePeace(fr, o)) any = true; if (any) tell('1678: by the Peace of Nijmegen France makes peace with the Dutch and their allies.', fr, ...was);
+      const me = nations[playerNation]; if (me.relations[fr.id] === 'war') peaceOffer('The Peace of Nijmegen', 'France offers peace to the Dutch and their allies.', () => makePeace(me, fr), 'Peace is made with France at Nijmegen.'); }
+    else if (fr) { const was = nations.filter(o => o !== fr && !o.isBarbarian && o.relations[fr.id] === 'war'); if (was.length) peaceOffer('The Peace of Nijmegen', `${listAnd(was.map(theCrown))} will make peace, leaving you Franche-Comté.`, () => { for (const o of was) makePeace(fr, o); }, 'The Peace of Nijmegen is made.'); }
   }
 }
 function tickScenario() {
