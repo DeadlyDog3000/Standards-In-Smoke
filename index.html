@@ -12699,6 +12699,7 @@ function _endTurnImpl() {
   const milCounts = new Int32Array(nations.length);
   const cityCounts = new Int32Array(nations.length);
   for (const u of units) if (UNIT_DEFS[u.type]?.combat) milCounts[u.nationId]++;
+  for (const u of units) for (const c of u.cargo || []) if (UNIT_DEFS[c.type]?.combat) milCounts[u.nationId]++;   // (regiments aboard ship are paid as well)
   for (const c of cities) cityCounts[c.nationId]++;
   for (let i = 0; i < nations.length; i++) {
     if (nations[i].isBarbarian || nations[i].isTribe || nations[i].eliminated) continue;
