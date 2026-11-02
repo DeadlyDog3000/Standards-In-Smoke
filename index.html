@@ -6212,6 +6212,7 @@ function landCargo(ship, x, y) {
   if (hexDistance(ship.x, ship.y, x, y) > 1) return 'The ship must lie beside the coast where they land.';
   if (units.some(o => o.x === x && o.y === y)) return 'That hex is taken.';
   const city = cities.find(c => c.x === x && c.y === y); if (city && city.nationId !== ship.nationId) return 'They cannot land in a foreign town: land beside it.';
+  if (!canEnterTerritory(ship.nationId, t.owner, x, y)) return 'That is a foreign crown\'s land: you need open borders, or a war, to put troops ashore there.';
   if (ship.nationId === playerNation && !tryActivateUnit(ship)) return '';
   const u = cargo.shift();
   u.x = x; u.y = y; u.movesLeft = 0; units.push(u);
