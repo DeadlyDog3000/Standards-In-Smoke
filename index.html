@@ -1130,6 +1130,9 @@
         - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
         - With a regiment chosen, the ships beside it with room are ringed in sea-blue ink, and Go aboard is the first of its orders; with a loaded ship chosen, the coast where its regiments can land is ringed<br>
         - The first turn no longer opens with Idle Towns and No Research cards over the start's own: the First orders list asks for both<br>
+        - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
+        - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
+        - Go aboard is on the round order buttons under the map as well, and on the B key<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2244,7 +2247,7 @@
         <b>U</b> &mdash; Split a company off<br>
         <b>Delete</b> (twice) &mdash; Disband<br>
         <b>X</b> &mdash; Auto-Explore<br>
-        <b>B</b> &mdash; Automate Worker<br>
+        <b>B</b> &mdash; Go aboard the ship beside it (a worker: Automate Worker)<br>
         <b>N / Q</b> &mdash; Next Unit<br>
         <b>P</b> &mdash; Planning Mode<br>
         <b>C</b> &mdash; Center on Selection<br>
@@ -2301,6 +2304,9 @@
           - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
           - With a regiment chosen, the ships beside it with room are ringed in sea-blue ink, and Go aboard is the first of its orders; with a loaded ship chosen, the coast where its regiments can land is ringed<br>
           - The first turn no longer opens with Idle Towns and No Research cards over the start's own: the First orders list asks for both<br>
+          - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
+          - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
+          - Go aboard is on the round order buttons under the map as well, and on the B key<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -3924,6 +3930,7 @@ const OWA_ICONS = {
   merge: '<circle cx="6" cy="7" r="2.5" stroke-width="1.5"/><circle cx="6" cy="17" r="2.5" stroke-width="1.5"/><path d="M8.5 7 C13 7 13 12 17 12 M8.5 17 C13 17 13 12 17 12" stroke-width="1.5"/><circle cx="19" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/>',
   split: '<circle cx="5" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/><path d="M7.5 12 C11 12 11 7 15.5 7 M7.5 12 C11 12 11 17 15.5 17" stroke-width="1.5"/><circle cx="18" cy="7" r="2.5" stroke-width="1.5"/><circle cx="18" cy="17" r="2.5" stroke-width="1.5"/>',
   next: '<path d="M6 5 l7 7 -7 7 M12 5 l7 7 -7 7" stroke-width="2"/>',
+  board: '<path d="M3 15 h18 l-3 5 H6 Z" stroke-width="1.6"/><path d="M12 15 V4 M12 5 l5 7 h-5" stroke-width="1.5"/><path d="M7 3 v6 M5 7 l2 2 2-2" stroke-width="1.4"/>',
   disband: '<path d="M6 6 L18 18 M18 6 L6 18" stroke-width="2.2"/>',
 };
 let _owaSig = '';
@@ -3941,6 +3948,8 @@ function owActionsSync() {
   if (u.hp < getEffectiveMaxHp(u)) acts.push(['rest', 'Rest and heal', 'H', 'restUnit()', u.movesLeft <= 0]);
   if (mergeable(u)) acts.push(['merge', mate ? `Form up with the ${unitTypeName(mate.type)} beside it` : 'Form up: needs a regiment of yours beside it, and a move left', 'J', 'mergeSelectedWithNeighbour()', !mate]);
   if (u.merged && u.merged.length) acts.push(['split', 'Split off a company', 'U', 'splitSelected()', false]);
+  { const ship = !def.naval && !isEmbarked(u) && units.find(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) === 1);
+    if (ship) acts.push(['board', `Go aboard ${ship.title || 'the ' + (regimentName(ship) || 'ship')}`, /worker/.test(u.type) ? '' : 'B', 'boardSelectedShip()', u.movesLeft <= 0]); }
   acts.push(['next', 'Next regiment awaiting orders', 'Q', 'cycleToNextUnit(true)', false]);
   acts.push(['disband', 'Disband (click twice)', 'Del', 'disbandSelected(this)', false]);
   const sig = u.type + '|' + regimentSize(u) + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
@@ -3953,6 +3962,8 @@ function owActionsSync() {
 setInterval(() => { try { owActionsSync(); } catch (e) {} }, 400);
 window.disbandSelected = function (btn) {
   const u = selectedUnit; if (!u || u.nationId !== playerNation || !units.includes(u)) return;
+  // (a ship is not paid off with regiments still aboard her: they would go with her)
+  if ((u.cargo || []).length) { SMK.deny(); showToast(`Put the ${u.cargo.length === 1 ? 'regiment' : u.cargo.length + ' regiments'} aboard ashore first: right-click the coast beside the ship.`); return; }
   if (btn && !btn.dataset.armed) {
     const round = !!btn.closest('#owActions');   // (a round button keeps its picture: only its tip says so)
     btn.dataset.armed = '1'; if (round) { btn.title = 'Click again to disband'; showToast('Click again to disband the regiment.'); } else btn.textContent = 'Click again to disband';
@@ -4277,6 +4288,11 @@ function removeUnit(u) {
   if (idx >= 0 && u.nationId === playerNation && u.regiment && MAP_COLS) { const rn = regimentName(u); if (rn) logEvent(`\u2620 Lost: the ${rn}.`); }
   // (and the regiments aboard go down with her)
   if (idx >= 0 && u.cargo && u.cargo.length && u.nationId === playerNation && MAP_COLS) { for (const c of u.cargo) logEvent(`\u2620 Lost at sea: the ${cargoName(c)}.`); showToast(`${u.cargo.length === 1 ? 'A regiment' : u.cargo.length + ' regiments'} went down with the ship.`); }
+  // (a foe's transport sunk where yours can see it: the regiments she carried are lost with her, and you hear of it)
+  else if (idx >= 0 && u.cargo && u.cargo.length && MAP_COLS && nations[playerNation]?.relations[u.nationId] === 'war' && units.some(o => o.nationId === playerNation && hexDistance(o.x, o.y, u.x, u.y) <= getUnitVision(o))) {
+    const k = u.cargo.length, n = nations[u.nationId], s = `${k === 1 ? 'A regiment' : k + ' regiments'} of ${theCrown(n)} went down with ${u.title || 'their ship'}.`;
+    showToast(s);
+  }
   if (idx >= 0 && u.cargo) u.cargo = [];
   if (selectedUnit === u) {
     selectedUnit = null;
@@ -6265,7 +6281,7 @@ function landCargo(ship, x, y) {
 }
 function boardSelectedShip() {
   const u = selectedUnit; if (!u) return;
-  const ship = units.find(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) === 1); if (!ship) return;
+  const ship = units.find(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) === 1); if (!ship) { SMK.deny(); showToast('No ship of yours with room lies beside it: march it to the coast beside one.'); return; }
   const why = boardShip(u, ship); if (why) { SMK.deny(); showToast(why); } else cycleToNextUnit();
   updateUI(); render();
 }
@@ -21803,6 +21819,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'y') { if (document.getElementById('chronicleOverlay')) document.getElementById('chronicleOverlay').remove(); else openChronicle(); e.preventDefault(); }
   if (e.key === 'i') { if (document.getElementById('manualOverlay')) document.getElementById('manualOverlay').remove(); else openManual(); e.preventDefault(); }
   if (e.key === 'b' && selectedUnit && /worker/.test(selectedUnit.type)) { toggleAutomate(); e.preventDefault(); }
+  else if (e.key === 'b' && selectedUnit && selectedUnit.nationId === playerNation && !UNIT_DEFS[selectedUnit.type]?.naval) { boardSelectedShip(); owActionsSync(); e.preventDefault(); }
   if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: (e.key === '-' || e.key === '_') ? 100 : -100, clientX: viewW / 2, clientY: viewH / 2, bubbles: true, cancelable: true }));
     e.preventDefault();
