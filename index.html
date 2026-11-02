@@ -11070,7 +11070,7 @@ const FIRST_ORDERS = [
   ['moved', 'March a regiment (right-click a hex)', n => !!(n._tut && n._tut.moved)],
   // (in a historical start Europe is full and at war: the town to win is an enemy's)
   //  (and where the year had the crown fighting for a town, that one: Breslau for Austria in 1740, Vienna for the Sultan in 1683)
-  ['settle', () => { if (!scen()) return 'Found another town with a settler'; const a = histAimTown(); return a ? `Take ${escHtml(a.name)} from ${escHtml(theCrown(nations[a.nationId]))}` : 'Take a town from your enemies'; },
+  ['settle', () => { if (!scen()) return 'Found another town with a settler'; const a = histAimTown(); if (!a) return 'Take a town from your enemies'; const who = crownName1(nations[a.nationId]); return (who === a.name || who.endsWith(' of ' + a.name)) ? `Take ${escHtml(a.name)}` : `Take ${escHtml(a.name)} from ${escHtml(theCrown(nations[a.nationId]))}`; },   // (not 'Take Naples from Naples')
     n => scen() ? cities.some(c => c.nationId === playerNation && c.originalNationId !== undefined && c.originalNationId !== playerNation) : cities.filter(c => c.nationId === playerNation).length >= 2],
   ['improve', 'Have a worker improve a hex', n => tiles.some(t => t.owner === playerNation && t.improvement)],
   ['ambition', 'Choose an ambition (the plaque at the top)', n => !!n.ambition || (n.ambitionsDone || []).length > 0],
