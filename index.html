@@ -6903,7 +6903,7 @@ function showWarDeclaration(nation) {
       <div style="font-size:12px;color:#d8b8a0;margin:-8px 0 10px;">${escHtml(warRuler.name)}</div>`
     : `<div style="width:80px;height:80px;border-radius:50%;background:${wc};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;"><span style="font-size:40px;">\u2694\uFE0F</span></div>`}
     <h1 style="color:#d8553a;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 20px rgba(200,60,30,0.45);margin-bottom:10px;">War Declared!</h1>
-    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${escHtml(nation.name)}</strong> has declared war on your kingdom!</p>
+    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${escHtml(crownName1(nation))}</strong> has declared war on your kingdom!</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
@@ -6961,7 +6961,7 @@ function tickRivalCoalition() {
   ov.style.cssText = "position:fixed;inset:0;z-index:160;display:flex;align-items:center;justify-content:center;background:rgba(2,5,9,0.6);";
   ov.innerHTML = `<div class="event-card" style="max-width:520px;padding:24px 26px;text-align:center;color:#e9dcc0;">
     <h3 style="font-family:'Uncial Antiqua',Georgia,serif;font-weight:normal;color:#f0dcae;font-size:22px;margin:0 0 8px;">A Coalition Against ${escHtml(lead.name)}</h3>
-    <p style="font-size:14px;margin:0 0 6px;">${escHtml(lead.name)} has grown too great for Europe. ${listAnd(members.map(n => escHtml(n.name)))} have joined together against it, and they ask you to join them.</p>
+    <p style="font-size:14px;margin:0 0 6px;">${escHtml(crownName1(lead))} has grown too great for Europe. ${listAnd(members.map(n => escHtml(crownName1(n))))} have joined together against it, and they ask you to join them.</p>
     <p style="font-size:12.5px;color:#b8a888;margin:0 0 14px;">Join, and you are at war with ${escHtml(lead.name)} and the coalition thinks well of you. Decline, and nothing changes.</p>
     <button class="event-choice" onclick="answerCoalition(true)">Join the coalition<span class="event-effect">war with ${escHtml(lead.name)}</span></button>
     <button class="event-choice" onclick="answerCoalition(false)">Stay out of it</button></div>`;
@@ -6983,9 +6983,9 @@ function showCoalition(name, members) {
   const overlay = document.createElement('div'); overlay.id = 'warDeclOverlay';
   overlay.style.cssText = "position:fixed;inset:0;z-index:160;background:linear-gradient(rgba(60,8,4,0.72),rgba(30,5,3,0.92)),url('events/camp.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
   overlay.innerHTML = `<div style="text-align:center;padding:40px;max-width:640px;">
-    <div style="display:flex;gap:14px;justify-content:center;margin-bottom:16px;">${members.map(n => { const r = getNationRuler(n.id), c = safeColor(n.color); return r ? `<img class="portrait" src="${portraitOf(r)}" alt="" title="${escHtml(n.name)}" style="width:84px;height:84px;border:3px solid ${c};">` : ''; }).join('')}</div>
+    <div style="display:flex;gap:14px;justify-content:center;margin-bottom:16px;">${members.map(n => { const r = getNationRuler(n.id), c = safeColor(n.color); return r ? `<img class="portrait" src="${portraitOf(r)}" alt="" title="${escHtml(crownName1(n))}" style="width:84px;height:84px;border:3px solid ${c};">` : ''; }).join('')}</div>
     <h1 style="color:#d8553a;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9);margin-bottom:10px;">${escHtml(name.replace(/^the /, 'The '))}</h1>
-    <p style="font-size:17px;color:#e8dcc8;margin-bottom:6px;">${listAnd(members.map(n => `<strong style="color:#f6ead0;border-bottom:3px solid ${safeColor(n.color)};padding-bottom:1px;">${escHtml(n.name)}</strong>`))} have joined together against you.</p>
+    <p style="font-size:17px;color:#e8dcc8;margin-bottom:6px;">${listAnd(members.map(n => `<strong style="color:#f6ead0;border-bottom:3px solid ${safeColor(n.color)};padding-bottom:1px;">${escHtml(crownName1(n))}</strong>`))} have joined together against you.</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Your rise has alarmed Europe. Each of them is at war with you, and they are allies of one another.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
@@ -19480,7 +19480,7 @@ function renderKingdoms() {
     if (n.id !== playerNation && !discoveredNations.has(n.id)) continue;
     const col = safeColor(n.color);
     if (n.eliminated && n.id !== playerNation) {
-      html += `<div class="kcard gone" style="--kc:${col}"><div class="kc-head"><span class="kc-crest"></span><div class="kc-title"><b>${escHtml(n.name)}</b><small>Fallen</small></div></div></div>`;
+      html += `<div class="kcard gone" style="--kc:${col}"><div class="kc-head"><span class="kc-crest"></span><div class="kc-title"><b>${escHtml(crownName1(n))}</b><small>Fallen</small></div></div></div>`;
       continue;
     }
     const you = n.id === playerNation;
