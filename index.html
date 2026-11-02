@@ -1122,6 +1122,7 @@
         - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
         - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
         - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
+        - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2285,6 +2286,7 @@
           - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
           - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
           - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
+          - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7758,6 +7760,7 @@ function tickScenario1700() {
     done.travendal = true;
     const dk = byName('Denmark-Norway');
     if (dk && sw && sw.id !== playerNation && makePeace(dk, sw)) { removeAgreement(dk.id, anyName('Russia')?.id, 'war_help'); tell('1700: at Travendal Denmark makes peace with Sweden.', dk, sw); }
+    else { const dk2 = anyName('Denmark-Norway'); if (dk2 && sw && dk2.relations[sw.id] === 'war' && (sw.id === playerNation || dk2.id === playerNation)) peaceOffer('The Peace of Travendal', sw.id === playerNation ? 'With your army landed on Zealand and Copenhagen under your guns, Denmark sues for peace and will leave the alliance against you.' : 'Charles XII has landed on Zealand with Copenhagen under his guns, and offers peace if you leave the alliance against him.', () => { makePeace(dk2, sw); removeAgreement(dk2.id, anyName('Russia')?.id, 'war_help'); }, 'Peace is made at Travendal.'); }
   }
   if (year >= 1702 && !done.william) {   // (William III dies after a fall from his horse, and Anne reigns)
     done.william = true;
@@ -7778,6 +7781,7 @@ function tickScenario1700() {
     done.altranstadt = true;
     const sx = byName('Kingdom of Saxony');
     if (sx && sw && sw.id !== playerNation && makePeace(sx, sw)) tell('1706: by the Treaty of Altranstädt Augustus the Strong makes peace with Sweden.', sx, sw);
+    else { const sx2 = anyName('Kingdom of Saxony'); if (sx2 && sw && sx2.relations[sw.id] === 'war' && (sw.id === playerNation || sx2.id === playerNation)) peaceOffer('The Treaty of Altranstädt', sw.id === playerNation ? 'Augustus the Strong, his Saxony overrun, offers peace and gives up the crown of Poland.' : 'Charles XII is in Saxony, and offers peace if you give up the crown of Poland and the war.', () => makePeace(sx2, sw), 'Peace is made at Altranstädt.'); }
   }
   if (year >= 1709 && !done.poltava) {   // (Poltava: the Carolean army is destroyed in the Ukraine)
     done.poltava = true;
