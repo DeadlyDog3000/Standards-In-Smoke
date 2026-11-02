@@ -1161,6 +1161,7 @@
         - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
         - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
         - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
+        - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2357,6 +2358,7 @@
           - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
           - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
           - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
+          - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7321,7 +7323,7 @@ const SCEN_1805 = {
   techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
   // (Holland was the Batavian Republic until Louis Bonaparte was made its king in 1806, and Nassau a duchy from the same summer)
   aliases: { 'Kingdom of Holland': 'Batavian Republic', 'Duchy of Nassau': 'Nassau' },
-  laterAliases(d) { return d.holland ? { 'Kingdom of Holland': 'Kingdom of Holland', 'Duchy of Nassau': 'Duchy of Nassau' } : {}; },
+  laterAliases(d) { return d.hollandKing ? { 'Kingdom of Holland': 'Kingdom of Holland', 'Duchy of Nassau': 'Duchy of Nassau' } : {}; },
 };
 // ---- the 1756 start: the Seven Years' War. After the Diplomatic Revolution Prussia and Britain stand against France, Austria
 //  and Saxony; Russia and Sweden come in against Frederick in 1757, Spain against Britain in 1762 ----
@@ -7711,18 +7713,23 @@ const EUROPE_1680 = {
   aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Spanish Netherlands', 'Kingdom of Italy': 'Duchy of Milan', 'Westphalia': 'Hanover', 'Kingdom of Naples': 'Naples' },
 };
 // (the names of the day: a historical start's, or 1680's on the map of Europe)
-let _alCache = null;
+let _alCache = {};
 function curAliases(asCrown) {
   const S = scen();
   if (S) {
     // (a start whose crowns change their names as it goes: the French Republic, the Batavian Republic; the crown's own name
     //  on the map and in the panels, while the news still speaks of France and Holland)
-    const d = asCrown && S.laterAliases && nations[playerNation]?._scen; if (!d) return S.aliases || null;
-    const key = scenario + ':' + Object.keys(d).join(',');
-    if (!_alCache || _alCache.key !== key) _alCache = { key, al: { ...(S.aliases || {}), ...S.laterAliases(d) } };
-    return _alCache.al;
+    //  (and a name the crown takes back, as Holland made a kingdom in 1806, is the news's name too from then on)
+    const d = S.laterAliases && nations[playerNation]?._scen; if (!d) return S.aliases || null;
+    const key = scenario + ':' + (asCrown ? 'c:' : 'n:') + Object.keys(d).join(',');
+    if (!_alCache[key]) {
+      const later = S.laterAliases(d);
+      if (asCrown) _alCache[key] = { ...(S.aliases || {}), ...later };
+      else { const al = { ...(S.aliases || {}) }; for (const k in later) if (later[k] === k) delete al[k]; _alCache[key] = al; }
+    }
+    return _alCache[key];
   }
-  return typeof mapStyle !== 'undefined' && mapStyle === 'europe' ? EUROPE_1680.aliases : null; }   // (1805's own names are the roster's)
+  return typeof mapStyle !== 'undefined' && mapStyle === 'europe' ? EUROPE_1680.aliases : null; }
 function scen() { return SCENS[scenario] || null; }
 // a crown's name as its own year knew it (the Dutch Republic in 1700 and 1756, not the Kingdom of Holland of 1806); the
 //  game keeps the roster's name underneath, for its own reckonings
@@ -7815,7 +7822,7 @@ function applyHistStart(S) {
   // (the year laid before the player on a card, and written in the log)
   setTimeout(() => logEvent(say + when), 0);   // (after the game's own first line, 'You are ...')
   const myRuler = getNationRuler(playerNation), myCap = cities.find(c => c.nationId === playerNation && c.isCapital);
-  const brief = `${myRuler ? `${myRuler.name.replace(/, (Grand Pensionary|Regent|Viceroy|Governor|First Consul)$/, ', the $1,')} ${/(Grand Pensionary|Regent|Viceroy|Governor|First Consul|Stadtholder)$/.test(myRuler.name) ? 'governs' : 'reigns'}${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
+  const brief = `${myRuler ? `${myRuler.name.replace(/, (Grand Pensionary|Regent|Viceroy|Governor|First Consul|Stadtholder)$/, ', the $1,')} ${/, (Grand Pensionary|Regent|Viceroy|Governor|First Consul|Stadtholder)$/.test(myRuler.name) ? 'governs' : 'reigns'}${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
   setTimeout(() => { if (!window.__film) scenChoice('Europe, ' + S.year, brief, [['To work', () => {}]]); }, 900);
   annal(body);
   // (all of the crowns are known to one another, and Europe is charted to its edges)
@@ -7995,34 +8002,44 @@ function tickScenario1733() {
   battle('danzig', 1734, ru, [pl], 2, '1734: Danzig falls to the Russians and the Saxons, and King Stanisław escapes it in disguise.');
   battle('guastalla', 1734, fr, [au], 2, '1734: at Parma and Guastalla the French and the Sardinians beat the Imperials in Lombardy.');
   battle('bitonto', 1734, sp, [au, np], 2, "1734: at Bitonto the Spanish beat the Emperor's army in the south, and Naples is theirs.");
-  // (Don Carlos, the Queen of Spain's son, is crowned King of Naples and Sicily, and Naples goes over to the Bourbons)
+  // (Don Carlos, the Queen of Spain's son, is crowned King of Naples and Sicily, and Naples goes over to the Bourbons; a peace
+  //  this makes with your crown is put to you)
   if (year >= 1734 && !done.carlos) {
     done.carlos = true;
     const vr = np && getNationRuler(np.id);
     if (ai(np, sp) && vr && vr.name === 'Count Visconti, Viceroy') {
       installRuler(np, 'Charles of Bourbon', 'male', 18, ['industrious']);
-      for (const o of nations) if (o !== np && !o.eliminated && !o.isBarbarian && o.relations[np.id] === 'war' && [fr, sp, sa, pl].includes(o)) makePeace(np, o);
-      if (au && np.relations[au.id] !== 'war') joinAgainst(np, au);
+      for (const o of [ru, sx]) if (o) removeAgreement(np.id, o.id, 'war_help');
+      const mine = [fr, sp, sa, pl].filter(o => o && o.relations[np.id] === 'war');
+      for (const o of mine) if (o.id !== playerNation) makePeace(np, o);
+      if (au && np.relations[au.id] !== 'war') { joinAgainst(np, au); if (au.id === playerNation) showWarDeclaration(np); }
       if (!hasAgreement(np.id, sp.id, 'war_help')) addAgreement(np.id, sp.id, 'war_help');
       tell('1734: Don Carlos, son of the Queen of Spain, is crowned King of Naples and Sicily, and Naples goes over to the Bourbons.', np, sp, au);
+      if (mine.some(o => o.id === playerNation)) peaceOffer('Naples Goes Over', 'Don Carlos is King of Naples, and Naples, now on the side of the Bourbons, offers you peace.', () => makePeace(np, nations[playerNation]), 'Peace is made with Naples.');
     }
   }
-  // (the preliminaries of Vienna, agreed in 1735 and in force from 1736: Stanisław gives up Poland for Lorraine, Augustus is
-  //  king, Don Carlos keeps Naples, and Milan goes back to the Emperor)
+  // (the preliminaries of Vienna, agreed in 1735 and in force from 1736: the war in the west ends. Stanisław gives up Poland
+  //  for Lorraine and Augustus is king, Don Carlos keeps Naples, and Milan goes back to the Emperor. Every peace among the
+  //  other crowns is made; the ones that concern your crown are put to you in one card)
   if (year >= 1736 && !done.vienna) {
     done.vienna = true;
-    const milan = () => treatyCede('Milan', au, [sa]);
-    for (const o of [fr, sp]) histPeace(o, au, makePeace, tell, `1736: by the Peace of Vienna ${o === fr ? 'France' : 'Spain'} makes peace with the Emperor.`, 'The Peace of Vienna', o && o.id === playerNation ? 'The Emperor offers peace: King Stanisław gives up the crown of Poland for the Duchy of Lorraine, and Naples stays with the Bourbons.' : `${o === fr ? 'France' : 'Spain'} offers peace: Lorraine for King Stanisław, Naples for Don Carlos, and the war in the west is over.`);
-    if (sa && au && sa.relations[au.id] === 'war') {
-      if (ai(sa, au)) { if (makePeace(sa, au)) { milan(); tell('1736: by the Peace of Vienna Sardinia makes peace, and gives Milan back to the Emperor.', sa, au); } }
-      else peaceOffer('The Peace of Vienna', sa.id === playerNation ? 'The war in the west is ending. The Emperor offers peace if Milan is given back to him; you keep Novara and Tortona.' : 'Sardinia offers peace, and gives Milan back to you.', () => { if (makePeace(sa, au)) milan(); }, 'The Peace of Vienna is made.');
-    }
-    // (in Poland: Stanisław abdicates, and the Saxon elector is King Augustus III)
-    if (pl) {
-      const st = getNationRuler(pl.id), foes = [ru, sx, au].filter(o => o && pl.relations[o.id] === 'war');
-      const settle = () => { for (const o of foes) makePeace(pl, o); const r = getNationRuler(pl.id); if (r && r.name === 'Stanisław I') installRuler(pl, 'Augustus III', 'male', 39, ['pious'], 'Maria Josepha of Austria', 36); };
-      if (pl.id !== playerNation) { if (st && st.name === 'Stanisław I') { settle(); tell('1736: Stanisław gives up the crown of Poland for the Duchy of Lorraine, and the Saxon elector is King Augustus III.', pl, ru, sx); } }
-      else if (foes.length) peaceOffer('The Abdication', 'The Russians hold the country, and France has made her peace. King Stanisław may give up the crown for the Duchy of Lorraine, and Augustus of Saxony be king, with peace for Poland.', settle, 'Stanisław gives up the crown, and Augustus III is King of Poland.');
+    const bourbon = n => n && (n === np ? au && np.relations[au.id] === 'war' : true);
+    const west = [fr, sp, sa, pl, np].filter(n => n && bourbon(n)), east = [au, ru, sx, np].filter(n => n && !west.includes(n));
+    const pairs = []; for (const a of west) for (const b of east) if (a.relations[b.id] === 'war') pairs.push([a, b]);
+    const milanPair = ([a, b]) => a === sa && b === au;
+    const plMine = pl && pl.id === playerNation;
+    let made = false;
+    for (const pr of pairs) if (pr[0].id !== playerNation && pr[1].id !== playerNation) { if (makePeace(pr[0], pr[1])) { made = true; if (milanPair(pr)) treatyCede('Milan', au, [sa]); } }
+    if (pl && !plMine) { const st = getNationRuler(pl.id); if (st && st.name === 'Stanisław I') installRuler(pl, 'Augustus III', 'male', 39, ['pious'], 'Maria Josepha of Austria', 36); }
+    if (made) tell('1736: by the Peace of Vienna the war in the west ends: Stanisław gives up Poland for Lorraine, Augustus III is king, Don Carlos keeps Naples, and Milan goes back to the Emperor.', ...west, ...east);
+    // (yours: Poland's own abdication, or every peace of your crown in one card)
+    const mine = pairs.filter(pr => pr[0].id === playerNation || pr[1].id === playerNation);
+    if (plMine && mine.length) peaceOffer('The Abdication', 'The Russians hold the country, and France has made her peace. King Stanisław may give up the crown for the Duchy of Lorraine, and Augustus of Saxony be king, with peace for Poland.',
+      () => { for (const pr of mine) makePeace(pr[0], pr[1]); const r = getNationRuler(pl.id); if (r && r.name === 'Stanisław I') installRuler(pl, 'Augustus III', 'male', 39, ['pious'], 'Maria Josepha of Austria', 36); }, 'Stanisław gives up the crown, and Augustus III is King of Poland.');
+    else if (mine.length) {
+      const foes = mine.map(pr => pr[0].id === playerNation ? pr[1] : pr[0]), me = nations[playerNation];
+      const text = (me === sa ? 'The war in the west is ending, and the Emperor offers peace if Milan is given back to him; you keep Novara and Tortona.' : west.includes(me) ? 'The Emperor offers peace: King Stanisław gives up the crown of Poland for the Duchy of Lorraine, and Naples stays with the Bourbons.' : 'France and her allies offer peace: Lorraine for King Stanisław, Naples for Don Carlos, Augustus III King of Poland' + (mine.some(milanPair) ? ', and Milan back to the Emperor' : '') + '.') + ` Peace with ${listAnd(foes.map(theCrown))}.`;
+      peaceOffer('The Peace of Vienna', text, () => { for (const pr of mine) if (makePeace(pr[0], pr[1]) && milanPair(pr)) treatyCede('Milan', au, [sa]); }, 'The Peace of Vienna is made.');
     }
   }
   // (the Turkish war: Russia in 1735, to win back Azov; Austria in 1737, at her ally's side)
@@ -8040,7 +8057,7 @@ function tickScenario1733() {
   battle('grocka', 1739, ot, [au], 2, '1739: at Grocka the Turks beat the Imperials, and lay siege to Belgrade.');
   if (year >= 1739 && !done.belgrade) {
     done.belgrade = true;
-    histPeace(au, ot, makePeace, tell, '1739: by the Peace of Belgrade Austria makes peace with the Turk, and gives Belgrade back.', 'The Peace of Belgrade', au && au.id === playerNation ? 'The war in the Balkans has gone badly: the Sultan offers peace if Belgrade is given back.' : 'Austria, beaten at Grocka, offers peace and gives Belgrade back.');
+    histPeace(au, ot, makePeace, tell, '1739: by the Peace of Belgrade Austria makes peace with the Turk, and gives Belgrade back.', 'The Peace of Belgrade', au && au.id === playerNation ? 'The war in the Balkans has gone badly: the Sultan offers peace if Belgrade is given back.' : 'Austria offers peace, and gives Belgrade back.');
     histPeace(ru, ot, makePeace, tell, '1739: by the Peace of Niš Russia makes peace with the Turk, and keeps Azov.', 'The Peace of Niš', ru && ru.id === playerNation ? 'Austria has made her peace, and you stand alone: the Sultan offers peace, and Azov, if its walls are pulled down.' : 'Russia, left alone by Austria, offers peace for Azov.');
   }
 }
@@ -8589,10 +8606,12 @@ function tickScenario() {
   if (year >= 1806 && !done.holland) {   // (June 1806: the Batavian Republic is made a kingdom for the Emperor's brother)
     done.holland = true;
     const nl = nations.find(n => n.name === 'Kingdom of Holland' && !n.eliminated), r = nl && getNationRuler(nl.id);
+    const king = () => { installRuler(nl, 'Louis Bonaparte', 'male', 27, ['diplomatic'], 'Hortense de Beauharnais', 23); done.hollandKing = true; };
     if (r && /Schimmelpenninck/.test(r.name)) {
-      installRuler(nl, 'Louis Bonaparte', 'male', 27, ['diplomatic'], 'Hortense de Beauharnais', 23);
-      const say = '1806: the Emperor makes his brother Louis King of Holland, and the Batavian Republic is a kingdom.'; showToast(say);
-      if (nl.id === playerNation) annal('T' + say.slice(7)); else logEvent(say);
+      if (nl.id !== playerNation) { king(); showToast('1806: the Emperor makes his brother Louis King of Holland, and the Batavian Republic is a kingdom.'); }
+      else if (fr && !fr.eliminated && fr.id !== playerNation) scenChoice('The Kingdom of Holland', 'The Emperor means to make his brother Louis King of Holland, and the Batavian Republic a kingdom. Refuse him, and France will think the worse of you.',
+        [['Accept King Louis', () => { king(); showToast('Louis Bonaparte is King of Holland.'); annal('The Emperor makes his brother Louis King of Holland, and the Batavian Republic is a kingdom.'); }],
+         ['Refuse', () => { changeLoyalty(fr.id, playerNation, -30); annal('We refused the Emperor\'s brother as our king, and remain a republic.'); }]]);
     }
   }
   if (year >= 1806 && !done.prussia) {
@@ -8739,8 +8758,11 @@ function tickScenario() {
   }
 }
 // a choice history puts to the player in a scenario: a card with its answers, each a function
+// (history's cards wait their turn: one put to you while another is open is shown once that one is answered)
+window._scenQueue = [];
+setInterval(() => { if (window._scenQueue.length && !document.getElementById('scenOverlay') && MAP_COLS && document.getElementById('menu').style.display === 'none') scenChoice(...window._scenQueue.shift()); }, 500);
 function scenChoice(title, text, choices) {
-  document.getElementById('scenOverlay')?.remove();
+  if (document.getElementById('scenOverlay')) { window._scenQueue.push([title, text, choices]); return; }
   window._scenFns = choices.map(c => c[1]);
   const ov = document.createElement('div'); ov.id = 'scenOverlay';
   ov.innerHTML = `<div class="event-card amb-card"><h3>${escHtml(title)}</h3><p>${escHtml(text)}</p>${choices.map((c, i) => `<button class="event-choice" onclick="document.getElementById('scenOverlay').remove(); (window._scenFns[${i}] || (() => {}))(); updateUI(); render();">${escHtml(c[0])}</button>`).join('')}</div>`;
@@ -11300,7 +11322,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
-        ['Historical starts', 'Begin in 1672, 1683, 1700, 1733, 1740, 1756, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1748, 1763, 1802 or 1815) among the great powers and you.'],
+        ['Historical starts', 'Begin in 1672, 1683, 1700, 1733, 1740, 1756, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1739, 1748, 1763, 1802 or 1815) among the great powers and you.'],
         ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
@@ -23504,6 +23526,7 @@ function stopAutoSaveTimer() {
 }
 
 function loadGame(slot) {
+  window._scenQueue = [];
   const data = localStorage.getItem('sis_save_' + slot);
   if (!data) { showToast('No save found'); return; }
   document.getElementById('menu').style.display = 'none';
@@ -23805,6 +23828,7 @@ window.skipTutorial = function() {
 };
 
 function startGame(cols, rows, pName, pColor, opponents) {
+  window._scenQueue = [];
   MAP_COLS = cols; MAP_ROWS = rows;
   townLog = { ev: [] }; _townLast = null;
   document.getElementById('menu').style.display = 'none';
