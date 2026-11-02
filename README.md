@@ -1,6 +1,6 @@
 # Standards In Smoke
 
-A free turn-based strategy game in the browser, set in Europe in the age of powder and kings (about 1680 to 1815). The map is a hand-coloured, engraved 18th-century atlas that you chart as you explore. Found towns, raise star forts, march musket lines and win by conquest, by score, or by fulfilling ten ambitions. Achievements are kept across games.
+A free turn-based strategy game in the browser, set in Europe in the age of powder and kings (about 1670 to 1815). The map is a hand-coloured, engraved 18th-century atlas that you chart as you explore. Found towns, raise star forts, march musket lines and win by conquest, by score, or by fulfilling ten ambitions. Achievements are kept across games.
 
 Play it: https://deadlydog3000.github.io/Standards-In-Smoke/
 
@@ -31,7 +31,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
 - Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
-- Regiments with morale, formations, experience and promotions; merged regiments that fire as one; troops that take ship and cross the sea
+- Regiments with morale, formations, experience and promotions; merged regiments that fire as one; ships that carry regiments across the sea and land them, or troops that take to the water in their own boats
 - Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
 - 120 events, four seasons, raiders and tribes, wonders, a market, and a chart of every crown's score through the game
 - Synthesised sound effects, period music, and saves in your browser
