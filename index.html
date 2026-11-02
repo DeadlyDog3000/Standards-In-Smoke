@@ -6232,6 +6232,8 @@ function landCargo(ship, x, y) {
   const u = cargo.shift();
   u.x = x; u.y = y; u.movesLeft = 0; units.push(u);
   revealAround(x, y, getUnitVision(u), u.nationId);
+  // (yours seen stepping off the ship onto the shore)
+  if (VIEW_TILE >= 14 && u.nationId === playerNation) try { startUnitAnimation(u, [{ x, y }], null, ship.x, ship.y); } catch (e) {}
   try { SMK.oars(); } catch (e) {}
   if (u.nationId === playerNation) showToast(`The ${regimentName(u) || 'regiment'} goes ashore${cargo.length ? `; ${cargo.length} still aboard` : ''}.`);
   invalidateVision();
