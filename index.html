@@ -19871,7 +19871,8 @@ function cedeTown(city, newOwner) {
   if (!nations[oldOwner].isBarbarian) nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy ?? 50) - 4);
   if (!nations[newOwner].isBarbarian) nations[newOwner].legitimacy = Math.min(100, (nations[newOwner].legitimacy ?? 50) + 2);
   if (tiles[city.y * MAP_COLS + city.x]?.revealed.has(playerNation)) particles.push({ kind: 'seal', col: city.x, row: city.y, vx: 0, vy: 0, color: nations[newOwner]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
-  if (newOwner === playerNation) try { SMK.peal(6); } catch (e) {}
+  try { if (newOwner === playerNation) SMK.peal(6); else if (oldOwner === playerNation) SMK.toll(2); } catch (e) {}
+  if (oldOwner === playerNation && selectedCity === city) { selectedCity = null; hidePanel(); }
   _tileCityMapDirty = true; minimapDirty = true; invalidateVision();
 }
 // (their offer of peace for one of your towns: still yours, and still at war, or it has lapsed)
