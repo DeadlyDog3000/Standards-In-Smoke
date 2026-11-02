@@ -1118,6 +1118,7 @@
         - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
         - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
         - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
+        - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2277,6 +2278,7 @@
           - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
           - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
           - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
+          - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -6196,7 +6198,7 @@ function boardShip(u, ship) {
   if (isEmbarked(u)) return 'A regiment already at sea cannot go aboard.';
   if (u.movesLeft <= 0) return 'That regiment has no moves left this turn.';
   if ((ship.cargo || []).length >= shipHold(ship)) return `${ship.title ? ship.title : 'The ' + (regimentName(ship) || 'ship')} has no room: she carries ${shipHold(ship)} regiments.`;
-  if (!tryActivateUnit(u, true)) return '';
+  if (u.nationId === playerNation && !tryActivateUnit(u, true)) return '';
   const i = units.indexOf(u); if (i >= 0) units.splice(i, 1);
   if (selectedUnit === u) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
   if (activatedUnits.has(u)) activatedUnits.delete(u);
@@ -6232,6 +6234,45 @@ function boardSelectedShip() {
   updateUI(); render();
 }
 window.boardSelectedShip = boardSelectedShip;
+// ---- the other crowns' transports: a ship with regiments aboard sails for the coast nearest their target and lands them
+//  (or, after long enough at sea, at home); an empty one fetches a regiment of its crown waiting on a coast to cross ----
+function seaBeside(d) {
+  const lm = landmassAt(d.x, d.y); let best = null, bd = Infinity;
+  for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) {
+    const x = d.x + dx, y = d.y + dy; if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS || tiles[y * MAP_COLS + x].type !== 0) continue;
+    const dd = hexDistance(x, y, d.x, d.y); if (dd >= bd || dd > 12) continue;
+    if (!hexNeighbors(x, y).some(h => tiles[h.row * MAP_COLS + h.col]?.type !== 0 && landmassAt(h.col, h.row) === lm)) continue;
+    if (units.some(o => o.x === x && o.y === y)) continue;
+    bd = dd; best = { x, y, k: d.x + ',' + d.y };
+  }
+  return best;
+}
+function aiShipDuty(s) {
+  if (!shipHold(s) || s.nationId === playerNation) return false;
+  const cargo = s.cargo || [];
+  if (cargo.length) {
+    s._cargoTurns = (s._cargoTurns || 0) + 1;
+    let d = s._dest && s._cargoTurns <= 12 ? s._dest : null;
+    if (!d) { const home = cities.filter(c => c.nationId === s.nationId).sort((a, b) => hexDistance(a.x, a.y, s.x, s.y) - hexDistance(b.x, b.y, s.x, s.y))[0]; if (home) d = { x: home.x, y: home.y }; }
+    const lm = d ? landmassAt(d.x, d.y) : null;
+    const tryLand = () => { for (const h of hexNeighbors(s.x, s.y)) { if (!cargo.length) break; const t = tiles[h.row * MAP_COLS + h.col]; if (!t || t.type === 0) continue; if (lm !== null && landmassAt(h.col, h.row) !== lm && s._cargoTurns <= 20) continue; landCargo(s, h.col, h.row); } };
+    tryLand();
+    if (cargo.length && d && s.movesLeft > 0) {
+      if (!s._sea || s._sea.k !== d.x + ',' + d.y) s._sea = seaBeside(d);
+      if (s._sea) moveAIToward(s, s._sea.x, s._sea.y, s.movesLeft);
+      tryLand();
+    }
+    if (!cargo.length) { delete s._dest; delete s._sea; s._cargoTurns = 0; }
+    return true;
+  }
+  const taken = o => units.some(v => v !== s && v._fetch && v._fetch.x === o.x && v._fetch.y === o.y && v._fetch.t >= turnNumber - 1);
+  const want = units.filter(u => u.nationId === s.nationId && (u._wantsShip || -9) >= turnNumber - 1 && !UNIT_DEFS[u.type]?.naval && !isEmbarked(u) && isCoastal(u.x, u.y) && hexDistance(u.x, u.y, s.x, s.y) <= 14 && !taken(u))
+    .sort((a, b) => hexDistance(a.x, a.y, s.x, s.y) - hexDistance(b.x, b.y, s.x, s.y))[0];
+  if (!want) { delete s._fetch; return false; }
+  s._fetch = { x: want.x, y: want.y, t: turnNumber };
+  if (hexDistance(want.x, want.y, s.x, s.y) > 1) { const sea = hexNeighbors(want.x, want.y).find(h => tiles[h.row * MAP_COLS + h.col]?.type === 0 && !units.some(o => o.x === h.col && o.y === h.row)); if (sea) moveAIToward(s, sea.col, sea.row, s.movesLeft); }
+  return true;
+}
 // (a right-click with a ship or a regiment chosen: boarding or landing, if that is what it comes to; true if it was dealt with)
 function shipOrder(u, mx, my, refuse) {
   if (!u || u.nationId !== playerNation) return false;
@@ -11910,6 +11951,7 @@ function aiTurn(nationId) {
       if (!attacked) {
 
         if (UNIT_DEFS[u.type]?.naval) {
+          if (aiShipDuty(u)) continue;   // (carrying regiments, or on its way to fetch some)
           let navalTarget = null, bestDist = Infinity;
           for (const eu of units) {
             if (eu.nationId === nationId || n.relations[eu.nationId] !== 'war') continue;
@@ -12299,6 +12341,15 @@ function moveAIUnitMultiple(u, steps) {
 
 function moveAIToward(u, tx, ty, steps) {
   _aiMaySail = aiSailFor(u, tx, ty);
+  // (a regiment of another crown with the sea to cross: aboard a ship of its own beside it if there is one, or waiting on
+  //  the coast a few turns for one on its way, before it takes to the water in its own boats)
+  if (_aiMaySail && u.nationId !== playerNation && !isEmbarked(u) && !UNIT_DEFS[u.type]?.naval && u.movesLeft > 0) {
+    u._wantsShip = turnNumber;
+    const ship = units.find(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) === 1);
+    if (ship && boardShip(u, ship) === null) { ship._dest = { x: tx, y: ty }; ship._cargoTurns = 0; delete ship._fetch; _aiMaySail = false; u._waited = 0; return; }
+    const coming = isCoastal(u.x, u.y) && units.some(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) <= 14);
+    if (coming && (u._waited || 0) < 3) { u._waited = (u._waited || 0) + 1; _aiMaySail = false; return; }
+  }
   try { return moveAITowardImpl(u, tx, ty, steps); } finally { _aiMaySail = false; }
 }
 function moveAITowardImpl(u, tx, ty, steps) {
