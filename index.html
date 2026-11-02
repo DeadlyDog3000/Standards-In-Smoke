@@ -21070,7 +21070,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   const t = tiles[i];
   if (!t.revealed.has(playerNation)) { tooltipEl.style.display = 'none'; return; }
   const name = TILE_NAMES[t.type] || 'Unknown';
-  const desc = TILE_DESCS[t.type] || '';
+  const desc = t.type === 0 ? (nationHasTech(playerNation, 'navigation') ? 'Deep water: ships sail it, and regiments cross it aboard them or in their own boats.' : 'Deep water: ships sail it, and regiments cross it aboard them.') : (TILE_DESCS[t.type] || '');
   let html = `<div class="tt-title">${name}</div>`;
   html += `<div class="tt-detail">${desc}</div>`;
   // (out of sight of your towns and regiments: the chart shows it as last surveyed, washed dim)
