@@ -1159,6 +1159,7 @@
         - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
         - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
         - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
+        - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2353,6 +2354,7 @@
           - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
           - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
           - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
+          - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7290,7 +7292,7 @@ const SCEN_1805 = {
   marshals: { 'France': ['Marshal Davout', ['aggressive', 'swift']] },
   fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Kingdom of Holland': ['frigate'], 'Russia': ['frigate'] },
   flags: { 'Great Britain': ['man_of_war', 'HMS Victory'], 'France': ['frigate', 'Bucentaure'], 'Spain': ['frigate', 'Santísima Trinidad'] },
-  phrases: { c: ['in the Third Coalition', 'against France and her allies'], f: [me => me.name === 'France' ? 'at the head of the French alliance' : 'on the side of France', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
+  phrases: { c: ['in the Third Coalition', 'against France and her allies'], f: [me => me.name === 'France' ? 'at the head of the French alliance' : 'in the French alliance', 'against the Third Coalition'], apart: 'Europe is at war: the Third Coalition against France. Your crown stands apart, for now.' },
   congress: { year: 1815, at: 'at the Congress of Vienna, in 1815', meets: 'It is 1815, and the Congress of Vienna meets.' },
   score: [[41, '1815: Congress of Vienna'], [81, '1825']],
   aims: { 'France': ['Vienna', 'Berlin', 'Ulm'], 'Austria': ['Munich', 'Milan', 'Venice'], 'Russia': ['Warsaw', 'Königsberg'], 'Prussia': ['Hanover'], 'Great Britain': ['Copenhagen'] },
@@ -7310,11 +7312,14 @@ const SCEN_1805 = {
     'Bavaria': ['Maximilian IV Joseph', 'male', 49, ['industrious'], 'Caroline of Baden', 29, ['Crown Prince Ludwig', 'male', 19, 'Ludwig I']],
     'Kingdom of Italy': ['Eugène de Beauharnais', 'male', 23, ['martial'], 'Augusta of Bavaria', 17],
     'Portugal': ['John, Prince Regent', 'male', 38, ['diplomatic'], 'Carlota Joaquina', 30, ['Prince Pedro', 'male', 6, 'Pedro IV']],
-    'Kingdom of Holland': ['Louis Bonaparte', 'male', 26, ['diplomatic'], 'Hortense de Beauharnais', 22],
+    'Kingdom of Holland': ['Rutger Jan Schimmelpenninck, Grand Pensionary', 'male', 44, ['diplomatic'], 'Catharina Nahuys', 35],
     'Denmark-Norway': ['Frederick, Crown Prince', 'male', 37, ['industrious'], 'Marie of Hesse-Kassel', 37],
     'Kingdom of Saxony': ['Frederick Augustus III', 'male', 54, ['pious'], 'Amalie of Zweibrücken', 53],
   },
   techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
+  // (Holland was the Batavian Republic until Louis Bonaparte was made its king in 1806, and Nassau a duchy from the same summer)
+  aliases: { 'Kingdom of Holland': 'Batavian Republic', 'Duchy of Nassau': 'Nassau' },
+  laterAliases(d) { return d.holland ? { 'Kingdom of Holland': 'Kingdom of Holland', 'Duchy of Nassau': 'Duchy of Nassau' } : {}; },
 };
 // ---- the 1756 start: the Seven Years' War. After the Diplomatic Revolution Prussia and Britain stand against France, Austria
 //  and Saxony; Russia and Sweden come in against Frederick in 1757, Spain against Britain in 1762 ----
@@ -7808,7 +7813,7 @@ function applyHistStart(S) {
   // (the year laid before the player on a card, and written in the log)
   setTimeout(() => logEvent(say + when), 0);   // (after the game's own first line, 'You are ...')
   const myRuler = getNationRuler(playerNation), myCap = cities.find(c => c.nationId === playerNation && c.isCapital);
-  const brief = `${myRuler ? `${myRuler.name} reigns${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
+  const brief = `${myRuler ? `${myRuler.name.replace(/, (Grand Pensionary|Regent|Viceroy|Governor|First Consul)$/, ', the $1,')} ${/(Grand Pensionary|Regent|Viceroy|Governor|First Consul|Stadtholder)$/.test(myRuler.name) ? 'governs' : 'reigns'}${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
   setTimeout(() => { if (!window.__film) scenChoice('Europe, ' + S.year, brief, [['To work', () => {}]]); }, 900);
   annal(body);
   // (all of the crowns are known to one another, and Europe is charted to its edges)
@@ -8579,6 +8584,15 @@ function tickScenario() {
   const byName = nm => nations.find(n => n.name === nm && !n.eliminated && n.id !== playerNation);
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
   const fr = nations.find(n => n.name === 'France' && !n.eliminated);
+  if (year >= 1806 && !done.holland) {   // (June 1806: the Batavian Republic is made a kingdom for the Emperor's brother)
+    done.holland = true;
+    const nl = nations.find(n => n.name === 'Kingdom of Holland' && !n.eliminated), r = nl && getNationRuler(nl.id);
+    if (r && /Schimmelpenninck/.test(r.name)) {
+      installRuler(nl, 'Louis Bonaparte', 'male', 27, ['diplomatic'], 'Hortense de Beauharnais', 23);
+      const say = '1806: the Emperor makes his brother Louis King of Holland, and the Batavian Republic is a kingdom.'; showToast(say);
+      if (nl.id === playerNation) annal('T' + say.slice(7)); else logEvent(say);
+    }
+  }
   if (year >= 1806 && !done.prussia) {
     done.prussia = true;
     const pr = byName('Prussia');
