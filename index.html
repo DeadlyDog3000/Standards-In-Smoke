@@ -1162,6 +1162,7 @@
         - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
         - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
         - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
+        - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2359,6 +2360,7 @@
           - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
           - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
           - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
+          - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7005,8 +7007,9 @@ function showWarDeclaration(nation) {
   logEvent(`${nation.name} has declared war!`); annal((t => t.charAt(0).toUpperCase() + t.slice(1))(`${theCrown(nation)} declared war on us.`));
   playWarHorn();
 
+  // (several crowns declaring in one turn are named together on the one card)
   const existing = document.getElementById('warDeclOverlay');
-  if (existing) existing.remove();
+  if (existing) { const ids = existing._ids || []; if (!ids.includes(nation.id)) ids.push(nation.id); const line = existing.querySelector('.war-who'); if (line) line.innerHTML = `${listAnd(ids.map(id => crownTag(nations[id], 'strong')))} ${ids.length > 1 ? 'have' : 'has'} declared war on your kingdom!`; existing._ids = ids; return; }
   const overlay = document.createElement('div');
   overlay.id = 'warDeclOverlay';
   overlay.style.cssText = "position:fixed;inset:0;z-index:160;background:linear-gradient(rgba(80,10,5,0.7),rgba(40,6,3,0.9)),url('events/camp.jpg') center/cover;display:flex;align-items:center;justify-content:center;animation:warFlash 0.3s ease-out;";
@@ -7016,10 +7019,11 @@ function showWarDeclaration(nation) {
       <div style="font-size:12px;color:#d8b8a0;margin:-8px 0 10px;">${escHtml(warRuler.name)}</div>`
     : `<div style="width:80px;height:80px;border-radius:50%;background:${wc};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;"><span style="font-size:40px;">\u2694\uFE0F</span></div>`}
     <h1 style="color:#d8553a;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 20px rgba(200,60,30,0.45);margin-bottom:10px;">War Declared!</h1>
-    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;">${crownTag(nation, 'strong')} has declared war on your kingdom!</p>
+    <p class="war-who" style="font-size:18px;color:#e8dcc8;margin-bottom:6px;">${crownTag(nation, 'strong')} has declared war on your kingdom!</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
+  overlay._ids = [nation.id];
   document.body.appendChild(overlay);
 }
 
