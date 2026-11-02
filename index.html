@@ -1135,6 +1135,7 @@
         - Go aboard is on the round order buttons under the map as well, and on the B key<br>
         - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
         - On a phone the ship texts say tap, not right-click<br>
+        - On a phone the unit buttons go without their keyboard letters<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2311,6 +2312,7 @@
           - Go aboard is on the round order buttons under the map as well, and on the B key<br>
           - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
           - On a phone the ship texts say tap, not right-click<br>
+          - On a phone the unit buttons go without their keyboard letters<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19074,6 +19076,8 @@ function showUnitPanel(unit) {
     html += `</span></div>`;
   }
   html += `<button class="p-btn" onclick="deselectUnit()">Deselect</button>`;
+  // (a phone has no keys: the buttons go without their letters)
+  if (document.body.classList.contains('mobile-mode')) html = html.replace(/ \(([A-Z])\)(?=\s*(<|$))/g, '');
   panel.innerHTML = html; panel.style.display = 'block';
 }
 
