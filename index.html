@@ -1147,6 +1147,7 @@
         - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
         - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
         - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
+        - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2334,6 +2335,7 @@
           - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
           - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
           - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
+          - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19740,7 +19742,7 @@ function renderKingdoms() {
       const atWarWith = Object.entries(nations[playerNation].relations).filter(([id, r]) => r === 'war' && !nations[id]?.isBarbarian && !nations[id]?.eliminated);
       const pact = (type, name, req, show = true) => hasAgreement(playerNation, n.id, type)
         ? `<span class="kc-pact on">✓ ${name}<button onclick="cancelAgreement(${n.id},'${type}')" title="End it">×</button></span>`
-        : show ? `<button class="kc-pact" onclick="${req}">+ ${name}</button>` : '';
+        : show ? `<button class="kc-pact" onclick="${req}"${PACT_NEEDS[type] ? ` title="Propose it: ${escHtml(pactOdds(n.id, type))}"` : ''}>+ ${name}</button>` : '';
       const canMap = loy >= 20;
       html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
       // the trade panel, as it was
@@ -19923,6 +19925,21 @@ function rejectPeace(nationId) {
   showToast(`Rejected peace offer from ${n.name}.`);
   renderKingdoms();
 }
+// (how likely a crown is to turn down a pact it already thinks well enough of you for)
+function pactRefuseChance(nationId, type) {
+  const loy = getLoyalty(nationId, playerNation), ruler = getNationRuler(nationId), rulerTraits = ruler ? (ruler.traits || []) : [];
+  const theyAreAtWar = nationAtRealWar(nations[nationId]);
+  let refuseChance = 0.10;
+  if (rulerTraits.includes('diplomatic')) refuseChance -= 0.08;
+  if (rulerTraits.includes('martial') || rulerTraits.includes('cruel') || rulerTraits.includes('reckless')) refuseChance += 0.18;
+  if (theyAreAtWar && type === 'open_borders') refuseChance += 0.35;
+  if (theyAreAtWar && type === 'war_help') refuseChance += 0.25; // risky to add another enemy
+  if (milCount(nationId) > milCount(playerNation) * 2 && type !== 'barb_help') refuseChance += 0.20; // powerful nations are prideful
+  if (loy >= 80) refuseChance = Math.max(0, refuseChance - 0.12);
+  return refuseChance;
+}
+const PACT_NEEDS = { open_borders: 40, war_help: 60, barb_help: 30 };
+function pactOdds(nationId, type) { return getLoyalty(nationId, playerNation) < PACT_NEEDS[type] ? `they think too little of you (they must be ${getLoyaltyLabel(PACT_NEEDS[type])})` : oddsWord(1 - pactRefuseChance(nationId, type)); }
 function requestAgreement(nationId, type) {
   const loy = getLoyalty(nationId, playerNation);
   const labels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Barbarian Pact' };
@@ -19936,16 +19953,7 @@ function requestAgreement(nationId, type) {
   const ruler = getNationRuler(nationId);
   const rulerTraits = ruler ? (ruler.traits || []) : [];
   const theyAreAtWar = nationAtRealWar(n);
-  const ourMil = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
-  const theirMil = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.combat).length;
-  let refuseChance = 0.10;
-  if (rulerTraits.includes('diplomatic')) refuseChance -= 0.08;
-  if (rulerTraits.includes('martial') || rulerTraits.includes('cruel') || rulerTraits.includes('reckless')) refuseChance += 0.18;
-  if (theyAreAtWar && type === 'open_borders') refuseChance += 0.35;
-  if (theyAreAtWar && type === 'war_help') refuseChance += 0.25; // risky to add another enemy
-  if (theirMil > ourMil * 2 && type !== 'barb_help') refuseChance += 0.20; // powerful nations are prideful
-  if (loy >= 80) refuseChance = Math.max(0, refuseChance - 0.12);
-  if (Math.random() < refuseChance) {
+  if (Math.random() < pactRefuseChance(nationId, type)) {
     const flavor = rulerTraits.includes('cruel') ? `${n.name}'s ruler dismisses your envoy with contempt.`
       : rulerTraits.includes('martial') ? `${n.name} sees no strategic value in the proposal.`
       : theyAreAtWar && type === 'open_borders' ? `${n.name} cannot open their borders during wartime.`
