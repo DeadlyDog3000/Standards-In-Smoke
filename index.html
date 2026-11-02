@@ -1160,6 +1160,7 @@
         - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
         - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
         - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
+        - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2355,6 +2356,7 @@
           - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
           - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
           - 1805: Holland begins as the Batavian Republic under its Grand Pensionary, Schimmelpenninck, and is made a kingdom for Louis Bonaparte in 1806, as Nassau is made a duchy; a regent, governor or Grand Pensionary governs rather than reigns in the opening card<br>
+          - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -20933,7 +20935,7 @@ function showSavePanel() {
     const meta = localStorage.getItem('sis_meta_' + slots[i]);
     let info = 'Empty';
     let thumb = '<span class="save-thumb empty"></span>';
-    if (meta) { const m = JSON.parse(meta); info = `${escHtml(m.nation)} | Turn ${m.turn | 0} | ${escHtml(m.size || '')} | ${escHtml(m.date || '')}`; thumb = saveSlotThumb(m); }
+    if (meta) { const m = JSON.parse(meta); info = `${saveSlotInfo(m)} | ${escHtml(m.date || '')}`; thumb = saveSlotThumb(m); }
     html += `<div style="display:flex;gap:4px;margin-bottom:4px;">`;
     html += `<button class="esc-btn" style="flex:1;font-size:13px;text-align:left;line-height:1.4;margin:0;" onclick="if(saveGame('${slots[i]}')) showToast('Saved to ${labels[i]}!'); showSavePanel();">${thumb}${labels[i]}<br><span style="font-size:11px;color:#aaa;">${info}</span></button>`;
     if (meta) html += `<button class="esc-btn" style="width:36px;margin:0;color:#e44;font-size:16px;" onclick="deleteSave('${slots[i]}'); showSavePanel();" title="Delete save">X</button>`;
@@ -21131,7 +21133,7 @@ function refreshMenuSaveSlots() {
       hasAnySave = true;
       const m = JSON.parse(meta);
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-        '<button class="menu-btn" onclick="loadGame(\'' + slots[i] + '\')" style="flex:1;min-width:auto;font-size:14px;padding:8px 12px;text-align:left;">' + saveSlotThumb(m) + labels[i] + '<span class="slot-info">' + escHtml(m.nation) + ' | Turn ' + (m.turn | 0) + ' | ' + escHtml(m.size || '') + '</span></button>' +
+        '<button class="menu-btn" onclick="loadGame(\'' + slots[i] + '\')" style="flex:1;min-width:auto;font-size:14px;padding:8px 12px;text-align:left;">' + saveSlotThumb(m) + labels[i] + '<span class="slot-info">' + saveSlotInfo(m) + '</span></button>' +
         '<button class="menu-btn" onclick="deleteSave(\'' + slots[i] + '\');refreshMenuSaveSlots()" style="min-width:auto;padding:8px 12px;font-size:13px;background:rgba(180,60,40,0.2);border-color:rgba(180,90,60,0.4);">Delete</button>' +
         '</div>';
     }
@@ -23468,6 +23470,8 @@ function saveThumb() {
     return c.toDataURL('image/jpeg', 0.6);
   } catch (e) { return null; }
 }
+// (a save's line: its crown, the year it stands at and the start it was begun in, or its turn and map size for older saves)
+function saveSlotInfo(m) { return `${escHtml(m.nation)} | ${m.year ? (m.year | 0) + (m.start ? `, begun ${escHtml(String(m.start))}` : '') + ` (turn ${m.turn | 0})` : 'Turn ' + (m.turn | 0)} | ${escHtml(m.size || '')}`; }
 function saveSlotThumb(m) {
   return m && typeof m.thumb === 'string' && m.thumb.startsWith('data:image/jpeg') ? `<img class="save-thumb" src="${m.thumb}" alt="">` : '<span class="save-thumb empty"></span>';
 }
@@ -23475,7 +23479,7 @@ function saveGame(slot) {
   slot = slot || 'auto';
   try {
     const data = serializeGame();
-    const meta = { nation: nations[playerNation].name, turn: turnNumber, year: getCurrentYear(), date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}`, color: nations[playerNation].color, thumb: saveThumb() };
+    const meta = { nation: crownName1(nations[playerNation]), start: scen() ? scenario : null, turn: turnNumber, year: getCurrentYear(), date: new Date().toLocaleString(), size: `${MAP_COLS}x${MAP_ROWS}`, color: nations[playerNation].color, thumb: saveThumb() };
     localStorage.setItem('sis_save_' + slot, data);
     localStorage.setItem('sis_meta_' + slot, JSON.stringify(meta));
     return true;
