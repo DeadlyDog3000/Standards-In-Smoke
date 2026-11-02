@@ -1113,7 +1113,7 @@
         - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
         - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
         - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
-        - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
+        - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time (on a phone, tap the ship and then the coast). If the ship is sunk, they go down with her<br>
         - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
         - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
         - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
@@ -1133,6 +1133,8 @@
         - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
         - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
         - Go aboard is on the round order buttons under the map as well, and on the B key<br>
+        - On a phone the view brings a chosen unit or town a third of the way down the screen, above its panel, instead of to the middle where the panel hid it<br>
+        - On a phone the ship texts say tap, not right-click<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2287,7 +2289,7 @@
           - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
           - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
           - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
-          - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
+          - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time (on a phone, tap the ship and then the coast). If the ship is sunk, they go down with her<br>
           - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
           - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
           - A regiment, settler or worker beside a ship of yours with room has a Go aboard button in its panel<br>
@@ -2307,6 +2309,8 @@
           - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
           - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
           - Go aboard is on the round order buttons under the map as well, and on the B key<br>
+          - On a phone the view brings a chosen unit or town a third of the way down the screen, above its panel, instead of to the middle where the panel hid it<br>
+          - On a phone the ship texts say tap, not right-click<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -3963,7 +3967,7 @@ setInterval(() => { try { owActionsSync(); } catch (e) {} }, 400);
 window.disbandSelected = function (btn) {
   const u = selectedUnit; if (!u || u.nationId !== playerNation || !units.includes(u)) return;
   // (a ship is not paid off with regiments still aboard her: they would go with her)
-  if ((u.cargo || []).length) { SMK.deny(); showToast(`Put the ${u.cargo.length === 1 ? 'regiment' : u.cargo.length + ' regiments'} aboard ashore first: right-click the coast beside the ship.`); return; }
+  if ((u.cargo || []).length) { SMK.deny(); showToast(`Put the ${u.cargo.length === 1 ? 'regiment' : u.cargo.length + ' regiments'} aboard ashore first: ${rclickWord()} the coast beside the ship.`); return; }
   if (btn && !btn.dataset.armed) {
     const round = !!btn.closest('#owActions');   // (a round button keeps its picture: only its tip says so)
     btn.dataset.armed = '1'; if (round) { btn.title = 'Click again to disband'; showToast('Click again to disband the regiment.'); } else btn.textContent = 'Click again to disband';
@@ -4382,7 +4386,7 @@ const HINTS = {
   promo: 'A regiment of yours has earned a promotion. Select it (the gilt star marks it) and choose one of the two in its panel.',
   ambition: 'Choose an ambition for your crown. It is shown under the top bar until fulfilled; fulfil ten to win.',
   orders: 'No orders left this turn. Regiments that have already moved can still fire, and the next turn brings a fresh set. Press E or the crest to end the turn.',
-  ships: 'This regiment stands beside one of your ships. Right-click the ship (or press Go aboard in its panel) and it goes aboard; sail the ship, then right-click the coast beside it to put the regiment ashore.',
+  ships: () => `This regiment stands beside one of your ships. ${rclickWord(true)} the ship (or press Go aboard in its panel) and it goes aboard; sail the ship, then ${rclickWord()} the coast beside it to put the regiment ashore.`,
   winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
   war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
   navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
@@ -4397,7 +4401,7 @@ function hint(id) {
     if (document.querySelector('#escMenu.show, #eventModal.active, #ambitionOverlay, #manualOverlay, #chronicleOverlay, #victoryOverlay, #defeatOverlay, #warDeclOverlay, #coalitionInvite, #scenOverlay, #techTreeOverlay, #idleCitiesPopup, #noResearchPopup')) return;
     seen.push(id); localStorage.setItem('sis_hints_seen', JSON.stringify(seen));
     const el = document.createElement('div'); el.id = 'hintCard';
-    el.innerHTML = `<b>Tip</b><p>${HINTS[id]}</p><div><button onclick="this.closest('#hintCard').remove()">Got it</button><button onclick="localStorage.setItem('sis_hints_off','1');this.closest('#hintCard').remove()">No more tips</button></div>`;
+    el.innerHTML = `<b>Tip</b><p>${typeof HINTS[id] === 'function' ? HINTS[id]() : HINTS[id]}</p><div><button onclick="this.closest('#hintCard').remove()">Got it</button><button onclick="localStorage.setItem('sis_hints_off','1');this.closest('#hintCard').remove()">No more tips</button></div>`;
     document.body.appendChild(el);
   } catch (e) {}
 }
@@ -5087,7 +5091,9 @@ function renderParticles() {
 let targetCamX = null, targetCamY = null, camPanCallback = null;
 function panCameraTo(col, row, callback) {
   targetCamX = clampCamX(col + 0.5 - visibleCols() / 2);
-  targetCamY = clampCamY(row + 0.5 - visibleRows() / 2);
+  // (on a phone the chosen unit's panel fills the lower half: the unit is brought a third of the way down, between the
+  //  top bar and the panel, where it can still be seen)
+  targetCamY = clampCamY(row + 0.5 - visibleRows() * (document.body.classList.contains('mobile-mode') ? 0.33 : 0.5));
   // a pan already under way is superseded: let whoever waited on it carry on, rather than wait forever
   const superseded = camPanCallback;
   camPanCallback = callback || null;
@@ -6228,6 +6234,8 @@ const isEmbarked = u => !!u && !UNIT_DEFS[u.type]?.naval && tiles[u.y * MAP_COLS
 //  ship sails (off the map while it is, safe from the sea but lost with the ship); right-click the coast beside the ship to
 //  put the regiments ashore again, one at a time. Boarding takes an order and the regiment's moves; landing the ship's order ----
 const SHIP_HOLD = { frigate: 2, galleon: 3, man_of_war: 2 };
+// (the word for an order on the map: a phone has no right button, and a tap does there what a right-click does here)
+const rclickWord = cap => document.body.classList.contains('mobile-mode') ? (cap ? 'Tap' : 'tap') : (cap ? 'Right-click' : 'right-click');
 const shipHold = s => SHIP_HOLD[s?.type] || 0;
 const cargoName = c => regimentName(c) || unitTitle(c.type);
 // (a regiment aboard is never on the map as well: one caught mid-step onto its ship when the turn ends or the game is saved)
@@ -19025,7 +19033,7 @@ function showUnitPanel(unit) {
   }
   // (a ship of yours with regiments aboard: who they are, and which goes ashore at the next right-click on the coast)
   if (unit.nationId === playerNation && (unit.cargo || []).length) {
-    html += `<div class="p-section" style="margin:6px 0"><div style="font-size:11px;color:#b8a070;margin-bottom:3px">Aboard (right-click the coast beside her to land the first)</div>` +
+    html += `<div class="p-section" style="margin:6px 0"><div style="font-size:11px;color:#b8a070;margin-bottom:3px">Aboard (${rclickWord()} the coast beside her to land the first)</div>` +
       unit.cargo.map((c, k) => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0"><span style="flex:1">${k === 0 ? '<b>' : ''}${escHtml(cargoName(c))}${k === 0 ? '</b> <span style="color:#9a8a6a">(lands first)</span>' : ''}</span>${k ? `<button class="p-btn" style="margin:0;padding:2px 8px;width:auto;font-size:11px" onclick="cargoFirst(${k})">Land first</button>` : ''}</div>`).join('') + '</div>';
   }
   if (UNIT_DEFS[unit.type]?.combat) {
