@@ -6184,7 +6184,7 @@ function boardShip(u, ship) {
   if (hexDistance(u.x, u.y, ship.x, ship.y) > 1) return 'March to the coast beside the ship first.';
   if (isEmbarked(u)) return 'A regiment already at sea cannot go aboard.';
   if (u.movesLeft <= 0) return 'That regiment has no moves left this turn.';
-  if ((ship.cargo || []).length >= shipHold(ship)) return `The ${regimentName(ship) || 'ship'} has no room: it carries ${shipHold(ship)} regiments.`;
+  if ((ship.cargo || []).length >= shipHold(ship)) return `${ship.title ? ship.title : 'The ' + (regimentName(ship) || 'ship')} has no room: she carries ${shipHold(ship)} regiments.`;
   if (!tryActivateUnit(u, true)) return '';
   const i = units.indexOf(u); if (i >= 0) units.splice(i, 1);
   if (selectedUnit === u) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
@@ -6192,7 +6192,7 @@ function boardShip(u, ship) {
   delete u.gotoX; delete u.gotoY; u.fortified = false; u.automated = false; u.autoExplore = false; u.movesLeft = 0;
   (ship.cargo || (ship.cargo = [])).push(u);
   try { SMK.oars(); } catch (e) {}
-  if (u.nationId === playerNation) showToast(`The ${cargoName(u)} goes aboard the ${regimentName(ship) || 'ship'}.`);
+  if (u.nationId === playerNation) showToast(`The ${cargoName(u)} goes aboard ${ship.title ? ship.title : 'the ' + (regimentName(ship) || 'ship')}.`);
   invalidateVision();
   return null;
 }
