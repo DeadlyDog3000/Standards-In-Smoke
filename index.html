@@ -4419,6 +4419,7 @@ const HINTS = {
   winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
   war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
   navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
+  peaceTown: () => `Your regiments stand at the gates of an enemy town. In the Kingdoms panel (${document.body.classList.contains('mobile-mode') ? 'the crown at the top' : 'K'}) you can ask for that town as the price of peace: they give it up only when they are losing.`,
   merge: () => `Two regiments of yours stand side by side. ${document.body.classList.contains('mobile-mode') ? 'Press Form up in the panel of one of them' : 'Press J (or right-click one with the other chosen)'} to form them into one regiment of up to three companies that fires as one.`,
 };
 function hint(id) {
@@ -13283,6 +13284,8 @@ function _finishEndTurnImpl() {
   updateUI(); render();
 
   if (turnNumber > 3 && turnNumber % 4 === 0) triggerEvent();
+  // (the first time your regiments stand at an enemy town's gates: the price of peace can be that town)
+  try { const me = nations[playerNation]; if (nations.some(o => o.id !== playerNation && !o.isBarbarian && !o.isTribe && me.relations[o.id] === 'war' && peaceTownFor(o.id))) setTimeout(() => hint('peaceTown'), 1500); } catch (e) {}
 
   setTimeout(checkEndTurnReminders, 200);
 }
