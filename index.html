@@ -1140,6 +1140,7 @@
         - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
         - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
         - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
+        - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2321,6 +2322,7 @@
           - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
           - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
           - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
+          - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19055,9 +19057,12 @@ function showUnitPanel(unit) {
     const moveAndAttack = unit.type === 'dragoon' || unit.type === 'swordsman';
     html += `<p style="font-size:11px;color:#a66">${moveAndAttack ? `${unit.type === 'swordsman' ? 'Swordsmen' : 'Dragoons'} can move and attack in the same turn.` : 'Attacking uses the entire turn. Cannot move and attack.'}</p>`;
     if (unit.nationId === playerNation && unit.movesLeft > 0) {
-      html += `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
+      // (a ship does not dig in: she lies at anchor, readier for an attack and left out of the round of units awaiting orders)
+      const nav = !!UNIT_DEFS[unit.type].naval;
+      html += nav ? `<button class="p-btn" onclick="fortifyUnit()">Lie at anchor (V${unit.fortified ? ' - at anchor' : ''}) <span class="cost">20% defense bonus</span></button>`
+        : `<button class="p-btn" onclick="fortifyUnit()">Fortify (V${unit.fortified ? ' - already fortified' : ''}) <span class="cost">20% defense bonus</span></button>`;
       if (unit.fortified) {
-        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#a8c070;color:#b8cc84">Wake (Z) <span class="cost">Unfortify unit</span></button>`;
+        html += `<button class="p-btn" onclick="wakeUnit()" style="border-color:#a8c070;color:#b8cc84">${nav ? 'Weigh anchor' : 'Wake'} (Z) <span class="cost">${nav ? 'Under sail again' : 'Unfortify unit'}</span></button>`;
       }
     }
   }
@@ -22856,7 +22861,7 @@ window.fortifyUnit = function() {
   if (!tryActivateUnit(selectedUnit)) return;
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
-  showToast('Unit fortified (+20% defense)');
+  showToast(UNIT_DEFS[selectedUnit.type].naval ? 'She lies at anchor (+20% defence).' : 'Unit fortified (+20% defense)');
   cycleToNextUnit(); updateUI(); render();
 };
 
