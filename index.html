@@ -1144,6 +1144,7 @@
         - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
         - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
         - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
+        - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2329,6 +2330,7 @@
           - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
           - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
           - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
+          - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7928,8 +7930,8 @@ function tickScenario1740() {
     if (ai(sw, ru) && sw.relations[ru.id] !== 'war') { sw.relations[ru.id] = 'war'; ru.relations[sw.id] = 'war'; tell("1741: Sweden goes to war with Russia to win back Peter the Great's conquests: the Hats' War.", sw, ru); }
   }
   if (year >= 1743 && !done.abo) { done.abo = true; const sw = anyName('Sweden'), ru = anyName('Russia'); histPeace(sw, ru, makePeace, tell, '1743: by the Peace of Åbo Sweden makes peace with Russia.', 'The Peace of Åbo', sw && sw.id === playerNation ? 'The war with Russia has gone badly: Russia offers peace for a strip of Finland.' : 'Sweden sues for peace, and will give up a strip of Finland.'); }
-  if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au);
-    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Breslau', pr.id === playerNation ? 'Maria Theresa, hard pressed by France and Bavaria, will leave Silesia to you if Prussia leaves the war.' : 'Frederick will leave the war if Silesia is left to him, and you may turn on France and Bavaria.', () => makePeace(pr, au), 'The Peace of Breslau is made.'); }
+  if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) { treatyCede('Breslau', pr, [au]); tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au); }
+    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Breslau', pr.id === playerNation ? 'Maria Theresa, hard pressed by France and Bavaria, will leave Silesia to you if Prussia leaves the war.' : 'Frederick will leave the war if Silesia is left to him, and you may turn on France and Bavaria.', () => { makePeace(pr, au); treatyCede('Breslau', pr, [au]); }, 'The Peace of Breslau is made.'); }
   if (year >= 1744 && !done.second) {
     done.second = true;
     if (ai(pr, au) && pr.relations[au.id] !== 'war') {
@@ -7955,6 +7957,13 @@ function warOffer(n, foe, title, text, join, said) {
   scenChoice(title, text, [['Go to war', () => { join(); showToast(said); annal(said); }], ['Stay at peace', () => { annal(`${title}: we stayed at peace.`); }]]);
 }
 // (a two-crown peace: made between the other crowns, or offered to you if yours is one of the two)
+// (a treaty's cession: the named town, held by one of the crowns giving it up, passes to the crown it was promised to)
+function treatyCede(name, to, from) {
+  const c = cities.find(c => c.name === name && !c.ruined);
+  if (!c || !to || to.eliminated || c.nationId === to.id || !from.some(f => f && f.id === c.nationId)) return;
+  const was = nations[c.nationId]; cedeTown(c, to.id);
+  if (to.id === playerNation || was.id === playerNation) showToast(`${name} passes to ${theCrown(to)}.`);
+}
 function histPeace(a, b, makePeace, tell, say, title, mine) {
   if (!a || !b || a.relations[b.id] !== 'war') return;
   if (a.id !== playerNation && b.id !== playerNation) { if (makePeace(a, b)) tell(say, a, b); return; }
@@ -8012,9 +8021,10 @@ function tickScenario1683() {
     done.ratisbon = true;
     const sp = anyName('Spain'), nl = anyName('Belgium');
     let made = false; for (const o of [sp, nl]) if (ai(fr, o) && makePeace(fr, o)) made = true;
+    if (made) treatyCede('Strasbourg', fr, [sp, nl].filter(o => o && o.relations[fr.id] !== 'war'));
     if (made) tell('1684: by the Truce of Ratisbon France keeps Strasbourg and Luxembourg and makes peace with Spain.', fr, sp, nl);
     const was = [sp, nl].filter(o => o && fr && o.relations[fr.id] === 'war' && (o.id === playerNation || fr.id === playerNation));
-    if (was.length) peaceOffer('The Truce of Ratisbon', fr.id === playerNation ? 'Spain, with the Emperor busy with the Turk, will accept a truce of twenty years and leave you Strasbourg and Luxembourg.' : 'France offers a truce of twenty years if Strasbourg and Luxembourg stay French.', () => { for (const o of was) makePeace(fr, o); }, 'The Truce of Ratisbon is made.');
+    if (was.length) peaceOffer('The Truce of Ratisbon', fr.id === playerNation ? 'Spain, with the Emperor busy with the Turk, will accept a truce of twenty years and leave you Strasbourg and Luxembourg.' : 'France offers a truce of twenty years if Strasbourg and Luxembourg stay French.', () => { for (const o of was) makePeace(fr, o); treatyCede('Strasbourg', fr, was); }, 'The Truce of Ratisbon is made.');
   }
   if (year >= 1685 && !done.charles2) {   // (Charles II of England dies, and his Catholic brother is crowned)
     done.charles2 = true; dies(gb, 'Charles II');
