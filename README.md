@@ -18,6 +18,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 
 - An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
 - A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names
+- The 1812 start: the invasion of Russia, Borodino, Moscow and the winter retreat, the Sixth Coalition and Leipzig, until the Congress of Vienna
 - The 1805 start: Europe in the year of Austerlitz, Napoleon and the crowned heads of the age on their thrones, and the Third Coalition already at war with France; the score is counted at the Congress of Vienna
 - The 1792 start: the wars of the Revolution, Valmy, the King's trial and the Republic, the Terror, Bonaparte in Italy and Brumaire, until the Peace of Amiens
 - The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris

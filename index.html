@@ -967,7 +967,7 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Start</span>
-          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1792, the wars of the Revolution; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; 1740, the Austrian Succession; 1700, the Spanish Succession in the west and the Great Northern War in the north; or 1683, the Turks at the gates of Vienna">
+          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1812, the Grande Armée on the road to Moscow; 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1792, the wars of the Revolution; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; 1740, the Austrian Succession; 1700, the Spanish Succession in the west and the Great Northern War in the north; or 1683, the Turks at the gates of Vienna">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1683">1683: the Siege of Vienna</option>
             <option value="1700">1700: the Spanish Succession</option>
@@ -975,6 +975,7 @@
             <option value="1756">1756: the Seven Years' War</option>
             <option value="1792">1792: the Revolution</option>
             <option value="1805">1805: the Coalition</option>
+            <option value="1812">1812: the Road to Moscow</option>
           </select>
         </div>
         <div class="setup-row">
@@ -1097,7 +1098,7 @@
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.8</b></div>
       <div style="margin-bottom:12px;">
-        <b style="color:#b8a070;">1683 and 1792: Vienna and the Revolution</b><br>
+        <b style="color:#b8a070;">1683, 1792, 1812: Vienna, the Revolution, Moscow</b><br>
         - A fifth historical start, 1683: the Siege of Vienna. The Grand Vizier Kara Mustafa and his army are camped before Vienna, and the Emperor, John Sobieski's Poland, Bavaria and Saxony stand together against the Turk; in the west Louis XIV is at war with Spain for the Reunions. Leopold I, Mehmed IV, Louis XIV, Charles II of England, Sophia regent for the young Peter and the Great Elector on their thrones, with their consorts and heirs<br>
         - History as it went: the relief of Vienna, the Truce of Ratisbon, the Edict of Nantes revoked and the Huguenots taken in by Brandenburg, Buda and Mohács, Russia in the Holy League, the Glorious Revolution and the Nine Years' War, Fleurus, Slankamen, La Hogue, Azov, Augustus the Strong elected in Poland, Zenta and the Peace of Ryswick, and the score counted at the Peace of Karlowitz in 1699<br>
         - A sixth start, 1792: the Revolution. Louis XVI's France at war with Austria and Prussia, Brunswick's army on the march, Catherine the Great, George III and the young Francis II on their thrones. Valmy and Jemappes; the King's trial (as France you decide whether the Republic is proclaimed, and the crown is called the French Republic from then on); the First Coalition, the Terror and Thermidor, the end of Poland, the Peace of Basel and the Batavian Republic, General Bonaparte in Italy, Campo Formio, the Nile, the Second Coalition, Brumaire, Marengo, and the score counted at the Peace of Amiens in 1802<br>
@@ -1112,6 +1113,7 @@
         - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
         - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
         - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
+        - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -1172,7 +1174,7 @@
         - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
         - The Annals can be copied as text, year by year, to paste wherever you like<br>
         - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-        - Achievements, kept in your browser across every game: twenty-three of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+        - Achievements, kept in your browser across every game: twenty-four of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
         - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
         - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
         - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -2252,7 +2254,7 @@
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.8</b></div>
         <div style="margin-bottom:12px;">
-          <b style="color:#b8a070;">1683 and 1792: Vienna and the Revolution</b><br>
+          <b style="color:#b8a070;">1683, 1792, 1812: Vienna, the Revolution, Moscow</b><br>
           - A fifth historical start, 1683: the Siege of Vienna. The Grand Vizier Kara Mustafa and his army are camped before Vienna, and the Emperor, John Sobieski's Poland, Bavaria and Saxony stand together against the Turk; in the west Louis XIV is at war with Spain for the Reunions. Leopold I, Mehmed IV, Louis XIV, Charles II of England, Sophia regent for the young Peter and the Great Elector on their thrones, with their consorts and heirs<br>
           - History as it went: the relief of Vienna, the Truce of Ratisbon, the Edict of Nantes revoked and the Huguenots taken in by Brandenburg, Buda and Mohács, Russia in the Holy League, the Glorious Revolution and the Nine Years' War, Fleurus, Slankamen, La Hogue, Azov, Augustus the Strong elected in Poland, Zenta and the Peace of Ryswick, and the score counted at the Peace of Karlowitz in 1699<br>
           - A sixth start, 1792: the Revolution. Louis XVI's France at war with Austria and Prussia, Brunswick's army on the march, Catherine the Great, George III and the young Francis II on their thrones. Valmy and Jemappes; the King's trial (as France you decide whether the Republic is proclaimed, and the crown is called the French Republic from then on); the First Coalition, the Terror and Thermidor, the end of Poland, the Peace of Basel and the Batavian Republic, General Bonaparte in Italy, Campo Formio, the Nile, the Second Coalition, Brumaire, Marengo, and the score counted at the Peace of Amiens in 1802<br>
@@ -2267,6 +2269,7 @@
           - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
           - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
           - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
+          - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -2327,7 +2330,7 @@
           - The Annals of the Reign: beside the score chart and the map through the years, the notable moments of your reign under their years: towns founded, taken and lost, battles named, ambitions fulfilled, wonders raised, royal marriages, coalitions and crowns brought down<br>
           - The Annals can be copied as text, year by year, to paste wherever you like<br>
           - A new ambition and achievement, The Capital Falls: take a rival crown's capital (a town remembers being one, in your saves too)<br>
-          - Achievements, kept in your browser across every game: twenty-three of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
+          - Achievements, kept in your browser across every game: twenty-four of them, from putting a regiment ashore on another landmass to winning on Hard or on the map of Europe. See them under Victories &amp; Achievements on the title screen<br>
           - Battles are named: a field where three or more regiments have fallen is lettered on the chart with the nearest town and the year (Leipzig 1813), as the old atlases marked them, and written in the log<br>
           - A regiment of yours can be given a name of its own (Rename, under its name in its panel), and the panel names every kind of unit properly (Heavy Cavalry, not Heavy_cavalry)<br>
           - Dragoons and gunners in their own nation's coats too: French dragoons in green, British in red, Austrian in white, Prussian in light blue; Austrian gunners in brown, Russian in green<br>
@@ -7359,7 +7362,70 @@ const SCEN_1792 = {
   aims: { 'France': ['Brussels', 'Mainz', 'Milan', 'Amsterdam', 'Utrecht', 'Prague', 'Vienna'], 'Austria': ['Lille', 'Strasbourg', 'Lyon', 'Paris'], 'Prussia': ['Paris', 'Warsaw', 'Danzig'], 'Russia': ['Warsaw', 'Vilna'], 'Great Britain': ['Antwerp'] },
   briefTail: "History will move as it did, if the crowns are still placed for it: Valmy and the Republic in 1792, the King's death and the First Coalition in 1793, the end of Poland, Bonaparte in Italy in 1796, the Second Coalition, Brumaire in 1799, and peace at Amiens in 1802.",
 };
-const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792 };
+// ---- the 1812 start: the invasion of Russia. The Grande Armée stands on the Niemen with the armies of half of Europe
+//  beside it, Austria's and Prussia's among them; in the Peninsula Wellington, Spain and Portugal fight on ----
+const SCEN_1812 = {
+  year: 1812,
+  first: ['France', 'Russia', 'Great Britain', 'Austria', 'Prussia', 'Spain', 'Sweden', 'Duchy of Warsaw', 'Portugal', 'Ottoman Empire', 'Kingdom of Saxony', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Italy', 'Westphalia', 'Denmark-Norway', 'Kingdom of Holland', 'Swiss Confederation', 'Duchy of Nassau', 'Belgium'],
+  coalition: ['Russia', 'Great Britain', 'Spain', 'Portugal'],
+  france: ['France', 'Austria', 'Prussia', 'Duchy of Warsaw', 'Kingdom of Saxony', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Italy', 'Westphalia', 'Kingdom of Holland', 'Duchy of Nassau', 'Belgium'],
+  great: ['France', 'Russia', 'Great Britain', 'Austria', 'Prussia'],
+  techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'field_artillery', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'engineering', 'cartography'],
+  rulers: {
+    'France': ['Napoleon Bonaparte', 'male', 42, ['martial', 'charismatic'], 'Marie Louise of Austria', 20, ['Napoleon, King of Rome', 'male', 1, 'Napoleon II']],
+    'Russia': ['Alexander I', 'male', 34, ['diplomatic', 'charismatic'], 'Elizabeth Alexeievna', 33, ['Grand Duke Constantine', 'male', 33, 'Constantine I']],
+    'Great Britain': ['George, Prince Regent', 'male', 49, ['charismatic', 'corrupt'], 'Caroline of Brunswick', 44, ['Princess Charlotte', 'female', 16, 'Charlotte']],
+    'Austria': ['Francis I', 'male', 44, ['industrious'], 'Maria Ludovika of Austria-Este', 24, ['Archduke Ferdinand', 'male', 19, 'Ferdinand I']],
+    'Prussia': ['Frederick William III', 'male', 41, ['frugal'], null, 0, ['Crown Prince Frederick William', 'male', 16, 'Frederick William IV']],
+    'Spain': ['Ferdinand VII', 'male', 27, ['pious'], null, 0],
+    'Sweden': ['Charles XIII', 'male', 63, ['frugal'], 'Hedvig Elisabeth Charlotte', 53, ['Crown Prince Charles John', 'male', 49, 'Charles XIV John']],
+    'Duchy of Warsaw': ['Frederick Augustus I', 'male', 61, ['pious'], 'Amalie of Zweibrücken', 60],
+    'Portugal': ['John, Prince Regent', 'male', 44, ['diplomatic'], 'Carlota Joaquina', 37, ['Prince Pedro', 'male', 13, 'Pedro IV']],
+    'Ottoman Empire': ['Mahmud II', 'male', 27, ['industrious'], null, 0],
+    'Kingdom of Saxony': ['Frederick Augustus I', 'male', 61, ['pious'], 'Amalie of Zweibrücken', 60],
+    'Bavaria': ['Maximilian I Joseph', 'male', 56, ['industrious'], 'Caroline of Baden', 36, ['Crown Prince Ludwig', 'male', 25, 'Ludwig I']],
+    'Kingdom of Naples': ['Joachim Murat', 'male', 45, ['martial', 'reckless'], 'Caroline Bonaparte', 30, ['Prince Achille', 'male', 11]],
+    'Kingdom of Italy': ['Eugène de Beauharnais', 'male', 30, ['martial'], 'Augusta of Bavaria', 23],
+    'Westphalia': ['Jérôme Bonaparte', 'male', 27, ['corrupt'], 'Catharina of Württemberg', 29],
+    'Denmark-Norway': ['Frederick VI', 'male', 44, ['industrious'], 'Marie of Hesse-Kassel', 44],
+  },
+  army: { great: ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'hussar', 'field_gun', 'cannon'], small: ['musketeer', 'musketeer', 'hussar', 'field_gun'],
+    // (the Tsar's armies under Barclay, Wellington's in the Peninsula; the Grande Armée itself is set on the Niemen below)
+    extra: { 'Russia': ['musketeer', 'musketeer', 'musketeer', 'cavalry', 'cavalry', 'general'], 'Great Britain': ['musketeer', 'rifleman', 'general'] } },
+  marshals: { 'Russia': ['General Barclay de Tolly', ['cautious', 'inspiring']], 'Great Britain': ['The Marquess of Wellington', ['cautious', 'inspiring']] },
+  fleets: { 'Great Britain': ['man_of_war', 'man_of_war', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Russia': ['frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'] },
+  flags: { 'Great Britain': ['man_of_war', 'HMS Victory'] },
+  phrases: { c: [me => me.name === 'Russia' ? 'for Holy Russia' : 'with Russia and Britain', 'against France and her allies'], f: [me => me.name === 'France' ? 'on the Niemen at the head of the Grande Armée' : 'in the Grande Armée', 'against Russia and Britain'],
+    apart: 'Europe is at war: the Grande Armée marches on Russia, and Britain fights on in Spain. Your crown stands apart, for now.' },
+  congress: { year: 1815, at: 'at the Congress of Vienna, in 1815', meets: 'It is 1815, and the Congress of Vienna meets.' },
+  score: [[13, '1815: Congress of Vienna'], [33, '1820']],
+  aliases: null,
+  aims: { 'France': ['Vilna', 'Smolensk', 'Moscow'], 'Russia': ['Warsaw', 'Vilna', 'Berlin', 'Paris'], 'Great Britain': ['Madrid', 'Toledo', 'Bordeaux'], 'Spain': ['Madrid', 'Toledo'], 'Prussia': ['Riga'], 'Austria': ['Kiev'] },
+  briefTail: "History will move as it did, if the crowns are still placed for it: Borodino and Moscow in 1812 and the retreat through the winter; Prussia and then Austria turn on France in 1813, Leipzig, the Allies in Paris in 1814, and the Congress of Vienna in 1815.",
+  // (the Grande Armée on the Niemen: the Emperor's corps gathered on the Duchy of Warsaw's eastern border, facing Russia)
+  setup() {
+    const fr = nations.find(n => n.name === 'France' && !n.eliminated), ru = nations.find(n => n.name === 'Russia' && !n.eliminated);
+    const w = cities.find(c => c.name === 'Warsaw') || cities.find(c => c.name === 'Königsberg'); if (!fr || !ru || !w) return;
+    const rc = cities.filter(c => c.nationId === ru.id).sort((a, b) => hexDistance(a.x, a.y, w.x, w.y) - hexDistance(b.x, b.y, w.x, w.y))[0];
+    // (a camp a third of the way from Warsaw toward the nearest Russian town)
+    const ax = rc ? Math.round(w.x + (rc.x - w.x) * 0.3) : w.x + 3, ay = rc ? Math.round(w.y + (rc.y - w.y) * 0.3) : w.y;
+    const ring = [];
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const x = ax + dx, y = ay + dy, d = hexDistance(ax, ay, x, y);
+      if (d > 3 || x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS || ![1, 3, 5, 6].includes(tiles[y * MAP_COLS + x].type)) continue;
+      if (cities.some(c => c.x === x && c.y === y) || units.some(u => u.x === x && u.y === y)) continue;
+      ring.push({ x, y, d });
+    }
+    ring.sort((a, b) => a.d - b.d);
+    const army = [['general', 'The Emperor Napoleon', ['aggressive', 'inspiring']], ['general', 'Marshal Davout', ['aggressive', 'swift']], ['musketeer'], ['musketeer'], ['musketeer'], ['musketeer'], ['grenadier'], ['grenadier'], ['heavy_cavalry'], ['hussar'], ['field_gun'], ['cannon']];
+    for (const [t, title, traits] of army) {
+      const p = ring.shift(); if (!p) break;
+      const u = spawnUnit(t, fr.id, p.x, p.y);
+      if (u && title) { u.title = title; u.traits = traits.filter(k => GENERAL_TRAITS[k]); }
+    }
+  },
+};
+const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792, '1812': SCEN_1812 };
 // the crowns of 1680, for a new game on the map of Europe (no armies or wars laid on: only who reigns, and the names of the day)
 const EUROPE_1680 = {
   rulers: {
@@ -7926,7 +7992,84 @@ function tickScenario1792() {
   }
   if (year >= 1802 && !done.amiens) { done.amiens = true; if (ai(fr, gb) && makePeace(fr, gb)) tell('1802: by the Peace of Amiens Britain makes peace with France.', fr, gb); }
 }
+// the years after 1812, as they went (if the crowns in question are still there and still as they were)
+function tickScenario1812() {
+  const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const q = (turnNumber - 1) % (SEASON_LENGTH * 4) / SEASON_LENGTH | 0;   // (the season of the year: 0 spring, 1 summer, 2 autumn, 3 winter)
+  const at = (y, season) => year > y || (year === y && q >= season);
+  const fr = anyName('France'), ru = anyName('Russia'), gb = anyName('Great Britain'), au = anyName('Austria'), pr = anyName('Prussia'), sw = anyName('Sweden');
+  const ai = (...ns) => ns.every(n => n && n.id !== playerNation);
+  const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const tell = (say, ...ns) => { showToast(say); if (ns.some(n => n && (n.id === playerNation || n.relations[playerNation] === 'war' || hasAgreement(n.id, playerNation, 'war_help')))) annal(cap1(say.replace(/^\d{4}: /, ''))); };
+  const makePeace = (a, b) => {
+    if (!a || !b || a.relations[b.id] !== 'war') return false;
+    a.relations[b.id] = 'peace'; b.relations[a.id] = 'peace';
+    for (const [x, y] of [[a, b], [b, a]]) { if (!x._peaceCooldown) x._peaceCooldown = {}; x._peaceCooldown[y.id] = turnNumber + 8; removeAgreement(x.id, y.id, 'war_help'); }
+    return true;
+  };
+  const joinAgainst = (n, foe) => {
+    if (!n || !foe || n === foe || n.relations[foe.id] === 'war') return false;
+    for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, foe.id, t);
+    n.relations[foe.id] = 'war'; foe.relations[n.id] = 'war';
+    if (!n._warSince) n._warSince = {}; n._warSince[foe.id] = turnNumber;
+    for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[foe.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+    return true;
+  };
+  // (a crown changes sides: peace with its old enemies, war on its old ally)
+  const turnOn = (n, ally, foes, force) => { if ((!force && !ai(n)) || !ally) return false; for (const f of foes) makePeace(n, f); return joinAgainst(n, ally); };
+  // (and if the crown is yours, the choice is yours)
+  const offer = (n, title, text, foes, said) => {
+    if (!n || n.id !== playerNation || !fr || n.relations[fr.id] === 'war') return false;
+    scenChoice(title, text, [['Join the Coalition', () => { if (turnOn(n, fr, foes.filter(Boolean), true)) { showToast(said); annal(said); } }], ['Stand by France', () => { annal('We stood by France.'); }]]);
+    return true;
+  };
+  const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
+  const battle = (key, when, winner, losers, k, say) => {
+    if (!when || done[key]) return; done[key] = true;
+    losers = losers.filter(l => l && winner && l.id !== playerNation && winner.relations[l.id] === 'war');
+    if (!winner || winner.id === playerNation || !losers.length) return;
+    let lost = 0; for (const l of losers) for (const u of field(l).slice(0, k)) { removeUnit(u); lost++; }
+    if (lost) tell(say, winner, ...losers);
+  };
+  battle('smolensk', at(1812, 1), fr, [ru], 2, '1812: the Grande Armée takes Smolensk, and the Russians fall back burning the country behind them.');
+  battle('borodino', at(1812, 2), fr, [ru], 3, '1812: at Borodino the bloodiest day of the age, and the road to Moscow is open.');
+  battle('salamanca', at(1812, 1), gb, [fr], 2, '1812: at Salamanca Wellington beats Marmont in forty minutes.');
+  // (the retreat from Moscow: the Grande Armée melts away in the snow, and only a remnant crosses the Berezina)
+  if (at(1812, 3) && !done.retreat) {
+    done.retreat = true;
+    if (fr && ru && ai(fr) && fr.relations[ru.id] === 'war') {
+      const inRussia = units.filter(u => u.nationId === fr.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && u.type !== 'general' && (tiles[u.y * MAP_COLS + u.x].owner === ru.id || cities.filter(c => c.nationId === ru.id).some(c => hexDistance(c.x, c.y, u.x, u.y) <= 6)));
+      const lost = inRussia.slice(0, Math.ceil(inRussia.length * 0.6)); for (const u of lost) removeUnit(u);
+      if (lost.length) tell('1812: Moscow burns, the Tsar will not treat, and the Grande Armée retreats through the Russian winter; a remnant crosses the Berezina.', fr, ru);
+    }
+  }
+  if (at(1813, 0) && !done.tauroggen) {   // (Tauroggen, and the Treaty of Kalisz: Prussia changes sides)
+    done.tauroggen = true;
+    if (offer(pr, 'The Convention of Tauroggen', "General Yorck has made his own truce with the Russians, and the country is rising against the French. The Tsar offers alliance at Kalisz.", [ru, gb, anyName('Spain'), anyName('Portugal')], 'Prussia joins the Sixth Coalition against France.')) {}
+    else if (pr && fr && ru && pr.relations[fr.id] !== 'war' && turnOn(pr, fr, [ru, gb, anyName('Spain'), anyName('Portugal')])) { if (!hasAgreement(pr.id, ru.id, 'war_help')) addAgreement(pr.id, ru.id, 'war_help'); tell('1813: Prussia turns on France and joins Russia: the Sixth Coalition.', pr, fr, ru); }
+  }
+  if (at(1813, 1) && !done.sweden) { done.sweden = true; if (ai(sw) && fr && joinAgainst(sw, fr)) tell('1813: Sweden, under its Crown Prince Bernadotte, comes into the war against France.', sw, fr); }
+  battle('vitoria', at(1813, 1), gb, [fr], 3, '1813: at Vitoria Wellington breaks King Joseph\'s army, and the French are driven out of Spain.');
+  if (at(1813, 2) && !done.austria) {   // (Austria leaves the Emperor's side, after the armistice fails)
+    done.austria = true;
+    if (offer(au, 'The Armistice Ends', "Metternich's mediation has failed, and the Allies ask the Emperor to join them against his son-in-law.", [ru, gb, pr, sw, anyName('Spain'), anyName('Portugal')], 'Austria declares war on France.')) {}
+    else if (au && fr && au.relations[fr.id] !== 'war' && turnOn(au, fr, [ru, gb, pr, sw, anyName('Spain'), anyName('Portugal')])) tell('1813: Austria declares war on France, her Emperor\'s son-in-law.', au, fr);
+  }
+  if (at(1813, 2) && !done.ried) { done.ried = true; const bv = anyName('Bavaria'); if (bv && fr && bv.relations[fr.id] !== 'war' && turnOn(bv, fr, [ru, gb, pr, au, sw])) tell('1813: by the Treaty of Ried Bavaria goes over to the Allies.', bv, fr); }
+  battle('leipzig', at(1813, 2), ru, [fr, anyName('Kingdom of Saxony')], 4, '1813: at Leipzig, the Battle of the Nations, the Allies beat the Emperor and his Saxons.');
+  if (at(1814, 1) && !done.abdication && fr) {   // (the Allies in Paris; the Emperor gives up the throne at Fontainebleau, and the Bourbons come back)
+    done.abdication = true;
+    const r = getNationRuler(fr.id);
+    if (ai(fr) && r && r.name === 'Napoleon Bonaparte' && ru && fr.relations[ru.id] === 'war') {
+      installRuler(fr, 'Louis XVIII', 'male', 58, ['diplomatic', 'frugal']);
+      tell('1814: the Allies enter Paris, the Emperor gives up the throne at Fontainebleau for Elba, and Louis XVIII is king of France; there is peace.', fr);
+      for (const o of nations) if (o !== fr && !o.isBarbarian && o.relations[fr.id] === 'war') makePeace(fr, o);
+    }
+  }
+}
 function tickScenario() {
+  if (scenario === '1812') return tickScenario1812();
   if (scenario === '1792') return tickScenario1792();
   if (scenario === '1683') return tickScenario1683();
   if (scenario === '1740') return tickScenario1740();
@@ -10601,6 +10744,7 @@ function openManual(tab) {
       ["1756: the Seven Years' War", [['1757', 'Russia and Sweden come in against Prussia; Rossbach and Leuthen'], ['1758', "Britain's subsidy to Prussia"], ['1759', 'Kunersdorf'], ['1760', 'George II dies, and George III reigns'], ['1762', 'The Empress Elizabeth dies and Russia makes peace with Prussia; Spain and Portugal come into the war'], ['1763', 'The Peace of Paris: the score is counted']]],
       ['1792: the Revolution', [['1792', 'Valmy; the monarchy falls and the Republic is proclaimed; Jemappes'], ['1793', 'The King goes to the guillotine, and Britain, the Dutch, Spain and Naples come into the war: the First Coalition'], ['1794', 'Thermidor: Robespierre falls; Fleurus; Poland rises under Kościuszko'], ['1795', 'The Peace of Basel: Prussia and Spain leave the war; the Batavian Republic'], ['1796', 'Catherine the Great dies; Spain allies with France; General Bonaparte takes the Army of Italy'], ['1797', 'Rivoli, and the Treaty of Campo Formio'], ['1798', 'The Nile'], ['1799', 'The Second Coalition; Bonaparte is made First Consul'], ['1800', 'Marengo'], ['1801', 'The Tsar Paul is murdered; the Peace of Lunéville'], ['1802', 'The Peace of Amiens: the score is counted']]],
       ['1805: the Coalition', [['1805', 'Trafalgar and Austerlitz'], ['1806', 'The Holy Roman Empire ends; Prussia goes to war and is broken at Jena; the Continental System'], ['1807', 'Tilsit: Russia may make peace with France'], ['1808', 'Charles IV gives up the throne of Spain, and Spain rises'], ['1809', 'Austria takes up arms again'], ['1810', 'Napoleon marries Marie Louise'], ['1811', 'The King of Rome is born; the Regency in Britain'], ['1812', 'Russia and France at war'], ['1813', 'The Sixth Coalition, and Leipzig'], ['1815', 'The Congress of Vienna: the score is counted']]],
+      ['1812: the Road to Moscow', [['1812', 'Smolensk and Borodino; Salamanca in Spain; Moscow burns, and the Grande Armée retreats through the winter'], ['1813', 'Prussia changes sides; Sweden comes in; Vitoria; Austria and Bavaria change sides; Leipzig'], ['1814', 'The Allies in Paris; the Emperor gives up the throne, and Louis XVIII is king'], ['1815', 'The Congress of Vienna: the score is counted']]],
     ];
     body = `<p class="man-lede">In a historical start history moves as it did, while the crowns are still placed for it; the great battles are fought only among crowns that aren't yours.</p>` +
       // (in a game begun in one of them, that one first, with the years gone by dimmed and a mark where you stand)
@@ -10619,7 +10763,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
-        ['Historical starts', 'Begin in 1683, 1700, 1740, 1756, 1792 or 1805 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1699, 1714, 1748, 1763, 1802 or 1815) among the great powers and you.'],
+        ['Historical starts', 'Begin in 1683, 1700, 1740, 1756, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1699, 1714, 1748, 1763, 1802 or 1815) among the great powers and you.'],
         ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
@@ -10761,6 +10905,7 @@ const ACHIEVEMENTS = [
   ['mollwitz', 'Mollwitz', 'Win a game begun in 1740.'],
   ['kahlenberg', 'The Kahlenberg', 'Win a game begun in 1683.'],
   ['valmy', 'Valmy', 'Win a game begun in 1792.'],
+  ['moscow', 'The Road to Moscow', 'Win a game begun in 1812.'],
   ['sea', 'Across the Water', 'Put a regiment ashore on another landmass.'],
   ['brigade', 'A Full Regiment', 'Field a regiment of three companies.'],
   ['legend', 'Legendary', 'Bring a regiment to Legendary rank.'],
@@ -10811,6 +10956,7 @@ function achievementsOnVictory(type) {
   if (scenario === '1740') unlockAchievement('mollwitz');
   if (scenario === '1683') unlockAchievement('kahlenberg');
   if (scenario === '1792') unlockAchievement('valmy');
+  if (scenario === '1812') unlockAchievement('moscow');
 }
 function renderAchievements() {
   const el = document.getElementById('achievementsList'); if (!el) return;
@@ -20203,6 +20349,7 @@ const HIST_BLURBS = [
   ['1756', "The Seven Years' War", 'Frederick the Great and Britain against France, Maria Theresa, the Empress Elizabeth and Sweden. To the Peace of Paris, 1763.'],
   ['1792', 'The Revolution', "Louis XVI's France at war with Austria and Prussia: Valmy, the Republic, the Terror, Bonaparte in Italy and Brumaire. To the Peace of Amiens, 1802."],
   ['1805', 'The Coalition', 'The year of Austerlitz: Napoleon and his allies against the Third Coalition of Britain, Austria and Russia. To the Congress of Vienna, 1815.'],
+  ['1812', 'The Road to Moscow', 'The Grande Armée on the Niemen and half of Europe marching with it; Borodino, Moscow and the winter, then Leipzig and the fall of the Emperor. To the Congress of Vienna, 1815.'],
 ];
 function showHistStarts() {
   document.getElementById('histOverlay')?.remove();
@@ -20218,7 +20365,7 @@ function pickHistStart(y) {
   showNewGame();
   const st = document.getElementById('setupStart'); if (st) { st.value = y; setupScoreChoices(); }
   // (the crown the year belongs to is chosen to begin with; any other can be picked instead)
-  const lead = { '1683': 'Austria', '1792': 'France', '1700': 'Sweden', '1740': 'Austria', '1756': 'Prussia', '1805': 'France' }[y], i = PRESET_NATIONS.findIndex(n => n.name === lead);
+  const lead = { '1683': 'Austria', '1792': 'France', '1812': 'France', '1700': 'Sweden', '1740': 'Austria', '1756': 'Prussia', '1805': 'France' }[y], i = PRESET_NATIONS.findIndex(n => n.name === lead);
   if (i >= 0 && typeof pickNation === 'function') pickNation(i);
 }
 window.showHistStarts = showHistStarts; window.pickHistStart = pickHistStart;
