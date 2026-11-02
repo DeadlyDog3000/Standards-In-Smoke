@@ -1111,6 +1111,7 @@
         - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
         - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
         - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
+        - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2265,6 +2266,7 @@
           - When you attack, the game waits for the attack to play out (the charge or the volley, the smoke, and any who fall) before it picks your next regiment or takes another order; End Turn waits for it too<br>
           - In a historical start the first orders name the town your crown fought for that year: Take Breslau from Prussia, Take Vienna from Austria<br>
           - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
+          - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -4239,6 +4241,9 @@ function removeUnit(u) {
   if (idx >= 0) units.splice(idx, 1);
   // a regiment of yours is lost: a line in the chronicle (no pop-up), with its name
   if (idx >= 0 && u.nationId === playerNation && u.regiment && MAP_COLS) { const rn = regimentName(u); if (rn) logEvent(`\u2620 Lost: the ${rn}.`); }
+  // (and the regiments aboard go down with her)
+  if (idx >= 0 && u.cargo && u.cargo.length && u.nationId === playerNation && MAP_COLS) { for (const c of u.cargo) logEvent(`\u2620 Lost at sea: the ${cargoName(c)}.`); showToast(`${u.cargo.length === 1 ? 'A regiment' : u.cargo.length + ' regiments'} went down with the ship.`); }
+  if (idx >= 0 && u.cargo) u.cargo = [];
   if (selectedUnit === u) {
     selectedUnit = null;
     moveMode = false; gotoMode = false; rangedMode = false;
@@ -6168,6 +6173,54 @@ function canEnterTerritory(nationId, tileOwner, tx, ty) {
 //  The other crowns embark only to reach a target on another landmass (their marches never stray to sea otherwise) ----
 let _aiMaySail = false, _noSail = false;   // (_noSail: your own automated workers and explorers keep to the land)
 const isEmbarked = u => !!u && !UNIT_DEFS[u.type]?.naval && tiles[u.y * MAP_COLS + u.x]?.type === 0;
+// ---- transport: a regiment marched onto a ship of its own crown beside the coast goes aboard, and is carried wherever the
+//  ship sails (off the map while it is, safe from the sea but lost with the ship); right-click the coast beside the ship to
+//  put the regiments ashore again, one at a time. Boarding takes an order and the regiment's moves; landing the ship's order ----
+const SHIP_HOLD = { frigate: 2, galleon: 3, man_of_war: 2 };
+const shipHold = s => SHIP_HOLD[s?.type] || 0;
+const cargoName = c => regimentName(c) || unitTitle(c.type);
+function boardShip(u, ship) {
+  if (UNIT_DEFS[u.type]?.naval || !shipHold(ship) || ship.nationId !== u.nationId) return 'Only a regiment can go aboard a ship.';
+  if (hexDistance(u.x, u.y, ship.x, ship.y) > 1) return 'March to the coast beside the ship first.';
+  if (isEmbarked(u)) return 'A regiment already at sea cannot go aboard.';
+  if (u.movesLeft <= 0) return 'That regiment has no moves left this turn.';
+  if ((ship.cargo || []).length >= shipHold(ship)) return `The ${regimentName(ship) || 'ship'} has no room: it carries ${shipHold(ship)} regiments.`;
+  if (!tryActivateUnit(u, true)) return '';
+  const i = units.indexOf(u); if (i >= 0) units.splice(i, 1);
+  if (selectedUnit === u) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
+  if (activatedUnits.has(u)) activatedUnits.delete(u);
+  delete u.gotoX; delete u.gotoY; u.fortified = false; u.automated = false; u.autoExplore = false; u.movesLeft = 0;
+  (ship.cargo || (ship.cargo = [])).push(u);
+  try { SMK.oars(); } catch (e) {}
+  if (u.nationId === playerNation) showToast(`The ${cargoName(u)} goes aboard the ${regimentName(ship) || 'ship'}.`);
+  invalidateVision();
+  return null;
+}
+function landCargo(ship, x, y) {
+  const cargo = ship.cargo || [];
+  if (!cargo.length) return 'The ship carries no one.';
+  const t = tiles[y * MAP_COLS + x];
+  if (!t || t.type === 0) return 'Regiments go ashore on land.';
+  if (hexDistance(ship.x, ship.y, x, y) > 1) return 'The ship must lie beside the coast where they land.';
+  if (units.some(o => o.x === x && o.y === y)) return 'That hex is taken.';
+  const city = cities.find(c => c.x === x && c.y === y); if (city && city.nationId !== ship.nationId) return 'They cannot land in a foreign town: land beside it.';
+  if (ship.nationId === playerNation && !tryActivateUnit(ship)) return '';
+  const u = cargo.shift();
+  u.x = x; u.y = y; u.movesLeft = 0; units.push(u);
+  revealAround(x, y, getUnitVision(u), u.nationId);
+  try { SMK.oars(); } catch (e) {}
+  if (u.nationId === playerNation) showToast(`The ${regimentName(u) || 'regiment'} goes ashore${cargo.length ? `; ${cargo.length} still aboard` : ''}.`);
+  invalidateVision();
+  return null;
+}
+// (a right-click with a ship or a regiment chosen: boarding or landing, if that is what it comes to; true if it was dealt with)
+function shipOrder(u, mx, my, refuse) {
+  if (!u || u.nationId !== playerNation) return false;
+  const there = units.find(o => o.x === mx && o.y === my && o !== u);
+  if (!UNIT_DEFS[u.type]?.naval && there && there.nationId === u.nationId && shipHold(there) && hexDistance(u.x, u.y, mx, my) <= 1) { const why = boardShip(u, there); if (why) refuse(why); else cycleToNextUnit(); updateUI(); render(); return true; }
+  if (shipHold(u) && (u.cargo || []).length && tiles[my * MAP_COLS + mx]?.type !== 0 && hexDistance(u.x, u.y, mx, my) <= 1) { const why = landCargo(u, mx, my); if (why) refuse(why); else showUnitPanel(u); updateUI(); render(); return true; }
+  return false;
+}
 let _landmass = { tiles: null, comp: null };
 function landmassAt(x, y) {
   if (_landmass.tiles !== tiles || !_landmass.comp || _landmass.comp.length !== tiles.length) {
@@ -10519,7 +10572,7 @@ function openManual(tab) {
   let body = '';
   if (T === 'regiments') {
     const order = ['swordsman', 'crossbowman', 'musketeer', 'grenadier', 'rifleman', 'cavalry', 'hussar', 'dragoon', 'lancer', 'heavy_cavalry', 'field_gun', 'cannon', 'mortar', 'general', 'frigate', 'galleon', 'man_of_war', 'scout', 'veteran_scout', 'worker', 'veteran_worker', 'settler'];
-    body = `<p class="man-lede">Up to three companies can be formed into one regiment (J, or right-click one beside the chosen one): their men and their fire are added together and all of them shoot at once. Split one off again from the regiment's panel (U).</p><p class="man-lede">With Navigation, any land regiment can take ship from a coast and cross the sea: going aboard or ashore costs 3 moves and each hex of sea 1. Aboard ship it can't attack, fire or dig in, and it takes half again the harm.</p>` + order.filter(t => UNIT_DEFS[t]).map(t => {
+    body = `<p class="man-lede">Up to three companies can be formed into one regiment (J, or right-click one beside the chosen one): their men and their fire are added together and all of them shoot at once. Split one off again from the regiment's panel (U).</p><p class="man-lede">Ships carry regiments: march one to the coast beside a ship of yours and right-click the ship to put it aboard (a frigate or a ship of the line carries two, a galleon three). Right-click the coast beside the ship to put them ashore. They go down with her if she is sunk.</p><p class="man-lede">With Navigation, any land regiment can take ship from a coast and cross the sea: going aboard or ashore costs 3 moves and each hex of sea 1. Aboard ship it can't attack, fire or dig in, and it takes half again the harm.</p>` + order.filter(t => UNIT_DEFS[t]).map(t => {
       const d = UNIT_DEFS[t], tech = unitRequiresTech(t), up = UNIT_UPGRADES[t];
       const range = d.ranged ? (d.artillery ? 4 : t === 'rifleman' ? 3 : 2) : 0;
       const stats = d.combat ? `Attack <b>${d.atk || 4}</b> · Men <b>${d.hp || 10}</b> · Moves <b>${d.moves}</b>${range ? ` · Range <b>${range}</b> (+1 from a hill)` : ''}` : `Moves <b>${d.moves}</b> · Sight <b>${d.vision}</b>`;
@@ -17656,6 +17709,14 @@ function render() {
       if (aboard) drawEmbarkBoat(cx, cy - bobY + rad * 0.62, w, safeColor(nCol), 'front');
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
+    // a ship carrying regiments: how many, in a small roundel at its stern
+    if (u.cargo && u.cargo.length && VIEW_TILE >= 12) {
+      const bx = cx - rad * 0.9, by = cy + rad * 0.55, br = Math.max(5, rad * 0.32);
+      ctx.save(); ctx.fillStyle = 'rgba(28, 36, 58, 0.95)'; ctx.strokeStyle = 'rgba(224, 200, 128, 0.95)'; ctx.lineWidth = Math.max(1, br * 0.18);
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#f0dcae'; ctx.font = `bold ${Math.round(br * 1.2)}px Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(u.cargo.length), bx, by + br * 0.06); ctx.restore();
+    }
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
     const cold = currentSeason === 'winter' && rad >= 6 && !cities.some(c => c.x === u.x && c.y === u.y);
     if (cold && !fig) {
@@ -18270,6 +18331,7 @@ function showUnitPanel(unit) {
     if (unit.merged && unit.merged.length) chips += chip(`${regimentSize(unit)} companies`, 'Formed from ' + [unit.type, ...unit.merged].map(unitTypeName).join(', ') + ': their men and fire together');
     if (def.siege) chips += chip('Siege', 'Strong against walls');
     if (unit.fortified) chips += chip('Fortified', 'Dug in: harder to dislodge', 'good');
+    if (shipHold(unit) && unit.nationId === playerNation) chips += chip(`Carries ${(unit.cargo || []).length} of ${shipHold(unit)}`, (unit.cargo || []).length ? `Aboard: ${escHtml((unit.cargo || []).map(cargoName).join(', '))}. Right-click the coast beside the ship to put them ashore, one at a time` : 'Right-click this ship with a regiment standing on the coast beside it, and the regiment goes aboard', 'water');
     if (isEmbarked(unit)) chips += chip('Aboard ship', 'At sea: it can\'t attack and takes half again the harm. Going ashore costs 3 moves', 'water');
 
     const unitMorale = unit.morale !== undefined ? unit.morale : MORALE_MAX;
@@ -20608,6 +20670,7 @@ canvas.addEventListener('contextmenu', (e) => {
       if (!moveMode) return;
     } else return refuse(!def.combat ? 'That regiment cannot fight.' : d > 1 ? 'Too far to strike: march up beside it first.' : 'That regiment cannot attack now.');
   } else {
+    if (shipOrder(u, mx, my, refuse)) return;
     const friend = units.find(o => o.x === mx && o.y === my && o !== u && o.nationId === u.nationId);
     if (friend && mergeable(u) && mergeable(friend)) {
       const why = mergeRegiments(u, friend);
@@ -20615,7 +20678,7 @@ canvas.addEventListener('contextmenu', (e) => {
       if (selectedUnit === u) showUnitPanel(u);
       updateUI(); render(); return;
     }
-    if (units.some(o => o.x === mx && o.y === my && o !== u)) return refuse('That hex is taken.');
+    if (units.some(o => o.x === mx && o.y === my && o !== u)) return refuse(units.some(o => o.x === mx && o.y === my && o.nationId === u.nationId && shipHold(o)) && !def.naval ? 'March to the coast beside the ship first, then right-click it to go aboard.' : 'That hex is taken.');
     const tt = tiles[ti].type;
     if (def.naval ? tt !== 0 : tt === 0) return refuse(def.naval ? 'Ships keep to the water.' : 'A regiment cannot march into the sea.');
     if (!moveMode) enterMoveMode();
@@ -20788,6 +20851,8 @@ canvas.addEventListener('click', (e) => {
 
   // (the left button picks out; the right gives the order: a left click on open ground lets the regiment go rather than marching it there.
   //  A tap on a phone still marches it, having no right button)
+  // (on a phone a tap gives the order: going aboard a ship beside the regiment, or ashore from the ship chosen)
+  if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && shipOrder(selectedUnit, mx, my, msg => { SMK.deny(); showToast(msg); })) return;
   if (moveMode && selectedUnit && (e._order || e._touch || document.body.classList.contains('mobile-mode'))) {
     if (reachableTiles.has(ti)) {
       // (an order is spent only on what will happen: an attack, or a march onto open ground)
