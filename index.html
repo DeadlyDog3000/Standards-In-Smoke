@@ -22369,7 +22369,13 @@ function empireRegimentsHtml() {
       <td style="color:${lv.color}">${lv.rank}</td>
       <td class="${st === 'ready' ? 'emp-ready' : 'emp-dim'}">${st}${canUpgradeNow(u) ? ` <button class="emp-up" onclick="event.stopPropagation(); _empireUpgrade(${units.indexOf(u)})" title="Re-arm as ${escHtml(unitTitle(UNIT_UPGRADES[u.type].to))}">Upgrade</button>` : ''}</td>
     </tr>`;
-  }).join('');
+  }).join('') +
+  // (and those aboard ship, under the ship's name: a click finds the ship)
+  units.filter(sh => sh.nationId === playerNation && (sh.cargo || []).length).map(sh => sh.cargo.filter(u => UNIT_DEFS[u.type]?.combat).map(u => {
+    const lv = getUnitLevel(u), mx = getEffectiveMaxHp(u);
+    return `<tr onclick="window._empireUnit(${units.indexOf(sh)})"><td><b>${escHtml(cargoName(u))}</b><br><span class="emp-dim">${escHtml(unitTitle(u.type))}</span></td>
+      <td>aboard ${escHtml(sh.title || regimentName(sh) || 'ship')}</td><td>${u.hp}/${mx}</td><td style="color:${lv.color}">${lv.rank}</td><td class="emp-dim">at sea</td></tr>`;
+  }).join('')).join('');
   return `<table><thead><tr><th>Regiment</th><th>Where</th><th>Men</th><th>Rank</th><th>Orders</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="emp-dim">No regiments yet.</td></tr>'}</tbody></table>`;
 }
 window._empireUnit = function (i) {
@@ -22385,7 +22391,7 @@ window.toggleEmpirePanel = function() {
   if (old) { old.remove(); return; }
   if (window._empTab === 'regiments') {
     const el = document.createElement('div'); el.id = 'empirePanel';
-    const n = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length;
+    const n = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length + units.reduce((k, sh) => k + (sh.nationId === playerNation ? (sh.cargo || []).filter(u => UNIT_DEFS[u.type]?.combat).length : 0), 0);
     el.innerHTML = `<div class="emp-head"><h3>Empire</h3><span class="emp-tabs"><button onclick="_empireTab('cities')">Cities</button><button class="on">Regiments</button></span><span class="emp-dim">${n} ${n === 1 ? 'regiment' : 'regiments'}</span></div>` + empireRegimentsHtml();
     document.body.appendChild(el); empirePanelPlace(el); return;
   }
