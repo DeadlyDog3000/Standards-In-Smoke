@@ -968,11 +968,12 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Start</span>
-          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1812, the Grande Armée on the road to Moscow; 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1792, the wars of the Revolution; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; 1740, the Austrian Succession; 1700, the Spanish Succession in the west and the Great Northern War in the north; 1683, the Turks at the gates of Vienna; or 1672, Louis XIV's war on the Dutch">
+          <select id="setupStart" class="setup-input" style="width:180px;" onchange="setupScoreChoices()" title="The historical starts, on the map of Europe: 1812, the Grande Armée on the road to Moscow; 1805, the year of Austerlitz, with the Third Coalition already at war with France; 1792, the wars of the Revolution; 1756, the Seven Years' War, Prussia and Britain against France, Austria and Russia; 1740, the Austrian Succession; 1733, the Polish Succession; 1700, the Spanish Succession in the west and the Great Northern War in the north; 1683, the Turks at the gates of Vienna; or 1672, Louis XIV's war on the Dutch">
             <option value="1680" selected>1680: a new crown</option>
             <option value="1672">1672: the Disaster Year</option>
             <option value="1683">1683: the Siege of Vienna</option>
             <option value="1700">1700: the Spanish Succession</option>
+            <option value="1733">1733: the Polish Succession</option>
             <option value="1740">1740: the Austrian Succession</option>
             <option value="1756">1756: the Seven Years' War</option>
             <option value="1792">1792: the Revolution</option>
@@ -1156,6 +1157,7 @@
         - And so does a proposal of marriage<br>
         - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
         - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
+        - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2348,6 +2350,7 @@
           - And so does a proposal of marriage<br>
           - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
           - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
+          - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7387,6 +7390,49 @@ const SCEN_1700 = {
   aims: { 'France': ['Vienna', 'Amsterdam'], 'Bavaria': ['Vienna'], 'Austria': ['Munich', 'Milan', 'Naples'], 'Great Britain': ['Brussels'], 'Sweden': ['Copenhagen', 'Dresden', 'Warsaw', 'Moscow'], 'Russia': ['Riga', 'Stockholm'], 'Spain': ['Lisbon'] },
   briefTail: 'History will move as it did, if the crowns are still placed for it: Denmark makes peace with Sweden in 1700, William III dies in 1702 and Anne reigns, Saxony gives in to Sweden in 1706, and Poltava in 1709 may break the power of Sweden.',
 };
+// ---- the 1733 start: the Polish Succession. Augustus the Strong is dead, and Poland has elected Stanisław, Louis XV's
+//  father-in-law; Russia and Austria put up Augustus of Saxony instead. France, Spain and Sardinia go to war for Stanisław
+//  (and for what can be had in Italy and on the Rhine), Austria, Russia and Saxony for Augustus ----
+const SCEN_1733 = {
+  year: 1733,
+  first: ['France', 'Austria', 'Russia', 'Spain', 'Duchy of Warsaw', 'Kingdom of Saxony', 'Kingdom of Italy', 'Great Britain', 'Prussia', 'Ottoman Empire', 'Kingdom of Naples', 'Bavaria', 'Kingdom of Holland', 'Sweden', 'Denmark-Norway', 'Portugal', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
+  coalition: ['Austria', 'Russia', 'Kingdom of Saxony', 'Kingdom of Naples'],
+  france: ['France', 'Spain', 'Kingdom of Italy', 'Duchy of Warsaw'],
+  great: ['France', 'Austria', 'Russia', 'Spain', 'Great Britain', 'Prussia'],
+  techs: ['crossbow', 'cavalry_tactics', 'gunpowder_tech', 'siege_warfare', 'bayonet_drill', 'hussar_tactics', 'dragoon_tactics', 'military_leadership', 'navigation', 'animal_husbandry', 'agriculture', 'lumbermill', 'cartography'],
+  rulers: {
+    'France': ['Louis XV', 'male', 23, ['charismatic'], 'Marie Leszczyńska', 30, ['Louis, Dauphin of France', 'male', 4, 'Louis XVI']],
+    'Austria': ['Charles VI', 'male', 48, ['pious'], 'Elisabeth Christine of Brunswick', 42, ['Archduchess Maria Theresa', 'female', 16, 'Maria Theresa']],
+    'Russia': ['Anna', 'female', 40, ['frugal'], null, 0, ['Princess Anna Leopoldovna', 'female', 15]],
+    'Spain': ['Philip V', 'male', 49, ['pious'], 'Elisabeth Farnese', 41, ['Ferdinand, Prince of Asturias', 'male', 20, 'Ferdinand VI']],
+    'Duchy of Warsaw': ['Stanisław I', 'male', 56, ['diplomatic'], 'Catherine Opalińska', 53],
+    'Kingdom of Saxony': ['Frederick Augustus II', 'male', 37, ['pious'], 'Maria Josepha of Austria', 34, ['Prince Frederick Christian', 'male', 11]],
+    'Kingdom of Italy': ['Charles Emmanuel III', 'male', 32, ['martial'], 'Polyxena of Hesse-Rotenburg', 27, ['Prince Victor Amadeus', 'male', 7, 'Victor Amadeus III']],
+    'Great Britain': ['George II', 'male', 49, ['martial'], 'Caroline of Ansbach', 50, ['Frederick, Prince of Wales', 'male', 26, 'Frederick I']],
+    'Prussia': ['Frederick William I', 'male', 45, ['frugal', 'martial'], 'Sophia Dorothea of Hanover', 46, ['Crown Prince Frederick', 'male', 21, 'Frederick II']],
+    'Ottoman Empire': ['Mahmud I', 'male', 37, ['brilliant'], null, 0, ['Prince Osman', 'male', 34, 'Osman III']],
+    'Kingdom of Naples': ['Count Visconti, Viceroy', 'male', 69, ['frugal'], null, 0],
+    'Bavaria': ['Charles Albert', 'male', 36, ['charismatic'], 'Maria Amalia of Austria', 32, ['Prince Maximilian Joseph', 'male', 6, 'Maximilian III Joseph']],
+    'Kingdom of Holland': ['Simon van Slingelandt, Grand Pensionary', 'male', 69, ['diplomatic'], null, 0],
+    'Sweden': ['Frederick I', 'male', 57, ['frugal'], 'Ulrika Eleonora', 45],
+    'Denmark-Norway': ['Christian VI', 'male', 34, ['pious'], 'Sophie Magdalene of Brandenburg-Kulmbach', 33, ['Crown Prince Frederick', 'male', 10, 'Frederick V']],
+    'Portugal': ['John V', 'male', 43, ['pious'], 'Maria Anna of Austria', 50, ['Prince Joseph', 'male', 18, 'Joseph I']],
+    'Belgium': ['Archduchess Maria Elisabeth, Governor', 'female', 52, ['pious'], null, 0],
+  },
+  army: { great: ['musketeer', 'musketeer', 'musketeer', 'grenadier', 'cavalry', 'dragoon', 'cannon'], small: ['musketeer', 'musketeer', 'cavalry', 'cannon'],
+    // (the old Marshal Villars' army for Italy, Prince Eugene's last campaign on the Rhine, Münnich's Russians before Danzig)
+    extra: { 'France': ['musketeer', 'musketeer', 'grenadier', 'cavalry', 'general'], 'Austria': ['musketeer', 'cavalry', 'general'], 'Russia': ['musketeer', 'musketeer', 'cavalry', 'general'], 'Spain': ['musketeer', 'grenadier'] } },
+  marshals: { 'France': ['Marshal Villars', ['aggressive', 'inspiring']], 'Austria': ['Prince Eugene of Savoy', ['cautious', 'inspiring']], 'Russia': ['Field Marshal Münnich', ['aggressive']] },
+  fleets: { 'Great Britain': ['man_of_war', 'frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Spain': ['frigate', 'frigate'], 'Kingdom of Holland': ['frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate'], 'Russia': ['frigate'] },
+  flags: { 'Great Britain': ['man_of_war', 'HMS Britannia'], 'Spain': ['frigate', 'San Felipe'] },
+  phrases: { c: [me => me.name === 'Kingdom of Saxony' ? 'at the head of the cause of Augustus' : 'for Augustus of Saxony', 'against France, Spain and Sardinia'], f: [me => me.name === 'France' ? 'at the head of the cause of King Stanisław' : me.name === 'Duchy of Warsaw' ? 'for your own crown' : 'for King Stanisław', 'against Austria, Russia and Saxony'],
+    apart: 'Europe is at war over the Polish throne: France, Spain and Sardinia for Stanisław, Austria, Russia and Saxony for Augustus. Your crown stands apart, for now.' },
+  congress: { year: 1739, at: 'at the Peace of Belgrade, in 1739', meets: 'It is 1739, and the Peace of Belgrade is signed.' },
+  score: [[25, '1739: Peace of Belgrade'], [53, '1746']],
+  aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Austrian Netherlands', 'Kingdom of Italy': 'Kingdom of Sardinia', 'Westphalia': 'Hanover', 'Kingdom of Naples': 'Naples' },
+  aims: { 'Russia': ['Warsaw', 'Kraków'], 'Kingdom of Saxony': ['Warsaw'], 'Duchy of Warsaw': ['Dresden', 'Leipzig'], 'Spain': ['Naples', 'Palermo', 'Bari'], 'France': ['Prague', 'Vienna'], 'Austria': ['Milan'], 'Kingdom of Italy': ['Naples'], 'Kingdom of Naples': ['Milan'] },
+  briefTail: 'History will move as it did, if the crowns are still placed for it: Danzig falls in 1734 and Spain takes Naples, the preliminaries of Vienna end the war in the west in 1735, Russia and then Austria go to war with the Turk, and the Peace of Belgrade ends it in 1739.',
+};
 // ---- the 1740 start: the Austrian Succession. Frederick seizes Silesia from the young Maria Theresa, and France, Bavaria,
 //  Spain and Saxony fall on Austria; Britain and the Dutch stand by her ----
 const SCEN_1740 = {
@@ -7634,7 +7680,7 @@ const SCEN_1672 = {
   // (Spain is governed by the Queen Mother for the boy king Charles II, until he comes of age)
   setup() { const sp = nations.find(n => n.name === 'Spain'); const r = sp && getNationRuler(sp.id); if (r && /Regent/.test(r.name)) r.regent = true; },
 };
-const SCENS = { '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792, '1812': SCEN_1812, '1672': SCEN_1672 };
+const SCENS = { '1733': SCEN_1733, '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792, '1812': SCEN_1812, '1672': SCEN_1672 };
 // the crowns of 1680, for a new game on the map of Europe (no armies or wars laid on: only who reigns, and the names of the day)
 const EUROPE_1680 = {
   rulers: {
@@ -7905,6 +7951,88 @@ function tickScenario1700() {
         tell('1709: at Poltava the army of Charles XII is broken, deep in Russia, and the power of Sweden with it.', sw, ru);
       }
     }
+  }
+}
+// the years after 1733, as they went (if the crowns in question are still there and still as they were)
+function tickScenario1733() {
+  const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const fr = anyName('France'), au = anyName('Austria'), ru = anyName('Russia'), sp = anyName('Spain'), pl = anyName('Duchy of Warsaw'), sx = anyName('Kingdom of Saxony'), sa = anyName('Kingdom of Italy'), np = anyName('Kingdom of Naples'), ot = anyName('Ottoman Empire');
+  const ai = (...ns) => ns.every(n => n && n.id !== playerNation);
+  const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const tell = (say, ...ns) => { showToast(say); if (ns.some(n => n && (n.id === playerNation || n.relations[playerNation] === 'war' || hasAgreement(n.id, playerNation, 'war_help')))) annal(cap1(say.replace(/^\d{4}: /, ''))); };
+  const makePeace = (a, b) => {
+    if (!a || !b || a.relations[b.id] !== 'war') return false;
+    a.relations[b.id] = 'peace'; b.relations[a.id] = 'peace';
+    for (const [x, y] of [[a, b], [b, a]]) { if (!x._peaceCooldown) x._peaceCooldown = {}; x._peaceCooldown[y.id] = turnNumber + 8; removeAgreement(x.id, y.id, 'war_help'); }
+    return true;
+  };
+  const joinAgainst = (n, foe) => {
+    if (!n || !foe || n.relations[foe.id] === 'war') return false;
+    for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, foe.id, t);
+    n.relations[foe.id] = 'war'; foe.relations[n.id] = 'war';
+    if (!n._warSince) n._warSince = {}; n._warSince[foe.id] = turnNumber;
+    for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[foe.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+    return true;
+  };
+  const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
+  const battle = (key, yr, winner, losers, k, say) => {
+    if (year < yr || done[key]) return; done[key] = true;
+    losers = losers.filter(l => l && winner && l.id !== playerNation && winner.relations[l.id] === 'war');
+    if (!winner || winner.id === playerNation || !losers.length) return;
+    let lost = 0; for (const l of losers) for (const u of field(l).slice(0, k)) { removeUnit(u); lost++; }
+    if (lost) tell(say, winner, ...losers);
+  };
+  battle('danzig', 1734, ru, [pl], 2, '1734: Danzig falls to the Russians and the Saxons, and King Stanisław escapes it in disguise.');
+  battle('guastalla', 1734, fr, [au], 2, '1734: at Parma and Guastalla the French and the Sardinians beat the Imperials in Lombardy.');
+  battle('bitonto', 1734, sp, [au, np], 2, "1734: at Bitonto the Spanish beat the Emperor's army in the south, and Naples is theirs.");
+  // (Don Carlos, the Queen of Spain's son, is crowned King of Naples and Sicily, and Naples goes over to the Bourbons)
+  if (year >= 1734 && !done.carlos) {
+    done.carlos = true;
+    const vr = np && getNationRuler(np.id);
+    if (ai(np, sp) && vr && vr.name === 'Count Visconti, Viceroy') {
+      installRuler(np, 'Charles of Bourbon', 'male', 18, ['industrious']);
+      for (const o of nations) if (o !== np && !o.eliminated && !o.isBarbarian && o.relations[np.id] === 'war' && [fr, sp, sa, pl].includes(o)) makePeace(np, o);
+      if (au && np.relations[au.id] !== 'war') joinAgainst(np, au);
+      if (!hasAgreement(np.id, sp.id, 'war_help')) addAgreement(np.id, sp.id, 'war_help');
+      tell('1734: Don Carlos, son of the Queen of Spain, is crowned King of Naples and Sicily, and Naples goes over to the Bourbons.', np, sp, au);
+    }
+  }
+  // (the preliminaries of Vienna, agreed in 1735 and in force from 1736: Stanisław gives up Poland for Lorraine, Augustus is
+  //  king, Don Carlos keeps Naples, and Milan goes back to the Emperor)
+  if (year >= 1736 && !done.vienna) {
+    done.vienna = true;
+    const milan = () => treatyCede('Milan', au, [sa]);
+    for (const o of [fr, sp]) histPeace(o, au, makePeace, tell, `1736: by the Peace of Vienna ${o === fr ? 'France' : 'Spain'} makes peace with the Emperor.`, 'The Peace of Vienna', o && o.id === playerNation ? 'The Emperor offers peace: King Stanisław gives up the crown of Poland for the Duchy of Lorraine, and Naples stays with the Bourbons.' : `${o === fr ? 'France' : 'Spain'} offers peace: Lorraine for King Stanisław, Naples for Don Carlos, and the war in the west is over.`);
+    if (sa && au && sa.relations[au.id] === 'war') {
+      if (ai(sa, au)) { if (makePeace(sa, au)) { milan(); tell('1736: by the Peace of Vienna Sardinia makes peace, and gives Milan back to the Emperor.', sa, au); } }
+      else peaceOffer('The Peace of Vienna', sa.id === playerNation ? 'The war in the west is ending. The Emperor offers peace if Milan is given back to him; you keep Novara and Tortona.' : 'Sardinia offers peace, and gives Milan back to you.', () => { if (makePeace(sa, au)) milan(); }, 'The Peace of Vienna is made.');
+    }
+    // (in Poland: Stanisław abdicates, and the Saxon elector is King Augustus III)
+    if (pl) {
+      const st = getNationRuler(pl.id), foes = [ru, sx, au].filter(o => o && pl.relations[o.id] === 'war');
+      const settle = () => { for (const o of foes) makePeace(pl, o); const r = getNationRuler(pl.id); if (r && r.name === 'Stanisław I') installRuler(pl, 'Augustus III', 'male', 39, ['pious'], 'Maria Josepha of Austria', 36); };
+      if (pl.id !== playerNation) { if (st && st.name === 'Stanisław I') { settle(); tell('1736: Stanisław gives up the crown of Poland for the Duchy of Lorraine, and the Saxon elector is King Augustus III.', pl, ru, sx); } }
+      else if (foes.length) peaceOffer('The Abdication', 'The Russians hold the country, and France has made her peace. King Stanisław may give up the crown for the Duchy of Lorraine, and Augustus of Saxony be king, with peace for Poland.', settle, 'Stanisław gives up the crown, and Augustus III is King of Poland.');
+    }
+  }
+  // (the Turkish war: Russia in 1735, to win back Azov; Austria in 1737, at her ally's side)
+  if (year >= 1735 && !done.turk) {
+    done.turk = true;
+    if (ai(ru, ot) && joinAgainst(ru, ot)) tell('1735: the Tatars of the Crimea raid the Ukraine, and Russia goes to war with the Turk.', ru, ot);
+    warOffer(ru, ot, 'The Turkish War', 'The Tatars of the Crimea raid the Ukraine, and the Sultan is busy with Persia: the moment to win back Azov.', () => joinAgainst(ru, ot), 'Russia goes to war with the Turk.');
+  }
+  if (year >= 1737 && !done.austurk) {
+    done.austurk = true;
+    if (ai(au, ot) && ru && ru.relations[ot?.id] === 'war' && joinAgainst(au, ot)) tell('1737: Austria comes into the war against the Turk at the side of Russia.', au, ot);
+    if (ru && ot && ru.relations[ot.id] === 'war') warOffer(au, ot, 'The War with the Turk', 'Russia, your ally, is at war with the Sultan and asks you to come in: there is Bosnia and Wallachia to be had.', () => joinAgainst(au, ot), 'Austria goes to war with the Turk.');
+  }
+  battle('stavuchany', 1739, ru, [ot], 2, '1739: at Stavuchany Münnich beats the Turks, and takes Khotyn.');
+  battle('grocka', 1739, ot, [au], 2, '1739: at Grocka the Turks beat the Imperials, and lay siege to Belgrade.');
+  if (year >= 1739 && !done.belgrade) {
+    done.belgrade = true;
+    histPeace(au, ot, makePeace, tell, '1739: by the Peace of Belgrade Austria makes peace with the Turk, and gives Belgrade back.', 'The Peace of Belgrade', au && au.id === playerNation ? 'The war in the Balkans has gone badly: the Sultan offers peace if Belgrade is given back.' : 'Austria, beaten at Grocka, offers peace and gives Belgrade back.');
+    histPeace(ru, ot, makePeace, tell, '1739: by the Peace of Niš Russia makes peace with the Turk, and keeps Azov.', 'The Peace of Niš', ru && ru.id === playerNation ? 'Austria has made her peace, and you stand alone: the Sultan offers peace, and Azov, if its walls are pulled down.' : 'Russia, left alone by Austria, offers peace for Azov.');
   }
 }
 // the years after 1740, as they went (if the crowns in question are still there and still as they were)
@@ -8441,6 +8569,7 @@ function tickScenario() {
   if (scenario === '1812') return tickScenario1812();
   if (scenario === '1792') return tickScenario1792();
   if (scenario === '1683') return tickScenario1683();
+  if (scenario === '1733') return tickScenario1733();
   if (scenario === '1740') return tickScenario1740();
   if (scenario === '1700') return tickScenario1700();
   if (scenario === '1756') return tickScenario1756();
@@ -11129,6 +11258,7 @@ function openManual(tab) {
       ['1672: the Disaster Year', [['1672', 'The Dutch open the dikes and the Water Line holds; the de Witts are murdered and William of Orange is Stadtholder'], ['1673', 'The Emperor and Spain come in for the Dutch; Khotyn'], ['1674', 'England and Münster make peace; Sobieski is elected king of Poland; Sweden invades Brandenburg'], ['1675', 'Fehrbellin; Turenne is killed at Sasbach; Denmark goes to war with Sweden'], ['1676', 'The Truce of Żurawno'], ['1678', 'The Peace of Nijmegen: the score is counted']]],
       ['1683: the Siege of Vienna', [['1683', 'The relief of Vienna: Sobieski comes down from the Kahlenberg'], ['1684', 'The Truce of Ratisbon: France makes peace with Spain'], ['1685', 'Charles II of England dies, and James II reigns; the Edict of Nantes is revoked'], ['1686', 'Buda is stormed; Russia comes into the war on the Turk'], ['1687', 'Mohács, and the Sultan Mehmed IV is put off the throne'], ['1688', "The Great Elector dies; France goes to war with the Grand Alliance: the Nine Years' War"], ['1689', 'William and Mary are crowned in London; Peter rules Russia himself'], ['1690', 'Fleurus'], ['1691', 'Slankamen'], ['1692', 'Barfleur and La Hogue'], ['1696', 'Peter takes Azov; John Sobieski dies'], ['1697', "Augustus the Strong is elected king of Poland; Zenta; the Peace of Ryswick ends the Nine Years' War"], ['1699', 'The Peace of Karlowitz: the score is counted']]],
       ['1700: the Spanish Succession', [['1700', 'Denmark makes peace with Sweden at Travendal'], ['1702', 'William III dies, and Anne reigns'], ['1704', 'Blenheim: Marlborough and Eugene destroy the Franco-Bavarian army'], ['1706', 'Saxony makes peace with Sweden at Altranstädt'], ['1709', 'Poltava: the army of Charles XII is broken in Russia'], ['1714', 'The Peace of Utrecht and Rastatt: the score is counted']]],
+      ['1733: the Polish Succession', [['1734', 'Danzig falls and Stanisław escapes; Parma and Guastalla; Bitonto, and Don Carlos is King of Naples'], ['1735', 'Russia goes to war with the Turk'], ['1736', 'The Peace of Vienna: Stanisław gives up Poland for Lorraine, Augustus III is king, and Milan goes back to the Emperor'], ['1737', 'Austria comes into the war against the Turk'], ['1739', 'Stavuchany and Grocka; the Peaces of Belgrade and Niš: the score is counted']]],
       ['1740: the Austrian Succession', [['1741', "Mollwitz: Silesia is won; the Guards put Elizabeth on the throne of Russia; Sweden goes to war with Russia"], ['1743', 'The Peace of Åbo'], ['1742', 'Prussia makes peace at Breslau'], ['1744', 'Prussia takes up arms again'], ['1745', 'Charles Albert of Bavaria dies and Bavaria makes peace; Fontenoy and Hohenfriedberg; the Peace of Dresden'], ['1748', 'The Peace of Aix-la-Chapelle: the score is counted']]],
       ["1756: the Seven Years' War", [['1757', 'Russia and Sweden come in against Prussia; Rossbach and Leuthen'], ['1758', "Britain's subsidy to Prussia"], ['1759', 'Kunersdorf'], ['1760', 'George II dies, and George III reigns'], ['1762', 'The Empress Elizabeth dies and Russia makes peace with Prussia; Spain and Portugal come into the war'], ['1763', 'The Peace of Paris: the score is counted']]],
       ['1792: the Revolution', [['1792', 'Valmy; the monarchy falls and the Republic is proclaimed; Jemappes'], ['1793', 'The King goes to the guillotine, and Britain, the Dutch, Spain and Naples come into the war: the First Coalition'], ['1794', 'Thermidor: Robespierre falls; Fleurus; Poland rises under Kościuszko'], ['1795', 'The Peace of Basel: Prussia and Spain leave the war; the Batavian Republic'], ['1796', 'Catherine the Great dies; Spain allies with France; General Bonaparte takes the Army of Italy'], ['1797', 'Rivoli, and the Treaty of Campo Formio'], ['1798', 'The Nile'], ['1799', 'The Second Coalition; Bonaparte is made First Consul'], ['1800', 'Marengo'], ['1801', 'The Tsar Paul is murdered; the Peace of Lunéville'], ['1802', 'The Peace of Amiens: the score is counted']]],
@@ -11152,7 +11282,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
-        ['Historical starts', 'Begin in 1672, 1683, 1700, 1740, 1756, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1748, 1763, 1802 or 1815) among the great powers and you.'],
+        ['Historical starts', 'Begin in 1672, 1683, 1700, 1733, 1740, 1756, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1748, 1763, 1802 or 1815) among the great powers and you.'],
         ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
@@ -11292,6 +11422,7 @@ const ACHIEVEMENTS = [
   ['austerlitz', 'The Sun of Austerlitz', 'Win a game begun in 1805.'],
   ['rossbach', 'Rossbach', 'Win a game begun in 1756.'],
   ['blenheim', 'Blenheim', 'Win a game begun in 1700.'],
+  ['bitonto', 'Bitonto', 'Win a game begun in 1733.'],
   ['mollwitz', 'Mollwitz', 'Win a game begun in 1740.'],
   ['waterline', 'The Water Line', 'Win a game begun in 1672.'],
   ['kahlenberg', 'The Kahlenberg', 'Win a game begun in 1683.'],
@@ -11344,6 +11475,7 @@ function achievementsOnVictory(type) {
   if (scenario === '1805') unlockAchievement('austerlitz');
   if (scenario === '1756') unlockAchievement('rossbach');
   if (scenario === '1700') unlockAchievement('blenheim');
+  if (scenario === '1733') unlockAchievement('bitonto');
   if (scenario === '1740') unlockAchievement('mollwitz');
   if (scenario === '1683') unlockAchievement('kahlenberg');
   if (scenario === '1672') unlockAchievement('waterline');
@@ -20913,6 +21045,7 @@ const HIST_BLURBS = [
   ['1672', 'The Disaster Year', 'Louis XIV, England and the Bishop of Münster fall on the Dutch Republic; the dikes are opened and the young William of Orange takes power. To the Peace of Nijmegen, 1678.'],
   ['1683', 'The Siege of Vienna', "The Grand Vizier's army at the gates of Vienna, and Sobieski riding to relieve it; then the Holy League, the Glorious Revolution and the Nine Years' War. To the Peace of Karlowitz, 1699."],
   ['1700', 'The Spanish Succession', 'Two wars at once: Louis XIV against the Grand Alliance of Marlborough and Prince Eugene, and Charles XII of Sweden against Peter the Great. To the Peace of Utrecht, 1714.'],
+  ['1733', 'The Polish Succession', "France, Spain and Sardinia for King Stanisław, Austria, Russia and Saxony for Augustus: Danzig, Bitonto and Don Carlos in Naples, then the war with the Turk. To the Peace of Belgrade, 1739."],
   ['1740', 'The Austrian Succession', 'Frederick seizes Silesia from the young Maria Theresa, and France, Bavaria and Spain fall on her; Britain and the Dutch stand by her. To the Peace of Aix-la-Chapelle, 1748.'],
   ['1756', "The Seven Years' War", 'Frederick the Great and Britain against France, Maria Theresa, the Empress Elizabeth and Sweden. To the Peace of Paris, 1763.'],
   ['1792', 'The Revolution', "Louis XVI's France at war with Austria and Prussia: Valmy, the Republic, the Terror, Bonaparte in Italy and Brumaire. To the Peace of Amiens, 1802."],
@@ -20933,7 +21066,7 @@ function pickHistStart(y) {
   showNewGame();
   const st = document.getElementById('setupStart'); if (st) { st.value = y; setupScoreChoices(); }
   // (the crown the year belongs to is chosen to begin with; any other can be picked instead)
-  const lead = { '1672': 'Kingdom of Holland', '1683': 'Austria', '1792': 'France', '1812': 'France', '1700': 'Sweden', '1740': 'Austria', '1756': 'Prussia', '1805': 'France' }[y], i = PRESET_NATIONS.findIndex(n => n.name === lead);
+  const lead = { '1672': 'Kingdom of Holland', '1683': 'Austria', '1792': 'France', '1812': 'France', '1700': 'Sweden', '1733': 'France', '1740': 'Austria', '1756': 'Prussia', '1805': 'France' }[y], i = PRESET_NATIONS.findIndex(n => n.name === lead);
   if (i >= 0 && typeof pickNation === 'function') pickNation(i);
 }
 window.showHistStarts = showHistStarts; window.pickHistStart = pickHistStart;
