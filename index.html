@@ -479,7 +479,7 @@
     body.mobile-mode .top-btn.end-turn { padding: 8px 18px; font-size: 15px; }
     body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; max-height: 62vh; }
     body.mobile-mode .p-btn { padding: 10px 14px; font-size: 14px; margin-bottom: 6px; }
-    body.mobile-mode #kingdoms { width: 92vw; max-width: 340px; left: 5px; }
+    body.mobile-mode #kingdoms { width: 92vw; max-width: 340px; left: 5px; z-index: 26; }
     @keyframes firstContact { 0% { opacity:0; } 10% { opacity:1; } 75% { opacity:1; } 100% { opacity:0; } }
     @keyframes turnBanner { 0% { opacity:0; } 15% { opacity:1; } 70% { opacity:1; } 100% { opacity:0; } }
     @keyframes techSlide { 0% { opacity:0; transform:translateY(-100%); } 10% { opacity:1; transform:translateY(0); } 80% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-100%); } }
@@ -1136,6 +1136,8 @@
         - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
         - On a phone the ship texts say tap, not right-click<br>
         - On a phone the unit buttons go without their keyboard letters<br>
+        - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
+        - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2313,6 +2315,8 @@
           - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
           - On a phone the ship texts say tap, not right-click<br>
           - On a phone the unit buttons go without their keyboard letters<br>
+          - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
+          - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -4383,7 +4387,7 @@ function getSeasonEffect() {
 // ---- tips, once each: a small card the first time something comes up (the first regiment, the first town, the first
 //  promotion...). Remembered in this browser; "No more tips" turns them all off (Options can turn them on again) ----
 const HINTS = {
-  unit: 'Right-click a hex to march there, an enemy to attack, or a far hex to set out for it. Each order costs one of the turn\'s Orders, shown on the End Turn crest. The round buttons along the bottom are this regiment\'s other orders.',
+  unit: () => document.body.classList.contains('mobile-mode') ? 'Tap a hex to march there, an enemy to attack, or a far hex to set out for it. Each order costs one of the turn\'s Orders, shown in the top bar. This regiment\'s other orders are in its panel.' : 'Right-click a hex to march there, an enemy to attack, or a far hex to set out for it. Each order costs one of the turn\'s Orders, shown on the End Turn crest. The round buttons along the bottom are this regiment\'s other orders.',
   city: 'Choose what this town makes below. Units are paid for when you press, so the stores must hold their cost. Rush Produce finishes the work this turn for gold.',
   promo: 'A regiment of yours has earned a promotion. Select it (the gilt star marks it) and choose one of the two in its panel.',
   ambition: 'Choose an ambition for your crown. It is shown under the top bar until fulfilled; fulfil ten to win.',
@@ -4392,7 +4396,7 @@ const HINTS = {
   winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
   war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
   navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
-  merge: 'Two regiments of yours stand side by side. Press J (or right-click one with the other chosen) to form them into one regiment of up to three companies that fires as one.',
+  merge: () => `Two regiments of yours stand side by side. ${document.body.classList.contains('mobile-mode') ? 'Press Form up in the panel of one of them' : 'Press J (or right-click one with the other chosen)'} to form them into one regiment of up to three companies that fires as one.`,
 };
 function hint(id) {
   try {
@@ -6640,6 +6644,8 @@ function checkEndTurnReminders() {
   if (eventModalOpen || techTreeOpen) return;
   // (not on the first turn while the First orders list is up: it asks for the same, without three cards in a row)
   if (turnNumber <= 1 && document.getElementById('firstOrders')?.style.display === '') return;
+  // (and never under the start's own card: they wait until it is read)
+  if (document.getElementById('scenOverlay')) { setTimeout(checkEndTurnReminders, 1500); return; }
   const idleCities = cities.filter(c => c.nationId === playerNation && !c.ruined && !c.producing && !(c.productionQueue?.length));
   if (idleCities.length > 0) {
     showIdleCitiesPopup(idleCities);
@@ -11049,7 +11055,7 @@ function openManual(tab) {
   let body = '';
   if (T === 'regiments') {
     const order = ['swordsman', 'crossbowman', 'musketeer', 'grenadier', 'rifleman', 'cavalry', 'hussar', 'dragoon', 'lancer', 'heavy_cavalry', 'field_gun', 'cannon', 'mortar', 'general', 'frigate', 'galleon', 'man_of_war', 'scout', 'veteran_scout', 'worker', 'veteran_worker', 'settler'];
-    body = `<p class="man-lede">Up to three companies can be formed into one regiment (J, or right-click one beside the chosen one): their men and their fire are added together and all of them shoot at once. Split one off again from the regiment's panel (U).</p><p class="man-lede">Ships carry regiments: march one to the coast beside a ship of yours and right-click the ship to put it aboard (a frigate or a ship of the line carries two, a galleon three). Right-click the coast beside the ship to put them ashore. They go down with her if she is sunk.</p><p class="man-lede">With Navigation, any land regiment can take ship from a coast and cross the sea: going aboard or ashore costs 3 moves and each hex of sea 1. Aboard ship it can't attack, fire or dig in, and it takes half again the harm.</p>` + order.filter(t => UNIT_DEFS[t]).map(t => {
+    body = `<p class="man-lede">Up to three companies can be formed into one regiment (${document.body.classList.contains('mobile-mode') ? 'the Form up button in its panel' : 'J, or right-click one beside the chosen one'}): their men and their fire are added together and all of them shoot at once. Split one off again from the regiment's panel (U).</p><p class="man-lede">Ships carry regiments: march one to the coast beside a ship of yours and ${rclickWord()} the ship to put it aboard (a frigate or a ship of the line carries two, a galleon three). ${rclickWord(true)} the coast beside the ship to put them ashore. They go down with her if she is sunk.</p><p class="man-lede">With Navigation, any land regiment can take ship from a coast and cross the sea: going aboard or ashore costs 3 moves and each hex of sea 1. Aboard ship it can't attack, fire or dig in, and it takes half again the harm.</p>` + order.filter(t => UNIT_DEFS[t]).map(t => {
       const d = UNIT_DEFS[t], tech = unitRequiresTech(t), up = UNIT_UPGRADES[t];
       const range = d.ranged ? (d.artillery ? 4 : t === 'rifleman' ? 3 : 2) : 0;
       const stats = d.combat ? `Attack <b>${d.atk || 4}</b> · Men <b>${d.hp || 10}</b> · Moves <b>${d.moves}</b>${range ? ` · Range <b>${range}</b> (+1 from a hill)` : ''}` : `Moves <b>${d.moves}</b> · Sight <b>${d.vision}</b>`;
