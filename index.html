@@ -1114,6 +1114,7 @@
         - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
         - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
         - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
+        - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2270,6 +2271,7 @@
           - The Field Manual's History tab puts your own start first, dims the years gone by and marks where you stand<br>
           - Ships carry regiments: march a regiment to the coast beside a ship of yours and right-click the ship, and it goes aboard (a frigate or a ship of the line carries two, a galleon three). The ship sails with them, a roundel on it shows how many, and right-clicking the coast beside it puts them ashore one at a time. If the ship is sunk, they go down with her<br>
           - A seventh start, 1812: the Road to Moscow. The Emperor and Marshal Davout with the Grande Armée on the Niemen, Austria, Prussia, Warsaw, Saxony, Bavaria and Naples marching with France against Russia, Britain, Spain and Portugal. Smolensk, Borodino and Salamanca; Moscow burns and the winter retreat; Prussia and Austria change sides (as either of them you choose), Sweden comes in, Vitoria and Leipzig; the Allies in Paris and Louis XVIII; the score counted at the Congress of Vienna in 1815, or in 1820. A new achievement, The Road to Moscow<br>
+          - In an 1812 game played on past the Congress, the Emperor comes back from Elba for the Hundred Days, and Waterloo follows<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -8067,6 +8069,28 @@ function tickScenario1812() {
       for (const o of nations) if (o !== fr && !o.isBarbarian && o.relations[fr.id] === 'war') makePeace(fr, o);
     }
   }
+  // (the Hundred Days, in a game played on past the Congress: the Emperor lands from Elba and the Allies march again;
+  //  Waterloo, and Saint Helena)
+  if (at(1815, 1) && !done.hundred && fr) {
+    done.hundred = true;
+    const r = getNationRuler(fr.id), nap = characters.find(c => c.nationId === fr.id && c.name === 'Napoleon Bonaparte' && !c.deathTurn);
+    if (ai(fr) && r && r.name === 'Louis XVIII' && nap) {
+      r.role = 'dowager'; nap.role = 'ruler'; fr.rulerId = nap.id;
+      const foes = [gb, pr, ru, au].filter(n => n && n !== fr), came = foes.filter(o => joinAgainst(o, fr));
+      tell(`1815: the Emperor lands from Elba and Louis XVIII flees; ${came.length ? listAnd(came.map(theCrown)) + ' march against him: the Hundred Days' : 'the Hundred Days begin'}.`, fr, ...came);
+      done.waterlooDue = true;
+    }
+  }
+  if (at(1815, 2) && done.waterlooDue && !done.waterloo && fr) {
+    done.waterloo = true;
+    battle('waterlooBattle', true, gb, [fr], 4, '1815: at Waterloo Wellington and Blücher break the Emperor\'s last army.');
+    const r = getNationRuler(fr.id), louis = characters.find(c => c.nationId === fr.id && c.name === 'Louis XVIII' && !c.deathTurn);
+    if (ai(fr) && r && r.name === 'Napoleon Bonaparte' && louis) {
+      r.role = 'dowager'; louis.role = 'ruler'; fr.rulerId = louis.id;
+      tell('1815: the Emperor gives himself up to the British and is sent to Saint Helena, and Louis XVIII comes back to Paris.', fr);
+      for (const o of nations) if (o !== fr && !o.isBarbarian && o.relations[fr.id] === 'war') makePeace(fr, o);
+    }
+  }
 }
 function tickScenario() {
   if (scenario === '1812') return tickScenario1812();
@@ -10744,7 +10768,7 @@ function openManual(tab) {
       ["1756: the Seven Years' War", [['1757', 'Russia and Sweden come in against Prussia; Rossbach and Leuthen'], ['1758', "Britain's subsidy to Prussia"], ['1759', 'Kunersdorf'], ['1760', 'George II dies, and George III reigns'], ['1762', 'The Empress Elizabeth dies and Russia makes peace with Prussia; Spain and Portugal come into the war'], ['1763', 'The Peace of Paris: the score is counted']]],
       ['1792: the Revolution', [['1792', 'Valmy; the monarchy falls and the Republic is proclaimed; Jemappes'], ['1793', 'The King goes to the guillotine, and Britain, the Dutch, Spain and Naples come into the war: the First Coalition'], ['1794', 'Thermidor: Robespierre falls; Fleurus; Poland rises under Kościuszko'], ['1795', 'The Peace of Basel: Prussia and Spain leave the war; the Batavian Republic'], ['1796', 'Catherine the Great dies; Spain allies with France; General Bonaparte takes the Army of Italy'], ['1797', 'Rivoli, and the Treaty of Campo Formio'], ['1798', 'The Nile'], ['1799', 'The Second Coalition; Bonaparte is made First Consul'], ['1800', 'Marengo'], ['1801', 'The Tsar Paul is murdered; the Peace of Lunéville'], ['1802', 'The Peace of Amiens: the score is counted']]],
       ['1805: the Coalition', [['1805', 'Trafalgar and Austerlitz'], ['1806', 'The Holy Roman Empire ends; Prussia goes to war and is broken at Jena; the Continental System'], ['1807', 'Tilsit: Russia may make peace with France'], ['1808', 'Charles IV gives up the throne of Spain, and Spain rises'], ['1809', 'Austria takes up arms again'], ['1810', 'Napoleon marries Marie Louise'], ['1811', 'The King of Rome is born; the Regency in Britain'], ['1812', 'Russia and France at war'], ['1813', 'The Sixth Coalition, and Leipzig'], ['1815', 'The Congress of Vienna: the score is counted']]],
-      ['1812: the Road to Moscow', [['1812', 'Smolensk and Borodino; Salamanca in Spain; Moscow burns, and the Grande Armée retreats through the winter'], ['1813', 'Prussia changes sides; Sweden comes in; Vitoria; Austria and Bavaria change sides; Leipzig'], ['1814', 'The Allies in Paris; the Emperor gives up the throne, and Louis XVIII is king'], ['1815', 'The Congress of Vienna: the score is counted']]],
+      ['1812: the Road to Moscow', [['1812', 'Smolensk and Borodino; Salamanca in Spain; Moscow burns, and the Grande Armée retreats through the winter'], ['1813', 'Prussia changes sides; Sweden comes in; Vitoria; Austria and Bavaria change sides; Leipzig'], ['1814', 'The Allies in Paris; the Emperor gives up the throne, and Louis XVIII is king'], ['1815', 'The Congress of Vienna: the score is counted. Played on, the Emperor comes back from Elba for the Hundred Days, and Waterloo']]],
     ];
     body = `<p class="man-lede">In a historical start history moves as it did, while the crowns are still placed for it; the great battles are fought only among crowns that aren't yours.</p>` +
       // (in a game begun in one of them, that one first, with the years gone by dimmed and a mark where you stand)
