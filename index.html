@@ -1139,6 +1139,7 @@
         - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
         - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
         - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
+        - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2319,6 +2320,7 @@
           - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
           - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
           - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
+          - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -13769,8 +13771,8 @@ const EVENTS = [
       { label: 'Buy him off with a title', effects: { gold: -18, legitimacy: 1 } },
       { label: 'Challenge him to trial by combat', effects: { gold: -5, legitimacy: 2 }, risk: { chance: 0.5, note: 'your champion falls', effects: { legitimacy: -5 } } }
     ]},
-  { id: 'nobles_demand_reforms', title: 'Magna Carta Demands', condition: () => evtLeg() < 40,
-    text: 'A coalition of nobles presents a document demanding limits on royal power and new rights for the nobility.',
+  { id: 'nobles_demand_reforms', title: 'The Nobles\' Remonstrance', condition: () => evtLeg() < 40,
+    text: 'A party of the great nobles presents a remonstrance demanding limits on the crown\'s power and new rights for their order.',
     choices: [
       { label: 'Sign under duress', effects: { gold: -5, legitimacy: -2, familyOpinion: 10 } },
       { label: 'Tear it up publicly', effects: { legitimacy: 2, familyOpinion: -10 } },
@@ -13914,15 +13916,15 @@ const EVENTS = [
       { label: 'Pray for wind to carry them away', effects: {}, risk: { chance: 0.6, note: 'the swarm stays', effects: { food: -20 } } }
     ]},
 
-  { id: 'nomad_tribe', title: 'Nomadic Tribe Encounter', condition: () => turnNumber <= 50,
-    text: 'A nomadic tribe has camped near your borders. They are wary but willing to trade, and speak of rich lands to the east.',
+  { id: 'nomad_tribe', title: 'Emigrants at the Border', condition: () => turnNumber <= 50,
+    text: 'A train of emigrant families, driven from their homes by war, has camped near your borders with their carts and cattle. They are wary but willing to trade, and ask for land to farm.',
     choices: [
       { label: 'Invite them to settle and farm (+1 worker)', effects: { food: -20, spawnWorker: true }, risk: { chance: 0.25, note: 'they feud with your farmers', effects: { legitimacy: -2 } } },
       { label: 'Trade goods with them', effects: { gold: 10, food: 10, wood: -5 } },
-      { label: 'Drive them off \u2014 and take their herds', effects: { food: 20, legitimacy: -2 } }
+      { label: 'Drive them off \u2014 and keep their cattle', effects: { food: 20, legitimacy: -2 } }
     ]},
-  { id: 'local_chieftain', title: 'Local Chief Swears Loyalty', condition: () => turnNumber <= 40,
-    text: 'The chieftain of a nearby hill settlement offers tribute and fealty in exchange for your protection.',
+  { id: 'local_chieftain', title: 'A Baron Swears Fealty', condition: () => turnNumber <= 40,
+    text: 'The lord of a small barony in the hills nearby offers tribute and fealty in exchange for your protection.',
     choices: [
       { label: 'Welcome them with open arms', effects: { gold: -8, food: 8, legitimacy: 2 } },
       { label: 'Demand more tribute first', effects: { gold: 15, legitimacy: -1 }, risk: { chance: 0.3, note: 'he turns to a rival', effects: { gold: -10 } } },
