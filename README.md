@@ -10,6 +10,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 
 - **Select**: left-click a regiment or a town
 - **Orders**: right-click a hex to march there, an enemy to attack or fire on it, or a far hex to set out for it over several turns. Each order costs one of the turn's Orders (shown on the End Turn crest)
+- **Ships**: march a regiment to the coast beside one of your ships and right-click the ship (or press B) to put it aboard; right-click the coast beside the ship to land it
 - **Form up**: right-click one of your own regiments beside the chosen one to merge them (up to three companies); split them again from the unit panel
 - **Camera**: drag, WASD or the arrow keys (Shift for faster), mouse wheel to zoom
 - **Keys**: E end turn, T tech tree, K kingdoms, O empire, M market, L laws, I field manual, Esc menu (the full list is under Hotkeys in the pause menu)
