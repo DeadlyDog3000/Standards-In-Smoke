@@ -8189,7 +8189,7 @@ function tickScenario1812() {
   // (and if the crown is yours, the choice is yours)
   const offer = (n, title, text, foes, said) => {
     if (!n || n.id !== playerNation || !fr || n.relations[fr.id] === 'war') return false;
-    scenChoice(title, text, [['Join the Coalition', () => { if (turnOn(n, fr, foes.filter(Boolean), true)) { showToast(said); annal(said); } }], ['Stand by France', () => { annal('We stood by France.'); }]]);
+    scenChoice(title, text, [['Join the Coalition', () => { if (turnOn(n, fr, foes.filter(Boolean), true)) { showToast(said); annal(said); } }], [hasAgreement(n.id, fr.id, 'war_help') ? 'Stand by France' : 'Stay out of the war', () => { annal(hasAgreement(n.id, fr.id, 'war_help') ? 'We stood by France.' : 'We stayed out of the war.'); }]]);
     return true;
   };
   const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
@@ -8217,14 +8217,16 @@ function tickScenario1812() {
     if (offer(pr, 'The Convention of Tauroggen', "General Yorck has made his own truce with the Russians, and the country is rising against the French. The Tsar offers alliance at Kalisz.", [ru, gb, anyName('Spain'), anyName('Portugal')], 'Prussia joins the Sixth Coalition against France.')) {}
     else if (pr && fr && ru && pr.relations[fr.id] !== 'war' && turnOn(pr, fr, [ru, gb, anyName('Spain'), anyName('Portugal')])) { if (!hasAgreement(pr.id, ru.id, 'war_help')) addAgreement(pr.id, ru.id, 'war_help'); tell('1813: Prussia turns on France and joins Russia: the Sixth Coalition.', pr, fr, ru); }
   }
-  if (at(1813, 1) && !done.sweden) { done.sweden = true; if (ai(sw) && fr && joinAgainst(sw, fr)) tell('1813: Sweden, under its Crown Prince Bernadotte, comes into the war against France.', sw, fr); }
+  if (at(1813, 1) && !done.sweden) { done.sweden = true; if (ai(sw) && fr && joinAgainst(sw, fr)) tell('1813: Sweden, under its Crown Prince Bernadotte, comes into the war against France.', sw, fr);
+    else offer(sw, 'Bernadotte and the Allies', 'Britain promises Norway and the Tsar his friendship if Sweden, under its Crown Prince, joins the war against France.', [], 'Sweden comes into the war against France.'); }
   battle('vitoria', at(1813, 1), gb, [fr], 3, '1813: at Vitoria Wellington breaks King Joseph\'s army, and the French are driven out of Spain.');
   if (at(1813, 2) && !done.austria) {   // (Austria leaves the Emperor's side, after the armistice fails)
     done.austria = true;
     if (offer(au, 'The Armistice Ends', "Metternich's mediation has failed, and the Allies ask the Emperor to join them against his son-in-law.", [ru, gb, pr, sw, anyName('Spain'), anyName('Portugal')], 'Austria declares war on France.')) {}
     else if (au && fr && au.relations[fr.id] !== 'war' && turnOn(au, fr, [ru, gb, pr, sw, anyName('Spain'), anyName('Portugal')])) tell('1813: Austria declares war on France, her Emperor\'s son-in-law.', au, fr);
   }
-  if (at(1813, 2) && !done.ried) { done.ried = true; const bv = anyName('Bavaria'); if (bv && fr && bv.relations[fr.id] !== 'war' && turnOn(bv, fr, [ru, gb, pr, au, sw])) tell('1813: by the Treaty of Ried Bavaria goes over to the Allies.', bv, fr); }
+  if (at(1813, 2) && !done.ried) { done.ried = true; const bv = anyName('Bavaria'); if (bv && fr && bv.relations[fr.id] !== 'war' && turnOn(bv, fr, [ru, gb, pr, au, sw])) tell('1813: by the Treaty of Ried Bavaria goes over to the Allies.', bv, fr);
+    else offer(bv, 'The Treaty of Ried', 'Austria guarantees your crown and your lands if Bavaria goes over to the Allies before the battle that is coming.', [ru, gb, pr, au, sw], 'Bavaria goes over to the Allies.'); }
   battle('leipzig', at(1813, 2), ru, [fr, anyName('Kingdom of Saxony')], 4, '1813: at Leipzig, the Battle of the Nations, the Allies beat the Emperor and his Saxons.');
   if (at(1814, 1) && !done.abdication && fr) {   // (the Allies in Paris; the Emperor gives up the throne at Fontainebleau, and the Bourbons come back)
     done.abdication = true;
