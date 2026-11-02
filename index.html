@@ -236,6 +236,7 @@
     .kc-bar i { display: block; height: 100%; border-radius: 3px; }
     .kc-op b { font-size: 11px; width: 72px; text-align: right; }
     .kc-army b { color: #e8dcc8; } .kc-army em { font-style: normal; font-size: 10px; margin-left: auto; }
+    .kc-odds { display: block; font-size: 9px; font-style: italic; opacity: 0.75; letter-spacing: 0.02em; text-transform: none; }
     .kc-ask { margin-top: 7px; padding: 5px 8px; border-radius: 4px; background: rgba(212, 168, 86, 0.14); border: 1px solid rgba(212, 168, 86, 0.4); color: #f0c870; font-size: 11px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     .kc-ask span { display: flex; gap: 4px; }
     .kc-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
@@ -1145,6 +1146,7 @@
         - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
         - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
         - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
+        - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2331,6 +2333,7 @@
           - And the other way: a crown well ahead of you in arms, its regiments at one of your towns, may offer peace if you cede it. Cede it, or refuse and fight on<br>
           - Between the other crowns too: one beaten in the field buys its peace with the town the victor stands before, and you hear of it if you know them both<br>
           - Treaties that promise a town now give it: the Peace of Breslau hands Breslau to Prussia, the Truce of Ratisbon Strasbourg to France, if the other side holds it<br>
+          - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19725,8 +19728,8 @@ function renderKingdoms() {
     }
     // what you can do
     html += `<div class="kc-acts">
-      <button class="diplo-btn ${rel === 'war' ? 'ok' : 'no'}" onclick="toggleDiplomacy(${n.id})">${rel === 'war' ? 'Seek peace' : 'Declare war'}</button>
-      ${(() => { const t = rel === 'war' && peaceTownFor(n.id); return t ? `<button class="diplo-btn ok" onclick="demandTownForPeace(${n.id})" title="Ask for ${escHtml(t.city.name)} as the price of peace: your regiments are at its gates. They give it up only when they are losing">Peace for ${escHtml(t.city.name)}</button>` : ''; })()}
+      <button class="diplo-btn ${rel === 'war' ? 'ok' : 'no'}" onclick="toggleDiplomacy(${n.id})"${rel === 'war' ? ` title="Offer peace on the borders as they stand: ${oddsWord(peaceChance(n.id))}"` : ''}>${rel === 'war' ? `Seek peace <small class="kc-odds">${oddsWord(peaceChance(n.id))}</small>` : 'Declare war'}</button>
+      ${(() => { const t = rel === 'war' && peaceTownFor(n.id); return t ? `<button class="diplo-btn ok" onclick="demandTownForPeace(${n.id})" title="Ask for ${escHtml(t.city.name)} as the price of peace: your regiments are at its gates. They give it up only when they are losing">Peace for ${escHtml(t.city.name)} <small class="kc-odds">${oddsWord(townPeaceChance(n.id, t))}</small></button>` : ''; })()}
       <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold: they think better of you">Gift 20g</button>
       ${rel !== 'war' && units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length >= Math.max(4, 2 * units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).length) ? `<button class="diplo-btn" onclick="demandTribute(${n.id})" title="Demand gold of a crown with less than half your army: it may pay, and either way it likes you less">Demand</button>` : ''}
       ${rel !== 'war' ? `<button class="diplo-btn" onclick="toggleTradePanel(${n.id})">Trade</button>` : ''}
@@ -19887,6 +19890,15 @@ window.answerPeaceTown = function (nationId, yes) {
   if (selectedCity === c) { selectedCity = null; hidePanel(); }
   updateUI(); render();
 };
+// (how likely they are to take your offer: they weigh the armies, the town's danger and how they feel about you)
+const milCount = id => units.filter(u => u.nationId === id && UNIT_DEFS[u.type]?.combat).length;
+function peaceChance(nationId) { return Math.max(0.1, Math.min(0.9, 0.35 + (milCount(playerNation) - milCount(nationId)) * 0.05 + (getLoyalty(nationId, playerNation) + 60) / 300)); }
+function townPeaceChance(nationId, t) {
+  let chance = 0.08 + (milCount(playerNation) - milCount(nationId)) * 0.04 + t.near * 0.08 + (t.city._besieged ? 0.2 : 0) + (getLoyalty(nationId, playerNation) + 60) / 400;
+  if (cities.filter(c => c.nationId === nationId).length <= 2) chance -= 0.2;
+  return Math.max(0.03, Math.min(0.7, chance));
+}
+const oddsWord = p => p >= 0.65 ? 'likely' : p >= 0.4 ? 'even odds' : p >= 0.2 ? 'doubtful' : 'unlikely';
 window.demandTownForPeace = function (nationId) {
   const pn = nations[playerNation], n = nations[nationId];
   if (!pn || !n || pn.relations[nationId] !== 'war') return;
@@ -19894,11 +19906,7 @@ window.demandTownForPeace = function (nationId) {
   if (!pn._peaceAsked) pn._peaceAsked = {};
   if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${crownName1(n)} has already answered this turn.`); return; }
   pn._peaceAsked[nationId] = turnNumber;
-  const mil = id => units.filter(u => u.nationId === id && UNIT_DEFS[u.type]?.combat).length;
-  let chance = 0.08 + (mil(playerNation) - mil(nationId)) * 0.04 + t.near * 0.08 + (t.city._besieged ? 0.2 : 0) + (getLoyalty(nationId, playerNation) + 60) / 400;
-  if (cities.filter(c => c.nationId === nationId).length <= 2) chance -= 0.2;
-  chance = Math.max(0.03, Math.min(0.7, chance));
-  if (Math.random() < chance) {
+  if (Math.random() < townPeaceChance(nationId, t)) {
     const nm = t.city.name;
     cedeTown(t.city, playerNation);
     acceptPeace(nationId);
@@ -20610,11 +20618,9 @@ function toggleDiplomacy(nationId) {
   if (next === 'peace') {
     // seeking peace is an offer: they weigh the armies and how they feel about you
     if (!pn._peaceAsked) pn._peaceAsked = {};
-    if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${nations[nationId].name} has already answered this turn.`); return; }
+    if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${crownName1(nations[nationId])} has already answered this turn.`); return; }
     pn._peaceAsked[nationId] = turnNumber;
-    const mil = id => units.filter(u => u.nationId === id && UNIT_DEFS[u.type]?.combat).length;
-    const chance = Math.max(0.1, Math.min(0.9, 0.35 + (mil(playerNation) - mil(nationId)) * 0.05 + (getLoyalty(nationId, playerNation) + 60) / 300));
-    if (Math.random() < chance) { acceptPeace(nationId); return; }
+    if (Math.random() < peaceChance(nationId)) { acceptPeace(nationId); return; }
     showToast(`${nations[nationId].name} refuses to make peace. Try again next turn, or give them reason to.`);
     renderKingdoms();
     return;
