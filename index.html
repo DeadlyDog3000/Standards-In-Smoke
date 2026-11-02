@@ -4322,7 +4322,7 @@ function removeUnit(u) {
   // (and the regiments aboard go down with her)
   if (idx >= 0 && u.cargo && u.cargo.length && u.nationId === playerNation && MAP_COLS) { for (const c of u.cargo) logEvent(`\u2620 Lost at sea: the ${cargoName(c)}.`); showToast(`${u.cargo.length === 1 ? 'A regiment' : u.cargo.length + ' regiments'} went down with the ship.`); }
   // (a foe's transport sunk where yours can see it: the regiments she carried are lost with her, and you hear of it)
-  else if (idx >= 0 && u.cargo && u.cargo.length && MAP_COLS && nations[playerNation]?.relations[u.nationId] === 'war' && units.some(o => o.nationId === playerNation && hexDistance(o.x, o.y, u.x, u.y) <= getUnitVision(o))) {
+  else if (idx >= 0 && u.cargo && u.cargo.length && MAP_COLS && (u.hp ?? 1) <= 0 && nations[playerNation]?.relations[u.nationId] === 'war' && units.some(o => o.nationId === playerNation && hexDistance(o.x, o.y, u.x, u.y) <= getUnitVision(o))) {
     const k = u.cargo.length, n = nations[u.nationId], s = `${k === 1 ? 'A regiment' : k + ' regiments'} of ${theCrown(n)} went down with ${u.title || 'their ship'}.`;
     showToast(s);
   }
@@ -7941,7 +7941,7 @@ function tickScenario1740() {
   }
   if (year >= 1743 && !done.abo) { done.abo = true; const sw = anyName('Sweden'), ru = anyName('Russia'); histPeace(sw, ru, makePeace, tell, '1743: by the Peace of Åbo Sweden makes peace with Russia.', 'The Peace of Åbo', sw && sw.id === playerNation ? 'The war with Russia has gone badly: Russia offers peace for a strip of Finland.' : 'Sweden sues for peace, and will give up a strip of Finland.'); }
   if (year >= 1742 && !done.breslau) { done.breslau = true; if (ai(pr, au) && makePeace(pr, au)) { treatyCede('Breslau', pr, [au]); tell('1742: by the Peace of Breslau Maria Theresa cedes Silesia, and Prussia leaves the war.', pr, au); }
-    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Breslau', pr.id === playerNation ? 'Maria Theresa, hard pressed by France and Bavaria, will leave Silesia to you if Prussia leaves the war.' : 'Frederick will leave the war if Silesia is left to him, and you may turn on France and Bavaria.', () => { makePeace(pr, au); treatyCede('Breslau', pr, [au]); }, 'The Peace of Breslau is made.'); }
+    else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Breslau', pr.id === playerNation ? 'Maria Theresa, hard pressed by France and Bavaria, will leave Silesia to you if Prussia leaves the war.' : 'Frederick will leave the war if Silesia is left to him, and you may turn on France and Bavaria.', () => { if (makePeace(pr, au)) treatyCede('Breslau', pr, [au]); }, 'The Peace of Breslau is made.'); }
   if (year >= 1744 && !done.second) {
     done.second = true;
     if (ai(pr, au) && pr.relations[au.id] !== 'war') {
@@ -7971,7 +7971,7 @@ function warOffer(n, foe, title, text, join, said) {
 function treatyCede(name, to, from) {
   const c = cities.find(c => c.name === name && !c.ruined);
   if (!c || !to || to.eliminated || c.nationId === to.id || !from.some(f => f && f.id === c.nationId)) return;
-  const was = nations[c.nationId]; cedeTown(c, to.id);
+  const was = nations[c.nationId]; if (!cedeTown(c, to.id)) return;
   if (to.id === playerNation || was.id === playerNation) showToast(`${name} passes to ${theCrown(to)}.`);
 }
 function histPeace(a, b, makePeace, tell, say, title, mine) {
@@ -11735,6 +11735,7 @@ function aiTurn(nationId) {
     }
 
     if (n.relations[otherId] !== 'war' && n._warSince) delete n._warSince[otherId];
+    if (otherId === playerNation && n.relations[otherId] !== 'war') delete n._peaceTownAsk;   // (an offer made in a war ends with it)
     if (n.relations[otherId] === 'war') {
       const ourCityCount = (citiesByNation.get(nationId) || []).length;
       const theirCityCount = (citiesByNation.get(otherId) || []).length;
@@ -11751,7 +11752,7 @@ function aiTurn(nationId) {
       if (otherId === playerNation && !(n.wantsPeace && n.wantsPeace[otherId]) && !n._peaceTownAsk && ourMilCount >= 4 && ourMilCount > theirMilCount * 1.5 && turnNumber - n._warSince[otherId] >= 8 && theirCityCount >= 3 && Math.random() < 0.08) {
         const mine = (militaryByNation.get(nationId) || []).filter(u => !UNIT_DEFS[u.type]?.naval);
         const tgt = (citiesByNation.get(otherId) || []).filter(c => !c.isCapital && !c.ruined).map(c => ({ c, k: mine.filter(u => hexDistance(u.x, u.y, c.x, c.y) <= 2).length })).filter(o => o.k).sort((a, b) => b.k - a.k)[0];
-        if (tgt) { n._peaceTownAsk = { x: tgt.c.x, y: tgt.c.y, name: tgt.c.name }; showToast(`${crownName1(n)} offers peace, if you cede ${tgt.c.name}. Open Kingdoms to respond.`); }
+        if (tgt) { n._peaceTownAsk = { x: tgt.c.x, y: tgt.c.y, name: tgt.c.name, t: turnNumber }; showToast(`${crownName1(n)} offers peace, if you cede ${tgt.c.name}. Open Kingdoms to respond.`); }
       }
       if (updatedLoy > 0 || severelyOutmatched || starving || weary) {
         if (otherId === playerNation) {
@@ -11782,7 +11783,7 @@ function aiTurn(nationId) {
             if (severelyOutmatched && !n.isBarbarian && !n.isTribe && victor && !victor.isBarbarian && !victor.isTribe && ourCityCount >= 3) {
               const vu = (militaryByNation.get(otherId) || []).filter(u => !UNIT_DEFS[u.type]?.naval);
               const tgt = (citiesByNation.get(nationId) || []).filter(c => !c.isCapital && !c.ruined && c.nationId === nationId).map(c => ({ c, k: vu.filter(u => hexDistance(u.x, u.y, c.x, c.y) <= 2).length })).filter(o => o.k).sort((a, b) => b.k - a.k)[0];
-              if (tgt) { const nm = tgt.c.name; cedeTown(tgt.c, otherId); if (discoveredNations.has(nationId) && discoveredNations.has(otherId)) logEvent(`By the peace between them ${theCrown(n)} cedes ${nm} to ${theCrown(victor)}.`); }
+              if (tgt && cedeTown(tgt.c, otherId)) { const nm = tgt.c.name; const mine = citiesByNation.get(nationId), k = mine.indexOf(tgt.c); if (k >= 0) mine.splice(k, 1); if (discoveredNations.has(nationId) && discoveredNations.has(otherId)) logEvent(`By the peace between them ${theCrown(n)} cedes ${nm} to ${theCrown(victor)}.`); }
             }
           }
         }
@@ -17959,7 +17960,7 @@ function render() {
   }
   // (where a ship's regiments can go ashore, or the ship beside a regiment that can take it aboard: ringed in sea-blue ink)
   const su = selectedUnit;
-  if (su && su.nationId === playerNation && su.movesLeft > 0 && !planningMode && units.includes(su) && w >= 10) {
+  if (su && su.nationId === playerNation && (su.movesLeft > 0 || (su.cargo || []).length) && !planningMode && units.includes(su) && w >= 10) {
     const marks = [];
     if (shipHold(su) && (su.cargo || []).length) {
       for (const h of hexNeighbors(su.x, su.y)) {
@@ -17969,7 +17970,7 @@ function render() {
         if ((city && city.nationId !== su.nationId) || !canEnterTerritory(su.nationId, t.owner, h.col, h.row)) continue;
         marks.push(h);
       }
-    } else if (!UNIT_DEFS[su.type]?.naval && !isEmbarked(su)) {
+    } else if (su.movesLeft > 0 && !UNIT_DEFS[su.type]?.naval && !isEmbarked(su)) {
       for (const o of units) if (o.nationId === su.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, su.x, su.y) === 1) marks.push({ col: o.x, row: o.y });
     }
     if (marks.length) {
@@ -19861,7 +19862,7 @@ function peaceTownFor(nationId) {
   return best;
 }
 function cedeTown(city, newOwner) {
-  const oldOwner = city.nationId; if (oldOwner === newOwner) return;
+  const oldOwner = city.nationId; if (oldOwner === newOwner || city.isCapital) return false;   // (a crown never signs away its capital)
   city.nationId = newOwner; city.paid = []; city.capturedTurn = turnNumber;
   city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false;
   city.producing = null; city.productionProgress = 0; city.productionQueue = [];
@@ -19885,19 +19886,21 @@ function cedeTown(city, newOwner) {
   try { if (newOwner === playerNation) SMK.peal(6); else if (oldOwner === playerNation) SMK.toll(2); } catch (e) {}
   if (oldOwner === playerNation && selectedCity === city) { selectedCity = null; hidePanel(); }
   _tileCityMapDirty = true; minimapDirty = true; invalidateVision();
+  return true;
 }
 // (their offer of peace for one of your towns: still yours, and still at war, or it has lapsed)
 function peaceTownAsked(n) {
   const a = n && n._peaceTownAsk; if (!a) return null;
   const c = cities.find(c => c.x === a.x && c.y === a.y);
-  if (!c || c.nationId !== playerNation || nations[playerNation].relations[n.id] !== 'war') { delete n._peaceTownAsk; return null; }
+  if (!c || c.isCapital || c.nationId !== playerNation || nations[playerNation].relations[n.id] !== 'war' || turnNumber - (a.t ?? turnNumber) > 10) { delete n._peaceTownAsk; return null; }
   return c;
 }
 window.answerPeaceTown = function (nationId, yes) {
   const n = nations[nationId], c = peaceTownAsked(n); if (!c) { renderKingdoms(); return; }
   if (!yes) { delete n._peaceTownAsk; changeLoyalty(nationId, playerNation, -5); showToast(`You refuse to give up ${c.name}. The war goes on.`); renderKingdoms(); return; }
   const nm = c.name;
-  cedeTown(c, nationId);
+  if (!cedeTown(c, nationId)) { renderKingdoms(); return; }
+  n._peaceGold = 0;
   acceptPeace(nationId);
   annal(`By the peace ${nm} is ceded to ${theCrown(n)}.`);
   showToast(`Peace is made with ${crownName1(n)}, and ${nm} is theirs.`);
@@ -19918,11 +19921,13 @@ window.demandTownForPeace = function (nationId) {
   if (!pn || !n || pn.relations[nationId] !== 'war') return;
   const t = peaceTownFor(nationId); if (!t) return;
   if (!pn._peaceAsked) pn._peaceAsked = {};
-  if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${crownName1(n)} has already answered this turn.`); return; }
-  pn._peaceAsked[nationId] = turnNumber;
+  if (!pn._townAsked) pn._townAsked = {};
+  if (pn._townAsked[nationId] === turnNumber) { showToast(`${crownName1(n)} has already answered this turn.`); return; }
+  pn._townAsked[nationId] = turnNumber;
   if (Math.random() < townPeaceChance(nationId, t)) {
     const nm = t.city.name;
-    cedeTown(t.city, playerNation);
+    if (!cedeTown(t.city, playerNation)) return;
+    n._peaceGold = 0;
     acceptPeace(nationId);
     annal(`By the peace ${theCrown(n)} cedes ${nm}.`);
     showToast(`${crownName1(n)} makes peace, and cedes ${nm} to you.`);
