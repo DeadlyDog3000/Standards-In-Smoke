@@ -1128,6 +1128,8 @@
         - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
         - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
         - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
+        - With a regiment chosen, the ships beside it with room are ringed in sea-blue ink, and Go aboard is the first of its orders; with a loaded ship chosen, the coast where its regiments can land is ringed<br>
+        - The first turn no longer opens with Idle Towns and No Research cards over the start's own: the First orders list asks for both<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2297,6 +2299,8 @@
           - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
           - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
           - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
+          - With a regiment chosen, the ships beside it with room are ringed in sea-blue ink, and Go aboard is the first of its orders; with a loaded ship chosen, the coast where its regiments can land is ringed<br>
+          - The first turn no longer opens with Idle Towns and No Research cards over the start's own: the First orders list asks for both<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -6608,6 +6612,8 @@ function showOrdersExhaustedPopup() {
 function checkEndTurnReminders() {
   if (typeof tutorialActive !== 'undefined' && tutorialActive) return;   // (the tutorial first; these come after it)
   if (eventModalOpen || techTreeOpen) return;
+  // (not on the first turn while the First orders list is up: it asks for the same, without three cards in a row)
+  if (turnNumber <= 1 && document.getElementById('firstOrders')?.style.display === '') return;
   const idleCities = cities.filter(c => c.nationId === playerNation && !c.ruined && !c.producing && !(c.productionQueue?.length));
   if (idleCities.length > 0) {
     showIdleCitiesPopup(idleCities);
@@ -17864,6 +17870,33 @@ function render() {
     ctx.restore();
     }
   }
+  // (where a ship's regiments can go ashore, or the ship beside a regiment that can take it aboard: ringed in sea-blue ink)
+  const su = selectedUnit;
+  if (su && su.nationId === playerNation && su.movesLeft > 0 && !planningMode && units.includes(su) && w >= 10) {
+    const marks = [];
+    if (shipHold(su) && (su.cargo || []).length) {
+      for (const h of hexNeighbors(su.x, su.y)) {
+        const t = tiles[h.row * MAP_COLS + h.col];
+        if (!t || t.type === 0 || !t.revealed.has(pId) || units.some(o => o.x === h.col && o.y === h.row)) continue;
+        const city = cities.find(c => c.x === h.col && c.y === h.row);
+        if ((city && city.nationId !== su.nationId) || !canEnterTerritory(su.nationId, t.owner, h.col, h.row)) continue;
+        marks.push(h);
+      }
+    } else if (!UNIT_DEFS[su.type]?.naval && !isEmbarked(su)) {
+      for (const o of units) if (o.nationId === su.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, su.x, su.y) === 1) marks.push({ col: o.x, row: o.y });
+    }
+    if (marks.length) {
+      ctx.save(); ctx.lineCap = 'round';
+      const rr = Math.min(w, ch) * 0.42;
+      for (const h of marks) {
+        const pos = hexScreenPos(h.col, h.row), cx = pos.x + w / 2, cy = pos.y + facePad + ch / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(250, 244, 226, 0.55)'; ctx.lineWidth = Math.min(4.5, Math.max(2, w * 0.06)); ctx.setLineDash([]); ctx.stroke();
+        ctx.strokeStyle = 'rgba(28, 62, 112, 0.9)'; ctx.lineWidth = Math.min(2.2, Math.max(1.2, w * 0.03)); ctx.setLineDash([Math.max(3, w * 0.07), Math.max(2, w * 0.045)]); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
 
   for (const [idxStr, ann] of Object.entries(tileAnnotations)) {
     const idx = +idxStr;
@@ -18923,6 +18956,13 @@ function showUnitPanel(unit) {
       }
     }
   }
+  // (a regiment beside a ship of yours with room aboard: it can go aboard from here as well as by right-clicking the ship;
+  //  first among its orders, where it is seen without scrolling the panel)
+  if (unit.nationId === playerNation && !UNIT_DEFS[unit.type]?.naval && unit.movesLeft > 0 && !isEmbarked(unit)) {
+    const ship = units.find(o => o.nationId === unit.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, unit.x, unit.y) === 1);
+    if (ship) setTimeout(() => hint('ships'), 400);
+    if (ship) html += `<button class="p-btn" onclick="boardSelectedShip()">Go aboard <span class="cost">${escHtml(ship.title || regimentName(ship) || 'the ship')}: carried by sea</span></button>`;
+  }
   if (UNIT_DEFS[unit.type].ranged && unit.nationId === playerNation) {
     const canRanged = canFireNow(unit);
 
@@ -18971,12 +19011,6 @@ function showUnitPanel(unit) {
   if (unit.nationId === playerNation && (unit.cargo || []).length) {
     html += `<div class="p-section" style="margin:6px 0"><div style="font-size:11px;color:#b8a070;margin-bottom:3px">Aboard (right-click the coast beside her to land the first)</div>` +
       unit.cargo.map((c, k) => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0"><span style="flex:1">${k === 0 ? '<b>' : ''}${escHtml(cargoName(c))}${k === 0 ? '</b> <span style="color:#9a8a6a">(lands first)</span>' : ''}</span>${k ? `<button class="p-btn" style="margin:0;padding:2px 8px;width:auto;font-size:11px" onclick="cargoFirst(${k})">Land first</button>` : ''}</div>`).join('') + '</div>';
-  }
-  // (a regiment beside a ship of yours with room aboard: it can go aboard from here as well as by right-clicking the ship)
-  if (unit.nationId === playerNation && !UNIT_DEFS[unit.type]?.naval && unit.movesLeft > 0 && !isEmbarked(unit)) {
-    const ship = units.find(o => o.nationId === unit.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, unit.x, unit.y) === 1);
-    if (ship) setTimeout(() => hint('ships'), 400);
-    if (ship) html += `<button class="p-btn" onclick="boardSelectedShip()">Go aboard <span class="cost">${escHtml(ship.title || regimentName(ship) || 'the ship')}: carried by sea</span></button>`;
   }
   if (UNIT_DEFS[unit.type]?.combat) {
     const moveAndAttack = unit.type === 'dragoon' || unit.type === 'swordsman';
