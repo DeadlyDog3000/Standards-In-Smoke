@@ -1127,6 +1127,7 @@
         - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
         - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
         - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
+        - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2295,6 +2296,7 @@
           - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
           - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
           - In 1805, when the war history made comes to your crown it is put to you: Prussia's in 1806, Spain's rising in 1808, Austria's in 1809, Russia's in 1812 and the Sixth Coalition in 1813<br>
+          - Every war history made is put to you when the crown that went to war is yours: the coalition against Prussia and the Family Compact in 1756, the Second Silesian War in 1740, the Holy League in 1683, the First and Second Coalitions and San Ildefonso in 1792, The Hague, Sweden's invasion of Brandenburg and the Scanian War in 1672<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7720,6 +7722,7 @@ function tickScenario1756() {
   if (year >= 1757 && !done.ruswe) {
     done.ruswe = true;
     for (const nm of ['Russia', 'Sweden']) { const n = byName(nm); if (joinAgainst(n, pr)) tell(`1757: ${nm} comes into the war against Prussia.`, n); }
+    for (const nm of ['Russia', 'Sweden']) warOffer(anyName(nm), pr, 'The Coalition against Prussia', `Austria and France ask ${nm === 'Russia' ? 'the Empress' : 'Sweden'} to join the war on Frederick, and promise ${nm === 'Russia' ? 'East Prussia' : 'Pomerania'}.`, () => joinAgainst(anyName(nm), pr), `${nm} comes into the war against Prussia.`);
   }
   // (the great battles of the war, fought among the crowns the player doesn't hold: Rossbach and Leuthen in 1757, Kunersdorf in 1759)
   const field = n => units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !cities.some(c => c.x === u.x && c.y === u.y));
@@ -7767,6 +7770,7 @@ function tickScenario1756() {
   if (year >= 1762 && !done.spain) {
     done.spain = true;
     const sp = byName('Spain');
+    { const s2 = anyName('Spain'); warOffer(s2, gb, 'The Family Compact', 'Your Bourbon cousin of France asks you to come into the war against Britain before it takes all of his colonies.', () => { joinAgainst(s2, gb); if (fr && !hasAgreement(s2.id, fr.id, 'war_help')) addAgreement(s2.id, fr.id, 'war_help'); }, 'Spain comes into the war against Britain.'); }
     if (sp && gb && joinAgainst(sp, gb)) {
       if (fr && !hasAgreement(sp.id, fr.id, 'war_help')) addAgreement(sp.id, fr.id, 'war_help');
       tell('1762: Spain comes into the war against Britain, on the side of France.', sp);
@@ -7883,6 +7887,7 @@ function tickScenario1740() {
       for (const o of nations) if (o !== pr && !o.eliminated && !o.isBarbarian && o.relations[au.id] === 'war' && o.relations[pr.id] !== 'war' && !hasAgreement(o.id, pr.id, 'war_help')) addAgreement(o.id, pr.id, 'war_help');
       tell('1744: fearing for Silesia, Frederick takes up arms against Austria again: the Second Silesian War.', pr, au);
     }
+    warOffer(pr, au, 'The Second Silesian War', 'Austria is winning in Bavaria and on the Rhine, and will come for Silesia next. Strike first?', () => { pr.relations[au.id] = 'war'; au.relations[pr.id] = 'war'; for (const o of nations) if (o !== pr && !o.eliminated && !o.isBarbarian && o.relations[au.id] === 'war' && o.relations[pr.id] !== 'war' && !hasAgreement(o.id, pr.id, 'war_help')) addAgreement(o.id, pr.id, 'war_help'); }, 'Prussia takes up arms against Austria again: the Second Silesian War.');
   }
   if (year >= 1745 && !done.charles7) {   // (the Bavarian emperor dies, and his son makes peace at Füssen)
     done.charles7 = true;
@@ -7893,6 +7898,11 @@ function tickScenario1740() {
   battle('hohenfriedberg', 1745, pr, [au, anyName('Kingdom of Saxony')], 2, '1745: at Hohenfriedberg Frederick routs the Austrians and the Saxons.');
   if (year >= 1746 && !done.dresden) { done.dresden = true; if (ai(pr, au) && makePeace(pr, au)) tell('1745: by the Peace of Dresden Austria again leaves Silesia to Prussia.', pr, au);
     else if (pr && au && pr.relations[au.id] === 'war') peaceOffer('The Peace of Dresden', pr.id === playerNation ? 'Austria offers peace again, Silesia to stay yours.' : 'Frederick offers peace again, Silesia to stay his.', () => makePeace(pr, au), 'The Peace of Dresden is made.'); }
+}
+// a war history made, put to you when the crown that went to war is yours: go to war, or stay at peace
+function warOffer(n, foe, title, text, join, said) {
+  if (!n || n.id !== playerNation || !foe || foe === n || n.relations[foe.id] === 'war' || window.__film) return;
+  scenChoice(title, text, [['Go to war', () => { join(); showToast(said); annal(said); }], ['Stay at peace', () => { annal(`${title}: we stayed at peace.`); }]]);
 }
 // (a two-crown peace: made between the other crowns, or offered to you if yours is one of the two)
 function histPeace(a, b, makePeace, tell, say, title, mine) {
@@ -7972,6 +7982,7 @@ function tickScenario1683() {
   if (year >= 1686 && !done.russia) {   // (the Eternal Peace with Poland, and Russia joins the Holy League)
     done.russia = true;
     if (ai(ru) && ot && joinAgainst(ru, ot)) tell('1686: Russia makes peace with Poland and comes into the war against the Turk: the Holy League.', ru, ot);
+    warOffer(ru, ot, 'The Holy League', 'Poland offers the Eternal Peace and Kiev, if Russia joins the war against the Turk.', () => joinAgainst(ru, ot), 'Russia comes into the war against the Turk: the Holy League.');
   }
   battle('mohacs', 1687, au, [ot], 3, '1687: at Mohács Charles of Lorraine beats the Turks on the field of their old victory.');
   if (year >= 1688 && !done.mehmed) {   // (the army turns on Mehmed IV after Mohács, and his brother is girded with the sword of Osman)
@@ -8092,6 +8103,7 @@ function tickScenario1792() {
       const foes = ['Great Britain', 'Kingdom of Holland', 'Spain', 'Kingdom of Naples', 'Portugal'].map(anyName).filter(n => n && n.id !== playerNation);
       const came = foes.filter(o => joinAgainst(o, fr));
       if (came.length) tell(`1793: ${done.republic ? 'the death of the King' : 'the Revolution'} brings ${listAnd(came.map(theCrown))} into the war against France: the First Coalition.`, fr, ...came);
+      for (const nm of ['Great Britain', 'Kingdom of Holland', 'Spain', 'Kingdom of Naples', 'Portugal']) warOffer(anyName(nm), fr, 'The First Coalition', `${done.republic ? 'The King of France is dead on the scaffold' : 'The Revolution threatens every throne'}, and Austria and Prussia ask you to join the war against France.`, () => joinAgainst(anyName(nm), fr), 'We join the First Coalition against France.');
     }
   }
   if (year >= 1794 && !done.thermidor && fr) {   // (Thermidor: Robespierre falls, and in 1795 the Directory governs)
@@ -8122,6 +8134,7 @@ function tickScenario1792() {
   if (year >= 1796 && !done.catherine) { done.catherine = true; if (dies(ru, 'Catherine II')) addHeir(ru, 'Grand Duke Alexander', 'male', 19, 'Alexander I'); }
   if (year >= 1796 && !done.ildefonso) {   // (Spain changes sides, and goes to war with Britain)
     done.ildefonso = true;
+    if (sp && fr && sp.relations[fr.id] !== 'war') warOffer(sp, gb, 'The Treaty of San Ildefonso', 'The Directory offers alliance against Britain, whose ships take your treasure fleets.', () => { joinAgainst(sp, gb); if (!hasAgreement(sp.id, fr.id, 'war_help')) addAgreement(sp.id, fr.id, 'war_help'); }, 'Spain allies with France and goes to war with Britain.');
     if (ai(sp) && fr && sp.relations[fr.id] !== 'war' && gb && joinAgainst(sp, gb)) { if (!hasAgreement(sp.id, fr.id, 'war_help')) addAgreement(sp.id, fr.id, 'war_help'); tell('1796: by the Treaty of San Ildefonso Spain allies with France and goes to war with Britain.', sp, gb); }
   }
   if (year >= 1796 && !done.bonaparte && fr) {   // (the young Bonaparte takes the Army of Italy)
@@ -8144,6 +8157,7 @@ function tickScenario1792() {
   }
   if (year >= 1799 && !done.second) {   // (the Second Coalition: Russia, Austria and the Porte with Britain)
     done.second = true;
+    if (fr) for (const n of [ru, au, anyName('Ottoman Empire'), anyName('Kingdom of Naples')]) warOffer(n, fr, 'The Second Coalition', 'Bonaparte is in Egypt with the best of the French army, and Britain asks you to join the war against France.', () => joinAgainst(n, fr), 'We join the Second Coalition against France.');
     if (fr) { const foes = [ru, au, anyName('Ottoman Empire'), anyName('Kingdom of Naples')].filter(n => n && n.id !== playerNation), came = foes.filter(o => joinAgainst(o, fr)); if (came.length) tell(`1799: ${listAnd(came.map(theCrown))} ${came.length > 1 ? 'join' : 'joins'} Britain against France: the Second Coalition.`, fr, ...came); }
   }
   if ((year >= 1800 || (year === 1799 && (turnNumber - 1) % (SEASON_LENGTH * 4) >= SEASON_LENGTH * 3)) && !done.brumaire && fr) {   // (18 Brumaire, November 1799: Bonaparte is made First Consul)
@@ -8301,6 +8315,7 @@ function tickScenario1672() {
   }
   if (at(1673, 2) && !done.hague) {   // (the alliance of The Hague: the Emperor, Spain and Lorraine come in for the Dutch)
     done.hague = true;
+    if (fr) for (const n of [anyName('Austria'), anyName('Spain'), anyName('Belgium')]) warOffer(n, fr, 'The Alliance of The Hague', 'The Dutch are holding behind their water, and William of Orange asks you to come in against France before she is master of the Rhine.', () => joinAgainst(n, fr), 'We come into the war for the Dutch.');
     if (fr) { const came = [anyName('Austria'), anyName('Spain'), anyName('Belgium')].filter(n => n && n.id !== playerNation).filter(o => joinAgainst(o, fr)); if (came.length) tell(`1673: by the alliance of The Hague ${listAnd(came.map(theCrown))} ${came.length > 1 ? 'come' : 'comes'} into the war for the Dutch.`, fr, ...came); }
   }
   battle('khotyn', at(1673, 3), pl, [ot], 3, '1673: at Khotyn the Grand Hetman Sobieski storms the Turkish camp.');
@@ -8318,6 +8333,7 @@ function tickScenario1672() {
   if (at(1674, 3) && !done.sweden) {   // (Sweden, France's ally, invades Brandenburg)
     done.sweden = true;
     if (ai(sw) && br && joinAgainst(sw, br)) { if (fr && !hasAgreement(sw.id, fr.id, 'war_help')) addAgreement(sw.id, fr.id, 'war_help'); tell("1674: Sweden, paid by France, invades the Great Elector's lands.", sw, br); }
+    warOffer(sw, br, 'French Subsidies', "France will pay handsomely if Sweden invades the Great Elector's lands while his army is on the Rhine.", () => { joinAgainst(sw, br); if (fr && !hasAgreement(sw.id, fr.id, 'war_help')) addAgreement(sw.id, fr.id, 'war_help'); }, "Sweden invades the Great Elector's lands.");
   }
   battle('fehrbellin', at(1675, 1), br, [sw], 3, '1675: at Fehrbellin the Great Elector routs the Swedes, and the legend of Swedish arms is broken.');
   if (at(1675, 1) && !done.turenne) {   // (Turenne killed by a cannonball at Sasbach)
@@ -8328,6 +8344,7 @@ function tickScenario1672() {
   if (at(1675, 3) && !done.scania) {   // (Denmark comes in against Sweden: the Scanian War)
     done.scania = true;
     const dk = anyName('Denmark-Norway'); if (ai(dk) && sw && sw.relations[br?.id] === 'war' && joinAgainst(dk, sw)) tell('1675: Denmark comes into the war against Sweden to win back Scania.', dk, sw);
+    if (sw && sw.relations[br?.id] === 'war') warOffer(dk, sw, 'The Scanian War', 'Sweden is beaten at Fehrbellin: the moment to win back Scania has come.', () => joinAgainst(dk, sw), 'Denmark goes to war with Sweden to win back Scania.');
   }
   if (at(1676, 3) && !done.zurawno) { done.zurawno = true; histPeace(pl, ot, makePeace, tell, '1676: by the Truce of Żurawno Poland and the Sultan make peace.', 'The Truce of Żurawno', pl && pl.id === playerNation ? 'The Sultan offers a truce, keeping Podolia.' : 'Sobieski offers a truce, leaving you Podolia.'); }
   if (at(1678, 2) && !done.nijmegen) {   // (the Peace of Nijmegen: the Dutch lose nothing, and France keeps Franche-Comté)
