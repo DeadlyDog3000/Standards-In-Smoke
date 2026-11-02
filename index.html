@@ -1138,6 +1138,7 @@
         - On a phone the unit buttons go without their keyboard letters<br>
         - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
         - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
+        - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2317,6 +2318,7 @@
           - On a phone the unit buttons go without their keyboard letters<br>
           - On a phone the tips and the Field Manual speak of taps and panel buttons, not right-clicks and keys, and the Kingdoms panel is no longer covered by the ambition plaque<br>
           - The idle towns and research reminders wait until a start's opening card is read, instead of opening under it<br>
+          - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -6969,7 +6971,7 @@ function showWarDeclaration(nation) {
       <div style="font-size:12px;color:#d8b8a0;margin:-8px 0 10px;">${escHtml(warRuler.name)}</div>`
     : `<div style="width:80px;height:80px;border-radius:50%;background:${wc};border:3px solid rgba(255,200,100,0.6);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;"><span style="font-size:40px;">\u2694\uFE0F</span></div>`}
     <h1 style="color:#d8553a;font-size:32px;font-family:'Uncial Antiqua',cursive;text-shadow:0 2px 3px rgba(0,0,0,0.9),0 0 20px rgba(200,60,30,0.45);margin-bottom:10px;">War Declared!</h1>
-    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;"><strong style="color:${nation.color}">${escHtml(crownName1(nation))}</strong> has declared war on your kingdom!</p>
+    <p style="font-size:18px;color:#e8dcc8;margin-bottom:6px;">${crownTag(nation, 'strong')} has declared war on your kingdom!</p>
     <p style="font-size:13px;color:#a89878;margin-bottom:24px;">Prepare your forces for battle.</p>
     <button class="menu-btn" onclick="document.getElementById('warDeclOverlay').remove();" style="font-size:16px;background:rgba(180,40,30,0.3);border-color:rgba(255,80,60,0.5);">To Arms!</button>
   </div>`;
@@ -11318,12 +11320,15 @@ function deleteVictoryEntry(index) {
   showVictoryHistory();
 }
 
+// a crown's name in a card or on the end screen: a dot of its colour and the name in light ink (its own colour, a dark blue or
+//  red, can't be read on the dark cards)
+function crownTag(n, tag = 'b') { return `<i style="display:inline-block;width:0.65em;height:0.65em;border-radius:50%;background:${safeColor(n.color)};border:1px solid rgba(240,225,190,0.55);margin-right:4px"></i><${tag} style="color:#f0e2bc">${escHtml(crownName1(n))}</${tag}>`; }
 // at the end of an 1805 game, how the great crowns stand when the score is counted: their rulers and their towns
 function congressSummary() {
   if (!scen()) return '';
   const rows = scen().great.map(nm => nations.find(n => n.name === nm)).filter(Boolean).map(n => {
     const towns = cities.filter(c => c.nationId === n.id).length, r = getNationRuler(n.id);
-    return `<span style="white-space:nowrap"><b style="color:${safeColor(n.color)}">${escHtml(crownName1(n))}</b> ${n.eliminated ? 'fallen' : `${towns} town${towns === 1 ? '' : 's'}${r ? ', ' + escHtml(r.name) : ''}`}</span>`;
+    return `<span style="white-space:nowrap">${crownTag(n)} ${n.eliminated ? 'fallen' : `${towns} town${towns === 1 ? '' : 's'}${r ? ', ' + escHtml(r.name) : ''}`}</span>`;
   });
   return `<p style="font-size:13px;color:#a89878;margin:-12px auto 22px;max-width:560px;line-height:1.7;">${rows.join(' &middot; ')}</p>`;
 }
@@ -11335,7 +11340,7 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${winner.color}">${escHtml(crownName1(winner))}</strong> has the highest score (${getScore(winnerId)}).`;
+    desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} ${crownTag(winner, 'strong')} has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
     desc = `<strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> has been conquered. Your civilization is no more.`;
@@ -14125,7 +14130,7 @@ function triggerEvent() {
   if (evt.diplomatic && validDiploNations.length > 0) {
     const dn = validDiploNations[Math.floor(Math.random() * validDiploNations.length)];
     currentEventNation = dn.id;
-    const nationTag = `<strong style="color:${dn.color}">${escHtml(dn.name)}</strong>`;
+    const nationTag = crownTag(dn, 'strong');
     eventText = eventText.replace(/\{NATION\}/g, nationTag);
   }
   const modal = document.getElementById('eventModal');
