@@ -1141,6 +1141,7 @@
         - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
         - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
         - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
+        - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2323,6 +2324,7 @@
           - On the end screen, war declarations and event cards a crown's name is written in light ink beside a dot of its colour (a dark blue or red name could hardly be read), and event cards use the name of the day<br>
           - Three events of another age are of this one now: the Nobles' Remonstrance (was Magna Carta Demands), Emigrants at the Border (was a nomadic tribe) and A Baron Swears Fealty (was a chieftain)<br>
           - A ship is not fortified: she lies at anchor, and weighs anchor again<br>
+          - Peace for a town: at war, with your regiments at the gates of one of their towns, the Kingdoms panel lets you ask for it as the price of peace. They give it up only when they are losing; their garrison marches home<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -11119,6 +11121,7 @@ function openManual(tab) {
         ['Tribute', 'A crown with twice your army that thinks little of you may demand gold: pay, and it keeps the peace for fifteen turns. You may demand it too of a crown with less than half your army.'],
         ['War-weariness', 'After some thirty turns of war a crown may come to terms with its enemy, or offer you peace.'],
         ['Taking towns', 'A town falls when an enemy regiment stands in it for four turns, six behind walls and eight behind bastions. A long siege starves it.'],
+        ['Peace for a town', 'At war, with your regiments within two hexes of one of their towns (not their capital), the Kingdoms panel offers peace for that town. They give it up only when they are losing: outnumbered, the town ringed by your men or besieged, and with towns to spare. Their garrison marches out to their own lands, and the town may yet rise to go back to them.'],
         ['The alarm of Europe', 'The further ahead you get, the richer, bolder and less trusting the other crowns become. You are told as each stage comes.'],
         ['The 1805 start', 'Europe in the year of Austerlitz: every crown with the learning, towns, armies and fleets of the age, the Third Coalition (Britain, Austria, Russia, Sweden, Naples) at war with France and her allies. History moves as it did while the crowns are placed for it: Prussia joins in 1806, Tilsit in 1807, Spain rises in 1808, Austria returns in 1809, Russia and France fall out in 1812, and the Sixth Coalition forms in 1813.'],
         ['Coalitions', 'Far enough ahead, and the crowns that distrust you may band together against you, two to four at once, at war with you and allied to one another. Each new coalition comes no sooner than some thirty-five turns after the last.'],
@@ -19695,6 +19698,7 @@ function renderKingdoms() {
     // what you can do
     html += `<div class="kc-acts">
       <button class="diplo-btn ${rel === 'war' ? 'ok' : 'no'}" onclick="toggleDiplomacy(${n.id})">${rel === 'war' ? 'Seek peace' : 'Declare war'}</button>
+      ${(() => { const t = rel === 'war' && peaceTownFor(n.id); return t ? `<button class="diplo-btn ok" onclick="demandTownForPeace(${n.id})" title="Ask for ${escHtml(t.city.name)} as the price of peace: your regiments are at its gates. They give it up only when they are losing">Peace for ${escHtml(t.city.name)}</button>` : ''; })()}
       <button class="diplo-btn" onclick="sendGift(${n.id},'gold',20)" title="Send 20 gold: they think better of you">Gift 20g</button>
       ${rel !== 'war' && units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat).length >= Math.max(4, 2 * units.filter(u => u.nationId === n.id && UNIT_DEFS[u.type]?.combat).length) ? `<button class="diplo-btn" onclick="demandTribute(${n.id})" title="Demand gold of a crown with less than half your army: it may pay, and either way it likes you less">Demand</button>` : ''}
       ${rel !== 'war' ? `<button class="diplo-btn" onclick="toggleTradePanel(${n.id})">Trade</button>` : ''}
@@ -19800,6 +19804,65 @@ function acceptPeace(nationId) {
   showToast(`Peace treaty signed with ${n.name}!${gold > 0 ? ` They pay ${gold} gold.` : ''}`);
   renderKingdoms();
 }
+// ---- peace for a town: at war, with your regiments at the gates of one of their towns, you can ask for it as the price of
+//  peace. They give it up only when they are losing: outnumbered, the town ringed by your men, and with towns to spare ----
+function peaceTownFor(nationId) {
+  const mine = units.filter(u => u.nationId === playerNation && UNIT_DEFS[u.type]?.combat && !UNIT_DEFS[u.type]?.naval && !isEmbarked(u));
+  let best = null;
+  for (const c of cities) {
+    if (c.nationId !== nationId || c.isCapital || c.ruined) continue;
+    const near = mine.filter(u => hexDistance(u.x, u.y, c.x, c.y) <= 2).length; if (!near) continue;
+    if (!best || near > best.near) best = { city: c, near };
+  }
+  return best;
+}
+function cedeTown(city, newOwner) {
+  const oldOwner = city.nationId; if (oldOwner === newOwner) return;
+  city.nationId = newOwner; city.paid = []; city.capturedTurn = turnNumber;
+  city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false;
+  city.producing = null; city.productionProgress = 0; city.productionQueue = [];
+  for (const ti of city.ownedTiles) if (tiles[ti].owner === oldOwner) tiles[ti].owner = newOwner;
+  tiles[city.y * MAP_COLS + city.x].owner = newOwner;
+  // (the old garrison marches out to the nearest of its own crown's land; with none left, it disbands)
+  for (const u of [...units]) {
+    if (u.nationId !== oldOwner) continue;
+    const ui = u.y * MAP_COLS + u.x; if (!city.ownedTiles.has(ui) && !(u.x === city.x && u.y === city.y)) continue;
+    let to = null, bd = Infinity;
+    for (let i = 0; i < tiles.length; i++) {
+      if (tiles[i].owner !== oldOwner || tiles[i].type === 0) continue;
+      const x = i % MAP_COLS, y = (i - x) / MAP_COLS, d = hexDistance(u.x, u.y, x, y);
+      if (d < bd && !units.some(o => o.x === x && o.y === y)) { bd = d; to = { x, y }; }
+    }
+    if (to) { u.x = to.x; u.y = to.y; u.movesLeft = 0; u.fortified = false; delete u.gotoX; delete u.gotoY; } else removeUnit(u);
+  }
+  if (!nations[oldOwner].isBarbarian) nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy ?? 50) - 4);
+  if (!nations[newOwner].isBarbarian) nations[newOwner].legitimacy = Math.min(100, (nations[newOwner].legitimacy ?? 50) + 2);
+  if (tiles[city.y * MAP_COLS + city.x]?.revealed.has(playerNation)) particles.push({ kind: 'seal', col: city.x, row: city.y, vx: 0, vy: 0, color: nations[newOwner]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
+  if (newOwner === playerNation) try { SMK.peal(6); } catch (e) {}
+  _tileCityMapDirty = true; minimapDirty = true; invalidateVision();
+}
+window.demandTownForPeace = function (nationId) {
+  const pn = nations[playerNation], n = nations[nationId];
+  if (!pn || !n || pn.relations[nationId] !== 'war') return;
+  const t = peaceTownFor(nationId); if (!t) return;
+  if (!pn._peaceAsked) pn._peaceAsked = {};
+  if (pn._peaceAsked[nationId] === turnNumber) { showToast(`${crownName1(n)} has already answered this turn.`); return; }
+  pn._peaceAsked[nationId] = turnNumber;
+  const mil = id => units.filter(u => u.nationId === id && UNIT_DEFS[u.type]?.combat).length;
+  let chance = 0.08 + (mil(playerNation) - mil(nationId)) * 0.04 + t.near * 0.08 + (t.city._besieged ? 0.2 : 0) + (getLoyalty(nationId, playerNation) + 60) / 400;
+  if (cities.filter(c => c.nationId === nationId).length <= 2) chance -= 0.2;
+  chance = Math.max(0.03, Math.min(0.7, chance));
+  if (Math.random() < chance) {
+    const nm = t.city.name;
+    cedeTown(t.city, playerNation);
+    acceptPeace(nationId);
+    annal(`By the peace ${theCrown(n)} cedes ${nm}.`);
+    showToast(`${crownName1(n)} makes peace, and cedes ${nm} to you.`);
+    updateUI(); render(); return;
+  }
+  showToast(`${crownName1(n)} will not give up ${t.city.name}. Press them harder, or seek peace without it.`);
+  renderKingdoms();
+};
 function rejectPeace(nationId) {
   const n = nations[nationId];
   if (n.wantsPeace) n.wantsPeace[playerNation] = false;
