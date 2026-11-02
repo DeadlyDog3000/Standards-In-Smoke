@@ -1123,6 +1123,7 @@
         - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
         - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
         - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
+        - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2287,6 +2288,7 @@
           - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
           - When a peace history made involves your crown, it is offered to you to make or refuse: Breslau and Dresden in 1740, Ryswick in 1683, Basel and Campo Formio in 1792, Westminster and Nijmegen in 1672<br>
           - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
+          - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -8432,6 +8434,11 @@ function tickScenario() {
       if (!ru._peaceCooldown) ru._peaceCooldown = {}; if (!fr._peaceCooldown) fr._peaceCooldown = {};
       ru._peaceCooldown[fr.id] = turnNumber + 20; fr._peaceCooldown[ru.id] = turnNumber + 20;
       const say = `1807: at Tilsit, the Emperor of Russia makes peace with France.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
+    } else {
+      // (and if France or Russia is yours, the raft on the Niemen is yours to go to)
+      const r2 = nations.find(n => n.name === 'Russia' && !n.eliminated);
+      if (r2 && fr && r2.relations[fr.id] === 'war' && (r2.id === playerNation || fr.id === playerNation)) peaceOffer('The Raft at Tilsit', fr.id === playerNation ? 'After Friedland the Tsar asks to meet you on a raft in the Niemen, and offers peace and alliance.' : 'After Friedland the Emperor of the French asks to meet you on a raft in the Niemen, and offers peace and alliance.',
+        () => { r2.relations[fr.id] = 'peace'; fr.relations[r2.id] = 'peace'; for (const [x, y] of [[r2, fr], [fr, r2]]) { if (!x._peaceCooldown) x._peaceCooldown = {}; x._peaceCooldown[y.id] = turnNumber + 20; removeAgreement(x.id, y.id, 'war_help'); } }, 'Peace is made with France at Tilsit.'.replace('with France', fr.id === playerNation ? 'with Russia' : 'with France'));
     }
   }
 }
