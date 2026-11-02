@@ -1120,6 +1120,7 @@
         - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
         - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
         - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
+        - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2281,6 +2282,7 @@
           - An eighth start, 1672: the Disaster Year. Louis XIV, England and the Bishop of Münster fall on the Dutch Republic under Johan de Witt, with the Great Elector the Dutch Republic's only friend, and the Sultan marching on Poland. The Water Line, the murder of the de Witts and William of Orange, the alliance of The Hague, Khotyn and Sobieski's election, the Treaty of Westminster, Sweden's invasion of Brandenburg and Fehrbellin, Turenne killed at Sasbach, the Scanian War, and the score counted at the Peace of Nijmegen in 1678. Spain is governed by the Queen Mother as regent until Charles II comes of age. A new achievement, The Water Line<br>
           - The other crowns use their ships to carry regiments too: a ship fetches a regiment waiting on the coast, sails it to the shore nearest its target and lands it<br>
           - A ship's panel lists the regiments aboard, and Land first chooses which goes ashore next; the Empire panel lists them too, aboard their ship<br>
+          - The hex tooltip says when land is out of sight (shown as last seen, washed dim), and names its owner and any regiment's crown by the name of the day<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -11002,8 +11004,8 @@ function showVictory(type) {
   const s = getScoreBreakdown(playerNation);
   const typeLabel = type === 'score' ? 'Score Victory' : type === 'ambition' ? 'Ambition Victory' : 'Domination Victory';
   const desc = type === 'score' ? `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> has the highest score!`
-    : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
-    : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> rules supreme!`;
+    : type === 'ambition' ? `<strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> has fulfilled ${AMBITION_WIN} ambitions. Europe will remember this reign.`
+    : `All rival kingdoms have fallen. <strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> rules supreme!`;
   const overlay = document.createElement('div');
   overlay.id = 'victoryOverlay';
   overlay.style.cssText = "position:fixed;inset:0;z-index:200;background:linear-gradient(rgba(10,8,3,0.45),rgba(10,8,3,0.88) 70%),url('events/victory.jpg') center/cover;display:flex;align-items:center;justify-content:center;";
@@ -11200,7 +11202,7 @@ function showDefeat(type, winnerId) {
     desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} <strong style="color:${winner.color}">${escHtml(crownName1(winner))}</strong> has the highest score (${getScore(winnerId)}).`;
   } else {
     title = 'Your Empire Has Fallen';
-    desc = `<strong style="color:${nations[playerNation].color}">${escHtml(nations[playerNation].name)}</strong> has been conquered. Your civilization is no more.`;
+    desc = `<strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> has been conquered. Your civilization is no more.`;
   }
   const overlay = document.createElement('div');
   overlay.id = 'defeatOverlay';
@@ -20732,8 +20734,10 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   const desc = TILE_DESCS[t.type] || '';
   let html = `<div class="tt-title">${name}</div>`;
   html += `<div class="tt-detail">${desc}</div>`;
+  // (out of sight of your towns and regiments: the chart shows it as last surveyed, washed dim)
+  if (currentVisionSet && !currentVisionSet.has(i)) html += `<div class="tt-detail" style="color:#a89878">Out of sight: as last seen</div>`;
   if (t.owner >= 0) {
-    html += `<div class="tt-detail">Owner: <span style="color:${nations[t.owner].color}">${escHtml(nations[t.owner].name)}</span></div>`;
+    html += `<div class="tt-detail">Owner: <span style="color:${nations[t.owner].color}">${escHtml(crownName1(nations[t.owner]))}</span></div>`;
   }
   if (t.improvement) {
     const imp = IMPROVEMENT_DEFS[t.improvement];
@@ -20817,7 +20821,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   if (u) {
     const def = UNIT_DEFS[u.type];
     const typeName = u.type.charAt(0).toUpperCase() + u.type.slice(1).replace('_',' ');
-    html += `<div class="tt-detail">${unitIco(u.type)} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(nations[u.nationId].name)}</span>)</div>`;
+    html += `<div class="tt-detail">${unitIco(u.type)} ${typeName} (<span style="color:${nations[u.nationId].color}">${escHtml(crownName1(nations[u.nationId]))}</span>)</div>`;
     const regiment = regimentName(u);
     if (regiment) html += `<div class="tt-detail" style="color:#e0c880;font-style:italic">${escHtml(regiment)}${u.honours ? ` <span style="font-style:normal;color:#c8b070">\u2014 ${u.honours} battle honour${u.honours > 1 ? 's' : ''}</span>` : ''}</div>`;
     const ttMaxHp = getEffectiveMaxHp(u);
