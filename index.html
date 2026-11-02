@@ -6202,6 +6202,13 @@ const isEmbarked = u => !!u && !UNIT_DEFS[u.type]?.naval && tiles[u.y * MAP_COLS
 const SHIP_HOLD = { frigate: 2, galleon: 3, man_of_war: 2 };
 const shipHold = s => SHIP_HOLD[s?.type] || 0;
 const cargoName = c => regimentName(c) || unitTitle(c.type);
+// (a regiment aboard is never on the map as well: one caught mid-step onto its ship when the turn ends or the game is saved)
+function purgeAboard() {
+  const aboard = new Set(); for (const s of units) for (const c of s.cargo || []) aboard.add(c);
+  if (!aboard.size) return;
+  for (let k = units.length - 1; k >= 0; k--) if (aboard.has(units[k])) { const u = units[k]; units.splice(k, 1); u._animating = false; delete u._animX; delete u._animY; }
+  for (let k = animatingUnits.length - 1; k >= 0; k--) if (aboard.has(animatingUnits[k].unit)) animatingUnits.splice(k, 1);
+}
 function boardShip(u, ship) {
   if (UNIT_DEFS[u.type]?.naval || !shipHold(ship) || ship.nationId !== u.nationId) return 'Only a regiment can go aboard a ship.';
   if (hexDistance(u.x, u.y, ship.x, ship.y) > 1) return 'March to the coast beside the ship first.';
@@ -6209,11 +6216,16 @@ function boardShip(u, ship) {
   if (u.movesLeft <= 0) return 'That regiment has no moves left this turn.';
   if ((ship.cargo || []).length >= shipHold(ship)) return `${ship.title ? ship.title : 'The ' + (regimentName(ship) || 'ship')} has no room: she carries ${shipHold(ship)} regiments.`;
   if (u.nationId === playerNation && !tryActivateUnit(u, true)) return '';
-  const i = units.indexOf(u); if (i >= 0) units.splice(i, 1);
   if (selectedUnit === u) { selectedUnit = null; moveMode = false; reachableTiles.clear(); }
   if (activatedUnits.has(u)) activatedUnits.delete(u);
   delete u.gotoX; delete u.gotoY; u.fortified = false; u.automated = false; u.autoExplore = false; u.movesLeft = 0;
   (ship.cargo || (ship.cargo = [])).push(u);
+  // (yours is seen marching out onto the ship before it goes below; it is aboard from the first, and off the map once there)
+  const i = units.indexOf(u);
+  if (i >= 0 && u.nationId === playerNation && VIEW_TILE >= 14 && !window.__film) {
+    const ox = u.x, oy = u.y; u.x = ship.x; u.y = ship.y;
+    try { startUnitAnimation(u, [{ x: ship.x, y: ship.y }], () => { const k = units.indexOf(u); if (k >= 0 && (ship.cargo || []).includes(u)) units.splice(k, 1); render(); }, ox, oy); } catch (e) { units.splice(units.indexOf(u), 1); }
+  } else if (i >= 0) units.splice(i, 1);
   try { SMK.oars(); } catch (e) {}
   if (u.nationId === playerNation) showToast(`The ${cargoName(u)} goes aboard ${ship.title ? ship.title : 'the ' + (regimentName(ship) || 'ship')}.`);
   invalidateVision();
@@ -12874,6 +12886,7 @@ function endTurn() {
 }
 
 function _endTurnImpl() {
+  purgeAboard();
 
   animationBlocking = false; animatingUnits.length = 0; _animTicking = false; lastAnimTime = 0; stopMarchSound();
   escMenuOpen = false; eventModalOpen = false;
@@ -22843,6 +22856,7 @@ function serializeGame() {
     siegeTurns: c.siegeTurns,
   }));
   const sNations = nations.map(n => { const sn = { ...n, researched: [...(n.researched || [])], wantsPeace: n.wantsPeace || {} }; delete sn._warWarned; delete sn._diploRequest; delete sn._legFamilyBonus; return sn; });
+  purgeAboard();
   const sUnits = units.map(u => {
     const su = { ...u };
     delete su._animX; delete su._animY; delete su._animating; delete su._stuckCount;
