@@ -1125,6 +1125,7 @@
         - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
         - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
         - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
+        - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2291,6 +2292,7 @@
           - Playing Sweden in 1700, Denmark sues for peace at Travendal and Saxony at Altranstädt, as they did (offered to you to accept)<br>
           - In 1805, if France or Russia is yours, the raft at Tilsit is offered to you in 1807<br>
           - More of history's peaces are offered to you when your crown is a party: Ratisbon, Żurawno, Åbo, Lunéville, the Russian peace of 1801 and Amiens<br>
+          - In 1756, playing Russia, the Empress Elizabeth dies in 1762 and Peter III's peace with Prussia is yours to make; playing Sweden, Prussia offers the Peace of Hamburg<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7748,7 +7750,17 @@ function tickScenario1756() {
       makePeace(ru, pr); for (const t of ['war_help']) for (const o of nations) if (o.relations[pr.id] === 'war') removeAgreement(ru.id, o.id, t);
       const sw = byName('Sweden'); if (sw && pr && makePeace(sw, pr)) {}
       tell('1762: the Empress Elizabeth is dead, and the new Tsar, an admirer of Frederick, makes peace with Prussia; Sweden follows. The Miracle of the House of Brandenburg.', pr);
+    } else {
+      // (and if Russia is yours: the Empress dies as she did, and the young Tsar's peace is yours to make or refuse;
+      //  if Sweden is yours, Prussia offers the peace of Hamburg)
+      const ru2 = anyName('Russia'), el2 = ru2 && getNationRuler(ru2.id);
+      if (ru2 && ru2.id === playerNation && el2 && el2.name === 'Elizabeth') {
+        characterDeath(el2);
+        if (pr && ru2.relations[pr.id] === 'war') peaceOffer('The Tsar and Frederick', 'Your new Tsar admires the King of Prussia above all men, and would make peace with him and give back East Prussia.', () => { makePeace(ru2, pr); for (const o of nations) if (o.relations[pr.id] === 'war') removeAgreement(ru2.id, o.id, 'war_help'); }, 'Peace is made with Prussia, and East Prussia given back.');
+      }
     }
+    const sw2 = anyName('Sweden');
+    if (sw2 && sw2.id === playerNation && pr && sw2.relations[pr.id] === 'war') peaceOffer('The Peace of Hamburg', 'With Russia out of the war, Prussia offers peace on the borders as they were.', () => makePeace(sw2, pr), 'The Peace of Hamburg is made with Prussia.');
   }
   if (year >= 1762 && !done.spain) {
     done.spain = true;
