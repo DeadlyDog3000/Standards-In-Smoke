@@ -1158,6 +1158,7 @@
         - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
         - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
         - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
+        - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2351,6 +2352,7 @@
           - Options: Dim land out of sight. Turn it off and the land you have charted but can't see now is drawn plain, without the brown wash (rival regiments there stay hidden all the same)<br>
           - Hovering a ship tells who is aboard yours, and how many regiments a rival's carries; the tooltip no longer reads 'Man of_war'<br>
           - A ninth start, 1733: the Polish Succession. Louis XV goes to war for his father-in-law Stanisław, elected King of Poland, with Spain and Sardinia; Austria, Russia and Saxony put up Augustus of Saxony instead. Danzig falls, Don Carlos takes Naples and is crowned there, the Peace of Vienna sends Stanisław to Lorraine and Milan back to the Emperor, Russia and then Austria go to war with the Turk, and the score is counted at the Peace of Belgrade in 1739. With its achievement, Bitonto<br>
+          - In the Kingdoms panel a crown in a war alliance with you is marked Allied, not just At peace<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19861,7 +19863,7 @@ function renderKingdoms() {
     html += `<div class="kcard ${rel}" style="--kc:${col}">
       <div class="kc-head">${(() => { const r = getNationRuler(n.id); return r ? `<img class="portrait kc-face" src="${portraitOf(r)}" alt="" title="${escHtml(r.name)}">` : '<span class="kc-crest"></span>'; })()}
         <div class="kc-title"><b>${escHtml(crownName1(n))}</b><small>${getNationRuler(n.id) ? `<i class="kc-ruler">${escHtml(getNationRuler(n.id).name)}</i> · ` : ''}${n.id !== playerNation && temperOf(n) ? `<span class="kc-temper" title="${escHtml(temperOf(n).desc)}">${temperOf(n).name}</span> · ` : ''}${cityCount} ${cityCount === 1 ? 'city' : 'cities'} · ${unitCount} units · score ${getScore(n.id)}${(n.ambitionsDone || []).length ? ` · ${n.ambitionsDone.length} ambitions` : ''}</small></div>
-        <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : 'At peace'}</span></div>`;
+        <span class="kc-rel">${rel === 'you' ? 'You' : rel === 'war' ? 'At war' : hasAgreement(playerNation, n.id, 'war_help') ? 'Allied' : 'At peace'}</span></div>`;
     if (you) { html += `<div class="kc-army"><span>Army</span><b>${milStrength}</b></div></div>`; continue; }
     const loy = getLoyalty(n.id, playerNation);
     html += `<div class="kc-op"><span>Opinion</span><div class="kc-bar"><i style="width:${Math.max(3, Math.min(100, (loy + 100) / 2))}%;background:${getLoyaltyColor(loy)}"></i></div><b style="color:${getLoyaltyColor(loy)}">${getLoyaltyLabel(loy)}</b></div>`;
