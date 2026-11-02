@@ -477,7 +477,7 @@
     body.mobile-mode .res-icon { width: 10px; height: 10px; }
     body.mobile-mode .top-btn { padding: 6px 14px; font-size: 14px; }
     body.mobile-mode .top-btn.end-turn { padding: 8px 18px; font-size: 15px; }
-    body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; }
+    body.mobile-mode #panel { width: 85vw; max-width: 340px; right: 5px; bottom: 5px; font-size: 14px; max-height: 62vh; }
     body.mobile-mode .p-btn { padding: 10px 14px; font-size: 14px; margin-bottom: 6px; }
     body.mobile-mode #kingdoms { width: 92vw; max-width: 340px; left: 5px; }
     @keyframes firstContact { 0% { opacity:0; } 10% { opacity:1; } 75% { opacity:1; } 100% { opacity:0; } }
@@ -1133,7 +1133,7 @@
         - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
         - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
         - Go aboard is on the round order buttons under the map as well, and on the B key<br>
-        - On a phone the view brings a chosen unit or town a third of the way down the screen, above its panel, instead of to the middle where the panel hid it<br>
+        - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
         - On a phone the ship texts say tap, not right-click<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
@@ -2309,7 +2309,7 @@
           - Disbanding a ship with regiments aboard is refused until they are put ashore (they were lost with her, without a word)<br>
           - Sink a foe's transport where you can see it and you hear how many regiments went down with her<br>
           - Go aboard is on the round order buttons under the map as well, and on the B key<br>
-          - On a phone the view brings a chosen unit or town a third of the way down the screen, above its panel, instead of to the middle where the panel hid it<br>
+          - On a phone the view brings a chosen unit or town up near the top of the map, above its panel (now a little shorter), instead of to the middle where the panel hid it<br>
           - On a phone the ship texts say tap, not right-click<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
@@ -5093,7 +5093,7 @@ function panCameraTo(col, row, callback) {
   targetCamX = clampCamX(col + 0.5 - visibleCols() / 2);
   // (on a phone the chosen unit's panel fills the lower half: the unit is brought a third of the way down, between the
   //  top bar and the panel, where it can still be seen)
-  targetCamY = clampCamY(row + 0.5 - visibleRows() * (document.body.classList.contains('mobile-mode') ? 0.33 : 0.5));
+  targetCamY = clampCamY(row + 0.5 - visibleRows() * (document.body.classList.contains('mobile-mode') ? 0.29 : 0.5));
   // a pan already under way is superseded: let whoever waited on it carry on, rather than wait forever
   const superseded = camPanCallback;
   camPanCallback = callback || null;
