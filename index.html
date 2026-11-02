@@ -1149,6 +1149,7 @@
         - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
         - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
         - Demanding tribute says its odds on hovering, as peace and pacts do<br>
+        - And so does a proposal of marriage<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2338,6 +2339,7 @@
           - Seek peace and Peace for a town say how they are likely to be taken: likely, even odds, doubtful or unlikely<br>
           - Pacts say their odds too, on hovering: likely, even odds, doubtful, or that they think too little of you<br>
           - Demanding tribute says its odds on hovering, as peace and pacts do<br>
+          - And so does a proposal of marriage<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19750,7 +19752,7 @@ function renderKingdoms() {
         ? `<span class="kc-pact on">✓ ${name}<button onclick="cancelAgreement(${n.id},'${type}')" title="End it">×</button></span>`
         : show ? `<button class="kc-pact" onclick="${req}"${PACT_NEEDS[type] ? ` title="Propose it: ${escHtml(pactOdds(n.id, type))}"` : ''}>+ ${name}</button>` : '';
       const canMap = loy >= 20;
-      html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
+      html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you (${marriageChance(n.id) ? oddsWord(marriageChance(n.id)) : 'they think too little of you'})">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
       // the trade panel, as it was
       html += `<div id="tradePanel_${n.id}" class="kc-trade" style="display:none;">`;
       const tradeMarkup = loy >= 80 ? 1.0 : loy >= 50 ? 1.25 : loy >= 20 ? 1.5 : 2.0;
@@ -20604,14 +20606,15 @@ function _buildTechTreeOverlay() {
 
 // ---- royal marriages, as Old World's: a match between the two courts (60 gold), accepted by a crown that thinks well
 //  enough of you. While it lasts each thinks better of the other every turn; declaring war on your in-laws costs 15 legitimacy ----
+function marriageChance(nationId) { const n = nations[nationId], loy = getLoyalty(nationId, playerNation); return loy < 10 ? 0 : Math.max(0, Math.min(0.9, 0.3 + loy / 100 + (n.temper === 'merchant' ? 0.15 : n.temper === 'warlike' ? -0.15 : 0))); }
 function proposeMarriage(nationId) {
   const n = nations[nationId], me = nations[playerNation];
   if (!n || n.eliminated || me.relations[nationId] === 'war' || hasAgreement(playerNation, nationId, 'marriage')) return;
   if ((me._marriageAsked || {})[nationId] > turnNumber) { showToast(`${n.name} will not hear another proposal so soon.`); return; }
   if ((me.gold || 0) < 60) { showToast('A royal wedding costs 60 gold.'); return; }
   me.gold -= 60;
-  const loy = getLoyalty(nationId, playerNation), chance = Math.max(0, Math.min(0.9, 0.3 + loy / 100 + (n.temper === 'merchant' ? 0.15 : n.temper === 'warlike' ? -0.15 : 0)));
-  if (loy >= 10 && Math.random() < chance) {
+  const loy = getLoyalty(nationId, playerNation);
+  if (loy >= 10 && Math.random() < marriageChance(nationId)) {
     addAgreement(playerNation, nationId, 'marriage');
     changeLoyalty(nationId, playerNation, 25); changeLoyalty(playerNation, nationId, 25);
     me.legitimacy = Math.min(100, (me.legitimacy ?? 50) + 3);
