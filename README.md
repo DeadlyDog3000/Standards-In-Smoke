@@ -27,7 +27,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - The 1672 start: the Disaster Year, Louis XIV's war on the Dutch Republic, the Water Line and William of Orange, until the Peace of Nijmegen
 - The 1683 start: the Siege of Vienna, the Grand Vizier's army at the gates and Sobieski riding to the relief, then the Holy League and the Nine Years' War, until the Peace of Karlowitz
 - Reigns that end: rulers age with the calendar, heirs grow up and are crowned under their regnal names, regents rule for a child
-- Rival crowns with tempers, tribute, royal marriages, war-weariness, and coalitions against whoever grows too great (you included)
+- Rival crowns with tempers, tribute, royal marriages, war-weariness, and coalitions against whoever grows too great (you included); peace that can cost a town, theirs or yours
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
 - Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
@@ -35,6 +35,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
 - 120 events, four seasons, raiders and tribes, wonders, a market, and a chart of every crown's score through the game
 - Synthesised sound effects, period music, and saves in your browser
+- Plays on a phone as well: tap to order, with the panels sized for a small screen
 
 ## Tech Stack
 
