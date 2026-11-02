@@ -4339,6 +4339,7 @@ const HINTS = {
   promo: 'A regiment of yours has earned a promotion. Select it (the gilt star marks it) and choose one of the two in its panel.',
   ambition: 'Choose an ambition for your crown. It is shown under the top bar until fulfilled; fulfil ten to win.',
   orders: 'No orders left this turn. Regiments that have already moved can still fire, and the next turn brings a fresh set. Press E or the crest to end the turn.',
+  ships: 'This regiment stands beside one of your ships. Right-click the ship (or press Go aboard in its panel) and it goes aboard; sail the ship, then right-click the coast beside it to put the regiment ashore.',
   winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
   war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
   navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
@@ -18687,6 +18688,7 @@ function showUnitPanel(unit) {
   // (a regiment beside a ship of yours with room aboard: it can go aboard from here as well as by right-clicking the ship)
   if (unit.nationId === playerNation && !UNIT_DEFS[unit.type]?.naval && unit.movesLeft > 0 && !isEmbarked(unit)) {
     const ship = units.find(o => o.nationId === unit.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, unit.x, unit.y) === 1);
+    if (ship) setTimeout(() => hint('ships'), 400);
     if (ship) html += `<button class="p-btn" onclick="boardSelectedShip()">Go aboard <span class="cost">${escHtml(ship.title || regimentName(ship) || 'the ship')}: carried by sea</span></button>`;
   }
   if (UNIT_DEFS[unit.type]?.combat) {
