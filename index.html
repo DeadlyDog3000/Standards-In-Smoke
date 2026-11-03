@@ -6453,7 +6453,7 @@ function unitCanTraverse(unitType, tileType, nationId, nx, ny) {
   if (tileType !== 0) return true; // all land units can walk on land
   if (nationId !== undefined && ((nationId === playerNation && !_noSail) || _aiMaySail) && nationHasTech(nationId, 'navigation')) return true; // (embarked)
 
-  if (nationId !== undefined && nationHasTech(nationId, 'shipbuilding')) {
+  if (nationId !== undefined && (nationId === playerNation || _aiMaySail) && nationHasTech(nationId, 'shipbuilding')) {   // (another crown's regiments don't wander into its harbour waters)
     if (nx !== undefined && ny !== undefined) {
       for (const nb of hexNeighbors(nx, ny)) {
         const pt = tiles[nb.row * MAP_COLS + nb.col];
@@ -7899,7 +7899,7 @@ function applyHistStart(S) {
       if (typeof setCityTiles === 'function') setCityTiles(c);
       // (a town on the sea has its harbour: a port on the shore beside it, to trade by, fish from, and be blockaded)
       if (isCoastal(c.x, c.y) && ![...(c.ownedTiles || [])].some(ti => tiles[ti].improvement === 'port')) {
-        const ti = [...(c.ownedTiles || [])].filter(ti => { const t = tiles[ti], x = ti % MAP_COLS, y = (ti - x) / MAP_COLS; return [1, 3, 5, 6].includes(t.type) && !t.improvement && !(x === c.x && y === c.y) && isCoastal(x, y); })
+        const ti = [...(c.ownedTiles || [])].filter(ti => { const t = tiles[ti], x = ti % MAP_COLS, y = (ti - x) / MAP_COLS; return [1, 3, 5, 6].includes(t.type) && !t.improvement && !t.animal && !(x === c.x && y === c.y) && isCoastal(x, y); })
           .sort((a, b) => hexDistance(a % MAP_COLS, Math.floor(a / MAP_COLS), c.x, c.y) - hexDistance(b % MAP_COLS, Math.floor(b / MAP_COLS), c.x, c.y))[0];
         if (ti !== undefined) tiles[ti].improvement = 'port';
       }
@@ -12589,6 +12589,7 @@ function aiTurn(nationId) {
           let navalTarget = null, bestDist = Infinity;
           for (const eu of units) {
             if (eu.nationId === nationId || n.relations[eu.nationId] !== 'war') continue;
+            if (!UNIT_DEFS[eu.type]?.naval && !isEmbarked(eu)) continue;   // (a fleet hunts ships and troops at sea, not the garrison ashore)
             const d = hexDistance(eu.x, eu.y, u.x, u.y);
             if (d < bestDist) { bestDist = d; navalTarget = eu; }
           }
@@ -12600,7 +12601,7 @@ function aiTurn(nationId) {
             let st = u._station && u._station.t >= turnNumber - 4 && (u._station.none || n.relations[u._station.foe] === 'war') ? u._station : null;
             if (!st) {
               // (a hex the ship can reach by sea: by a path to it, or to a free hex beside it when another ship lies there)
-              const reach = (x, y) => (x === u.x && y === u.y) || !!bfsPath(u.x, u.y, x, y, u.type, nationId) || (units.some(o => o.x === x && o.y === y) && hexNeighbors(x, y).some(h => tiles[h.row * MAP_COLS + h.col]?.type === 0 && !units.some(o => o.x === h.col && o.y === h.row) && bfsPath(u.x, u.y, h.col, h.row, u.type, nationId)));
+              const reach = (x, y) => (x === u.x && y === u.y) || !!bfsPath(u.x, u.y, x, y, u.type, nationId);   // (the search ignores who lies where)
               const cands = [];
               for (const c of cities) { if (c.nationId === nationId || c.ruined || n.relations[c.nationId] !== 'war' || hexDistance(c.x, c.y, u.x, u.y) > 42) continue;
                 const ps = [...(c.ownedTiles || [])].filter(ti => tiles[ti].improvement === 'port').map(ti => ({ x: ti % MAP_COLS, y: Math.floor(ti / MAP_COLS), foe: c.nationId, port: 1 }));
@@ -12609,21 +12610,21 @@ function aiTurn(nationId) {
               cands.sort((a, b) => (b.port - a.port) || hexDistance(a.x, a.y, u.x, u.y) - hexDistance(b.x, b.y, u.x, u.y));
               for (const p of cands.slice(0, 4)) {
                 const sea = hexNeighbors(p.x, p.y).find(h => tiles[h.row * MAP_COLS + h.col]?.type === 0 && reach(h.col, h.row));
-                if (sea) { st = u._station = { x: sea.col, y: sea.row, foe: p.foe, t: turnNumber }; break; }
+                if (sea) { st = u._station = { x: sea.col, y: sea.row, foe: p.foe, t: turnNumber - (units.indexOf(u) % 4) }; break; }
               }
-              if (!st) u._station = { none: true, t: turnNumber };   // (none to be had: looked for again in a few turns)
+              if (!st) u._station = { none: true, t: turnNumber - (units.indexOf(u) % 4) };   // (staggered, so the fleets don't all look again on the same turn)   // (none to be had: looked for again in a few turns)
             }
             if (st && st.none) st = null;
             if (st && st.x === u.x && st.y === u.y) { /* (on station) */ }
             else if (st) {
               // (sailed along the sea path, round the capes, rather than straight at it and onto the shore)
               let path = bfsPath(u.x, u.y, st.x, st.y, u.type, nationId);
-              if (!path) for (const h of hexNeighbors(st.x, st.y)) { if (tiles[h.row * MAP_COLS + h.col]?.type !== 0 || units.some(o => o.x === h.col && o.y === h.row)) continue; path = bfsPath(u.x, u.y, h.col, h.row, u.type, nationId); if (path) break; }
               if (!path) moveAIToward(u, st.x, st.y, u.movesLeft);
               else for (const step of path) {
                 if (u.movesLeft <= 0 || units.some(o => o !== u && o.x === step.x && o.y === step.y)) break;
                 const mc = getMoveCost(u.x, u.y, step.x, step.y, u.type); if (mc > u.movesLeft) break;
                 u.x = step.x; u.y = step.y; u.movesLeft -= mc;
+                const owner = tiles[u.y * MAP_COLS + u.x].owner; if (owner >= 0 && owner !== u.nationId) changeLoyalty(owner, u.nationId, -3);
               }
             }
             else moveAIUnitMultiple(u, u.movesLeft);
@@ -12901,7 +12902,7 @@ function aiTurn(nationId) {
       if (hasPort && nationHasTech(nationId, 'navigation')) {
         const navalUnits = units.filter(u => u.nationId === nationId && UNIT_DEFS[u.type]?.naval);
         const wantNaval = navalUnits.length < Math.max(1, Math.floor(aiCities.length / 3));
-        if (wantNaval && Math.random() < 0.3) {
+        if (wantNaval && Math.random() < 0.2) {
           if (nationHasTech(nationId, 'naval_gunnery') && n.wood >= 60 && n.steel >= 35) c.producing = 'man_of_war';
           else if (nationHasTech(nationId, 'shipbuilding') && n.wood >= 45) c.producing = 'galleon';
           else if (n.wood >= 30) c.producing = 'frigate';
