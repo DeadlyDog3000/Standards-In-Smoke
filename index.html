@@ -1173,6 +1173,7 @@
         - Resume Last Game names the crown and the year of the game it resumes<br>
         - An eleventh start, 1778: the American war comes to Europe. France is at war with Britain for the rebel colonies, Spain and the Dutch follow, and in Germany Frederick the Great's last war, with Austria over the Bavarian succession, ends at Teschen. Maria Theresa dies and Joseph II rules alone, Cornwallis surrenders at Yorktown, Rodney wins at the Saintes, and the score is counted at the Peace of Versailles in 1783. With its achievement, The Saintes<br>
         - The Historical Starts list is laid out in two columns on a wide screen<br>
+        - Ships can auto-explore (X), charting the coasts and seas on their own<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2377,6 +2378,7 @@
           - Resume Last Game names the crown and the year of the game it resumes<br>
           - An eleventh start, 1778: the American war comes to Europe. France is at war with Britain for the rebel colonies, Spain and the Dutch follow, and in Germany Frederick the Great's last war, with Austria over the Bavarian succession, ends at Teschen. Maria Theresa dies and Joseph II rules alone, Cornwallis surrenders at Yorktown, Rodney wins at the Saintes, and the score is counted at the Peace of Versailles in 1783. With its achievement, The Saintes<br>
           - The Historical Starts list is laid out in two columns on a wide screen<br>
+          - Ships can auto-explore (X), charting the coasts and seas on their own<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19541,7 +19543,7 @@ function showUnitPanel(unit) {
   if (unit.nationId === playerNation) {
     html += `<button class="p-btn" onclick="enterGotoMode()">Go To (G)</button>`;
     if (unit.gotoX !== undefined) html += `<button class="p-btn" onclick="cancelGoto()">Cancel Go To (${unit.gotoX},${unit.gotoY})</button>`;
-    if (!def.combat || unit.type === 'scout' || unit.type === 'veteran_scout') {
+    if (!def.combat || def.naval || unit.type === 'scout' || unit.type === 'veteran_scout') {
       const exploring = unit.autoExplore ? ' style="border-color:#a8c070;color:#b8cc84"' : '';
       html += `<button class="p-btn" onclick="toggleAutoExplore()"${exploring}>Auto-Explore (X)${unit.autoExplore ? ' — Active' : ''}</button>`;
     }
@@ -22694,8 +22696,9 @@ function findNearestUnexplored(unit) {
     for (const nb of hexNeighbors(x, y)) {
       if (nb.col < 0 || nb.col >= MAP_COLS || nb.row < 0 || nb.row >= MAP_ROWS) continue;
       const nk = nb.row * MAP_COLS + nb.col;
-      if (!tiles[nk].revealed.has(nId) && d + 1 < bestDist) {
-        bestTarget = { x: nb.col, y: nb.row };
+      if (!tiles[nk].revealed.has(nId) && d + 1 < bestDist && !(unitDef?.naval && x === unit.x && y === unit.y)) {
+        // (a ship makes for the water beside the unknown, which may be land she cannot enter)
+        bestTarget = unitDef?.naval ? { x, y } : { x: nb.col, y: nb.row };
         bestDist = d + 1;
       }
     }
