@@ -8113,7 +8113,7 @@ function tickScenario1778() {
     for (const l of losers) for (const u of units.filter(u => u.nationId === l.id && UNIT_DEFS[u.type]?.combat && !!UNIT_DEFS[u.type]?.naval === !!sea && !cities.some(c => c.x === u.x && c.y === u.y)).slice(0, k)) { removeUnit(u); lost++; }
     if (lost) tell(say, winner, ...losers);
   };
-  fight('ushant', 1779, gb, [fr], 1, '1778: off Ushant the Channel Fleet and the French fight a long day, and neither gives way.', true);
+  if (turnNumber >= 2) fight('ushant', 1778, gb, [fr], 1, '1778: off Ushant the Channel Fleet and the French fight a long day, and neither gives way.', true);
   // (1779: Spain comes in, at France's side, for Gibraltar and Minorca; yours to choose if Spain is yours)
   if (year >= 1779 && !done.spain) {
     done.spain = true;
@@ -8126,16 +8126,16 @@ function tickScenario1778() {
     for (const o of [pr, sx]) histPeace(o, au, makePeace, tell, `1779: by the Peace of Teschen ${o === pr ? 'Prussia' : 'Saxony'} makes peace with Austria: the Potato War is over.`, 'The Peace of Teschen', o && o.id === playerNation ? 'Russia and France offer their mediation: the Empress-Queen will give up her claim to Bavaria, all but the Innviertel.' : `${o === pr ? 'Prussia' : 'Saxony'} offers peace through Russia and France: Bavaria, all but the Innviertel, is given up.`);
   }
   // (Maria Theresa dies in November 1780, and Joseph II rules alone)
-  if (year >= 1781 && !done.mt) { done.mt = true; const r = au && getNationRuler(au.id); if (r && r.name === 'Maria Theresa') { characterDeath(r); showToast('1780: the Empress Maria Theresa is dead, and Joseph II rules alone.'); } }
+  if (year >= 1781 && !done.mt) { done.mt = true; const r = au && getNationRuler(au.id); if (r && r.name === 'Maria Theresa') { characterDeath(r); showToast(getNationRuler(au.id)?.name === 'Joseph II' ? '1780: the Empress Maria Theresa is dead, and Joseph II rules alone.' : '1780: the Empress Maria Theresa is dead.'); } }
   // (December 1780: the Dutch trade with the rebels and are joining the Armed Neutrality, and Britain declares war on them)
   if (year >= 1780 && !done.dutch && turnNumber >= 12) {
     done.dutch = true;
-    if (ai(gb) && nl && gb.relations[nl.id] !== 'war') { joinAgainst(gb, nl); if (fr && fr.relations[nl.id] !== 'war' && !hasAgreement(nl.id, fr.id, 'war_help')) addAgreement(nl.id, fr.id, 'war_help'); tell('1780: Britain declares war on the Dutch, who trade with the rebels: the Fourth Anglo-Dutch War.', gb, nl); if (nl.id === playerNation) showWarDeclaration(gb); }
+    if (ai(gb) && nl && gb.relations[nl.id] !== 'war') { joinAgainst(gb, nl); if (ai(nl, fr) && fr.relations[gb.id] === 'war' && fr.relations[nl.id] !== 'war' && !hasAgreement(nl.id, fr.id, 'war_help')) addAgreement(nl.id, fr.id, 'war_help'); tell('1780: Britain declares war on the Dutch, who trade with the rebels: the Fourth Anglo-Dutch War.', gb, nl); if (nl.id === playerNation) showWarDeclaration(gb); }
     warOffer(gb, nl, 'The Fourth Anglo-Dutch War', 'The Dutch carry arms to the rebels and are about to join the Armed Neutrality. Strike at them first?', () => joinAgainst(gb, nl), 'Britain goes to war with the Dutch.');
   }
   if (year >= 1780 && !done.neutrality) { done.neutrality = true; showToast('1780: Russia, Denmark and Sweden band together in the League of Armed Neutrality, to keep the seas open to their trade.'); }
   // (October 1781: Cornwallis surrenders at Yorktown, and the war in America is lost)
-  if (year >= 1782 && !done.yorktown) { done.yorktown = true; if (gb) { gb.legitimacy = Math.max(0, (gb.legitimacy ?? 50) - 5); tell('1781: Cornwallis surrenders at Yorktown, and the war in America is lost.', gb, fr); } }
+  if (year >= 1782 && !done.yorktown) { done.yorktown = true; if (gb) { if (fr && gb.relations[fr.id] === 'war') { gb.legitimacy = Math.max(0, (gb.legitimacy ?? 50) - 5); if (gb.id === playerNation) showToast('Yorktown: -5 legitimacy', true); } tell('1781: Cornwallis surrenders at Yorktown, and the war in America is lost.', gb, fr); } }
   fight('saintes', 1782, gb, [fr], 1, '1782: at the Saintes Rodney breaks the French line and takes their admiral.', true);
   // (1783: the Peace of Versailles. Britain gives up the colonies, Minorca and Florida, and makes peace with France, Spain and the Dutch)
   if (year >= 1783 && !done.versailles) {
