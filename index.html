@@ -1167,6 +1167,7 @@
         - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
         - A tenth start, 1788: the eve of the Revolution. Catherine the Great and the Emperor Joseph are at war with the Turk, Gustav III's Sweden has fallen on Russia, and France, bankrupt, has called the Estates-General. The Bastille falls, the Dauphin, the Sultan, the King of Spain and the Emperor die and are succeeded, Suvorov wins at Rymnik and Izmail and Gustav at Svensksund, and the peaces of Värälä, Sistova and Jassy follow; the score is counted at Jassy in 1792. With its achievement, Rymnik<br>
         - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
+        - Resume Last Game names the crown and the year of the game it resumes<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2368,6 +2369,7 @@
           - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
           - A tenth start, 1788: the eve of the Revolution. Catherine the Great and the Emperor Joseph are at war with the Turk, Gustav III's Sweden has fallen on Russia, and France, bankrupt, has called the Estates-General. The Bastille falls, the Dauphin, the Sultan, the King of Spain and the Emperor die and are succeeded, Suvorov wins at Rymnik and Izmail and Gustav at Svensksund, and the peaces of Värälä, Sistova and Jassy follow; the score is counted at Jassy in 1792. With its achievement, Rymnik<br>
           - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
+          - Resume Last Game names the crown and the year of the game it resumes<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -3682,7 +3684,7 @@ function pickDevice(mode) {
   localStorage.setItem('sis_device_mode', mode);
   document.getElementById('devicePicker').style.display = 'none';
   document.getElementById('menu').style.display = '';
-  document.getElementById('resumeBtn').style.display = localStorage.getItem('sis_save_auto') ? '' : 'none';
+  syncResumeBtn();
 }
 
 (function() {
@@ -21130,7 +21132,7 @@ function quitToMenu() {
   document.getElementById('menuSetup').style.display = 'none';
   document.getElementById('menuOptions').style.display = 'none';
   document.getElementById('menuUpdateLog').style.display = 'none';
-  document.getElementById('resumeBtn').style.display = localStorage.getItem('sis_save_auto') ? '' : 'none';
+  syncResumeBtn();
   startMenuSlideshow();
 }
 
@@ -23619,6 +23621,13 @@ function saveThumb() {
 }
 // (a save's line: its crown, the year it stands at and the start it was begun in, or its turn and map size for older saves)
 function saveSlotInfo(m) { return `${escHtml(m.nation)} | ${m.year ? (m.year | 0) + (m.start ? `, begun ${escHtml(String(m.start))}` : '') + ` (turn ${m.turn | 0})` : 'Turn ' + (m.turn | 0)} | ${escHtml(m.size || '')}`; }
+// (the title screen's Resume button, with the crown and year of the game it resumes)
+function syncResumeBtn() {
+  const btn = document.getElementById('resumeBtn'); if (!btn) return;
+  let has = false, m = null; try { has = !!localStorage.getItem('sis_save_auto'); m = JSON.parse(localStorage.getItem('sis_meta_auto') || 'null'); } catch (e) {}
+  btn.style.display = has ? '' : 'none';
+  btn.innerHTML = 'Resume Last Game' + (has && m && m.nation ? `<span class="slot-info">${escHtml(m.nation)}${m.year ? ', ' + (m.year | 0) : ''}</span>` : '');
+}
 function saveSlotThumb(m) {
   return m && typeof m.thumb === 'string' && m.thumb.startsWith('data:image/jpeg') ? `<img class="save-thumb" src="${m.thumb}" alt="">` : '<span class="save-thumb empty"></span>';
 }
