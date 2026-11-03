@@ -6300,6 +6300,8 @@ const SHIP_HOLD = { frigate: 2, galleon: 3, man_of_war: 2 };
 const rclickWord = cap => document.body.classList.contains('mobile-mode') ? (cap ? 'Tap' : 'tap') : (cap ? 'Right-click' : 'right-click');
 const shipHold = s => SHIP_HOLD[s?.type] || 0;
 const cargoName = c => regimentName(c) || unitTitle(c.type);
+// (a unit as a notice names it: a ship or general by its own name, a regiment with 'The')
+const unitCalled = u => u.title || `The ${regimentName(u) || unitTypeName(u.type)}`;
 // (a regiment aboard is never on the map as well: one caught mid-step onto its ship when the turn ends or the game is saved)
 function purgeAboard() {
   const aboard = new Set(); for (const s of units) for (const c of s.cargo || []) aboard.add(c);
@@ -8066,7 +8068,7 @@ function tickScenario1788() {
        ['Call in the regiments', () => { fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 15); showToast('The regiments march on Paris, and the mob storms the Bastille. -15 legitimacy'); annal('The King called in the regiments, and the Paris mob stormed the Bastille.'); }]]);
     // (and the little Dauphin dies, leaving his brother heir)
     const k = fr && getNationRuler(fr.id), d = k && characters.find(c => c.nationId === fr.id && c.role === 'heir' && c.name === 'Louis Joseph, Dauphin of France' && !c.deathTurn);
-    if (d) { characterDeath(d); const h = createCharacter(fr.id, 'heir', 'male'); Object.assign(h, { name: 'Louis Charles, Dauphin of France', age: 4, birthTurn: turnNumber - 4 * SEASON_LENGTH * 4, parentIds: [k.id], reignName: 'Louis XVII', hale: true }); k.childIds.push(h.id); }
+    if (d) { characterDeath(d); const h = createCharacter(fr.id, 'heir', 'male'); Object.assign(h, { name: 'Louis Charles, Dauphin of France', age: 4, birthTurn: turnNumber - 4 * SEASON_LENGTH * 4, parentIds: [k.id], reignName: 'Louis XVII', hale: true }); k.childIds.push(h.id); showToast('1789: the little Dauphin is dead, and his brother Louis Charles is Dauphin.'); if (fr.id === playerNation) annal('The little Dauphin is dead, and his brother Louis Charles is Dauphin.'); }
   }
   dies('charles3', 1789, anyName('Spain'), 'Charles III', '1788: Charles III of Spain is dead, and his son Charles IV reigns.');
   dies('abdulhamid', 1789, ot, 'Abdul Hamid I', '1789: Sultan Abdul Hamid is dead, and his nephew Selim III reigns.');
@@ -8074,9 +8076,9 @@ function tickScenario1788() {
   battle('belgrade89', 1789, au, [ot], 2, '1789: Laudon takes Belgrade for the Emperor.');
   dies('joseph', 1790, au, 'Joseph II', '1790: the Emperor Joseph II is dead, his reforms undone, and his brother Leopold II reigns.');
   battle('svensksund', 1790, sw, [ru], 2, "1790: at Svensksund Gustav III's galleys destroy the Russian fleet.");
-  if (year >= 1790 && !done.varala) { done.varala = true; histPeace(sw, ru, makePeace, tell, '1790: by the Peace of Värälä Sweden and Russia make peace on the old borders.', 'The Peace of Värälä', sw && sw.id === playerNation ? 'Svensksund has been won, and the Empress offers peace on the old borders.' : 'Gustav III offers peace on the old borders.'); const dk = anyName('Denmark-Norway'); histPeace(dk, sw, makePeace, tell, '1790: Denmark makes peace with Sweden.', 'Peace with Sweden', dk && dk.id === playerNation ? 'Russia has made her peace with Sweden, and Gustav offers you the same.' : 'Russia has made her peace, and Denmark offers you peace as well.'); }
+  if (year >= 1790 && !done.varala) { done.varala = true; histPeace(sw, ru, makePeace, tell, '1790: by the Peace of Värälä Sweden and Russia make peace on the old borders.', 'The Peace of Värälä', sw && sw.id === playerNation ? 'Svensksund has been won, and the Empress offers peace on the old borders.' : 'Gustav III offers peace on the old borders.'); const dk = anyName('Denmark-Norway'); if (!sw || !ru || sw.relations[ru.id] !== 'war') histPeace(dk, sw, makePeace, tell, '1790: Denmark makes peace with Sweden.', 'Peace with Sweden', dk && dk.id === playerNation ? 'Russia has made her peace with Sweden, and Gustav offers you the same.' : 'Russia has made her peace, and Denmark offers you peace as well.'); }
   battle('ismail', 1791, ru, [ot], 2, '1790: Suvorov storms Izmail on the Danube.');
-  if (year >= 1791 && !done.sistova) { done.sistova = true; histPeace(au, ot, makePeace, tell, '1791: by the Peace of Sistova Austria makes peace with the Turk, and gives Belgrade back.', 'The Peace of Sistova', au && au.id === playerNation ? 'Prussia threatens you, and the Netherlands are in revolt: the Sultan offers peace if Belgrade is given back.' : 'The new Emperor offers peace, and gives Belgrade back.'); }
+  if (year >= 1791 && !done.sistova) { done.sistova = true; histPeace(au, ot, (a, b) => { const ok = makePeace(a, b); if (ok) treatyCede('Belgrade', ot, [au]); return ok; }, tell, '1791: by the Peace of Sistova Austria makes peace with the Turk, and gives Belgrade back.', 'The Peace of Sistova', au && au.id === playerNation ? 'Prussia threatens you, and the Netherlands are in revolt: the Sultan offers peace if Belgrade is given back.' : 'The new Emperor offers peace, and gives Belgrade back.'); }
   if (year >= 1791 && !done.varennes) { done.varennes = true; if (fr) { fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 5); const say = '1791: the King of France flees Paris, and is brought back from Varennes a prisoner.'; showToast(say); if (fr.id === playerNation) annal('The King flees Paris, and is brought back from Varennes a prisoner.'); } }
   if (year >= 1792 && !done.jassy) { done.jassy = true; histPeace(ru, ot, makePeace, tell, '1792: by the Peace of Jassy the Turk makes peace with Russia, and the Crimea is hers.', 'The Peace of Jassy', ru && ru.id === playerNation ? 'The Sultan offers peace, and leaves you the Crimea and Ochakov.' : 'The Empress offers peace, if the Crimea and Ochakov are left to her.'); }
 }
@@ -21701,7 +21703,7 @@ canvas.addEventListener('contextmenu', (e) => {
       if (!path || !path.length) return refuse('There is no way there.');
       moveMode = false; reachableTiles.clear(); gotoMode = true;
     }
-    if (gti !== ti) { const p = hexScreenPos(gx, gy); const ev = new MouseEvent('click', { clientX: p.x + hexColStep() / 2, clientY: p.y + hexCellH() / 2, button: 2 }); ev._order = true; canvas.dispatchEvent(ev); showToast(`She sails for the coast by ${cities.find(c => hexDistance(c.x, c.y, mx, my) <= 2)?.name || 'the hex you chose'}: ${rclickWord()} the coast beside her there to land.`, true); return; }
+    if (gti !== ti) { const p = hexScreenPos(gx, gy); const ev = new MouseEvent('click', { clientX: p.x + hexColStep() / 2, clientY: p.y + hexCellH() / 2, button: 2 }); ev._order = true; const was = u.x + ',' + u.y + ',' + u.gotoX + ',' + u.gotoY; canvas.dispatchEvent(ev); if (u.x + ',' + u.y + ',' + u.gotoX + ',' + u.gotoY !== was) showToast(`She sails for the coast by ${cities.filter(c => hexDistance(c.x, c.y, mx, my) <= 2).sort((a, b) => hexDistance(a.x, a.y, mx, my) - hexDistance(b.x, b.y, mx, my))[0]?.name || 'the hex you chose'}: ${rclickWord()} the coast beside her there to land.`, true); return; }
   }
   const ev = new MouseEvent('click', { clientX: e.clientX, clientY: e.clientY, button: 2 }); ev._order = true;
   canvas.dispatchEvent(ev);
@@ -21846,7 +21848,7 @@ canvas.addEventListener('click', (e) => {
           }
           if (animSteps.length > 0) {
             startUnitAnimation(gotoUnit, animSteps, () => {
-              showToast(gotoUnit.gotoX !== undefined ? `The ${regimentName(gotoUnit) || unitTypeName(gotoUnit.type)} sets out.` : `The ${regimentName(gotoUnit) || unitTypeName(gotoUnit.type)} is there.`);
+              showToast(gotoUnit.gotoX !== undefined ? `${unitCalled(gotoUnit)} sets out.` : `${unitCalled(gotoUnit)} is there.`);
               if (gotoUnit.movesLeft <= 0) { cycleToNextUnit(); }
               else { showUnitPanel(gotoUnit); }
               updateUI(); render();
@@ -21858,7 +21860,7 @@ canvas.addEventListener('click', (e) => {
           }
         }
       }
-      showToast(`The ${regimentName(selectedUnit) || unitTypeName(selectedUnit.type)} sets out.`);
+      showToast(`${unitCalled(selectedUnit)} sets out.`);
       showUnitPanel(selectedUnit); render(); return;
     } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); gotoMode = false; if (e._order) { render(); return; } } // (a refused right-click order keeps the regiment chosen)
   }
@@ -21868,7 +21870,7 @@ canvas.addEventListener('click', (e) => {
   // (on a phone a tap gives the order: going aboard a ship beside the regiment, or ashore from the ship chosen)
   if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && shipOrder(selectedUnit, mx, my, msg => { SMK.deny(); showToast(msg); })) return;
   // (and a loaded ship tapped onto a far coast sails for it, as a right-click does)
-  if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && selectedUnit.nationId === playerNation && (selectedUnit.cargo || []).length && tiles[my * MAP_COLS + mx]?.type !== 0 && hexDistance(selectedUnit.x, selectedUnit.y, mx, my) > 1) { canvas.dispatchEvent(new MouseEvent('contextmenu', { clientX: e.clientX, clientY: e.clientY, cancelable: true })); return; }
+  if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && selectedUnit.nationId === playerNation && (selectedUnit.cargo || []).length && selectedUnit.movesLeft > 0 && tiles[my * MAP_COLS + mx]?.type !== 0 && hexDistance(selectedUnit.x, selectedUnit.y, mx, my) > 1 && !units.some(o => o.x === mx && o.y === my) && !cities.some(c => c.x === mx && c.y === my && c.nationId === playerNation)) { canvas.dispatchEvent(new MouseEvent('contextmenu', { clientX: e.clientX, clientY: e.clientY, cancelable: true })); return; }
   if (moveMode && selectedUnit && (e._order || e._touch || document.body.classList.contains('mobile-mode'))) {
     if (reachableTiles.has(ti)) {
       // (an order is spent only on what will happen: an attack, or a march onto open ground)
@@ -23649,7 +23651,7 @@ function stopAutoSaveTimer() {
 }
 
 function loadGame(slot) {
-  window._scenQueue = [];
+  window._scenQueue = []; document.getElementById('scenOverlay')?.remove();
   const data = localStorage.getItem('sis_save_' + slot);
   if (!data) { showToast('No save found'); return; }
   document.getElementById('menu').style.display = 'none';
