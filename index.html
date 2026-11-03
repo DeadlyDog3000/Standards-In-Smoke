@@ -7898,7 +7898,7 @@ function curAliases(asCrown) {
     if (!_alCache[key]) {
       const later = S.laterAliases(d);
       if (asCrown) _alCache[key] = { ...(S.aliases || {}), ...later };
-      else { const al = { ...(S.aliases || {}) }; for (const k in later) if (later[k] === k) delete al[k]; _alCache[key] = al; }
+      else { const al = { ...(S.aliases || {}) }; for (const k in later) { if (later[k] === k) delete al[k]; else if (al[k] && !/Republic/.test(later[k])) al[k] = later[k]; } _alCache[key] = al; }
     }
     return _alCache[key];
   }
@@ -8306,17 +8306,17 @@ function tickScenario1718() {
   if (turnNumber >= 3) fight('passaro', gb, [sp], 2, '1718: off Cape Passaro Admiral Byng destroys the Spanish fleet.', true);
   // (30 November 1718: Charles XII is shot dead in the trenches before Fredriksten, and his sister Ulrika Eleonora is queen)
   if (turnNumber >= 4 && !done.charles) { done.charles = true; const r = sw && getNationRuler(sw.id); if (r && r.name === 'Charles XII') { characterDeath(r); showToast('1718: Charles XII is shot dead before Fredriksten, and his sister Ulrika Eleonora is queen.'); } }
-  if (year >= 1720 && !done.stockholm) { done.stockholm = true; histPeace(sw, pr, makePeace, tell, '1719: by the Treaty of Stockholm Sweden makes peace with Prussia, and gives up Stettin.', 'The Treaty of Stockholm', sw && sw.id === playerNation ? 'The King is dead and the treasury empty: Prussia offers peace for Stettin and the Oder mouth.' : 'Sweden, its King dead, offers peace and Stettin.'); }
+  if (year >= 1720 && !done.stockholm) { done.stockholm = true; histPeace(sw, pr, makePeace, tell, '1720: by the Treaty of Stockholm Sweden makes peace with Prussia, and gives up Stettin.', 'The Treaty of Stockholm', sw && sw.id === playerNation ? 'The King is dead and the treasury empty: Prussia offers peace for Stettin and the Oder mouth.' : 'Sweden, its King dead, offers peace and Stettin.'); }
   // (1720: the Treaty of The Hague. Spain leaves Sicily and Sardinia and makes peace; Victor Amadeus takes Sardinia for Sicily)
   if (year >= 1720 && !done.hague) {
     done.hague = true;
     const allies = [au, np, gb, fr, nl].filter(Boolean), pairs = sp ? allies.filter(o => o.relations[sp.id] === 'war').map(o => [sp, o]) : [];
     let made = false;
-    for (const pr2 of pairs) if (pr2[0].id !== playerNation && pr2[1].id !== playerNation && makePeace(pr2[0], pr2[1])) made = true;
-    if (made) { if (np) treatyCede('Palermo', np, [sp]); tell('1720: by the Treaty of The Hague Spain leaves Sicily and makes peace; Victor Amadeus takes Sardinia for Sicily.', sp, ...allies); }
+    for (const pr2 of pairs) if (pr2[0].id !== playerNation && pr2[1].id !== playerNation && makePeace(pr2[0], pr2[1])) { made = true; if (pr2[1] === np) treatyCede('Palermo', np, [sp]); }
+    if (made) { tell('1720: by the Treaty of The Hague Spain leaves Sicily and makes peace; Victor Amadeus takes Sardinia for Sicily.', sp, ...allies); }
     const mine = pairs.filter(pr2 => pr2[0].id === playerNation || pr2[1].id === playerNation);
     if (mine.length) peaceOffer('The Treaty of The Hague', sp.id === playerNation ? `The Quadruple Alliance offers peace if Sicily and Sardinia are given up. Peace with ${listAnd(mine.map(pr2 => theCrown(pr2[1])))}.` : 'Philip V has dismissed Alberoni, and Spain offers peace and leaves Sicily.',
-      () => { let ok = false; for (const pr2 of mine) ok = makePeace(pr2[0], pr2[1]) || ok; if (ok && np) treatyCede('Palermo', np, [sp]); }, 'The Treaty of The Hague is made.');
+      () => { for (const pr2 of mine) if (makePeace(pr2[0], pr2[1]) && pr2[1] === np) treatyCede('Palermo', np, [sp]); }, 'The Treaty of The Hague is made.');
   }
   if (year >= 1720 && !done.frederiksborg) { done.frederiksborg = true; histPeace(sw, dk, makePeace, tell, '1720: by the Treaty of Frederiksborg Sweden and Denmark make peace.', 'The Treaty of Frederiksborg', sw && sw.id === playerNation ? 'Denmark offers peace, for the Sound dues.' : 'Sweden offers peace, and gives up its freedom from the Sound dues.'); histPeace(sw, sx, makePeace, tell, '1720: Sweden makes peace with Saxony and Poland.', 'Peace with Saxony', sw && sw.id === playerNation ? 'Augustus of Saxony offers peace.' : 'Sweden offers peace.'); }
   if (year >= 1721 && !done.nystad) { done.nystad = true; histPeace(sw, ru, makePeace, tell, '1721: by the Peace of Nystad Sweden makes peace with Russia, and gives up Livonia, Estonia and Ingria: Russia is an empire.', 'The Peace of Nystad', sw && sw.id === playerNation ? 'The Russian galleys burn the coast of Sweden itself: the Tsar offers peace for Livonia, Estonia and Ingria.' : 'Sweden offers peace, and gives up Livonia, Estonia and Ingria.'); }
@@ -11653,7 +11653,7 @@ function openManual(tab) {
       ['1672: the Disaster Year', [['1672', 'The Dutch open the dikes and the Water Line holds; the de Witts are murdered and William of Orange is Stadtholder'], ['1673', 'The Emperor and Spain come in for the Dutch; Khotyn'], ['1674', 'England and Münster make peace; Sobieski is elected king of Poland; Sweden invades Brandenburg'], ['1675', 'Fehrbellin; Turenne is killed at Sasbach; Denmark goes to war with Sweden'], ['1676', 'The Truce of Żurawno'], ['1678', 'The Peace of Nijmegen: the score is counted']]],
       ['1683: the Siege of Vienna', [['1683', 'The relief of Vienna: Sobieski comes down from the Kahlenberg'], ['1684', 'The Truce of Ratisbon: France makes peace with Spain'], ['1685', 'Charles II of England dies, and James II reigns; the Edict of Nantes is revoked'], ['1686', 'Buda is stormed; Russia comes into the war on the Turk'], ['1687', 'Mohács, and the Sultan Mehmed IV is put off the throne'], ['1688', "The Great Elector dies; France goes to war with the Grand Alliance: the Nine Years' War"], ['1689', 'William and Mary are crowned in London; Peter rules Russia himself'], ['1690', 'Fleurus'], ['1691', 'Slankamen'], ['1692', 'Barfleur and La Hogue'], ['1696', 'Peter takes Azov; John Sobieski dies'], ['1697', "Augustus the Strong is elected king of Poland; Zenta; the Peace of Ryswick ends the Nine Years' War"], ['1699', 'The Peace of Karlowitz: the score is counted']]],
       ['1700: the Spanish Succession', [['1700', 'Denmark makes peace with Sweden at Travendal'], ['1702', 'William III dies, and Anne reigns'], ['1704', 'Blenheim: Marlborough and Eugene destroy the Franco-Bavarian army'], ['1706', 'Saxony makes peace with Sweden at Altranstädt'], ['1709', 'Poltava: the army of Charles XII is broken in Russia'], ['1714', 'The Peace of Utrecht and Rastatt: the score is counted']]],
-      ['1718: the Quadruple Alliance', [['1718', 'Britain goes to war with Spain; Cape Passaro; Charles XII falls before Fredriksten, and Ulrika Eleonora is queen'], ['1719', 'France and the Dutch come into the war; the Treaty of Stockholm'], ['1720', 'The Treaty of The Hague: Spain leaves Sicily; Victor Amadeus takes Sardinia; the Treaty of Frederiksborg'], ['1721', 'The Peace of Nystad: the score is counted']]],
+      ['1718: the Quadruple Alliance', [['1718', 'Britain goes to war with Spain; Cape Passaro; Charles XII falls before Fredriksten, and Ulrika Eleonora is queen'], ['1719', 'France and the Dutch come into the war'], ['1720', 'The Treaty of Stockholm; the Treaty of The Hague: Spain leaves Sicily; Victor Amadeus takes Sardinia; the Treaty of Frederiksborg'], ['1721', 'The Peace of Nystad: the score is counted']]],
       ['1733: the Polish Succession', [['1734', 'Danzig falls and Stanisław escapes; Parma and Guastalla; Bitonto, and Don Carlos is King of Naples'], ['1735', 'Russia goes to war with the Turk'], ['1736', 'The Peace of Vienna: Stanisław gives up Poland for Lorraine, Augustus III is king, and Milan goes back to the Emperor'], ['1737', 'Austria comes into the war against the Turk'], ['1739', 'Stavuchany and Grocka; the Peaces of Belgrade and Niš: the score is counted']]],
       ['1740: the Austrian Succession', [['1741', "Mollwitz: Silesia is won; the Guards put Elizabeth on the throne of Russia; Sweden goes to war with Russia"], ['1743', 'The Peace of Åbo'], ['1742', 'Prussia makes peace at Breslau'], ['1744', 'Prussia takes up arms again'], ['1745', 'Charles Albert of Bavaria dies and Bavaria makes peace; Fontenoy and Hohenfriedberg; the Peace of Dresden'], ['1748', 'The Peace of Aix-la-Chapelle: the score is counted']]],
       ["1756: the Seven Years' War", [['1757', 'Russia and Sweden come in against Prussia; Rossbach and Leuthen'], ['1758', "Britain's subsidy to Prussia"], ['1759', 'Kunersdorf'], ['1760', 'George II dies, and George III reigns'], ['1762', 'The Empress Elizabeth dies and Russia makes peace with Prussia; Spain and Portugal come into the war'], ['1763', 'The Peace of Paris: the score is counted']]],
@@ -12730,6 +12730,7 @@ function aiTurn(nationId) {
             if (st && st.none) st = null;
             if (st && st.x === u.x && st.y === u.y) { /* (on station) */ }
             else if (st) {
+              const annoyed = new Set();
               // (sailed along the sea path, round the capes, rather than straight at it and onto the shore)
               let path = bfsPath(u.x, u.y, st.x, st.y, u.type, nationId);
               if (!path) moveAIToward(u, st.x, st.y, u.movesLeft);
@@ -12737,7 +12738,7 @@ function aiTurn(nationId) {
                 if (u.movesLeft <= 0 || units.some(o => o !== u && o.x === step.x && o.y === step.y)) break;
                 const mc = getMoveCost(u.x, u.y, step.x, step.y, u.type); if (mc > u.movesLeft) break;
                 u.x = step.x; u.y = step.y; u.movesLeft -= mc;
-                const owner = tiles[u.y * MAP_COLS + u.x].owner; if (owner >= 0 && owner !== u.nationId) changeLoyalty(owner, u.nationId, -3);
+                const owner = tiles[u.y * MAP_COLS + u.x].owner; if (owner >= 0 && owner !== u.nationId && !hasAgreement(owner, u.nationId, 'war_help') && !annoyed.has(owner)) { annoyed.add(owner); changeLoyalty(owner, u.nationId, -3); }
               }
             }
             else moveAIUnitMultiple(u, u.movesLeft);
