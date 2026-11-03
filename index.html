@@ -236,6 +236,8 @@
     .kc-bar i { display: block; height: 100%; border-radius: 3px; }
     .kc-op b { font-size: 11px; width: 72px; text-align: right; }
     .kc-army b { color: #e8dcc8; } .kc-army em { font-style: normal; font-size: 10px; margin-left: auto; }
+    /* (the historical starts, in two columns where the screen is wide enough) */
+    @media (min-width: 980px) { #histOverlay .event-card.amb-card { width: min(940px, 92vw); max-width: none; } #histOverlay .hist-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; } }
     .kc-odds { display: block; font-size: 9px; font-style: italic; opacity: 0.75; letter-spacing: 0.02em; text-transform: none; }
     .kc-ask { margin-top: 7px; padding: 5px 8px; border-radius: 4px; background: rgba(212, 168, 86, 0.14); border: 1px solid rgba(212, 168, 86, 0.4); color: #f0c870; font-size: 11px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     .kc-ask span { display: flex; gap: 4px; }
@@ -1170,6 +1172,7 @@
         - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
         - Resume Last Game names the crown and the year of the game it resumes<br>
         - An eleventh start, 1778: the American war comes to Europe. France is at war with Britain for the rebel colonies, Spain and the Dutch follow, and in Germany Frederick the Great's last war, with Austria over the Bavarian succession, ends at Teschen. Maria Theresa dies and Joseph II rules alone, Cornwallis surrenders at Yorktown, Rodney wins at the Saintes, and the score is counted at the Peace of Versailles in 1783. With its achievement, The Saintes<br>
+        - The Historical Starts list is laid out in two columns on a wide screen<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2373,6 +2376,7 @@
           - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
           - Resume Last Game names the crown and the year of the game it resumes<br>
           - An eleventh start, 1778: the American war comes to Europe. France is at war with Britain for the rebel colonies, Spain and the Dutch follow, and in Germany Frederick the Great's last war, with Austria over the Bavarian succession, ends at Teschen. Maria Theresa dies and Joseph II rules alone, Cornwallis surrenders at Yorktown, Rodney wins at the Saintes, and the score is counted at the Peace of Versailles in 1783. With its achievement, The Saintes<br>
+          - The Historical Starts list is laid out in two columns on a wide screen<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -21331,7 +21335,7 @@ function showHistStarts() {
   document.getElementById('histOverlay')?.remove();
   const ov = document.createElement('div'); ov.id = 'histOverlay';
   ov.innerHTML = `<div class="event-card amb-card"><h3>Historical Starts</h3><p class="amb-lede">Europe as it stood: the crowns with their rulers, armies, fleets and alliances, and the wars of the year already begun.</p>
-    ${HIST_BLURBS.map(([y, t, d]) => `<button class="event-choice" style="text-align:left" onclick="pickHistStart('${y}')"><b>${y}: ${escHtml(t)}</b><span style="display:block;font-size:13px;color:#c8b8a0;margin-top:3px;line-height:1.4">${escHtml(d)}</span></button>`).join('')}
+    <div class="hist-grid">${HIST_BLURBS.map(([y, t, d]) => `<button class="event-choice" style="text-align:left" onclick="pickHistStart('${y}')"><b>${y}: ${escHtml(t)}</b><span style="display:block;font-size:13px;color:#c8b8a0;margin-top:3px;line-height:1.4">${escHtml(d)}</span></button>`).join('')}</div>
     <button class="event-choice" onclick="document.getElementById('histOverlay').remove()">Back</button></div>`;
   dismissOnBackdrop(ov);
   document.body.appendChild(ov);
