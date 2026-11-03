@@ -1166,6 +1166,7 @@
         - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
         - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
         - A tenth start, 1788: the eve of the Revolution. Catherine the Great and the Emperor Joseph are at war with the Turk, Gustav III's Sweden has fallen on Russia, and France, bankrupt, has called the Estates-General. The Bastille falls, the Dauphin, the Sultan, the King of Spain and the Emperor die and are succeeded, Suvorov wins at Rymnik and Izmail and Gustav at Svensksund, and the peaces of Värälä, Sistova and Jassy follow; the score is counted at Jassy in 1792. With its achievement, Rymnik<br>
+        - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2366,6 +2367,7 @@
           - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
           - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
           - A tenth start, 1788: the eve of the Revolution. Catherine the Great and the Emperor Joseph are at war with the Turk, Gustav III's Sweden has fallen on Russia, and France, bankrupt, has called the Estates-General. The Bastille falls, the Dauphin, the Sultan, the King of Spain and the Emperor die and are succeeded, Suvorov wins at Rymnik and Izmail and Gustav at Svensksund, and the peaces of Värälä, Sistova and Jassy follow; the score is counted at Jassy in 1792. With its achievement, Rymnik<br>
+          - 1788, as France: in 1789 the National Assembly is put to you. Accept it and France takes the law of Constitution; call in the regiments and the mob storms the Bastille<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -8055,7 +8057,11 @@ function tickScenario1788() {
   // (1789: the Paris mob storms the Bastille; the King's authority is broken, and the Revolution has begun)
   if (year >= 1789 && !done.bastille) {
     done.bastille = true;
-    if (fr) { fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 15); const say = '1789: the Paris mob storms the Bastille, and the Revolution has begun.'; if (fr.id === playerNation) { showToast(say + ' -15 legitimacy'); annal('The Paris mob storms the Bastille, and the Revolution has begun.'); } else showToast(say); }
+    if (fr && fr.id !== playerNation) { fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 15); showToast('1789: the Paris mob storms the Bastille, and the Revolution has begun.'); }
+    // (yours: meet the Assembly, and take a constitution, or call in the regiments and see Paris rise)
+    else if (fr) scenChoice('The National Assembly', 'The Estates-General has met at Versailles, and the Third Estate has declared itself the National Assembly and sworn not to part until France has a constitution. Paris is restless.',
+      [['Accept the Assembly and a constitution', () => { if (!fr.laws) fr.laws = []; fr.laws = fr.laws.filter(l => LAWS[l]?.category !== 'order'); fr.laws.push('constitution'); fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 5); showToast('France is to have a constitution: the law of Constitution is yours. -5 legitimacy'); annal('We accepted the National Assembly, and France is to have a constitution.'); }],
+       ['Call in the regiments', () => { fr.legitimacy = Math.max(0, (fr.legitimacy ?? 50) - 15); showToast('The regiments march on Paris, and the mob storms the Bastille. -15 legitimacy'); annal('The King called in the regiments, and the Paris mob stormed the Bastille.'); }]]);
     // (and the little Dauphin dies, leaving his brother heir)
     const k = fr && getNationRuler(fr.id), d = k && characters.find(c => c.nationId === fr.id && c.role === 'heir' && c.name === 'Louis Joseph, Dauphin of France' && !c.deathTurn);
     if (d) { characterDeath(d); const h = createCharacter(fr.id, 'heir', 'male'); Object.assign(h, { name: 'Louis Charles, Dauphin of France', age: 4, birthTurn: turnNumber - 4 * SEASON_LENGTH * 4, parentIds: [k.id], reignName: 'Louis XVII', hale: true }); k.childIds.push(h.id); }
