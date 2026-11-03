@@ -963,7 +963,7 @@
         </div>
         <div class="setup-row">
           <span class="setup-label">Lands</span>
-          <select id="setupMapStyle" class="setup-input" style="width:180px;" title="Unknown lands are drawn anew each game; Europe is the continent itself, each crown at its own capital (best on a Large or Huge map)">
+          <select id="setupMapStyle" class="setup-input" style="width:180px;" onchange="renderNationPicker()" title="Unknown lands are drawn anew each game; Europe is the continent itself, each crown at its own capital (best on a Large or Huge map)">
             <option value="random" selected>Unknown lands</option>
             <option value="europe">Europe</option>
           </select>
@@ -1179,6 +1179,8 @@
         - In the historical starts every town on the sea begins with a port beside it, to trade and fish from, and to be blockaded<br>
         - A blockaded harbour is ringed in dashed red ink on the map<br>
         - A twelfth start, 1718: the Quadruple Alliance. Philip V's Spain has landed in Sicily, and the Emperor, Britain, France and the Dutch go to war against it; Byng sinks the Spanish fleet off Cape Passaro. In the north Charles XII falls before Fredriksten and Ulrika Eleonora is queen; the treaties of Stockholm, The Hague and Frederiksborg follow, and the score is counted at the Peace of Nystad in 1721. With its achievement, Cape Passaro<br>
+        - On the map of Europe the crowns to choose from go by the names of the year chosen, each with its ruler (the Dutch Republic, William V of Orange, in 1778)<br>
+        - A defeat on the score says where your crown placed<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2388,6 +2390,8 @@
           - In the historical starts every town on the sea begins with a port beside it, to trade and fish from, and to be blockaded<br>
           - A blockaded harbour is ringed in dashed red ink on the map<br>
           - A twelfth start, 1718: the Quadruple Alliance. Philip V's Spain has landed in Sicily, and the Emperor, Britain, France and the Dutch go to war against it; Byng sinks the Spanish fleet off Cape Passaro. In the north Charles XII falls before Fredriksten and Ulrika Eleonora is queen; the treaties of Stockholm, The Hague and Frederiksborg follow, and the score is counted at the Peace of Nystad in 1721. With its achievement, Cape Passaro<br>
+          - On the map of Europe the crowns to choose from go by the names of the year chosen, each with its ruler (the Dutch Republic, William V of Orange, in 1778)<br>
+          - A defeat on the score says where your crown placed<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -4447,8 +4451,11 @@ function setupScoreChoices() {
   const opp = document.getElementById('setupOpponents'); if (S && opp && +opp.value < 12) opp.value = '12';
   sel.innerHTML = (S ? [[S.score[0][0], S.score[0][1], 1], S.score[1], [0, 'Never (play on)']]
     : [[200, 'Turn 200', 1], [300, 'Turn 300'], [0, 'Never (play on)']]).map(([v, l, on]) => `<option value="${v}"${on ? ' selected' : ''}>${l}</option>`).join('');
+  if (typeof renderNationPicker === 'function') renderNationPicker();
 }
 window.setupScoreChoices = setupScoreChoices;
+// (the score's charge for the turns taken; on a dated ending every crown pays the same, and the line says so)
+function timePenaltyLine() { const p = Math.floor(turnNumber * 0.5); return scoreTurnLimit && turnNumber >= scoreTurnLimit ? `Turns taken: -${p} (the same for every crown)` : `Time penalty: -${p}`; }
 function getCurrentYear() { return startYear + Math.floor((turnNumber - 1) / (SEASON_LENGTH * 4)); }
 const SEASON_EFFECTS = {
   spring: { foodMult: 1.2, moveMod: 0, attrition: false, icon: '\uD83C\uDF31', desc: 'Fertile season, +20% food' },
@@ -8201,7 +8208,7 @@ function tickScenario1778() {
   }
   if (year >= 1780 && !done.neutrality) { done.neutrality = true; showToast('1780: Russia, Denmark and Sweden band together in the League of Armed Neutrality, to keep the seas open to their trade.'); }
   // (October 1781: Cornwallis surrenders at Yorktown, and the war in America is lost)
-  if (year >= 1782 && !done.yorktown) { done.yorktown = true; if (gb) { if (fr && gb.relations[fr.id] === 'war') { gb.legitimacy = Math.max(0, (gb.legitimacy ?? 50) - 5); if (gb.id === playerNation) showToast('Yorktown: -5 legitimacy', true); } tell('1781: Cornwallis surrenders at Yorktown, and the war in America is lost.', gb, fr); } }
+  if (year >= 1782 && !done.yorktown) { done.yorktown = true; if (gb) { if (fr && gb.relations[fr.id] === 'war') { gb.legitimacy = Math.max(0, (gb.legitimacy ?? 50) - 5); if (gb.id === playerNation) showToast('Yorktown: -5 legitimacy', true); } tell('1781: Cornwallis surrenders at Yorktown, and Britain has lost the war in America.', gb, fr); } }
   fight('saintes', 1782, gb, [fr], 1, '1782: at the Saintes Rodney breaks the French line and takes their admiral.', true);
   // (1783: the Peace of Versailles. Britain gives up the colonies, Minorca and Florida, and makes peace with France, Spain and the Dutch)
   if (year >= 1783 && !done.versailles) {
@@ -11735,7 +11742,7 @@ function showVictory(type) {
         Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
         Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
         ${s.ambitions ? `Ambitions: ${s.ambitions} (+${s.ambitions * 15})<br>` : ''}
-        Time penalty: -${Math.floor(turnNumber * 0.5)}<br>
+        ${timePenaltyLine()}<br>
         <strong style="color:#d4a856;font-size:15px;">Total Score: ${s.total}</strong>
       </div>
     </div>
@@ -11907,6 +11914,16 @@ function deleteVictoryEntry(index) {
 //  red, can't be read on the dark cards)
 function crownTag(n, tag = 'b') { return `<i style="display:inline-block;width:0.65em;height:0.65em;border-radius:50%;background:${safeColor(n.color)};border:1px solid rgba(240,225,190,0.55);margin-right:4px"></i><${tag} style="color:#f0e2bc">${escHtml(crownName1(n))}</${tag}>`; }
 // at the end of an 1805 game, how the great crowns stand when the score is counted: their rulers and their towns
+// (where the player's crown stands among those the score is reckoned between: "Yours is third of seven, with 412.")
+function placeLine() {
+  const ids = new Set([playerNation]);
+  for (const n of nations) if (!n.eliminated && !n.isBarbarian && !n.isTribe && (!scen() || scen().great.includes(n.name))) ids.add(n.id);
+  const rank = [...ids].map(id => ({ id, sc: getScore(id) })).sort((a, b) => b.sc - a.sc);
+  const i = rank.findIndex(r => r.id === playerNation), ord = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+  const num = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  if (i < 1 || rank.length < 3) return '';
+  return ` Yours is ${ord[i] || (i + 1) + 'th'} of ${num[rank.length - 1] || rank.length}, with ${rank[i].sc}.`;
+}
 function congressSummary() {
   if (!scen()) return '';
   const rows = scen().great.map(nm => nations.find(n => n.name === nm)).filter(Boolean).map(n => {
@@ -11923,7 +11940,7 @@ function showDefeat(type, winnerId) {
   if (type === 'score') {
     const winner = nations[winnerId];
     title = 'Defeat by Score';
-    desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} ${crownTag(winner, 'strong')} has the highest score (${getScore(winnerId)}).`;
+    desc = `${scen() ? (getCurrentYear() === scen().congress.year ? scen().congress.meets : 'The year ' + getCurrentYear() + ' has come.') : 'Turn ' + (scoreTurnLimit || turnNumber) + ' reached.'} ${crownTag(winner, 'strong')} has the highest score (${getScore(winnerId)}).${placeLine()}`;
   } else {
     title = 'Your Empire Has Fallen';
     desc = `<strong style="color:${nations[playerNation].color}">${escHtml(crownName1(nations[playerNation]))}</strong> has been conquered. Your civilization is no more.`;
@@ -11944,7 +11961,7 @@ function showDefeat(type, winnerId) {
         Civilians: ${s.civilianCount} units (+${s.civilianCount})<br>
         Conquests: ${s.eliminated} nations (+${s.eliminated * 20})<br>
         ${s.ambitions ? `Ambitions: ${s.ambitions} (+${s.ambitions * 15})<br>` : ''}
-        Time penalty: -${Math.floor(turnNumber * 0.5)}
+        ${timePenaltyLine()}
       </div>
     </div>
     <p style="font-size:13px;color:#888;margin-bottom:20px;">Turn ${turnNumber}, ${getCurrentYear()}</p>
@@ -17978,6 +17995,7 @@ function render() {
   _liveInView = false;
   // (a timer can call for a frame between games: after quitting, with no map, or before a new map's tiles are laid. Skip it)
   if (!MAP_COLS || tiles.length !== MAP_COLS * MAP_ROWS) return;
+  if (viewW <= 0 || viewH <= 0) return; // (a window shrunk to nothing, or a page loaded in a hidden frame: nothing to draw on)
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // reset any accumulated transform from shake or aborted frames
   const w = hexWidth(), cs = hexColStep(), ch = hexCellH();
   viewCols = Math.ceil(viewW / cs) + 3;
@@ -21460,17 +21478,29 @@ startMenuSlideshow();
 let _selectedNationIdx = 0; // -1 = custom
 let _nationTab = 'preset';
 
+// (the year the setup screen has chosen, when the game is to be played on the map of Europe: a historical start, or 1680's)
+function pickerYear() {
+  if (document.getElementById('setupMapStyle')?.value !== 'europe') return null;
+  return SCENS[document.getElementById('setupStart')?.value] || EUROPE_1680;
+}
 function renderNationPicker() {
   const grid = document.getElementById('nationPickerGrid');
   if (!grid) return;
-  grid.innerHTML = PRESET_NATIONS.map((n, i) => `
+  // (on the map of Europe the crowns go by the names of the year chosen, with that year's ruler beneath; a crown with no seat
+  //  on that map, as the United States, isn't offered there)
+  const Y = pickerYear();
+  if (Y && !EUROPE_CAPITALS[PRESET_NATIONS[_selectedNationIdx]?.name]) _selectedNationIdx = 0;
+  grid.innerHTML = PRESET_NATIONS.map((n, i) => {
+    if (Y && !EUROPE_CAPITALS[n.name]) return '';
+    const nm = (Y && Y.aliases?.[n.name]) || n.name, r = Y && Y.rulers?.[n.name];
+    return `
     <div class="nation-card${i === _selectedNationIdx ? ' selected' : ''}" onclick="pickNation(${i})">
-      <img class="portrait nation-face" src="portraits/${(cultureByName(n.name) || { p: 'west' }).p}_m.jpg" alt="" style="border-color:${safeColor(n.color)}">
+      <img class="portrait nation-face" src="portraits/${(cultureByName(n.name) || { p: 'west' }).p}_${r && r[1] === 'female' ? 'f' : 'm'}.jpg" alt="" style="border-color:${safeColor(n.color)}">
       <div>
-        <div class="nation-card-name">${escHtml(n.name)}</div>
-        <div class="nation-card-sub">${n.cityNames.slice(0,2).join(', ')}</div>
+        <div class="nation-card-name">${escHtml(nm)}</div>
+        <div class="nation-card-sub">${r ? escHtml(r[0]) : Y ? '&nbsp;' : n.cityNames.slice(0,2).join(', ')}</div>
       </div>
-    </div>`).join('');
+    </div>`; }).join('');
 }
 window.pickNation = function(idx) {
   _selectedNationIdx = idx;
