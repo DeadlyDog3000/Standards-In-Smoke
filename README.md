@@ -26,6 +26,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - The 1788 start: the eve of the Revolution, Catherine the Great and the Emperor Joseph against the Turk and Gustav III's Sweden against Russia; the Bastille, Rymnik, Svensksund and Izmail, until the Peace of Jassy
 - The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris
 - The 1740 start: the War of the Austrian Succession, Frederick's seizure of Silesia from the young Maria Theresa, until the Peace of Aix-la-Chapelle
+- The 1718 start: Alberoni's gamble, Philip V's Spain landed in Sicily against the Quadruple Alliance of the Emperor, Britain, France and the Dutch, and the last years of the Great Northern War; Cape Passaro and Fredriksten, until the Peace of Nystad
 - The 1733 start: the War of the Polish Succession, France, Spain and Sardinia for King Stanisław against Austria, Russia and Saxony; Danzig, Don Carlos in Naples, then the war with the Turk, until the Peace of Belgrade
 - The 1700 start: the War of the Spanish Succession and the Great Northern War at once, Louis XIV and Marlborough, Charles XII and Peter the Great, until the Peace of Utrecht
 - The 1672 start: the Disaster Year, Louis XIV's war on the Dutch Republic, the Water Line and William of Orange, until the Peace of Nijmegen
