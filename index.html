@@ -1163,6 +1163,7 @@
         - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
         - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
         - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
+        - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2361,6 +2362,7 @@
           - Saved games show the year they stand at and the start they were begun in, and the crown by the name of the day<br>
           - History's cards wait their turn: two put to you at once are shown one after the other (the second used to replace the first, and was lost)<br>
           - Crowns declaring war in the same turn are named together on one card, instead of each card replacing the last<br>
+          - A loaded ship right-clicked onto a far coast sails for the sea beside it, ready to put her regiments ashore there; go-to notices name the regiment<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -4132,7 +4134,7 @@ function awardXP(unit, amount) {
     if (unit.nationId === playerNation) {
       addFloatingText(unit.x, unit.y, `${newLevel.rank}!`, newLevel.color, 2000, 16);
       if (promosPending(unit) > 0) setTimeout(() => hint('promo'), 1200);
-      showToast(`${UNIT_DEFS[unit.type].icon} ${unit.regiment ? `The ${regimentName(unit)}` : unitTitle(unit.type)} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
+      showToast(`${unit.regiment ? `The ${regimentName(unit)}` : unitTitle(unit.type)} promoted to ${newLevel.rank}!${promosPending(unit) > 0 ? ' Choose its promotion in its panel.' : ''}`);
     } else aiTakePromos(unit);
   }
 }
@@ -4467,7 +4469,7 @@ function tickSeason() {
   if (newSeason !== currentSeason) {
     currentSeason = newSeason;
     const se = SEASON_EFFECTS[currentSeason];
-    showToast(`${se.icon} ${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} has arrived! ${se.desc}`);
+    showToast(`${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)} has arrived! ${se.desc}`);
     if (currentSeason === 'winter') hint('winter');
   }
 }
@@ -9743,7 +9745,7 @@ function finishBuild(worker, impKey) {
     if (city) expandCityBorder(city, true);
   }
   if (worker.nationId === playerNation) {
-    showToast(`${IMPROVEMENT_DEFS[impKey].icon} ${IMPROVEMENT_DEFS[impKey].name} completed!`);
+    showToast(`${IMPROVEMENT_DEFS[impKey].name} completed!`);
   }
   minimapDirty = true;
 }
@@ -15227,7 +15229,7 @@ function discoverNaturalWonders() {
       else n[k] = Math.min(k === 'legitimacy' ? 100 : Infinity, (n[k] ?? 0) + def.find[k]);
       gifts.push(`+${def.find[k]} ${k === 'science' && !n.currentResearch ? 'gold' : k}`);
     }
-    showToast(`${def.icon} Your explorers have found ${def.name}, a wonder of nature! (${gifts.join(', ')})`);
+    showToast(`Your explorers have found ${def.name}, a wonder of nature! (${gifts.join(', ')})`);
     playAchievement();
   }
 }
@@ -21577,14 +21579,19 @@ canvas.addEventListener('contextmenu', (e) => {
     }
     if (units.some(o => o.x === mx && o.y === my && o !== u)) return refuse(units.some(o => o.x === mx && o.y === my && o.nationId === u.nationId && shipHold(o)) && !def.naval ? 'March to the coast beside the ship first, then right-click it to go aboard.' : 'That hex is taken.');
     const tt = tiles[ti].type;
-    if (def.naval ? tt !== 0 : tt === 0) return refuse(def.naval ? 'Ships keep to the water.' : 'A regiment cannot march into the sea.');
+    // (a loaded ship sent to a far coast sails for the sea beside it, there to put her regiments ashore)
+    let gx = mx, gy = my, gti = ti;
+    if (def.naval && tt !== 0 && (u.cargo || []).length) { const sea = seaBeside({ x: mx, y: my }); if (sea && !(sea.x === u.x && sea.y === u.y)) { gx = sea.x; gy = sea.y; gti = gy * MAP_COLS + gx; } }
+    else if (def.naval ? tt !== 0 : tt === 0) return refuse(def.naval ? 'Ships keep to the water.' : 'A regiment cannot march into the sea.');
+    if (def.naval && tiles[gti].type !== 0) return refuse('Ships keep to the water.');
     if (!moveMode) enterMoveMode();
     if (!moveMode) return;
-    if (!reachableTiles.has(ti)) {
-      const path = bfsPath(u.x, u.y, mx, my, u.type, u.nationId);
+    if (!reachableTiles.has(gti)) {
+      const path = bfsPath(u.x, u.y, gx, gy, u.type, u.nationId);
       if (!path || !path.length) return refuse('There is no way there.');
       moveMode = false; reachableTiles.clear(); gotoMode = true;
     }
+    if (gti !== ti) { const p = hexScreenPos(gx, gy); const ev = new MouseEvent('click', { clientX: p.x + hexColStep() / 2, clientY: p.y + hexCellH() / 2, button: 2 }); ev._order = true; canvas.dispatchEvent(ev); showToast(`She sails for the coast by ${cities.find(c => hexDistance(c.x, c.y, mx, my) <= 2)?.name || 'the hex you chose'}: right-click the coast beside her there to land.`, true); return; }
   }
   const ev = new MouseEvent('click', { clientX: e.clientX, clientY: e.clientY, button: 2 }); ev._order = true;
   canvas.dispatchEvent(ev);
@@ -21729,7 +21736,7 @@ canvas.addEventListener('click', (e) => {
           }
           if (animSteps.length > 0) {
             startUnitAnimation(gotoUnit, animSteps, () => {
-              showToast(gotoUnit.gotoX !== undefined ? `Go-to order set for ${UNIT_DEFS[gotoUnit.type].icon}` : `${UNIT_DEFS[gotoUnit.type].icon} arrived at destination`);
+              showToast(gotoUnit.gotoX !== undefined ? `The ${regimentName(gotoUnit) || unitTypeName(gotoUnit.type)} sets out.` : `The ${regimentName(gotoUnit) || unitTypeName(gotoUnit.type)} is there.`);
               if (gotoUnit.movesLeft <= 0) { cycleToNextUnit(); }
               else { showUnitPanel(gotoUnit); }
               updateUI(); render();
@@ -21741,7 +21748,7 @@ canvas.addEventListener('click', (e) => {
           }
         }
       }
-      showToast(`Go-to order set for ${UNIT_DEFS[selectedUnit.type].icon}`);
+      showToast(`The ${regimentName(selectedUnit) || unitTypeName(selectedUnit.type)} sets out.`);
       showUnitPanel(selectedUnit); render(); return;
     } else { showToast(isNaval ? 'Ships can only go to water.' : 'Cannot go to water.'); gotoMode = false; if (e._order) { render(); return; } } // (a refused right-click order keeps the regiment chosen)
   }
@@ -23249,7 +23256,7 @@ window.upgradeUnit = function() {
   selectedUnit.vision = newDef.vision;
   // a formation only carries over if the new kind of unit can keep one (a column hussar made a lancer kept +2 moves for ever)
   if (FORMATION_UNITS.has(upg.to)) selectedUnit.formation = selectedUnit.formation || 'line'; else delete selectedUnit.formation;
-  showToast(`Upgraded to ${newDef.icon} ${unitTitle(upg.to)}${same > 1 ? ` (all ${same} companies)` : ''}!`);
+  showToast(`Upgraded to ${unitTitle(upg.to)}${same > 1 ? ` (all ${same} companies)` : ''}!`);
   showUnitPanel(selectedUnit); updateUI(); render();
 };
 // (can this regiment be upgraded where it stands, now?)
