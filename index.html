@@ -4006,6 +4006,7 @@ const OWA_ICONS = {
   merge: '<circle cx="6" cy="7" r="2.5" stroke-width="1.5"/><circle cx="6" cy="17" r="2.5" stroke-width="1.5"/><path d="M8.5 7 C13 7 13 12 17 12 M8.5 17 C13 17 13 12 17 12" stroke-width="1.5"/><circle cx="19" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/>',
   split: '<circle cx="5" cy="12" r="2.5" stroke-width="1.5" fill="currentColor"/><path d="M7.5 12 C11 12 11 7 15.5 7 M7.5 12 C11 12 11 17 15.5 17" stroke-width="1.5"/><circle cx="18" cy="7" r="2.5" stroke-width="1.5"/><circle cx="18" cy="17" r="2.5" stroke-width="1.5"/>',
   next: '<path d="M6 5 l7 7 -7 7 M12 5 l7 7 -7 7" stroke-width="2"/>',
+  explore: '<circle cx="12" cy="12" r="8.5" stroke-width="1.5"/><path d="M15.5 8.5 L13.2 13.2 L8.5 15.5 L10.8 10.8 Z" stroke-width="1.4" fill="currentColor"/>',
   board: '<path d="M3 15 h18 l-3 5 H6 Z" stroke-width="1.6"/><path d="M12 15 V4 M12 5 l5 7 h-5" stroke-width="1.5"/><path d="M7 3 v6 M5 7 l2 2 2-2" stroke-width="1.4"/>',
   disband: '<path d="M6 6 L18 18 M18 6 L6 18" stroke-width="2.2"/>',
 };
@@ -4026,9 +4027,10 @@ function owActionsSync() {
   if (u.merged && u.merged.length) acts.push(['split', 'Split off a company', 'U', 'splitSelected()', false]);
   { const ship = !def.naval && !isEmbarked(u) && units.find(o => o.nationId === u.nationId && shipHold(o) && (o.cargo || []).length < shipHold(o) && hexDistance(o.x, o.y, u.x, u.y) === 1);
     if (ship) acts.push(['board', `Go aboard ${ship.title || 'the ' + (regimentName(ship) || 'ship')}`, /worker/.test(u.type) ? '' : 'B', 'boardSelectedShip()', u.movesLeft <= 0]); }
+  if (!def.combat || def.naval || u.type === 'scout' || u.type === 'veteran_scout') acts.push(['explore', u.autoExplore ? 'Stop exploring' : 'Explore on its own', 'X', 'toggleAutoExplore()', false]);
   acts.push(['next', 'Next regiment awaiting orders', 'Q', 'cycleToNextUnit(true)', false]);
   acts.push(['disband', 'Disband (click twice)', 'Del', 'disbandSelected(this)', false]);
-  const sig = u.type + '|' + regimentSize(u) + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
+  const sig = u.type + '|' + regimentSize(u) + '|' + !!u.autoExplore + '|' + acts.map(a => a[0] + (a[4] ? 0 : 1)).join(',');
   bar.style.display = 'flex';
   if (mate) hint('merge');
   if (sig === _owaSig) return; _owaSig = sig;
