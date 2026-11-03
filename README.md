@@ -19,24 +19,24 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 
 - An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
 - A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names
-- The 1812 start: the invasion of Russia, Borodino, Moscow and the winter retreat, the Sixth Coalition and Leipzig, until the Congress of Vienna
-- The 1805 start: Europe in the year of Austerlitz, Napoleon and the crowned heads of the age on their thrones, and the Third Coalition already at war with France; the score is counted at the Congress of Vienna
-- The 1792 start: the wars of the Revolution, Valmy, the King's trial and the Republic, the Terror, Bonaparte in Italy and Brumaire, until the Peace of Amiens
-- The 1778 start: the American war comes to Europe, France, then Spain and the Dutch, against Britain at sea, and Frederick the Great's last war with Austria over Bavaria; Teschen, Yorktown and the Saintes, until the Peace of Versailles
-- The 1788 start: the eve of the Revolution, Catherine the Great and the Emperor Joseph against the Turk and Gustav III's Sweden against Russia; the Bastille, Rymnik, Svensksund and Izmail, until the Peace of Jassy
-- The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris
-- The 1740 start: the War of the Austrian Succession, Frederick's seizure of Silesia from the young Maria Theresa, until the Peace of Aix-la-Chapelle
-- The 1718 start: Alberoni's gamble, Philip V's Spain landed in Sicily against the Quadruple Alliance of the Emperor, Britain, France and the Dutch, and the last years of the Great Northern War; Cape Passaro and Fredriksten, until the Peace of Nystad
-- The 1733 start: the War of the Polish Succession, France, Spain and Sardinia for King Stanisław against Austria, Russia and Saxony; Danzig, Don Carlos in Naples, then the war with the Turk, until the Peace of Belgrade
-- The 1700 start: the War of the Spanish Succession and the Great Northern War at once, Louis XIV and Marlborough, Charles XII and Peter the Great, until the Peace of Utrecht
 - The 1672 start: the Disaster Year, Louis XIV's war on the Dutch Republic, the Water Line and William of Orange, until the Peace of Nijmegen
 - The 1683 start: the Siege of Vienna, the Grand Vizier's army at the gates and Sobieski riding to the relief, then the Holy League and the Nine Years' War, until the Peace of Karlowitz
+- The 1700 start: the War of the Spanish Succession and the Great Northern War at once, Louis XIV and Marlborough, Charles XII and Peter the Great, until the Peace of Utrecht
+- The 1718 start: Alberoni's gamble, Philip V's Spain landed in Sicily against the Quadruple Alliance of the Emperor, Britain, France and the Dutch, and the last years of the Great Northern War; Cape Passaro and Fredriksten, until the Peace of Nystad
+- The 1733 start: the War of the Polish Succession, France, Spain and Sardinia for King Stanisław against Austria, Russia and Saxony; Danzig, Don Carlos in Naples, then the war with the Turk, until the Peace of Belgrade
+- The 1740 start: the War of the Austrian Succession, Frederick's seizure of Silesia from the young Maria Theresa, until the Peace of Aix-la-Chapelle
+- The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris
+- The 1778 start: the American war comes to Europe, France, then Spain and the Dutch, against Britain at sea, and Frederick the Great's last war with Austria over Bavaria; Teschen, Yorktown and the Saintes, until the Peace of Versailles
+- The 1788 start: the eve of the Revolution, Catherine the Great and the Emperor Joseph against the Turk and Gustav III's Sweden against Russia; the Bastille, Rymnik, Svensksund and Izmail, until the Peace of Jassy
+- The 1792 start: the wars of the Revolution, Valmy, the King's trial and the Republic, the Terror, Bonaparte in Italy and Brumaire, until the Peace of Amiens
+- The 1805 start: Europe in the year of Austerlitz, Napoleon and the crowned heads of the age on their thrones, and the Third Coalition already at war with France; the score is counted at the Congress of Vienna
+- The 1812 start: the invasion of Russia, Borodino, Moscow and the winter retreat, the Sixth Coalition and Leipzig, until the Congress of Vienna
 - Reigns that end: rulers age with the calendar, heirs grow up and are crowned under their regnal names, regents rule for a child
 - Rival crowns with tempers, tribute, royal marriages, war-weariness, and coalitions against whoever grows too great (you included); peace that can cost a town, theirs or yours
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
 - Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
-- Regiments with morale, formations, experience and promotions; merged regiments that fire as one; ships that carry regiments across the sea and land them, or troops that take to the water in their own boats
+- Regiments with morale, formations, experience and promotions; merged regiments that fire as one; ships that carry regiments across the sea and land them, or troops that take to the water in their own boats; fleets that blockade ports
 - Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
 - 120 events, four seasons, raiders and tribes, wonders, a market, and a chart of every crown's score through the game
 - Synthesised sound effects, period music, and saves in your browser
