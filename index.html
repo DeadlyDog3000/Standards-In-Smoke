@@ -1176,6 +1176,7 @@
         - Ships can auto-explore (X), charting the coasts and seas on their own<br>
         - The other crowns' fleets put to sea in war: their warships are no longer the last to be given orders nor kept back as a reserve, and with no enemy ship at hand they sail, round the capes, to lie off your nearest port and blockade it<br>
         - In the historical starts every town on the sea begins with a port beside it, to trade and fish from, and to be blockaded<br>
+        - A blockaded harbour is ringed in dashed red ink on the map<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2383,6 +2384,7 @@
           - Ships can auto-explore (X), charting the coasts and seas on their own<br>
           - The other crowns' fleets put to sea in war: their warships are no longer the last to be given orders nor kept back as a reserve, and with no enemy ship at hand they sail, round the capes, to lie off your nearest port and blockade it<br>
           - In the historical starts every town on the sea begins with a port beside it, to trade and fish from, and to be blockaded<br>
+          - A blockaded harbour is ringed in dashed red ink on the map<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -19052,6 +19054,20 @@ function render() {
   // cities under threat: a red dashed ring around the tile, drawn above the garrison
   for (const city of cities) {
     // your towns under threat: red; any town under siege that you can see (yours or a rival's): a heavier orange ring
+    // (a blockaded port, as the old charts mark it: a dashed ring of red ink round the harbour)
+    if (city._blockaded && VIEW_TILE >= 10 && OW.canvas && tiles[city.y * MAP_COLS + city.x].revealed.has(pId) && (city.nationId === pId || !currentVisionSet || currentVisionSet.has(city.y * MAP_COLS + city.x))) {
+      const w0 = hexWidth(), ch0 = hexCellH(), fp0 = Math.round(w0 * 1.5 * 4 / 48);
+      for (const ti of city.ownedTiles || []) {
+        if (tiles[ti].improvement !== 'port') continue;
+        const px = ti % MAP_COLS, py = (ti - px) / MAP_COLS, pp = hexScreenPos(px, py);
+        if (pp.x < -w0 * 2 || pp.y < -ch0 * 2 || pp.x > viewW + w0 || pp.y > viewH + ch0) continue;
+        const cx = pp.x + w0 / 2, cy = pp.y + fp0 + ch0 / 2, rr = Math.min(w0, ch0) * 0.46;
+        ctx.save(); ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(246, 236, 210, 0.6)'; ctx.lineWidth = Math.max(3, w0 * 0.06); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(140, 26, 16, 0.9)'; ctx.lineWidth = Math.max(1.4, w0 * 0.026); ctx.setLineDash([Math.max(3, w0 * 0.08), Math.max(2, w0 * 0.05)]); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
     const sieged = city._besieged && VIEW_TILE >= 10 && tiles[city.y * MAP_COLS + city.x].revealed.has(pId) && (city.nationId === pId || !currentVisionSet || currentVisionSet.has(city.y * MAP_COLS + city.x));
     if (!sieged && (!city._threatened || city.nationId !== pId)) continue;
     const pos = hexScreenPos(city.x, city.y), w = hexWidth(), ch = hexCellH(), fp = Math.round(w * 1.5 * 4 / 48);
