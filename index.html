@@ -8053,6 +8053,8 @@ function tickScenario1788() {
     characterDeath(r);
     showToast(say);   // (your own sovereign's death and the heir's crowning are written in the annals already)
   };
+  // (the Theatre War: Denmark, Russia's ally, falls on Sweden while Gustav's army is in Finland; yours to choose if Denmark is yours)
+  if (!done.theatre && turnNumber >= 2) { done.theatre = true; const dk = anyName('Denmark-Norway'); if (dk && sw && ru && sw.relations[ru.id] === 'war') warOffer(dk, sw, 'The Theatre War', "Russia, your ally, asks you to fall on Sweden while King Gustav's army is in Finland.", () => { dk.relations[sw.id] = 'war'; sw.relations[dk.id] = 'war'; if (!hasAgreement(dk.id, ru.id, 'war_help')) addAgreement(dk.id, ru.id, 'war_help'); }, 'Denmark goes to war with Sweden at the side of Russia.'); }
   battle('ochakov', 1789, ru, [ot], 2, '1788: Potemkin storms Ochakov on the Black Sea, in the snow.');
   // (1789: the Paris mob storms the Bastille; the King's authority is broken, and the Revolution has begun)
   if (year >= 1789 && !done.bastille) {
