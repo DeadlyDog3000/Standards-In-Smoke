@@ -21591,7 +21591,7 @@ canvas.addEventListener('contextmenu', (e) => {
       if (!path || !path.length) return refuse('There is no way there.');
       moveMode = false; reachableTiles.clear(); gotoMode = true;
     }
-    if (gti !== ti) { const p = hexScreenPos(gx, gy); const ev = new MouseEvent('click', { clientX: p.x + hexColStep() / 2, clientY: p.y + hexCellH() / 2, button: 2 }); ev._order = true; canvas.dispatchEvent(ev); showToast(`She sails for the coast by ${cities.find(c => hexDistance(c.x, c.y, mx, my) <= 2)?.name || 'the hex you chose'}: right-click the coast beside her there to land.`, true); return; }
+    if (gti !== ti) { const p = hexScreenPos(gx, gy); const ev = new MouseEvent('click', { clientX: p.x + hexColStep() / 2, clientY: p.y + hexCellH() / 2, button: 2 }); ev._order = true; canvas.dispatchEvent(ev); showToast(`She sails for the coast by ${cities.find(c => hexDistance(c.x, c.y, mx, my) <= 2)?.name || 'the hex you chose'}: ${rclickWord()} the coast beside her there to land.`, true); return; }
   }
   const ev = new MouseEvent('click', { clientX: e.clientX, clientY: e.clientY, button: 2 }); ev._order = true;
   canvas.dispatchEvent(ev);
@@ -21757,6 +21757,8 @@ canvas.addEventListener('click', (e) => {
   //  A tap on a phone still marches it, having no right button)
   // (on a phone a tap gives the order: going aboard a ship beside the regiment, or ashore from the ship chosen)
   if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && shipOrder(selectedUnit, mx, my, msg => { SMK.deny(); showToast(msg); })) return;
+  // (and a loaded ship tapped onto a far coast sails for it, as a right-click does)
+  if (selectedUnit && !e._order && (e._touch || document.body.classList.contains('mobile-mode')) && selectedUnit.nationId === playerNation && (selectedUnit.cargo || []).length && tiles[my * MAP_COLS + mx]?.type !== 0 && hexDistance(selectedUnit.x, selectedUnit.y, mx, my) > 1) { canvas.dispatchEvent(new MouseEvent('contextmenu', { clientX: e.clientX, clientY: e.clientY, cancelable: true })); return; }
   if (moveMode && selectedUnit && (e._order || e._touch || document.body.classList.contains('mobile-mode'))) {
     if (reachableTiles.has(ti)) {
       // (an order is spent only on what will happen: an attack, or a march onto open ground)
