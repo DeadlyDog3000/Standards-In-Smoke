@@ -1193,6 +1193,7 @@
         - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
         - The crowns to choose from fit on a phone's screen<br>
         - From 1718 to 1792 Milan is the Emperor's, as it was from Utrecht until Bonaparte came (but in 1733, when the King of Sardinia has just taken it)<br>
+        - The Bishopric of Münster sits at Münster in 1672 (it was at Kassel), and the Electorate of Hanover at Hanover<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2412,6 +2413,7 @@
           - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
           - The crowns to choose from fit on a phone's screen<br>
           - From 1718 to 1792 Milan is the Emperor's, as it was from Utrecht until Bonaparte came (but in 1733, when the King of Sardinia has just taken it)<br>
+          - The Bishopric of Münster sits at Münster in 1672 (it was at Kassel), and the Electorate of Hanover at Hanover<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7338,7 +7340,8 @@ function europeExtraTowns(nId, presetName) {
   //  (in 1733 Charles Emmanuel has just taken Milan, which the Peace of Vienna gives back to the Emperor)
   // (and Milan was the Emperor's from Utrecht until Bonaparte came, but for the year Charles Emmanuel held it)
   const lomb = presetName === 'Austria' && ['1718', '1740', '1756', '1778', '1788', '1792'].includes(scenario);
-  for (const nm of sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? ['Prague', 'Budapest', 'Milan'] : preset.cityNames.slice(1, 10).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy'))) {
+  const wal = presetName === 'Westphalia' && (curAliases(true)?.[presetName] || '').match(/Münster|Hanover/);
+  for (const nm of wal ? (wal[0] === 'Münster' ? ['Paderborn'] : ['Bremen', 'Osnabrück']) : sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? ['Prague', 'Budapest', 'Milan'] : preset.cityNames.slice(1, 10).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy'))) {
     if (made >= (lomb ? 3 : 2)) break;
     const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) continue;
     const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
@@ -9183,6 +9186,8 @@ function scenChoice(title, text, choices) {
 //  Napoleon's Kingdom of Italy. Never Rome, which was the Pope's)
 function europeSeat(name) {
   if (name === 'Kingdom of Italy') return /Sardinia|Sicily/.test(curAliases(true)?.[name] || '') ? [7.69, 45.07] : [9.19, 45.46];
+  // (the Westphalian crown of 1807 is the Bishopric of Münster in 1672 and the Electorate of Hanover after, each at its own seat)
+  if (name === 'Westphalia') { const al = curAliases(true)?.[name] || ''; if (/Münster/.test(al)) return [7.63, 51.96]; if (/Hanover/.test(al)) return [9.73, 52.37]; }
   return EUROPE_CAPITALS[name];
 }
 function europeCapitalSite(name) {
