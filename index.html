@@ -461,7 +461,10 @@
     .nation-card:hover { background:rgba(40,32,20,0.8); border-color:rgba(200,170,90,0.5); }
     .nation-card.selected { border-color:#e0c880; box-shadow:0 0 8px rgba(224,200,128,0.3); background:rgba(50,40,20,0.85); }
     .nation-flag { width:12px; border-radius:2px; flex-shrink:0; align-self:stretch; min-height:32px; }
-    .nation-card-name { font-size:12px; color:#e8dcc8; font-weight:bold; margin-bottom:1px; }
+    .nation-card-name { font-size:12px; color:#e8dcc8; font-weight:bold; margin-bottom:1px; overflow-wrap:break-word; }
+    .nation-card > div { min-width:0; }
+    body.mobile-mode .nation-face { width:30px; height:30px; }
+    body.mobile-mode .nation-card { padding:6px 7px; gap:6px; }
     .nation-card-sub { font-size:10px; color:#a89878; }
     .slider-val {
       font-size: 13px;
@@ -829,6 +832,7 @@
     #ambitionOverlay .amb-done b { color: #a8c890; }
     #ambitionOverlay .amb-num { font-size: 11px; color: #c9b07a; }
     body:not(.mobile-mode) #toast { top: 112px; }   /* (below the ambition plaque) */
+    body.mobile-mode #toast { top: 180px; white-space: normal; width: max-content; max-width: 92vw; text-align: center; }   /* (below the phone's two-row top bar, and wrapped to the screen) */
     #turnInfo { background: linear-gradient(rgba(16, 26, 38, 0.92), rgba(8, 14, 22, 0.95)), var(--ow-leather) !important; color: #e9dcc0 !important; border: 1px solid var(--owk-gold-2) !important; box-shadow: inset 0 0 0 1px rgba(4, 8, 14, 0.9), 0 3px 8px rgba(0, 0, 0, 0.5) !important; }
     body.mobile-mode #ambitionPlaque { min-width: 150px; padding: 3px 8px; left: 8px; transform: none; border-top: 1px solid var(--owk-gold-2) !important; border-radius: 3px; } body.mobile-mode #ambitionPlaque b { font-size: 11.5px; }
     /* the tech tree on the same navy, its bar in gold rules; the chronicle (event log) as an Old World log: pale ink on navy, the turn in gold */
@@ -887,7 +891,7 @@
         </div>
 
         <div id="nationPresetPane">
-          <div id="nationPickerGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;max-height:220px;overflow-y:auto;"></div>
+          <div id="nationPickerGrid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px;max-height:220px;overflow-y:auto;"></div>
         </div>
 
         <div id="nationCustomPane" style="display:none;">
@@ -1005,9 +1009,9 @@
 
 
       <div class="setup-section">
-        <div class="setup-section-title">Barbarians</div>
+        <div class="setup-section-title">Brigands</div>
         <div class="setup-row">
-          <span class="setup-label">Barbarian Density</span>
+          <span class="setup-label">Brigand Bands</span>
           <div class="slider-row">
             <input id="setupBarbarians" type="range" min="0" max="100" value="40" oninput="document.getElementById('barbLabel').textContent=this.value+'%'" />
             <span id="barbLabel" class="slider-val">40%</span>
@@ -1181,6 +1185,13 @@
         - A twelfth start, 1718: the Quadruple Alliance. Philip V's Spain has landed in Sicily, and the Emperor, Britain, France and the Dutch go to war against it; Byng sinks the Spanish fleet off Cape Passaro. In the north Charles XII falls before Fredriksten and Ulrika Eleonora is queen; the treaties of Stockholm, The Hague and Frederiksborg follow, and the score is counted at the Peace of Nystad in 1721. With its achievement, Cape Passaro<br>
         - On the map of Europe the crowns to choose from go by the names of the year chosen, each with its ruler (the Dutch Republic, William V of Orange, in 1778)<br>
         - A defeat on the score says where your crown placed<br>
+        - Capitals on the map of Europe keep their own names: Madrid, not Toledo, when the city stands a hex off its true place<br>
+        - The House of Savoy sits at Turin as King of Sardinia or of Sicily, and Napoleon's Kingdom of Italy at Milan; no Italian crown has Rome, which was the Pope's<br>
+        - 1718: Victor Amadeus holds Sicily, and Spain's landing is at war with him; at the Treaty of The Hague Sicily goes to the Emperor and Savoy has Sardinia (yours to accept or refuse if Savoy is your crown)<br>
+        - A town handed over by treaty never rises to go back to the crown that signed it away, and minds the change less than a conquest<br>
+        - On the map of Europe a crown's far provinces are uneasy for being far, not in revolt<br>
+        - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
+        - The crowns to choose from fit on a phone's screen<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2392,6 +2403,13 @@
           - A twelfth start, 1718: the Quadruple Alliance. Philip V's Spain has landed in Sicily, and the Emperor, Britain, France and the Dutch go to war against it; Byng sinks the Spanish fleet off Cape Passaro. In the north Charles XII falls before Fredriksten and Ulrika Eleonora is queen; the treaties of Stockholm, The Hague and Frederiksborg follow, and the score is counted at the Peace of Nystad in 1721. With its achievement, Cape Passaro<br>
           - On the map of Europe the crowns to choose from go by the names of the year chosen, each with its ruler (the Dutch Republic, William V of Orange, in 1778)<br>
           - A defeat on the score says where your crown placed<br>
+          - Capitals on the map of Europe keep their own names: Madrid, not Toledo, when the city stands a hex off its true place<br>
+          - The House of Savoy sits at Turin as King of Sardinia or of Sicily, and Napoleon's Kingdom of Italy at Milan; no Italian crown has Rome, which was the Pope's<br>
+          - 1718: Victor Amadeus holds Sicily, and Spain's landing is at war with him; at the Treaty of The Hague Sicily goes to the Emperor and Savoy has Sardinia (yours to accept or refuse if Savoy is your crown)<br>
+          - A town handed over by treaty never rises to go back to the crown that signed it away, and minds the change less than a conquest<br>
+          - On the map of Europe a crown's far provinces are uneasy for being far, not in revolt<br>
+          - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
+          - The crowns to choose from fit on a phone's screen<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -5840,9 +5858,9 @@ const UNIT_DEFS = {
   frigate:        { moves: 8, vision: 6, icon: '\u2693', desc: 'Armed sailing ship. Rules the seas.', combat: true, atk: 7, hp: 12, naval: true },
   galleon:        { moves: 6, vision: 5, icon: '\uD83D\uDEA2', desc: 'Heavy warship with cannons.', combat: true, atk: 10, hp: 16, naval: true },
   man_of_war:     { moves: 5, vision: 6, icon: '\u2693', desc: 'Ship of the line. Massive broadside firepower.', combat: true, atk: 14, hp: 20, naval: true },
-  barbarian_axeman: { moves: 5, vision: 3, icon: '\u2694', desc: 'Savage barbarian warrior. Pillages improvements.', combat: true, atk: 6, hp: 12 },
-  barbarian_raider: { moves: 7, vision: 4, icon: '\uD83D\uDDE1', desc: 'Fast barbarian raider. Pillages and retreats.', combat: true, atk: 7, hp: 9 },
-  barbarian_brute:  { moves: 4, vision: 3, icon: '\uD83D\uDEE1', desc: 'Armored barbarian champion. Tough and deadly.', combat: true, atk: 8, hp: 16 },
+  barbarian_axeman: { name: 'brigand', moves: 5, vision: 3, icon: '\u2694', desc: 'A brigand of the hills and forests. Pillages improvements.', combat: true, atk: 6, hp: 12 },
+  barbarian_raider: { name: 'mounted brigand', moves: 7, vision: 4, icon: '\uD83D\uDDE1', desc: 'A brigand on a stolen horse. Pillages and rides off.', combat: true, atk: 7, hp: 9 },
+  barbarian_brute:  { name: 'brigand captain', moves: 4, vision: 3, icon: '\uD83D\uDEE1', desc: 'A brigand captain in a looted cuirass. Tough and deadly.', combat: true, atk: 8, hp: 16 },
   tribal_warrior:   { moves: 4, vision: 4, icon: '\uD83C\uDFF9', desc: 'Tribal warrior defending their homeland.', combat: true, atk: 5, hp: 10 },
   general:          { moves: 5, vision: 6, icon: '\u2655', desc: 'Commands nearby troops within 3 hexes. Provides bonuses based on traits.', combat: true, atk: 3, hp: 8 },
 };
@@ -7293,6 +7311,12 @@ function traceEuropeRivers() {
 }
 // the towns of Europe: on the Europe map a town founded near one takes its name (the nearest free one, within a degree and a half)
 const EUROPE_TOWNS = 'London -0.1 51.5;Paris 2.35 48.86;Vienna 16.37 48.21;Berlin 13.4 52.52;Moscow 37.6 55.75;Madrid -3.7 40.4;Lisbon -9.14 38.72;Rome 12.5 41.9;Naples 14.27 40.85;Amsterdam 4.9 52.37;Brussels 4.35 50.85;Stockholm 18.07 59.33;Copenhagen 12.57 55.68;Warsaw 21.0 52.23;Constantinople 28.98 41.0;Munich 11.58 48.14;Dresden 13.74 51.05;Bern 7.45 46.95;Wiesbaden 8.24 50.08;Kassel 9.48 51.31;Edinburgh -3.19 55.95;Dublin -6.26 53.35;Bristol -2.59 51.45;York -1.08 53.96;Manchester -2.24 53.48;Glasgow -4.25 55.86;Cork -8.47 51.9;Belfast -5.93 54.6;Lyon 4.85 45.76;Marseille 5.37 43.3;Bordeaux -0.58 44.84;Toulouse 1.44 43.6;Nantes -1.55 47.22;Rouen 1.1 49.44;Lille 3.06 50.63;Strasbourg 7.75 48.58;Brest -4.49 48.39;Orléans 1.9 47.9;Dijon 5.04 47.32;Nice 7.27 43.7;Montpellier 3.88 43.6;Barcelona 2.17 41.39;Valencia -0.38 39.47;Seville -5.98 37.39;Granada -3.6 37.18;Zaragoza -0.89 41.65;Bilbao -2.93 43.26;Valladolid -4.72 41.65;Cádiz -6.29 36.53;Málaga -4.42 36.72;Porto -8.61 41.15;Coimbra -8.43 40.21;Corunna -8.41 43.36;Milan 9.19 45.46;Turin 7.69 45.07;Venice 12.33 45.44;Genoa 8.93 44.41;Florence 11.26 43.77;Bologna 11.34 44.49;Bari 16.87 41.12;Palermo 13.36 38.12;Messina 15.55 38.19;Cagliari 9.11 39.22;Ajaccio 8.74 41.93;Trieste 13.78 45.65;Hamburg 9.99 53.55;Bremen 8.8 53.08;Hanover 9.73 52.37;Cologne 6.96 50.94;Frankfurt 8.68 50.11;Stuttgart 9.18 48.78;Nuremberg 11.08 49.45;Leipzig 12.37 51.34;Magdeburg 11.63 52.13;Königsberg 20.51 54.71;Danzig 18.65 54.35;Stettin 14.55 53.43;Breslau 17.04 51.11;Prague 14.42 50.08;Brünn 16.61 49.2;Salzburg 13.04 47.8;Innsbruck 11.39 47.27;Graz 15.44 47.07;Pressburg 17.11 48.15;Buda 19.04 47.5;Zurich 8.54 47.37;Geneva 6.14 46.2;Basel 7.59 47.56;Antwerp 4.4 51.22;Ghent 3.72 51.05;Liège 5.57 50.63;Rotterdam 4.48 51.92;Utrecht 5.12 52.09;Kraków 19.94 50.06;Posen 16.93 52.41;Lemberg 24.03 49.84;Vilna 25.28 54.69;Riga 24.1 56.95;Reval 24.75 59.44;St. Petersburg 30.32 59.93;Novgorod 31.27 58.52;Smolensk 32.05 54.78;Kiev 30.52 50.45;Minsk 27.56 53.9;Kharkov 36.23 49.99;Voronezh 39.2 51.67;Tula 37.62 54.2;Tver 35.9 56.86;Yaroslavl 39.87 57.63;Nizhny Novgorod 44.0 56.33;Archangel 40.54 64.54;Odessa 30.73 46.48;Kherson 32.62 46.64;Azov 39.42 47.11;Astrakhan 47.9 46.35;Kazan 47.9 55.8;Saratov 46.0 51.53;Christiania 10.75 59.91;Bergen 5.32 60.39;Trondheim 10.4 63.43;Gothenburg 11.97 57.71;Malmö 13.0 55.6;Uppsala 17.64 59.86;Åbo 22.27 60.45;Helsingfors 24.94 60.17;Aarhus 10.2 56.16;Odense 10.39 55.4;Belgrade 20.46 44.8;Bucharest 26.1 44.43;Sofia 23.32 42.7;Adrianople 26.56 41.68;Salonika 22.94 40.64;Athens 23.73 37.98;Sarajevo 18.41 43.86;Ragusa 18.09 42.65;Jassy 27.6 47.16;Smyrna 27.14 38.42;Bursa 29.06 40.19;Angora 32.85 39.93;Trebizond 39.72 41.0;Sinope 35.15 42.02;Kaffa 35.38 45.03;Tiflis 44.79 41.72;Varna 27.91 43.21;Algiers 3.06 36.75;Tunis 10.18 36.8;Tangier -5.8 35.77;Valletta 14.51 35.9;Candia 25.13 35.34;Nicosia 33.36 35.17;Aleppo 37.16 36.2;Konya 32.48 37.87;Erzurum 41.27 39.9;Vologda 39.89 59.22;Kursk 36.19 51.73;Orel 36.08 52.97;Pskov 28.33 57.82;Dorpat 26.72 58.38;Memel 21.13 55.71;Lublin 22.57 51.25;Plymouth -4.14 50.37;Norwich 1.3 52.63;Limerick -8.63 52.66;Le Havre 0.1 49.49;Reims 4.03 49.26;Metz 6.18 49.12;Toledo -4.02 39.86;Salamanca -5.66 40.97;Pamplona -1.64 42.81;Ancona 13.52 43.62;Taranto 17.24 40.47;Lübeck 10.69 53.87;Münster 7.63 51.96;Mainz 8.27 50.0;Linz 14.29 48.31;Temesvár 21.23 45.75;Debrecen 21.63 47.53;Kolozsvár 23.59 46.77;Zagreb 15.98 45.81;Ljubljana 14.51 46.06;Augsburg 10.9 48.37;Regensburg 12.1 49.02;Würzburg 9.93 49.79;Osnabrück 8.05 52.28;Paderborn 8.75 51.72;Dortmund 7.47 51.51;Erfurt 11.03 50.98;Halle 11.97 51.48;Chemnitz 12.92 50.83;Liverpool -2.98 53.41;Birmingham -1.9 52.48;Leeds -1.55 53.8;The Hague 4.3 52.08;Groningen 6.57 53.22;Norrköping 16.18 58.59;Bruges 3.22 51.21;Lucerne 8.31 47.05;Lausanne 6.63 46.52;Aalborg 9.92 57.05;Catania 15.09 37.5;Salerno 14.77 40.68;Verona 10.99 45.44;Toruń 18.6 53.01;Kolberg 15.58 54.18;Edirne 26.56 41.68;Budapest 19.04 47.5'.split(';').map(t => { const p = t.trim().split(' '), lat = +p.pop(), lon = +p.pop(); return [p.join(' '), lon, lat]; });
+// (a crown's capital on the Europe map keeps its own name, Madrid, even when the hex it stands on is the one beside it, nearer Toledo)
+function europeCapitalName(name) {
+  const ll = europeSeat(name); if (!ll) return null;
+  const t = EUROPE_TOWNS.reduce((b, e) => { const d = Math.hypot(e[1] - ll[0], e[2] - ll[1]); return d < b.d ? { d, n: e[0] } : b; }, { d: 0.3, n: null });
+  return t.n && !cities.some(c => c.name === t.n) ? t.n : null;
+}
 function europeTownName(x, y) {
   const [lon, lat] = euLonLat(x, y), cosL = Math.cos(lat * Math.PI / 180);
   let best = null, bd = 1.5;
@@ -7306,7 +7330,11 @@ function europeTownName(x, y) {
 function europeExtraTowns(nId, presetName) {
   const preset = PRESET_NATIONS.find(p => p.name === presetName); if (!preset) return;
   let made = 0;
-  for (const nm of preset.cityNames.slice(1, 10)) {
+  // (the House of Savoy held Nice, and Sicily or Sardinia, whichever it was king of; not the Venetian Republic's towns)
+  const sav = presetName === 'Kingdom of Italy' && (curAliases(true)?.[presetName] || '').match(/Sardinia|Sicily/);
+  // (and in 1718 Sicily is Savoy's, not Naples's, whichever crown is set down first)
+  //  (in 1733 Charles Emmanuel has just taken Milan, which the Peace of Vienna gives back to the Emperor)
+  for (const nm of sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : preset.cityNames.slice(1, 10).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy'))) {
     if (made >= 2) break;
     const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) continue;
     const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
@@ -7540,7 +7568,7 @@ const SCEN_1788 = {
 const SCEN_1718 = {
   year: 1718,
   first: ['Spain', 'Austria', 'Great Britain', 'France', 'Sweden', 'Russia', 'Kingdom of Holland', 'Kingdom of Italy', 'Denmark-Norway', 'Prussia', 'Kingdom of Saxony', 'Duchy of Warsaw', 'Ottoman Empire', 'Bavaria', 'Kingdom of Naples', 'Portugal', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  coalition: ['Austria', 'Kingdom of Naples'],
+  coalition: ['Austria', 'Kingdom of Naples', 'Kingdom of Italy'],
   france: ['Spain'],
   extraWars: [['Sweden', 'Russia'], ['Sweden', 'Denmark-Norway'], ['Sweden', 'Prussia'], ['Sweden', 'Kingdom of Saxony']],
   extraAllies: [['Russia', 'Denmark-Norway'], ['Russia', 'Prussia'], ['Denmark-Norway', 'Prussia'], ['Russia', 'Kingdom of Saxony']],
@@ -7570,14 +7598,14 @@ const SCEN_1718 = {
   marshals: { 'Austria': ['Prince Eugene of Savoy', ['aggressive', 'inspiring']], 'Spain': ['The Marquis de Lede', ['aggressive']] },
   fleets: { 'Great Britain': ['man_of_war', 'man_of_war', 'frigate', 'frigate'], 'Spain': ['frigate', 'frigate', 'frigate'], 'France': ['frigate', 'frigate'], 'Kingdom of Holland': ['frigate', 'frigate'], 'Sweden': ['frigate'], 'Denmark-Norway': ['frigate', 'frigate'], 'Russia': ['frigate'] },
   flags: { 'Great Britain': ['man_of_war', 'HMS Barfleur'], 'Spain': ['frigate', 'Real San Felipe'] },
-  phrases: { c: [me => me.name === 'Austria' ? 'against the Spanish landing in Sicily' : 'at the side of the Emperor', 'against Spain'], f: ['to win back Italy', 'against the Emperor'],
+  phrases: { c: [me => me.name === 'Austria' ? 'against the Spanish landing in Sicily' : me.name === 'Kingdom of Italy' ? 'against the Spanish landing on your island of Sicily' : 'at the side of the Emperor', 'against Spain'], f: ['to win back Italy', 'against the Emperor'],
     apartWar: "Spain has landed in Sicily, and the powers are gathering against Philip V. In the north the Great Northern War goes on, and you are at war with",
     apart: "Spain has landed in Sicily to win back Italy, and the Emperor, Britain, France and the Dutch are gathering against it. In the north Charles XII of Sweden fights on against Russia, Denmark, Prussia and Saxony. Your crown stands apart, for now." },
   congress: { year: 1721, at: 'at the Peace of Nystad, in 1721', meets: 'It is 1721, and the Peace of Nystad is signed.' },
   score: [[13, '1721: Peace of Nystad'], [41, '1728']],
   aliases: { 'Kingdom of Holland': 'Dutch Republic', 'Kingdom of Saxony': 'Electorate of Saxony', 'Duchy of Warsaw': 'Poland-Lithuania', 'Belgium': 'Austrian Netherlands', 'Kingdom of Italy': 'Kingdom of Sicily', 'Westphalia': 'Hanover', 'Kingdom of Naples': 'Naples' },
   // (1720: Victor Amadeus gives up Sicily to the Emperor for Sardinia, and his crown takes the island's name)
-  laterAliases(d) { return d.hague ? { 'Kingdom of Italy': 'Kingdom of Sardinia' } : {}; },
+  laterAliases(d) { return d.hague && !d.keptSicily ? { 'Kingdom of Italy': 'Kingdom of Sardinia' } : {}; },
   aims: { 'Spain': ['Palermo', 'Naples', 'Milan'], 'Austria': ['Barcelona'], 'Great Britain': ['Barcelona'], 'France': ['Barcelona'], 'Russia': ['Stockholm'], 'Sweden': ['Copenhagen', 'Christiania'], 'Denmark-Norway': ['Gothenburg', 'Malmö'] },
   briefTail: 'History will move as it did, if the crowns are still placed for it: Byng sinks the Spanish fleet off Cape Passaro and Charles XII falls before Fredriksten in 1718, Britain, France and the Dutch go to war with Spain in 1719, Spain makes peace at The Hague in 1720, and Sweden makes peace with Russia at Nystad in 1721.',
 };
@@ -7915,6 +7943,9 @@ function scen() { return SCENS[scenario] || null; }
 //  game keeps the roster's name underneath, for its own reckonings
 // (with its article where English wants one: the Ottoman Empire, the Dutch Republic, Poland-Lithuania)
 function theCrown(n) { const nm = crownName1(n); return (/^(Kingdom|Duchy|Swiss|Ottoman|Dutch|Electorate|Spanish|Austrian|United|French|Batavian|Bishopric)/.test(nm) ? 'the ' : '') + nm; }
+// (who did it, in a notice: brigands as brigands, a town's rebels by that name, a crown as its year knew it)
+function cap1st(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+function bandOrCrown(n) { return !n ? 'an enemy' : n.isBarbarian ? (n.name === 'Barbarians' ? 'brigands' : n.name) : theCrown(n); }
 function crownName1(n) { return (n && curAliases(true)?.[n.name]) || (n ? n.name : ''); }
 // a crown's ruler, consort and heir as history had them: [name, gender, age, traits, consort, consort's age, heir]
 function setHistRuler(n, hist) {
@@ -8275,7 +8306,7 @@ function tickScenario1788() {
 function tickScenario1718() {
   const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
-  const sp = anyName('Spain'), au = anyName('Austria'), gb = anyName('Great Britain'), fr = anyName('France'), nl = anyName('Kingdom of Holland'), np = anyName('Kingdom of Naples'), sw = anyName('Sweden'), ru = anyName('Russia'), dk = anyName('Denmark-Norway'), pr = anyName('Prussia'), sx = anyName('Kingdom of Saxony');
+  const sp = anyName('Spain'), au = anyName('Austria'), gb = anyName('Great Britain'), fr = anyName('France'), nl = anyName('Kingdom of Holland'), np = anyName('Kingdom of Naples'), sw = anyName('Sweden'), ru = anyName('Russia'), dk = anyName('Denmark-Norway'), pr = anyName('Prussia'), sx = anyName('Kingdom of Saxony'), sa = anyName('Kingdom of Italy');
   const ai = (...ns) => ns.every(n => n && n.id !== playerNation);
   const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
   const tell = (say, ...ns) => { showToast(say); if (ns.some(n => n && (n.id === playerNation || n.relations[playerNation] === 'war' || hasAgreement(n.id, playerNation, 'war_help')))) annal(cap1(say.replace(/^\d{4}: /, ''))); };
@@ -8317,13 +8348,25 @@ function tickScenario1718() {
   // (1720: the Treaty of The Hague. Spain leaves Sicily and Sardinia and makes peace; Victor Amadeus takes Sardinia for Sicily)
   if (year >= 1720 && !done.hague) {
     done.hague = true;
-    const allies = [au, np, gb, fr, nl].filter(Boolean), pairs = sp ? allies.filter(o => o.relations[sp.id] === 'war').map(o => [sp, o]) : [];
+    const allies = [au, np, gb, fr, nl, sa].filter(Boolean), pairs = sp ? allies.filter(o => o.relations[sp.id] === 'war').map(o => [sp, o]) : [];
+    const sic = np || au;   // (Sicily went to the Emperor: to his Naples where that crown is in the game)
     let made = false;
-    for (const pr2 of pairs) if (pr2[0].id !== playerNation && pr2[1].id !== playerNation && makePeace(pr2[0], pr2[1])) { made = true; if (pr2[1] === np) treatyCede('Palermo', np, [sp]); }
+    for (const pr2 of pairs) if (pr2[0].id !== playerNation && pr2[1].id !== playerNation && makePeace(pr2[0], pr2[1])) { made = true; if (pr2[1] === sic) treatyCede('Palermo', sic, [sp]); }
     if (made) { tell('1720: by the Treaty of The Hague Spain leaves Sicily and makes peace; Victor Amadeus takes Sardinia for Sicily.', sp, ...allies); }
     const mine = pairs.filter(pr2 => pr2[0].id === playerNation || pr2[1].id === playerNation);
     if (mine.length) peaceOffer('The Treaty of The Hague', sp.id === playerNation ? `The Quadruple Alliance offers peace if Sicily and Sardinia are given up. Peace with ${listAnd(mine.map(pr2 => theCrown(pr2[1])))}.` : 'Philip V has dismissed Alberoni, and Spain offers peace and leaves Sicily.',
-      () => { for (const pr2 of mine) if (makePeace(pr2[0], pr2[1]) && pr2[1] === np) treatyCede('Palermo', np, [sp]); }, 'The Treaty of The Hague is made.');
+      () => { for (const pr2 of mine) if (makePeace(pr2[0], pr2[1]) && pr2[1] === sic) treatyCede('Palermo', sic, [sp]); }, 'The Treaty of The Hague is made.');
+    // (and Victor Amadeus gives up Sicily for Sardinia; yours to accept if Savoy is your crown)
+    const pal = cities.find(c => c.name === 'Palermo' && !c.ruined);
+    if (sa && sic && pal && pal.nationId === sa.id) {
+      const swap = () => { delete done.keptSicily; treatyCede('Palermo', sic, [sa]); if (mapStyle === 'europe' && !cities.some(c => c.name === 'Cagliari')) europeExtraTowns(sa.id, 'Kingdom of Italy'); };
+      if (sa.id !== playerNation) swap();
+      else {
+        done.keptSicily = true;   // (until the player answers the crown is still Sicily's: a game saved and loaded meanwhile keeps the island and the name)
+        scenChoice('The Treaty of The Hague', `The powers have settled it among themselves: Sicily is to go to ${theCrown(sic)}, and you are to have Sardinia instead, and be its king. Give up Palermo?`,
+        [['Give up Sicily for Sardinia', swap], ['Keep Sicily, and the name of its king', () => { done.keptSicily = true; }]]);
+      }
+    } else if (sa && mapStyle === 'europe' && !cities.some(c => c.name === 'Cagliari')) europeExtraTowns(sa.id, 'Kingdom of Italy');   // (Sicily lost to Spain or never his: he is King of Sardinia all the same, and has it)
   }
   if (year >= 1720 && !done.frederiksborg) { done.frederiksborg = true; histPeace(sw, dk, makePeace, tell, '1720: by the Treaty of Frederiksborg Sweden and Denmark make peace.', 'The Treaty of Frederiksborg', sw && sw.id === playerNation ? 'Denmark offers peace, for the Sound dues.' : 'Sweden offers peace, and gives up its freedom from the Sound dues.'); histPeace(sw, sx, makePeace, tell, '1720: Sweden makes peace with Saxony and Poland.', 'Peace with Saxony', sw && sw.id === playerNation ? 'Augustus of Saxony offers peace.' : 'Sweden offers peace.'); }
   if (year >= 1721 && !done.nystad) { done.nystad = true; histPeace(sw, ru, makePeace, tell, '1721: by the Peace of Nystad Sweden makes peace with Russia, and gives up Livonia, Estonia and Ingria: Russia is an empire.', 'The Peace of Nystad', sw && sw.id === playerNation ? 'The Russian galleys burn the coast of Sweden itself: the Tsar offers peace for Livonia, Estonia and Ingria.' : 'Sweden offers peace, and gives up Livonia, Estonia and Ingria.'); }
@@ -9132,8 +9175,14 @@ function scenChoice(title, text, choices) {
   setTimeout(() => ov.querySelector('.event-choice')?.focus(), 50);   // (Enter takes the first answer)
 }
 // where a crown begins on the Europe map: its capital, or the nearest good ground to it clear of the other towns
+// (the Italian crown's seat: Turin for the House of Savoy, as Kings of Sardinia or of Sicily; Milan for the Duchy of Milan and
+//  Napoleon's Kingdom of Italy. Never Rome, which was the Pope's)
+function europeSeat(name) {
+  if (name === 'Kingdom of Italy') return /Sardinia|Sicily/.test(curAliases(true)?.[name] || '') ? [7.69, 45.07] : [9.19, 45.46];
+  return EUROPE_CAPITALS[name];
+}
 function europeCapitalSite(name) {
-  const ll = EUROPE_CAPITALS[name]; if (!ll) return null;
+  const ll = europeSeat(name); if (!ll) return null;
   const cx = Math.round((ll[0] - EUROPE.lon0) / EUROPE.w * MAP_COLS - 0.5), cy = Math.round((EUROPE.lat0 - ll[1]) / EUROPE.h * MAP_ROWS - 0.5);
   const minD = Math.max(3, Math.round(Math.min(MAP_COLS, MAP_ROWS) / 40));
   for (let r = 0; r <= 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -9546,13 +9595,13 @@ function canFoundCity(x, y, nationId) {
   const onBarbCamp = isBarbarianCamp(x, y);
   const onDestroyedCamp = barbarianCamps.some(b => b.x === x && b.y === y && b.destroyed);
   if (!onCitySite && !onBarbCamp && !onDestroyedCamp) {
-    return { ok: false, reason: 'Can only settle on City Sites or Barbarian Camps.' };
+    return { ok: false, reason: 'Can only settle on City Sites or Brigand Camps.' };
   }
   return { ok: true };
 }
 
-function foundCity(unit, cityName) {
-  const name = (mapStyle === 'europe' && unit && europeTownName(unit.x, unit.y)) || cityName || randomCityName();
+function foundCity(unit, cityName, keepName) {
+  const name = (keepName && cityName) || (mapStyle === 'europe' && unit && europeTownName(unit.x, unit.y)) || cityName || randomCityName();
   if (unit && unit.nationId === playerNation && !(scen() && turnNumber <= 1)) try { annal(`${name} founded.`); } catch (e) {}
   // a town founded where you can see it is stamped onto the chart with the realm's seal
   if (unit && (unit.nationId === playerNation || (currentVisionSet && currentVisionSet.has(unit.y * MAP_COLS + unit.x)))) particles.push({ kind: 'seal', col: unit.x, row: unit.y, vx: 0, vy: 0, color: nations[unit.nationId]?.color || '#8a2a1a', startTime: Date.now(), duration: 1500 });
@@ -10266,7 +10315,7 @@ function doAttack(attacker, tx, ty) {
       if (n.id !== attacker.nationId && n.id !== oldOwner && !n.eliminated) changeLoyalty(n.id, attacker.nationId, -2);
     }
     if (attacker.nationId === playerNation) showToast(`Captured enemy ${target.type.replace(/_/g, ' ')}!`);
-    else if (oldOwner === playerNation) showToast(`Your ${target.type} was captured by ${nations[attacker.nationId].name}!`);
+    else if (oldOwner === playerNation) showToast(`Your ${unitTypeName(target.type)} was captured by ${bandOrCrown(nations[attacker.nationId])}!`);
     attacker.movesLeft = 0;
     return;
   }
@@ -10294,7 +10343,7 @@ function doAttack(attacker, tx, ty) {
         target.morale = 50; // captured units have low morale
         changeLoyalty(oldOwner, attacker.nationId, -15);
         if (attacker.nationId === playerNation) showToast(`Captured enemy ${target.type}!`);
-        else if (oldOwner === playerNation) showToast(`Your ${target.type} was captured by ${nations[attacker.nationId].name}!`);
+        else if (oldOwner === playerNation) showToast(`Your ${unitTypeName(target.type)} was captured by ${bandOrCrown(nations[attacker.nationId])}!`);
         attacker.movesLeft = 0;
         return;
       }
@@ -10542,8 +10591,8 @@ function sackCapital(city, raider) {
   const what = [gold ? `${gold} gold` : '', food ? `${food} food` : ''].filter(Boolean).join(' and ') || 'what little there was';
   if (city.nationId === playerNation) {
     addFloatingText(city.x, city.y, 'Sacked!', '#ff6a3a', 2500, 18);
-    showToast(`Barbarians sacked ${city.name}! They carried off ${what}${burntName ? ' and burned the ' + burntName : ''}.`);
-  } else showToast(`Barbarians have sacked ${city.name}!`);
+    showToast(`Brigands sacked ${city.name}! They carried off ${what}${burntName ? ' and burned the ' + burntName : ''}.`);
+  } else showToast(`Brigands have sacked ${city.name}!`);
   _tileCityMapDirty = true;
 }
 
@@ -10637,8 +10686,8 @@ function tickCityCapture() {
             if (!nations[oldOwner].isBarbarian) {
               nations[oldOwner].legitimacy = Math.max(0, (nations[oldOwner].legitimacy ?? 50) - 5);
             }
-            if (oldOwner === playerNation) showToast(`${city.name} has been razed by barbarians!`);
-            else showToast(`Barbarians have razed ${city.name}!`);
+            if (oldOwner === playerNation) showToast(`${city.name} has been burned by brigands!`);
+            else showToast(`Brigands have burned ${city.name}!`);
             continue;
           }
 
@@ -10935,7 +10984,7 @@ function tickBarbarianCamps() {
           spawnUnit('barbarian_axeman', barbNationId, camp.x, camp.y);
           const lp = findLandNear(camp.x + (Math.random() > 0.5 ? 1 : -1), camp.y + (Math.random() > 0.5 ? 1 : -1), 5, true);
           spawnUnit('barbarian_axeman', barbNationId, lp.x, lp.y);
-          if (tiles[ti].revealed.has(playerNation)) showToast(`⚠️ A barbarian camp has respawned at (${camp.x}, ${camp.y})!`);
+          if (tiles[ti].revealed.has(playerNation)) showToast('A band of brigands has made camp again in the wilds.');
         }
       }
       continue;
@@ -10950,7 +10999,7 @@ function tickBarbarianCamps() {
       freeCampCaptives(camp, unitOnCamp.nationId);
       units = units.filter(u => u.nationId !== camp.nationId);
       nations[camp.nationId].eliminated = true;
-      if (unitOnCamp.nationId === playerNation) showToast('Barbarian camp destroyed!');
+      if (unitOnCamp.nationId === playerNation) showToast('A brigand camp is broken up.');
     } else {
 
       const barbType = turnNumber >= 40 ? (Math.random() < 0.3 ? 'barbarian_brute' : Math.random() < 0.5 ? 'barbarian_raider' : 'barbarian_axeman')
@@ -11094,7 +11143,7 @@ function pillageTile(tileIndex, unit) {
   invalidateRenderLookups();
   if (t.owner === playerNation) {
     const tx = tileIndex % MAP_COLS, ty = Math.floor(tileIndex / MAP_COLS);
-    showToast(`Barbarians pillaged your ${impName} at (${tx},${ty})! Send a worker within 2 turns to repair!`);
+    showToast(`Brigands have pillaged your ${impName}! Send a worker within 2 turns to repair it.`);
   }
 }
 
@@ -11917,7 +11966,7 @@ function crownTag(n, tag = 'b') { return `<i style="display:inline-block;width:0
 // (where the player's crown stands among those the score is reckoned between: "Yours is third of seven, with 412.")
 function placeLine() {
   const ids = new Set([playerNation]);
-  for (const n of nations) if (!n.eliminated && !n.isBarbarian && !n.isTribe && (!scen() || scen().great.includes(n.name))) ids.add(n.id);
+  for (const n of nations) if (!n.eliminated && !n.isBarbarian && !n.isTribe && !n.isPlayer && (!scen() || scen().great.includes(n.name))) ids.add(n.id);
   const rank = [...ids].map(id => ({ id, sc: getScore(id) })).sort((a, b) => b.sc - a.sc);
   const i = rank.findIndex(r => r.id === playerNation), ord = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
   const num = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
@@ -13277,8 +13326,9 @@ function getCityDiscontent(city) {
   if (city.capturedTurn !== undefined && city.capturedTurn > 0) {
     const since = turnNumber - city.capturedTurn;
     if (since < 30) {
-      const v = Math.max(0, 4 - since / 8);
-      if (v > 0.1) { value += v; factors.push({ label: `Recent conquest (${since} turns ago)`, val: v }); }
+      // (a town handed over by treaty minds it less than one taken by storm)
+      const byTreaty = city._cededTurn === city.capturedTurn, v = Math.max(0, 4 - since / 8) * (byTreaty ? 0.5 : 1);
+      if (v > 0.1) { value += v; factors.push({ label: `${byTreaty ? 'Changed hands by treaty' : 'Recent conquest'} (${since} turns ago)`, val: v }); }
     }
   }
 
@@ -13286,14 +13336,17 @@ function getCityDiscontent(city) {
     let v = 1.5;
     if (nationHasLaw(city.nationId, 'divine_rule')) v += 1;
     value += v;
-    factors.push({ label: `Foreign culture (${nations[city.originalNationId]?.name || 'former owner'})`, val: v });
+    factors.push({ label: `Foreign culture (${nations[city.originalNationId] ? crownName1(nations[city.originalNationId]) : 'former owner'})`, val: v });
   }
 
   const cap = getCityCapital(city.nationId);
   if (cap && cap !== city) {
     const dist = hexDistance(cap.x, cap.y, city.x, city.y);
-    if (dist > 8) {
-      let v = (dist - 8) * 0.25;
+    // (the map of Europe is a continent: a crown's far provinces, Naples from Madrid or Milan from Vienna, lie farther than any on
+    //  the unknown lands, and are only uneasy for it, not in revolt)
+    const far = mapStyle === 'europe' ? 16 : 8;
+    if (dist > far) {
+      let v = (dist - far) * 0.25; if (mapStyle === 'europe') v = Math.min(3, v);
       if (nationHasLaw(city.nationId, 'centralization')) v = Math.max(0, v - 1);
       if (v > 0.05) { value += v; factors.push({ label: `Distant from capital (${dist} hex)`, val: v }); }
     }
@@ -13378,8 +13431,10 @@ function getCityProductionPenalty(city) {
 function tryCityRebellion(city) {
   const status = getCityLoyaltyStatus(city);
   if (status.status !== 'rebellious') return false;
+  // (a town never rises to go back to a crown that signed it away, not for a generation of turns)
   const flipBack = city.originalNationId !== undefined && city.originalNationId !== city.nationId
-    && !nations[city.originalNationId]?.eliminated && !nations[city.originalNationId]?.isBarbarian;
+    && !nations[city.originalNationId]?.eliminated && !nations[city.originalNationId]?.isBarbarian
+    && !(city._cededBy === city.originalNationId && city._cededTurn === city.capturedTurn && turnNumber - (city._cededTurn || 0) < 30);
   if (flipBack && Math.random() < 0.18) {
 
     const oldOwner = city.nationId;
@@ -15414,7 +15469,7 @@ function updateCityThreats() {
     city._threatened = foes.length > 0;
     if (city._threatened && !was) {
       const who = nations[foes[0].nationId];
-      showToast(`⚔ ${who?.isBarbarian ? 'Raiders' : (who?.name || 'Enemies')} near ${city.name}! (${foes.length} ${foes.length === 1 ? 'unit' : 'units'})`);
+      showToast(`⚔ ${who?.isBarbarian ? 'Raiders' : who ? cap1st(theCrown(who)) : 'Enemies'} near ${city.name}! (${foes.length} ${foes.length === 1 ? 'unit' : 'units'})`);
     }
   }
 }
@@ -20356,7 +20411,7 @@ function renderKingdoms() {
     if (pendingReq === 'tribute') {
       html += `<div class="kc-ask">They demand ${n._tributeAsk || 30} gold in tribute <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'tribute')" title="Pay: they keep the peace for 15 turns and think better of you; -3 legitimacy">Pay</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'tribute')" title="Refuse: they think much worse of you; +2 legitimacy">Refuse</button></span></div>`;
     } else if (pendingReq) {
-      const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Barbarian Pact', marriage: 'a Royal Marriage' };
+      const reqLabels = { open_borders: 'Open Borders', war_help: 'a War Alliance', barb_help: 'a Pact Against Brigands', marriage: 'a Royal Marriage' };
       html += `<div class="kc-ask">They ask for ${reqLabels[pendingReq] || escHtml(String(pendingReq))} <span><button class="diplo-btn ok" onclick="acceptRequest(${n.id},'${pendingReq}')">Accept</button><button class="diplo-btn no" onclick="rejectRequest(${n.id},'${pendingReq}')">Reject</button></span></div>`;
     }
     // what you can do
@@ -20375,7 +20430,7 @@ function renderKingdoms() {
         ? `<span class="kc-pact on">✓ ${name}<button onclick="cancelAgreement(${n.id},'${type}')" title="End it">×</button></span>`
         : show ? `<button class="kc-pact" onclick="${req}"${PACT_NEEDS[type] ? ` title="Propose it: ${escHtml(pactOdds(n.id, type))}"` : ''}>+ ${name}</button>` : '';
       const canMap = loy >= 20;
-      html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you (${marriageChance(n.id) ? oddsWord(marriageChance(n.id)) : 'they think too little of you'})">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Barbarian Pact', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
+      html += `<div class="kc-pacts">${hasAgreement(playerNation, n.id, 'marriage') ? '<span class="kc-pact on" title="Your houses are joined by marriage: each thinks better of the other every turn, and war between you costs 15 legitimacy">\u2713 Royal Marriage</span>' : `<button class="kc-pact" onclick="proposeMarriage(${n.id})" title="Propose a match between the two courts: 60 gold (half back if they refuse). They must think well of you (${marriageChance(n.id) ? oddsWord(marriageChance(n.id)) : 'they think too little of you'})">+ Marriage 60g</button>`}${pact('open_borders', 'Open Borders', `requestAgreement(${n.id},'open_borders')`)}${pact('war_help', 'War Alliance', `requestAgreement(${n.id},'war_help')`, atWarWith.length > 0)}${pact('barb_help', 'Pact Against Brigands', `requestAgreement(${n.id},'barb_help')`)}${hasAgreement(playerNation, n.id, 'mapping') ? pact('mapping', 'Mapping', '') : `<button class="kc-pact" onclick="requestMappingAgreement(${n.id})" ${canMap ? 'title="Each shows the other its borders — 30 gold"' : 'disabled title="Relations too poor"'}>+ Mapping 30g</button>`}</div>`;
       // the trade panel, as it was
       html += `<div id="tradePanel_${n.id}" class="kc-trade" style="display:none;">`;
       const tradeMarkup = loy >= 80 ? 1.0 : loy >= 50 ? 1.25 : loy >= 20 ? 1.5 : 2.0;
@@ -20482,7 +20537,7 @@ function peaceTownFor(nationId) {
 }
 function cedeTown(city, newOwner) {
   const oldOwner = city.nationId; if (oldOwner === newOwner || city.isCapital) return false;   // (a crown never signs away its capital)
-  city.nationId = newOwner; city.paid = []; city.capturedTurn = turnNumber;
+  city.nationId = newOwner; city.paid = []; city.capturedTurn = turnNumber; city._cededBy = oldOwner; city._cededTurn = turnNumber;
   city._occupied = null; city._besieged = city._blockaded = city._siegeShown = city._blockShown = false; city.siegeTurns = 0; city._roadCut = city._cutShown = false;
   city.producing = null; city.productionProgress = 0; city.productionQueue = [];
   for (const ti of city.ownedTiles) if (tiles[ti].owner === oldOwner) tiles[ti].owner = newOwner;
@@ -20578,7 +20633,7 @@ const PACT_NEEDS = { open_borders: 40, war_help: 60, barb_help: 30 };
 function pactOdds(nationId, type) { return getLoyalty(nationId, playerNation) < PACT_NEEDS[type] ? `they think too little of you (they must be ${getLoyaltyLabel(PACT_NEEDS[type])})` : oddsWord(1 - pactRefuseChance(nationId, type)); }
 function requestAgreement(nationId, type) {
   const loy = getLoyalty(nationId, playerNation);
-  const labels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Barbarian Pact' };
+  const labels = { open_borders: 'Open Borders', war_help: 'War Alliance', barb_help: 'Pact Against Brigands' };
   const thresholds = { open_borders: 40, war_help: 60, barb_help: 30 };
   if (loy < thresholds[type]) {
     showToast(`${nations[nationId].name} refuses — relations too poor (need ${getLoyaltyLabel(thresholds[type])}+).`);
@@ -21498,7 +21553,7 @@ function renderNationPicker() {
       <img class="portrait nation-face" src="portraits/${(cultureByName(n.name) || { p: 'west' }).p}_${r && r[1] === 'female' ? 'f' : 'm'}.jpg" alt="" style="border-color:${safeColor(n.color)}">
       <div>
         <div class="nation-card-name">${escHtml(nm)}</div>
-        <div class="nation-card-sub">${r ? escHtml(r[0]) : Y ? '&nbsp;' : n.cityNames.slice(0,2).join(', ')}</div>
+        <div class="nation-card-sub">${r ? escHtml(r[0].split(',')[0]) : Y ? '&nbsp;' : n.cityNames.slice(0,2).join(', ')}</div>
       </div>
     </div>`; }).join('');
 }
@@ -21761,7 +21816,7 @@ function updateTileTooltip(mx, my, screenX, screenY) {
   const campHere = getBarbarianCamp(mx, my);
   if (campHere) {
     if (!campHere.destroyed) {
-      html += `<div class="tt-detail" style="color:#d0603e">\uD83D\uDD25 Barbarian Camp</div>`;
+      html += `<div class="tt-detail" style="color:#d0603e">Brigand Camp</div>`;
       html += `<div class="tt-detail" style="color:#c88">Place a unit here to destroy, or settle with a settler</div>`;
     }
   }
@@ -23778,7 +23833,7 @@ function serializeGame() {
     productionQueue: c.productionQueue || [], paid: c.paid || [],
     originalNationId: c.originalNationId, _capitalOf: c._capitalOf,
     foundedTurn: c.foundedTurn,
-    capturedTurn: c.capturedTurn,
+    capturedTurn: c.capturedTurn, _cededBy: c._cededBy, _cededTurn: c._cededTurn,
     burnTurn: c.burnTurn,
     siegeTurns: c.siegeTurns,
   }));
@@ -24113,7 +24168,8 @@ function spawnAINations(count) {
     const sp = (mapStyle === 'europe' && europeCapitalSite(preset.name)) || findRandomCapitalSite();
     citySites.push({ x: sp.x, y: sp.y, settled: false });
     const settler = spawnUnit('settler', nId, sp.x, sp.y);
-    const capitalCity = foundCity(settler, getNextHistoricalCityName(nId));
+    const capName = getNextHistoricalCityName(nId), euCap = mapStyle === 'europe' && europeCapitalName(preset.name);
+    const capitalCity = foundCity(settler, euCap || capName, !!euCap);
     capitalCity.producing = 'settler';
     if (mapStyle === 'europe') europeExtraTowns(nId, preset.name);
     for (const uType of ['worker', 'worker', 'swordsman', 'scout']) {
@@ -24347,7 +24403,8 @@ function generateAndPlay(pName, pColor, opponents) {
   const sp = (mapStyle === 'europe' && europeCapitalSite(pName)) || findRandomCapitalSite();
   citySites.push({ x: sp.x, y: sp.y, settled: false });
   const playerSettler = spawnUnit('settler', playerNation, sp.x, sp.y);
-  const startCity = foundCity(playerSettler, getNextHistoricalCityName(playerNation));
+  const capName = getNextHistoricalCityName(playerNation), euCap = mapStyle === 'europe' && europeCapitalName(pName);
+  const startCity = foundCity(playerSettler, euCap || capName, !!euCap);
   startCity.producing = 'settler';
   if (mapStyle === 'europe') europeExtraTowns(playerNation, pName);
   for (const uType of ['swordsman', 'scout', 'worker', 'worker']) {

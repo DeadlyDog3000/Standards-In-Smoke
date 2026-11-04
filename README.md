@@ -18,11 +18,11 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 ## Features
 
 - An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
-- A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names
+- A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names; the crowns go by the names of the year you begin in (the Dutch Republic, the Kingdom of Sardinia at Turin, Poland-Lithuania), each with that year's ruler
 - The 1672 start: the Disaster Year, Louis XIV's war on the Dutch Republic, the Water Line and William of Orange, until the Peace of Nijmegen
 - The 1683 start: the Siege of Vienna, the Grand Vizier's army at the gates and Sobieski riding to the relief, then the Holy League and the Nine Years' War, until the Peace of Karlowitz
 - The 1700 start: the War of the Spanish Succession and the Great Northern War at once, Louis XIV and Marlborough, Charles XII and Peter the Great, until the Peace of Utrecht
-- The 1718 start: Alberoni's gamble, Philip V's Spain landed in Sicily against the Quadruple Alliance of the Emperor, Britain, France and the Dutch, and the last years of the Great Northern War; Cape Passaro and Fredriksten, until the Peace of Nystad
+- The 1718 start: Alberoni's gamble, Philip V's Spain landed on Victor Amadeus's Sicily against the Quadruple Alliance of the Emperor, Britain, France and the Dutch, and the last years of the Great Northern War; Cape Passaro and Fredriksten, until the Peace of Nystad
 - The 1733 start: the War of the Polish Succession, France, Spain and Sardinia for King Stanisław against Austria, Russia and Saxony; Danzig, Don Carlos in Naples, then the war with the Turk, until the Peace of Belgrade
 - The 1740 start: the War of the Austrian Succession, Frederick's seizure of Silesia from the young Maria Theresa, until the Peace of Aix-la-Chapelle
 - The 1756 start: the Seven Years' War, Frederick the Great and Britain against France, Austria and Russia, until the Peace of Paris
@@ -38,7 +38,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - Old World-style orders, ambitions (fulfil ten to win), promotions chosen at each rank, families, laws and a court
 - Regiments with morale, formations, experience and promotions; merged regiments that fire as one; ships that carry regiments across the sea and land them, or troops that take to the water in their own boats; fleets that blockade ports
 - Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
-- 120 events, four seasons, raiders and tribes, wonders, a market, and a chart of every crown's score through the game
+- 120 events, four seasons, brigand bands and tribes, wonders, a market, and a chart of every crown's score through the game
 - Synthesised sound effects, period music, and saves in your browser
 - Plays on a phone as well: tap to order, with the panels sized for a small screen
 
