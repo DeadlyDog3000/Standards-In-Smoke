@@ -1192,6 +1192,7 @@
         - On the map of Europe a crown's far provinces are uneasy for being far, not in revolt<br>
         - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
         - The crowns to choose from fit on a phone's screen<br>
+        - From 1718 to 1792 Milan is the Emperor's, as it was from Utrecht until Bonaparte came (but in 1733, when the King of Sardinia has just taken it)<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2410,6 +2411,7 @@
           - On the map of Europe a crown's far provinces are uneasy for being far, not in revolt<br>
           - Barbarians are brigands now: brigand bands, mounted brigands and brigand captains, brigand camps, and a Pact Against Brigands<br>
           - The crowns to choose from fit on a phone's screen<br>
+          - From 1718 to 1792 Milan is the Emperor's, as it was from Utrecht until Bonaparte came (but in 1733, when the King of Sardinia has just taken it)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.7</b></div>
         <div style="margin-bottom:12px;">
@@ -7334,8 +7336,10 @@ function europeExtraTowns(nId, presetName) {
   const sav = presetName === 'Kingdom of Italy' && (curAliases(true)?.[presetName] || '').match(/Sardinia|Sicily/);
   // (and in 1718 Sicily is Savoy's, not Naples's, whichever crown is set down first)
   //  (in 1733 Charles Emmanuel has just taken Milan, which the Peace of Vienna gives back to the Emperor)
-  for (const nm of sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : preset.cityNames.slice(1, 10).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy'))) {
-    if (made >= 2) break;
+  // (and Milan was the Emperor's from Utrecht until Bonaparte came, but for the year Charles Emmanuel held it)
+  const lomb = presetName === 'Austria' && ['1718', '1740', '1756', '1778', '1788', '1792'].includes(scenario);
+  for (const nm of sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? ['Prague', 'Budapest', 'Milan'] : preset.cityNames.slice(1, 10).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy'))) {
+    if (made >= (lomb ? 3 : 2)) break;
     const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) continue;
     const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
     let done = false;
