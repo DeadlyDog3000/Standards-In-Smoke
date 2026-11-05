@@ -16972,7 +16972,8 @@ function worldChartKey() {
 // the next season's sheet, drawn ahead into a spare canvas while the player is idle (the season turns every turn, and
 //  a new sheet costs a quarter of a second or more; only where memory allows the second copy)
 function owCanPrebuild() {
-  return !window.__film && !('ontouchstart' in window) && !(navigator.deviceMemory && navigator.deviceMemory < 4);
+  // (not on phones and tablets, which keep the one sheet; a laptop with a touch screen is no phone, so it is the mode that decides, not the touch)
+  return !window.__film && !document.body.classList.contains('mobile-mode') && !(navigator.deviceMemory && navigator.deviceMemory < 4);
 }
 function owPrebuildNextSeason() {
   if (!OW.canvas || !tiles.length || !owCanPrebuild()) return;
