@@ -9329,6 +9329,11 @@ function tickScenario() {
       const say = '1810: Louis Bonaparte gives up his crown rather than starve the Dutch for the blockade, and Holland is annexed to the French Empire.';
       showToast(say); annal(say.replace(/^\d{4}: /, ''));
     }
+    // (and if the Empire is yours, the annexation is yours to decree: Holland's towns and regiments yours, or King Louis left on his throne)
+    else if (nl && fr && fr.id === playerNation && r && r.name === 'Louis Bonaparte' && nl.relations[fr.id] !== 'war' && !window.__film) scenChoice('The Kingdom of Holland',
+      'Your brother Louis will not starve his Dutch to keep the blockade, and the smugglers of Holland feed England. You may take his crown from him and make Holland part of the Empire.',
+      [['Annex Holland to the Empire', () => { annexCrown(nl, fr, true); const say = 'King Louis gives up his crown, and Holland is annexed to the French Empire.'; showToast(say); annal(say); }],
+       ['Leave Louis his throne', () => { annal('We left King Louis on the throne of Holland.'); }]]);
   }
   if (year >= 1807 && !done.westphalia) {   // (the Elector of Hesse is driven out, and Kassel is the seat of Jérôme's new Westphalia)
     done.westphalia = true;
