@@ -17,7 +17,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 
 ## Features
 
-- An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore
+- An engraved atlas map: plains, forest, hills, mountains, marsh, rivers, lakes and sea, charted as you explore, coloured anew each season; the north lies under snow, deepest on the high fells and the shaded slopes, and in winter it comes down to the Baltic and the northern seas freeze
 - A map of Europe (choose it under Lands): every crown at its real capital with its historical towns, the great rivers, and the seas and ranges under their old names; the crowns go by the names of the year you begin in (the Dutch Republic, the Kingdom of Sardinia at Turin, Poland-Lithuania), each with that year's ruler
 - The 1672 start: the Disaster Year, Louis XIV's war on the Dutch Republic, the Water Line and William of Orange, until the Peace of Nijmegen
 - The 1683 start: the Siege of Vienna, the Grand Vizier's army at the gates and Sobieski riding to the relief, then the Holy League and the Nine Years' War, until the Peace of Karlowitz
