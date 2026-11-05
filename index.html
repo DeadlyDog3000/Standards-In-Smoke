@@ -8999,7 +8999,9 @@ function tickScenario1792() {
   // (the Austrian Netherlands, which the Republic annexed in 1795, are France's by the treaty: their towns pass to her, and the Emperor's regiments there go home)
   const giveNetherlands = () => { const be = anyName('Belgium'); if (be && be.id !== playerNation && fr) annexCrown(be, fr, false); };
   if (year >= 1797 && !done.campo) { done.campo = true; if (ai(fr, au) && makePeace(fr, au)) { giveNetherlands(); tell('1797: by the Treaty of Campo Formio Austria makes peace with France and gives up the Netherlands.', fr, au); }
-    else if (fr && au && fr.relations[au.id] === 'war') peaceOffer('The Treaty of Campo Formio', fr.id === playerNation ? 'Austria, beaten in Italy, will make peace and give up the Netherlands.' : 'General Bonaparte is at Leoben, a hundred miles from Vienna, and offers peace for the Netherlands.', () => { makePeace(fr, au); giveNetherlands(); }, 'Peace is made at Campo Formio.'); }
+    else if (fr && au && fr.relations[au.id] === 'war') peaceOffer('The Treaty of Campo Formio', fr.id === playerNation ? 'Austria, beaten in Italy, will make peace and give up the Netherlands.' : 'General Bonaparte is at Leoben, a hundred miles from Vienna, and offers peace for the Netherlands.', () => { makePeace(fr, au); giveNetherlands(); }, 'Peace is made at Campo Formio.');
+    // (a peace the two made of themselves was this one: the Netherlands are France's)
+    else if (ai(fr, au) && anyName('Belgium') && anyName('Belgium').id !== playerNation) { giveNetherlands(); tell('1797: by the Treaty of Campo Formio Austria gives up the Netherlands to France.', fr, au); } }
   if (year >= 1798 && !done.nile) {   // (the Nile: Nelson destroys the fleet that carried Bonaparte to Egypt)
     done.nile = true;
     if (ai(fr) && gb && gb.id !== playerNation && gb.relations[fr.id] === 'war') {
