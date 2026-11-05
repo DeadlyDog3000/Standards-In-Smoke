@@ -17576,6 +17576,8 @@ function* owChartSteps(key) {
   const LIE = winter && mapStyle === 'europe' ? new Uint8Array(LW * LH) : null;
   if (LIE) (OW.lieBy || (OW.lieBy = {})).winter = LIE; else if (winter && OW.lieBy) delete OW.lieBy.winter;   // (where the sea is frozen: no waves drawn on it)
   const euro = mapStyle === 'europe', snowLat = { winter: 52, spring: 59, autumn: 59.5, summer: 60.5 }[season], iceLat = winter ? 58 : 65;
+  // (the lowland snow edge for each column of the sheet, worked out once rather than for every pixel)
+  const WEDGE = euro ? Float32Array.from({ length: LW }, (_, x) => owWinterEdge(EUROPE.lon0 + (x / LW) * EUROPE.w)) : null;
   for (let y = 0; y < LH; y++) { if (y && y % 24 === 0) yield; for (let x = 0; x < LW; x++) {
     const i = y * LW + x, lat = euro ? EUROPE.lat0 - (y / LH) * EUROPE.h : 70 - (y / LH) * 34;
     let r, g, b;
@@ -17611,7 +17613,7 @@ function* owChartSteps(key) {
         //  in spring and autumn the same, the lowland edge drawn back north-east (the Russian March) and only the higher mountains white;
         //  in summer only the high peaks (the Alps, the Caucasus); and the far north under snow the year round, as before
         const lon = EUROPE.lon0 + (x / LW) * EUROPE.w, sh = (1 - Math.min(1, SH[i])) * 2.2, cl = OW_SNOW_SEASON[season];
-        const low = cl.edge === null ? -99 : lat - owWinterEdge(lon) - cl.edge + H[i] * 2.5 - (lon < 22 ? (1 - INL[i]) * 5 : 0);
+        const low = cl.edge === null ? -99 : lat - WEDGE[x] - cl.edge + H[i] * 2.5 - (lon < 22 ? (1 - INL[i]) * 5 : 0);
         const hl = Math.max(0.35 + cl.hl, Math.min(1.2 + cl.hl, 0.5 + cl.hl + (47 - lat) * 0.035));
         reach = Math.max(low, (H[i] - hl) * 8) + sh;
         if (!winter) reach = Math.max(reach, lat + H[i] * 5 + sh - snowLat);
