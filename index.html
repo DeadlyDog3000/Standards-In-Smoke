@@ -1127,6 +1127,7 @@
         - 1718: the Emperor's Naples, which Spain means to win back, is in the war even with the usual twelve rivals<br>
         - Towns go by the names of the day: Buda, not Budapest; Pressburg, Brünn, Olmütz, Agram, Laibach, Vilna, Posen, Adrianople and Angora. No St. Petersburg before 1703, so in 1672, 1683 and 1700 the Tsar holds Kiev and Novgorod, and Riga is Sweden's. Buda is the Turk's until the Imperial army storms it in 1686 (and in 1788 Laudon's Belgrade is the Emperor's until Sistova gives it back), Brandenburg holds neither Stettin (Sweden's until 1713) nor Breslau (the Emperor's until Frederick takes it). Every crown begins with towns that were its own that year: Nuremberg and Augsburg are Bavaria's only from 1806, Geneva Swiss only from 1815, Erfurt and Halle never Saxon, Liège never the Netherlands', the Duchy of Milan no more than Milan (and no crown at all from 1714 to 1796, when it was the Emperor's), and Murat's Naples does not have Sicily. And the towns the year's wars were fought over are on the map in the right hands: Stettin Sweden's until 1713, Belgrade the Turk's, Lille and Strasbourg France's in 1792, Danzig and Vilna Poland's, Venice the Emperor's and Hanover French-occupied in 1805, Vilna, Smolensk and Riga on the road to Moscow in 1812. A town is set down only where it stood, never pushed onto another's ground under the wrong name. Hanover is among the usual twelve rivals in 1756, and the Austrian Netherlands in 1792 The aims that name Buda and Adrianople find them now<br>
         - The courts of their age: before the Revolution the great houses are the old courts' (Condé and Noailles in France, Golitsyn and Naryshkin in Russia, Stuart before 1714), not the Emperor's marshals, and characters are named for the noble families of their lands rather than for Blücher, Ney or Kutuzov. The map of Europe in 1680 has England and Brandenburg, Alexander Farnese in Brussels and Ernest Augustus in Hanover<br>
+        - The north lies under snow: on the map of Europe the Lapland fells, Finland and the Russian north are white the year round, the snow comes down to the Baltic in winter, and the Gulf of Bothnia and the White Sea freeze. On unknown lands the top of the sheet is snowy the same way<br>
         - More of the year's own heads where there were no kings: the Grand Pensionary Heinsius in 1700, van der Heim in 1740 (until the Dutch make William IV of Orange stadtholder of them all in 1747), the Regent Anne of Hanover, Hanover's Elector who is also King of Great Britain, the Viceroy Eugène in Italy, and the governors of Milan, Naples and the Netherlands. An opening that names a head by his office reads properly: "William I, the Elector, reigns in Kassel". Flagships and generals go by the names of their year too: the San Felipe el Real at Cape Passaro, the Dauphin Royal in 1792, Wellington an earl in 1812<br>
         - The annals use the names of the day too: Poland-Lithuania and Hanover declare war, not the Duchy of Warsaw and Westphalia<br>
         - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
@@ -2353,6 +2354,7 @@
           - 1718: the Emperor's Naples, which Spain means to win back, is in the war even with the usual twelve rivals<br>
           - Towns go by the names of the day: Buda, not Budapest; Pressburg, Brünn, Olmütz, Agram, Laibach, Vilna, Posen, Adrianople and Angora. No St. Petersburg before 1703, so in 1672, 1683 and 1700 the Tsar holds Kiev and Novgorod, and Riga is Sweden's. Buda is the Turk's until the Imperial army storms it in 1686 (and in 1788 Laudon's Belgrade is the Emperor's until Sistova gives it back), Brandenburg holds neither Stettin (Sweden's until 1713) nor Breslau (the Emperor's until Frederick takes it). Every crown begins with towns that were its own that year: Nuremberg and Augsburg are Bavaria's only from 1806, Geneva Swiss only from 1815, Erfurt and Halle never Saxon, Liège never the Netherlands', the Duchy of Milan no more than Milan (and no crown at all from 1714 to 1796, when it was the Emperor's), and Murat's Naples does not have Sicily. And the towns the year's wars were fought over are on the map in the right hands: Stettin Sweden's until 1713, Belgrade the Turk's, Lille and Strasbourg France's in 1792, Danzig and Vilna Poland's, Venice the Emperor's and Hanover French-occupied in 1805, Vilna, Smolensk and Riga on the road to Moscow in 1812. A town is set down only where it stood, never pushed onto another's ground under the wrong name. Hanover is among the usual twelve rivals in 1756, and the Austrian Netherlands in 1792 The aims that name Buda and Adrianople find them now<br>
           - The courts of their age: before the Revolution the great houses are the old courts' (Condé and Noailles in France, Golitsyn and Naryshkin in Russia, Stuart before 1714), not the Emperor's marshals, and characters are named for the noble families of their lands rather than for Blücher, Ney or Kutuzov. The map of Europe in 1680 has England and Brandenburg, Alexander Farnese in Brussels and Ernest Augustus in Hanover<br>
+          - The north lies under snow: on the map of Europe the Lapland fells, Finland and the Russian north are white the year round, the snow comes down to the Baltic in winter, and the Gulf of Bothnia and the White Sea freeze. On unknown lands the top of the sheet is snowy the same way<br>
           - More of the year's own heads where there were no kings: the Grand Pensionary Heinsius in 1700, van der Heim in 1740 (until the Dutch make William IV of Orange stadtholder of them all in 1747), the Regent Anne of Hanover, Hanover's Elector who is also King of Great Britain, the Viceroy Eugène in Italy, and the governors of Milan, Naples and the Netherlands. An opening that names a head by his office reads properly: "William I, the Elector, reigns in Kassel". Flagships and generals go by the names of their year too: the San Felipe el Real at Cape Passaro, the Dauphin Royal in 1792, Wellington an earl in 1812<br>
           - The annals use the names of the day too: Poland-Lithuania and Hanover declare war, not the Duchy of Warsaw and Westphalia<br>
           - The end of a historical game names the winner by its name of the day (Poland-Lithuania, not the Duchy of Warsaw), and the annals read naturally: taken from the Ottoman Empire, peace made with the Dutch Republic<br>
@@ -7360,7 +7362,9 @@ function europeCapitalName(name) {
 function europeTownName(x, y) {
   const [lon, lat] = euLonLat(x, y), cosL = Math.cos(lat * Math.PI / 180);
   let best = null, bd = 1.5;
+  const yr = Math.max(getCurrentYear(), scen()?.year || 0);   // (the start's own year while its towns are being set down)
   for (const [name, tl, tb] of EUROPE_TOWNS) {
+    if (TOWN_FOUNDED[name] > yr) continue;   // (no St. Petersburg on the Neva before Peter built it)
     const d = Math.hypot((tl - lon) * cosL, tb - lat);
     if (d < bd && !cities.some(c => c.name === name)) { bd = d; best = name; }
   }
@@ -17276,14 +17280,18 @@ function buildWorldChart(key) {
   const lowC = document.createElement('canvas'); lowC.width = LW; lowC.height = LH;
   const lg = lowC.getContext('2d'), img = lg.createImageData(LW, LH), d = img.data;
   const sea0 = winter ? [150, 168, 170] : [128, 156, 152], sea1 = winter ? [92, 112, 120] : [78, 108, 112];
+  // the north lies under snow: on the map of Europe by its latitude (the Lapland fells and the White Sea shore all the year,
+  //  down to the Baltic in winter), on unknown lands along the top of the sheet; and the far northern seas ice over
+  const euro = mapStyle === 'europe', snowLat = { winter: 52, spring: 59, autumn: 59.5, summer: 60.5 }[season], iceLat = winter ? 58 : 65;
   for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) {
-    const i = y * LW + x;
+    const i = y * LW + x, lat = euro ? EUROPE.lat0 - (y / LH) * EUROPE.h : 66 - (y / LH) * 30;
     let r, g, b;
     if (WAT[i] >= 0.5) {
       const k = Math.min(1, Math.max(0, 1 - NEAR[i] * 2.4)), n = NS[i];
       r = sea0[0] + (sea1[0] - sea0[0]) * k + n * 14; g = sea0[1] + (sea1[1] - sea0[1]) * k + n * 14; b = sea0[2] + (sea1[2] - sea0[2]) * k + n * 12;
       // winter: the shallows along the shore freeze white
       if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; }
+      else if (lat > iceLat - n * 1.5) { const k = Math.min(1, (lat - iceLat + n * 1.5) / 2.5) * 0.85; r += (220 - r) * k; g += (229 - g) * k; b += (233 - b) * k; }
     } else {
       // relief: lit from the north-west, as an engraver shades a hill (the shade only half laid in tone: the hatching carries the rest)
       const shade = SH[i] < 1 ? 1 - (1 - SH[i]) * 0.6 : SH[i];
@@ -17294,6 +17302,8 @@ function buildWorldChart(key) {
       const hi = Math.max(0, Math.min(0.85, (H[i] - 1.12) * 2)) * (MNT[i] > 0.3 ? 1 : 0) + (winter ? Math.max(0, Math.min(1, (H[i] - 0.25) * 2)) * 0.5 : 0);
       r += (238 - r) * hi; g += (236 - g) * hi; b += (228 - b) * hi;
       const n = NL[i];
+      const sn = Math.max(0, Math.min(1, (lat - snowLat + n * 3) / 3.5));
+      if (sn > 0) { const fq = tot ? WT[i * 9 + 5] / tot : 0, k = sn * (0.92 - 0.42 * fq); r += (238 - r) * k; g += (240 - g) * k; b += (238 - b) * k; }   // (the woods stand dark in it)
       r = r * shade + n * 16; g = g * shade + n * 16; b = b * shade + n * 12;
     }
     d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
