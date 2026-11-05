@@ -546,7 +546,8 @@
     #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
-    #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; background-size: 256px 256px, 180px 180px; animation: snowfall 22s linear infinite; }
+    #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; transition: opacity 1.2s; background-size: 256px 256px, 180px 180px; animation: snowfall 22s linear infinite; }
+    #weather.off { opacity: 0; }
     #weather.autumn { opacity: 0.9; background-size: 420px 420px, 300px 300px; animation: leaffall 26s linear infinite; }
     @keyframes snowfall { from { background-position: 0 0, 0 0; } to { background-position: 60px 512px, -40px 360px; } }
     @keyframes leaffall { from { background-position: 0 0, 0 0; } to { background-position: 840px 420px, 600px 600px; } }
@@ -7050,7 +7051,7 @@ function snowyAt(x, y) {
   _snowHex.v[i] = v; return !!v;
 }
 // winter: snow drifting down over the map (a CSS layer, so it costs the map nothing to draw)
-let _weatherEl = null, _weatherSeason = '', _weatherImgs = null;
+let _weatherEl = null, _weatherSeason = '', _weatherImgs = null, _weatherHide = 0;
 function updateWeather() {
   const shown = document.getElementById('game')?.style.display !== 'none';
   // (on the map of Europe, only while the middle of the view lies under the snow)
@@ -7084,9 +7085,10 @@ function updateWeather() {
     _weatherImgs = { winter: `url(${flakes(26, 1.6, 3.2, 7)}), url(${flakes(40, 1, 2, 31)})`, autumn: `url(${leaves(3, 11)}), url(${leaves(2, 53)})` };
     document.getElementById('game')?.appendChild(_weatherEl);
   }
-  _weatherEl.className = want;
-  if (want) _weatherEl.style.backgroundImage = _weatherImgs[want];
-  _weatherEl.style.display = want ? 'block' : 'none';
+  // (the snow sets in and lets up over a second or so, as the view is carried over the snow line)
+  clearTimeout(_weatherHide);
+  if (want) { _weatherEl.className = want + ' off'; _weatherEl.style.backgroundImage = _weatherImgs[want]; _weatherEl.style.display = 'block'; void _weatherEl.offsetWidth; _weatherEl.classList.remove('off'); }
+  else { _weatherEl.classList.add('off'); _weatherHide = setTimeout(() => { if (!_weatherSeason) _weatherEl.style.display = 'none'; }, 1300); }
 }
 function toRoman(v) {
   let r = '';
