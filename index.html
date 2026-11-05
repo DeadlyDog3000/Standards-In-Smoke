@@ -17164,13 +17164,14 @@ function owMarkSprite(k, season, u, green) {
   _owSprites.set(key, c); return c;
 }
 function owDrawMarks(g, marks, season, u, x0 = -Infinity, y0 = -Infinity, x1 = Infinity, y1 = Infinity) {
-  const winter = season === 'winter', ink = 'rgba(52, 38, 24, ', snow = OW.F && OW.snowBy && OW.snowBy[season];
+  const winter = season === 'winter', ink = 'rgba(52, 38, 24, ', snow = OW.F && OW.snowBy && OW.snowBy[season], ice = OW.F && OW.iceBy && OW.iceBy[season];
   const forestCol = winter ? 'rgb(96, 110, 92)' : season === 'autumn' ? 'rgb(136, 104, 58)' : 'rgb(96, 112, 62)';
   const forestLit = winter ? 'rgb(150, 162, 146)' : season === 'autumn' ? 'rgb(176, 140, 82)' : 'rgb(140, 152, 92)';
   // in autumn not every tree has turned: some stay green
   const autumnGreen = ['rgb(104, 112, 64)', 'rgb(146, 150, 92)'];
   for (const m of marks) {
     if (m.x < x0 || m.x > x1 || m.y < y0 || m.y > y1) continue;
+    if (m.k === 'wave' && ice) { const R0 = OW.F.R; if (ice[((m.y / R0) | 0) * OW.F.LW + ((m.x / R0) | 0)]) continue; }   // (no waves on a frozen sea)
     if (m.k === 'tuft' && snow) { const R0 = OW.F.R; if (snow[((m.y / R0) | 0) * OW.F.LW + ((m.x / R0) | 0)] > 0.35) continue; }   // (no grass showing through the snow)
     const box = !m._one && OW_SPRITE_BOX[m.k];
     if (box) {
@@ -17428,7 +17429,7 @@ function buildWorldChart(key) {
       changed.push(i);
       if (OW_WATER(F.types[i]) || OW_WATER(tiles[i].type)) full = true; // the coast moved: all the sea lines with it
     }
-    if (full || changed.length > 40) { OW.F = owLandFields(tileKey); owPlaceNames(); OW.snowBy = {}; }
+    if (full || changed.length > 40) { OW.F = owLandFields(tileKey); owPlaceNames(); OW.snowBy = {}; OW.iceBy = {}; }
     else {
       // a few hexes of land changed: work out the ground round them again, and set the trees and peaks anew
       const { K: k, CS: cs, CH: chh, R: r, LW: lw, LH: lh } = F;
@@ -17451,6 +17452,7 @@ function buildWorldChart(key) {
   //  down to the Baltic in winter), on unknown lands along the top of the sheet; and the far northern seas ice over
   const SNOW = new Float32Array(LW * LH);   // (how deep the snow lies, for the drifts drawn over it below, and no grass tufts on it)
   (OW.snowBy || (OW.snowBy = {}))[season] = SNOW;
+  const ICE = new Uint8Array(LW * LH); (OW.iceBy || (OW.iceBy = {}))[season] = ICE;   // (where the sea is frozen: no waves drawn on it)
   const euro = mapStyle === 'europe', snowLat = { winter: 52, spring: 59, autumn: 59.5, summer: 60.5 }[season], iceLat = winter ? 58 : 65;
   for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) {
     const i = y * LW + x, lat = euro ? EUROPE.lat0 - (y / LH) * EUROPE.h : 70 - (y / LH) * 34;
@@ -17459,12 +17461,12 @@ function buildWorldChart(key) {
       const k = Math.min(1, Math.max(0, 1 - NEAR[i] * 2.4)), n = NS[i];
       r = sea0[0] + (sea1[0] - sea0[0]) * k + n * 14; g = sea0[1] + (sea1[1] - sea0[1]) * k + n * 14; b = sea0[2] + (sea1[2] - sea0[2]) * k + n * 12;
       // winter: the shallows along the shore freeze white
-      if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; }
+      if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; ICE[i] = 1; }
       else if (lat > iceLat - 2) {
         // sea ice: fast ice along the shore, broken into floes and open leads further out
         const into = lat - iceLat + n * 1.5 + NEAR[i] * 3, fl = into > 1.6 || into <= 0 ? 0.5 : owFbm(x * 0.09, y * 0.09, 41, 3);   // (the noise only where the floes break up)
         const k = into > 1.6 ? 0.9 : into > 0 && fl > 0.62 - into * 0.12 ? 0.75 + (fl - 0.5) * 0.4 : 0;
-        if (k) { const cr = owHash(x, y, 43) > 0.93 ? 0.88 : 1; r += (218 * cr - r) * k; g += (228 * cr - g) * k; b += (236 * cr - b) * k; }
+        if (k) { const cr = owHash(x, y, 43) > 0.93 ? 0.88 : 1; r += (218 * cr - r) * k; g += (228 * cr - g) * k; b += (236 * cr - b) * k; ICE[i] = 1; }
       }
     } else {
       // relief: lit from the north-west, as an engraver shades a hill (the shade only half laid in tone: the hatching carries the rest)
@@ -18459,9 +18461,11 @@ function owWaterMask() {
   if (_owSea.key === key) return _owSea.mask;
   const { LW, LH, WAT, NEAR } = F, c = document.createElement('canvas'); c.width = LW; c.height = LH;
   const g = c.getContext('2d'), img = g.createImageData(LW, LH), d = img.data, winter = (OW.season || currentSeason) === 'winter';
+  const ice = OW.iceBy && OW.iceBy[OW.season || currentSeason];
   for (let i = 0; i < LW * LH; i++) {
     let a = Math.max(0, Math.min(1, (WAT[i] - 0.55) * 4));
     if (winter && NEAR && NEAR[i] > 0.3) a = 0; // (the frozen shallows)
+    if (ice && ice[i]) a = 0;   // (and the northern sea where it is frozen: no water moving under the ice)
     d[i * 4 + 3] = a * 255;
   }
   g.putImageData(img, 0, 0);
