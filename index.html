@@ -8721,7 +8721,11 @@ function treatyCede(name, to, from) {
 function annexCrown(n, to, troops) {
   if (!n || !to || n.eliminated) return false;
   for (const c of cities.filter(c => c.nationId === n.id)) { c.isCapital = false; cedeTown(c, to.id); }
-  for (const u of units.filter(u => u.nationId === n.id)) { if (troops) { u.nationId = to.id; for (const c of u.cargo || []) c.nationId = to.id; } else removeUnit(u); }
+  for (const u of units.filter(u => u.nationId === n.id)) {
+    if (!troops) { removeUnit(u); continue; }
+    u.nationId = to.id; for (const c of u.cargo || []) c.nationId = to.id;
+    if (u.characterId !== undefined) { const ch = characters.find(c => c.id === u.characterId); if (ch) ch.unitId = undefined; delete u.characterId; }   // (the old crown's general serves on, no longer of its court)
+  }
   n._lastCapturedBy = to.id;
   return true;
 }
