@@ -32,6 +32,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - The 1805 start: Europe in the year of Austerlitz, Napoleon and the crowned heads of the age on their thrones, and the Third Coalition already at war with France; the score is counted at the Congress of Vienna
 - The 1812 start: the invasion of Russia, Borodino, Moscow and the winter retreat, the Sixth Coalition and Leipzig, until the Congress of Vienna
 - Reigns that end: rulers age with the calendar, heirs grow up and are crowned under their regnal names, regents rule for a child
+- Each start as it stood: crowns not yet made are left out (no Duchy of Warsaw in 1805, no Belgium after 1795), crowns go by the names and heads of their year (England until the Union of 1707, Brandenburg until 1701, the Electorate of Saxony until 1806), and the governors and viceroys of the Habsburg lands rule there
 - Rival crowns with tempers, tribute, royal marriages, war-weariness, and coalitions against whoever grows too great (you included); peace that can cost a town, theirs or yours
 - 21 historical nations, each with its own capital, town names and the coats its line infantry wore in 1805 to 1812
 - Towns with production, jobs, borders that grow, walls and bastions, and costs that rise with every town
