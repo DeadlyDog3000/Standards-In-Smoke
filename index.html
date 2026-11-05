@@ -1126,6 +1126,7 @@
         - Towns go by the names of the day: Buda, not Budapest; Pressburg, Brünn, Olmütz, Agram, Laibach, Vilna, Posen, Adrianople and Angora. No St. Petersburg before 1703, so in 1672, 1683 and 1700 the Tsar holds Kiev and Novgorod, and Riga is Sweden's. Buda is the Turk's until the Imperial army storms it in 1686 (and in 1788 Laudon's Belgrade is the Emperor's until Sistova gives it back), Brandenburg holds neither Stettin (Sweden's until 1713) nor Breslau (the Emperor's until Frederick takes it). Every crown begins with towns that were its own that year: Nuremberg and Augsburg are Bavaria's only from 1806, Geneva Swiss only from 1815, Erfurt and Halle never Saxon, Liège never the Netherlands', the Duchy of Milan no more than Milan (and no crown at all from 1714 to 1796, when it was the Emperor's), and Murat's Naples does not have Sicily. And the towns the year's wars were fought over are on the map in the right hands: Stettin Sweden's until 1713, Belgrade the Turk's, Lille and Strasbourg France's in 1792, Danzig and Vilna Poland's, Venice the Emperor's and Hanover French-occupied in 1805, Vilna, Smolensk and Riga on the road to Moscow in 1812. A town is set down only where it stood, never pushed onto another's ground under the wrong name. Hanover is among the usual twelve rivals in 1756, and the Austrian Netherlands in 1792. The aims that name Buda and Adrianople find them now<br>
         - The courts of their age: before the Revolution the great houses are the old courts' (Condé and Noailles in France, Golitsyn and Naryshkin in Russia, Stuart before 1714), not the Emperor's marshals, and characters are named for the noble families of their lands rather than for Blücher, Ney or Kutuzov. The map of Europe in 1680 has England and Brandenburg, Alexander Farnese in Brussels and Ernest Augustus in Hanover<br>
         - Faster: the map's trees, firs and hills are drawn from little kept pictures rather than stroke by stroke (they take well under half the time to lay down on a new season's sheet), and the realms' boundaries are laid on a realm at a time rather than hex by hex, so a crowded map scrolls and zooms more smoothly. The lie of the land is worked out about a fifth faster when a game begins, and a laptop with a touch screen no longer redraws the whole sheet at every end of turn<br>
+        - Smoother on phones and tablets: the new season's sheet is drawn a little at a time over the next few frames, the old one standing meanwhile, so the end of a turn no longer stops for it (a quarter of a second or more on a phone); the new season is on the map a moment later<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.8</b></div>
       <div style="margin-bottom:12px;">
@@ -2361,6 +2362,7 @@
           - Towns go by the names of the day: Buda, not Budapest; Pressburg, Brünn, Olmütz, Agram, Laibach, Vilna, Posen, Adrianople and Angora. No St. Petersburg before 1703, so in 1672, 1683 and 1700 the Tsar holds Kiev and Novgorod, and Riga is Sweden's. Buda is the Turk's until the Imperial army storms it in 1686 (and in 1788 Laudon's Belgrade is the Emperor's until Sistova gives it back), Brandenburg holds neither Stettin (Sweden's until 1713) nor Breslau (the Emperor's until Frederick takes it). Every crown begins with towns that were its own that year: Nuremberg and Augsburg are Bavaria's only from 1806, Geneva Swiss only from 1815, Erfurt and Halle never Saxon, Liège never the Netherlands', the Duchy of Milan no more than Milan (and no crown at all from 1714 to 1796, when it was the Emperor's), and Murat's Naples does not have Sicily. And the towns the year's wars were fought over are on the map in the right hands: Stettin Sweden's until 1713, Belgrade the Turk's, Lille and Strasbourg France's in 1792, Danzig and Vilna Poland's, Venice the Emperor's and Hanover French-occupied in 1805, Vilna, Smolensk and Riga on the road to Moscow in 1812. A town is set down only where it stood, never pushed onto another's ground under the wrong name. Hanover is among the usual twelve rivals in 1756, and the Austrian Netherlands in 1792. The aims that name Buda and Adrianople find them now<br>
           - The courts of their age: before the Revolution the great houses are the old courts' (Condé and Noailles in France, Golitsyn and Naryshkin in Russia, Stuart before 1714), not the Emperor's marshals, and characters are named for the noble families of their lands rather than for Blücher, Ney or Kutuzov. The map of Europe in 1680 has England and Brandenburg, Alexander Farnese in Brussels and Ernest Augustus in Hanover<br>
           - Faster: the map's trees, firs and hills are drawn from little kept pictures rather than stroke by stroke (they take well under half the time to lay down on a new season's sheet), and the realms' boundaries are laid on a realm at a time rather than hex by hex, so a crowded map scrolls and zooms more smoothly. The lie of the land is worked out about a fifth faster when a game begins, and a laptop with a touch screen no longer redraws the whole sheet at every end of turn<br>
+          - Smoother on phones and tablets: the new season's sheet is drawn a little at a time over the next few frames, the old one standing meanwhile, so the end of a turn no longer stops for it (a quarter of a second or more on a phone); the new season is on the map a moment later<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 12.8</b></div>
         <div style="margin-bottom:12px;">
@@ -17194,11 +17196,17 @@ function getWorldChart() {
       OW.canvas = OW.next.canvas; OW.mips = OW.next.mips; OW.season = OW.next.season; OW.key = OW.next.key; OW.sheetTiles = tiles; OW.next = null;
     } else if (nx.season !== split(OW.key).season && nx.season !== want.season) OW.next = null;
   }
+  if (OW.job) {   // (a sheet being drawn a slice a frame: let it go on, unless the season or the land has changed again meanwhile)
+    if (OW.job.key === key && OW.job.tilesRef === tiles) return OW.canvas;
+    owStopSlices();
+  }
   if (OW.key !== key) {
     // only the land has changed: the sheet stands a few seconds more and is drawn again when the player is idle
     const have = split(OW.key), onlyLand = OW.canvas && OW.sheetTiles === tiles && have.season === want.season && have.dims === want.dims && owCanPrebuild();
     if (onlyLand && !OW.landLate) { OW.landLate = performance.now(); owSchedulePrebuild(); }
-    if (!onlyLand || performance.now() - OW.landLate > 10000) { OW.landLate = 0; try { buildWorldChart(key); OW.sheetTiles = tiles; } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } if (!OW.next) owSchedulePrebuild(); }
+    // (on a phone, the new season or the changed land drawn over the next frames, the old sheet standing till then)
+    if (OW.canvas && OW.sheetTiles === tiles && have.dims === want.dims && owSliced()) owStartSlices(key);
+    else if (!onlyLand || performance.now() - OW.landLate > 10000) { OW.landLate = 0; try { buildWorldChart(key); OW.sheetTiles = tiles; } catch (e) { console.error(e); OW.canvas = null; OW.key = key; } if (!OW.next) owSchedulePrebuild(); }
   }
   return OW.canvas;
 }
@@ -17472,6 +17480,34 @@ function owLandFields(tileKey) {
     waterLines: [0.42, 0.28, 0.17, 0.09].map(l => contour(NEAR, l)), coast: contour(WAT, 0.5) };
 }
 function buildWorldChart(key) {
+  owStopSlices();
+  try { for (const it = owChartSteps(key); !it.next().done;); } finally { OW.dirty = false; }
+}
+// a new sheet drawn a few milliseconds a frame where there is no room for a second copy to draw it in ahead (phones and
+//  tablets): the season turns every turn, and drawing the sheet whole held the end of the turn up a quarter of a second or more.
+//  The old sheet's half-size copy stands in while the sheet itself is being drawn over; the new one is up within a second or so
+function owSliced() { return !owCanPrebuild() && !window.__film; }
+function owStartSlices(key) {
+  owStopSlices();
+  const job = OW.job = { key, it: owChartSteps(key), tilesRef: tiles, t0: performance.now(), ms: 0, frames: 0 };
+  const step = () => {
+    if (OW.job !== job) return;
+    if (job.tilesRef !== tiles) { owStopSlices(); OW.key = ''; return; }   // (another game came up meanwhile: its own sheet is drawn for it)
+    const t0 = performance.now(); job.frames++;
+    try {
+      while (performance.now() - t0 < 8) if (job.it.next().done) {
+        OW.job = null; OW.dirty = false; OW.sheetTiles = tiles; _owLayer.key = '';
+        job.ms += performance.now() - t0; OW.lastSlices = { ms: Math.round(job.ms), took: Math.round(performance.now() - job.t0), frames: job.frames };
+        render(); return;
+      }
+    } catch (e) { console.error(e); owStopSlices(); OW.canvas = null; OW.key = key; return; }
+    job.ms += performance.now() - t0;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function owStopSlices() { OW.job = null; OW.dirty = false; }
+function* owChartSteps(key) {
   OW.key = key;
   const season = currentSeason in OW_WASH ? currentSeason : 'spring', wash = OW_WASH[season], winter = season === 'winter';
   // the lie of the land (heights, coasts, where every tree and peak stands) is worked out once per map; a new season only recolours it
@@ -17496,6 +17532,7 @@ function buildWorldChart(key) {
       }
       F.marks = F.genMarks(); F.tileKey = tileKey;
     }
+    yield;
   }
   const { K, CS, CH, TW, TH, R, LW, LH, N, H, WAT, MNT, NEAR, WT, marks, NS, NL, SH } = OW.F;
   // colour and shade it
@@ -17508,7 +17545,7 @@ function buildWorldChart(key) {
   (OW.snowBy || (OW.snowBy = {}))[season] = SNOW;
   const ICE = new Uint8Array(LW * LH); (OW.iceBy || (OW.iceBy = {}))[season] = ICE;   // (where the sea is frozen: no waves drawn on it)
   const euro = mapStyle === 'europe', snowLat = { winter: 52, spring: 59, autumn: 59.5, summer: 60.5 }[season], iceLat = winter ? 58 : 65;
-  for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) {
+  for (let y = 0; y < LH; y++) { if (y && y % 24 === 0) yield; for (let x = 0; x < LW; x++) {
     const i = y * LW + x, lat = euro ? EUROPE.lat0 - (y / LH) * EUROPE.h : 70 - (y / LH) * 34;
     let r, g, b;
     if (WAT[i] >= 0.5) {
@@ -17551,11 +17588,13 @@ function buildWorldChart(key) {
       r = r * shade + n * 16; g = g * shade + n * 16; b = b * shade + n * 12;
     }
     d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255;
-  }
+  } }
   lg.putImageData(img, 0, 0);
+  yield;
   // (the sheet of the last build is drawn over again when it is the same size, rather than a new one of many megapixels made each time)
   const reuse = (old, w2, h2) => { if (old && old.width === w2 && old.height === h2) { const og = old.getContext('2d'); if (og.reset) og.reset(); else old.width = w2; return old; } const n = document.createElement('canvas'); n.width = w2; n.height = h2; return n; };
   const c = reuse(OW.canvas, TW, TH);
+  if (c === OW.canvas) OW.dirty = true;   // (drawn over from here on: the half-size copy is shown meanwhile)
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.drawImage(lowC, 0, 0, LW * R, LH * R);
@@ -17563,6 +17602,7 @@ function buildWorldChart(key) {
   g.lineCap = 'round'; g.lineJoin = 'round';
   // water-lining: thin lines following the coast out to sea, fading as they go
   [0.5, 0.38, 0.27, 0.17].forEach((a, k) => { g.strokeStyle = 'rgba(40, 62, 70, ' + a + ')'; g.lineWidth = 0.9 * u; g.stroke(OW.F.waterLines[k]); });
+  yield;
   // slopes turned from the light hatched in short strokes, as an engraver shades a hillside
   {
     const { SH: SH2, WAT: WT3, LW: lw, LH: lh, R: rr } = OW.F, hp = new Path2D(), L2 = 4.2 * u;
@@ -17575,6 +17615,7 @@ function buildWorldChart(key) {
     }
     g.strokeStyle = 'rgba(52, 36, 18, 0.3)'; g.lineWidth = 0.65 * u; g.stroke(hp);
   }
+  yield;
   // wind-drifts on the open snow: short curved strokes, as the engravers showed a snowfield, thickest where it lies deepest
   {
     const { LW: lw, LH: lh, R: rr } = OW.F, dp = new Path2D(), L3 = 7 * u;
@@ -17585,6 +17626,7 @@ function buildWorldChart(key) {
     }
     g.strokeStyle = 'rgba(92, 114, 138, 0.45)'; g.lineWidth = 0.8 * u; g.stroke(dp);
   }
+  yield;
   // the open sea hatched in fine level lines, as a copperplate engraver shades deep water
   {
     const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F, gap2 = 3.4 * u, hatch = new Path2D();
@@ -17598,6 +17640,7 @@ function buildWorldChart(key) {
     }
     g.strokeStyle = 'rgba(30, 48, 56, 0.13)'; g.lineWidth = 0.7 * u; g.stroke(hatch);
   }
+  yield;
   // the rhumb lines run on across the charted sea, as on a portolan chart (the same hubs as on the blank sheet, drawn only over water)
   {
     const { WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F, mw = MAP_COLS * CS, mh = MAP_ROWS * CH, oy0 = -K / 8;
@@ -17619,6 +17662,7 @@ function buildWorldChart(key) {
         }
       }
       g.strokeStyle = cols[band]; g.lineWidth = 1.1 * u; g.stroke(p);
+      yield;
     }
   }
   // the meridians and parallels, ruled faintly at every degree numbered on the frame
@@ -17632,19 +17676,21 @@ function buildWorldChart(key) {
   {
     const { NEAR: NR, WAT: WT2, LW: lw, LH: lh, R: rr } = OW.F;
     g.fillStyle = 'rgba(36, 54, 60, 0.42)';
-    for (let y = 1; y < lh - 1; y += 1) for (let x = 1; x < lw - 1; x += 1) {
+    for (let y = 1; y < lh - 1; y += 1) { if (y % 64 === 0) yield; for (let x = 1; x < lw - 1; x += 1) {
       const i = y * lw + x, n = NR[i];
       if (WT2[i] < 0.5 || n < 0.3 || n > 0.48) continue;
       if (owHash(x, y, 77) > 0.22 + (n - 0.3) * 1.2) continue;
       g.fillRect(x * rr + owHash(y, x, 3) * rr, y * rr + owHash(x, y, 5) * rr, 0.9 * u, 0.9 * u);
-    }
+    } }
   }
   // a pale shore wash and the coast itself in ink
   g.strokeStyle = 'rgba(232, 222, 190, 0.35)'; g.lineWidth = 4 * u; g.stroke(OW.F.coast);
   g.strokeStyle = ink + '0.9)'; g.lineWidth = 1.6 * u; g.stroke(OW.F.coast);
   // (on a coarse sheet the grass tufts would be a pixel or two: they're inked at the view's own scale instead)
-  owDrawMarks(g, K >= 40 ? marks : marks.filter(m => m.k !== 'tuft'), season, u);
-  OW.season = season;
+  //  (a few thousand at a time, in the order they stand)
+  const mk = K >= 40 ? marks : marks.filter(m => m.k !== 'tuft');
+  for (let k = 0; k < mk.length; k += 2000) { yield; owDrawMarks(g, mk.slice(k, k + 2000), season, u); }
+  yield;
   const grid = OW.F.grid;
   g.strokeStyle = 'rgba(60, 44, 26, 0.16)'; g.lineWidth = 1 * u; g.stroke(grid);
   g.strokeStyle = 'rgba(30, 50, 56, 0.09)'; g.stroke(OW.F.gridSea);
@@ -17680,7 +17726,8 @@ function buildWorldChart(key) {
     g.fillStyle = 'rgba(150, 96, 44, 0.26)'; g.fill(core);
     g.globalCompositeOperation = 'source-over';
   }
-  OW.canvas = c; OW.K = K; OW.CS = CS; OW.CH = CH;
+  yield;
+  OW.canvas = c; OW.season = season; OW.K = K; OW.CS = CS; OW.CH = CH;
   // smaller copies of the sheet for when the map is seen from afar (scaling the whole sheet down every frame is slow)
   const oldMips = OW.mips || [];
   OW.mips = [c];
@@ -18472,7 +18519,8 @@ function drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, end
       g.drawImage(mKnown, sx0 * ks, sy0 * ks, (sx1 - sx0) * ks, (sy1 - sy0) * ks, dx, dy, dw, dh);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-in';
-      const lvl = window.__film ? 0 : fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
+      // (while the sheet is being drawn over, its half-size copy, still the old one, stands in)
+      const lvl = window.__film ? 0 : fx * DPR < 0.3 ? 2 : fx * DPR < 0.6 || OW.dirty ? 1 : 0, mip = (OW.mips && OW.mips[lvl]) || chart, ms = mip.width / chart.width;
       g.drawImage(mip, sx0 * ms, sy0 * ms, (sx1 - sx0) * ms, (sy1 - sy0) * ms, dx, dy, dw, dh);
       g.globalCompositeOperation = 'source-atop';
       // shown larger than it was drawn: ink the coast and the trees, peaks and reeds again at the view's own sharpness
