@@ -7384,6 +7384,7 @@ const TOWN_SINCE = { 'Austria': { 'Buda': 1686 }, 'France': { 'Lille': 1668, 'St
 const townWasTheirs = (crown, nm, y) => { const r = TOWN_SINCE[crown]?.[nm]; return r == null || (Array.isArray(r) ? y >= r[0] && y < r[1] : y >= r); };
 function europeExtraTowns(nId, presetName) {
   const preset = PRESET_NATIONS.find(p => p.name === presetName); if (!preset) return;
+  const yearTowns = (scen() || EUROPE_1680).towns || {};   // (the towns the year has a crown hold: a historical start's, or 1680's on the map of Europe)
   let made = 0;
   // (the House of Savoy held Nice, and Sicily or Sardinia, whichever it was king of; not the Venetian Republic's towns)
   const sav = presetName === 'Kingdom of Italy' && (curAliases(true)?.[presetName] || '').match(/Sardinia|Sicily/);
@@ -7396,8 +7397,8 @@ function europeExtraTowns(nId, presetName) {
   // (and the Westphalian crown's towns are those of whoever it is that year: the Bishop of Münster's, the Elector of Hanover's or of Hesse's,
   //  and in 1812 Jérôme's kingdom on the Elbe)
   const wal = presetName === 'Westphalia' && ((curAliases(true)?.[presetName] || '').match(/Münster|Hanover|Hesse/) || (scen() && ['Westphalia']));
-  for (const nm of ital ? ital : wal ? ({ 'Münster': ['Paderborn'], 'Hanover': ['Lüneburg', 'Göttingen'], 'Hesse': ['Marburg', 'Hanau'] }[wal[0]] || ['Magdeburg', 'Halle']) : sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? ['Prague', 'Buda', 'Milan'] : [...(scen()?.towns?.[presetName] || []), ...preset.cityNames.slice(1, 14).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy')).filter(nm => !(TOWN_FOUNDED[nm] > (scen()?.year || 1680)) && townWasTheirs(presetName, nm, scen()?.year || 1680))]) {
-    if (made >= (lomb ? 3 : 2) + (scen()?.towns?.[presetName]?.length || 0)) break;   // (a crown given towns the year had it hold keeps its own two besides)
+  for (const nm of ital ? ital : wal ? ({ 'Münster': ['Paderborn'], 'Hanover': ['Lüneburg', 'Göttingen'], 'Hesse': ['Marburg', 'Hanau'] }[wal[0]] || ['Magdeburg', 'Halle']) : sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? ['Prague', 'Buda', 'Milan'] : [...(yearTowns[presetName] || []), ...preset.cityNames.slice(1, 14).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy')).filter(nm => !(TOWN_FOUNDED[nm] > (scen()?.year || 1680)) && townWasTheirs(presetName, nm, scen()?.year || 1680))]) {
+    if (made >= (lomb ? 3 : 2) + (yearTowns[presetName]?.length || 0)) break;   // (a crown given towns the year had it hold keeps its own two besides)
     const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) continue;
     const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
     let done = false;
@@ -8026,6 +8027,7 @@ const SCEN_1672 = {
 const SCENS = { '1718': SCEN_1718, '1733': SCEN_1733, '1778': SCEN_1778, '1788': SCEN_1788, '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792, '1812': SCEN_1812, '1672': SCEN_1672 };
 // the crowns of 1680, for a new game on the map of Europe (no armies or wars laid on: only who reigns, and the names of the day)
 const EUROPE_1680 = {
+  towns: { 'Sweden': ['Riga', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'] },   // (Swedish Livonia and Pomerania, the Turk's Hungary)
   rulers: {
     'France': ['Louis XIV', 'male', 41, ['charismatic', 'martial'], 'Maria Theresa of Spain', 41, ['Louis, Grand Dauphin', 'male', 18, 'Louis XV']],
     'Great Britain': ['Charles II', 'male', 50, ['charismatic'], 'Catherine of Braganza', 41, ['James, Duke of York', 'male', 46, 'James II']],
