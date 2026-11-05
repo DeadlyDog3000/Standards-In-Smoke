@@ -9507,6 +9507,13 @@ function tickScenario() {
       else peaceOffer('The Peace of Tilsit', pr.id === playerNation ? `After Jena and Friedland the Emperor offers peace, if Prussia gives up her Polish lands: Warsaw is to be ${to === sx ? 'the capital of a duchy for the King of Saxony' : "France's"}.` : 'After Jena and Friedland the King of Prussia asks for peace, and will give up his Polish lands, Warsaw with them.',
         peace, `The Peace of Tilsit is made, ${lands}.`);
     }
+    // (a peace Prussia and France made of themselves since 1806 was this one: Warsaw and Hanover go)
+    else if (pr && fr && done.prussia && pr.id !== playerNation && fr.id !== playerNation && cities.some(c => (c.name === 'Warsaw' || c.name === 'Hanover') && c.nationId === pr.id)) {
+      if (cities.some(c => c.name === 'Warsaw' && c.nationId === pr.id)) treatyCede('Warsaw', to, [pr]);
+      const wk = nations.find(n => n.name === 'Westphalia' && !n.eliminated && n.relations[fr.id] !== 'war');
+      if (cities.some(c => c.name === 'Hanover' && c.nationId === pr.id)) treatyCede('Hanover', wk || fr, [pr]);
+      const say = `1807: by the Peace of Tilsit Prussia gives up ${to === sx ? 'Warsaw, made the capital of a Duchy of Warsaw under the King of Saxony' : 'Warsaw and her Polish lands'}, and Hanover.`; showToast(say); annal(say.replace(/^\d{4}: /, ''));
+    }
   }
 }
 // a choice history puts to the player in a scenario: a card with its answers, each a function
