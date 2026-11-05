@@ -17216,6 +17216,8 @@ const OW_WASH = {
   summer: { 1: [212, 192, 118], 3: [152, 150, 106], 4: [210, 190, 122], 5: [124, 134, 82], 6: [206, 188, 116], 7: [202, 174, 114], 2: [176, 160, 128] },
   autumn: { 1: [206, 170, 112], 3: [156, 140, 98], 4: [204, 176, 120], 5: [146, 112, 66], 6: [202, 168, 108], 7: [196, 158, 104], 2: [176, 156, 126] },
   winter: { 1: [214, 210, 194], 3: [180, 182, 168], 4: [214, 208, 192], 5: [146, 150, 128], 6: [212, 208, 192], 7: [206, 200, 184], 2: [200, 196, 186] },
+  // (the map of Europe in winter: the ground where no snow lies is dormant grass and bare fields, the snow laid white over it where it lies)
+  winterEu: { 1: [182, 180, 150], 3: [152, 158, 134], 4: [188, 184, 158], 5: [128, 136, 112], 6: [178, 180, 148], 7: [180, 172, 144], 2: [188, 182, 168] },
 };
 function worldChartKey() {
   let h = 0;
@@ -17588,7 +17590,7 @@ function owStartSlices(key) {
 function owStopSlices() { OW.job = null; OW.dirty = false; }
 function* owChartSteps(key) {
   OW.key = key;
-  const season = currentSeason in OW_WASH ? currentSeason : 'spring', wash = OW_WASH[season], winter = season === 'winter';
+  const season = currentSeason in OW_WASH ? currentSeason : 'spring', winter = season === 'winter', wash = OW_WASH[winter && mapStyle === 'europe' ? 'winterEu' : season];
   // the lie of the land (heights, coasts, where every tree and peak stands) is worked out once per map; a new season only recolours it
   const tileKey = key.replace(/:[a-z]+$/, '');
   if (!OW.F || OW.F.tileKey !== tileKey) {
