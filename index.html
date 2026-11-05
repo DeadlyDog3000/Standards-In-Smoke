@@ -18795,7 +18795,8 @@ function render() {
   const buildAt = charted ? new Map(units.filter(u => u.building && u.nationId === pId).map(u => [u.y * MAP_COLS + u.x, u.building])) : null;
   if (!charted) loadHexTiles();
 
-  for (let my = startRow; my < endRow; my++) {
+  // (the chart seen from afar: nothing in this loop is drawn below 12, so it isn't walked; a whole map's hexes otherwise)
+  for (let my = charted && VIEW_TILE < 12 ? endRow : startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
     for (let pass = 0; pass <= 1; pass++) {
       for (let mx = startCol; mx < endCol; mx++) {
@@ -18925,7 +18926,7 @@ function render() {
   {
     const edge = [];
     const evenN = [[0,-1],[0,1],[1,-1],[1,0],[-1,-1],[-1,0]], oddN = [[0,-1],[0,1],[1,0],[1,1],[-1,0],[-1,1]];
-    for (let my = startRow; my < endRow; my++) {
+    for (let my = charted ? endRow : startRow; my < endRow; my++) {   // (the edge is drawn only off the chart: on it, not worked out)
       const baseWorldY = my * ch - camYch;
       for (let mx = startCol; mx < endCol; mx++) {
         const t = tiles[my * MAP_COLS + mx];
@@ -19087,7 +19088,7 @@ function render() {
     ctx.restore();
   }
 
-  for (let my = startRow; my < endRow; my++) {
+  for (let my = charted && VIEW_TILE < 12 ? endRow : startRow; my < endRow; my++) {   // (likewise)
     const baseWorldY = my * ch - camYch;
     for (let mx = startCol; mx < endCol; mx++) {
     const i = my * MAP_COLS + mx;
