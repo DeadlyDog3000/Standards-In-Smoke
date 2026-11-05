@@ -8601,6 +8601,8 @@ function tickScenario1733() {
     const plMine = pl && pl.id === playerNation;
     let made = false;
     for (const pr of pairs) if (pr[0].id !== playerNation && pr[1].id !== playerNation) { if (makePeace(pr[0], pr[1])) { made = true; if (milanPair(pr)) treatyCede('Milan', au, [sa]); } }
+    // (and if Sardinia and the Emperor already made their own peace, it was this one: Milan goes back to him)
+    if (sa && au && sa.id !== playerNation && au.id !== playerNation && sa.relations[au.id] !== 'war' && cities.some(c => c.name === 'Milan' && c.nationId === sa.id)) { treatyCede('Milan', au, [sa]); made = true; }
     if (pl && !plMine) { const st = getNationRuler(pl.id); if (st && st.name === 'Stanisław I') installRuler(pl, 'Augustus III', 'male', 39, ['pious'], 'Maria Josepha of Austria', 36); }
     if (made) tell('1736: by the Peace of Vienna the war in the west ends: Stanisław gives up Poland for Lorraine, Augustus III is king, Don Carlos keeps Naples, and Milan goes back to the Emperor.', ...west, ...east);
     // (yours: Poland's own abdication, or every peace of your crown in one card)
