@@ -17326,12 +17326,30 @@ function owPrebuildNextSeason() {
   const order = ['spring', 'summer', 'autumn', 'winter'], nxt = order[(order.indexOf(currentSeason) + 1) % 4];
   const key = worldChartKey().replace(/:[a-z]+$/, ':' + nxt);
   if (OW.next && OW.next.key === key) return;
-  const save = { canvas: OW.canvas, mips: OW.mips, key: OW.key, season: OW.season, K: OW.K, CS: OW.CS, CH: OW.CH }, cs = currentSeason;
-  OW.canvas = OW.spare || null; OW.mips = OW.spareMips || [];
-  currentSeason = nxt;
-  try { buildWorldChart(key); OW.next = { canvas: OW.canvas, mips: OW.mips, key, season: OW.season, tilesRef: tiles }; OW.spare = null; OW.spareMips = null; }
-  catch (e) { OW.next = null; }
-  finally { currentSeason = cs; Object.assign(OW, save); }
+  owBuildAside(key, nxt, st => { OW.next = { canvas: st.canvas, mips: st.mips, key, season: st.season, tilesRef: tiles }; });
+}
+// a sheet drawn aside, into the spare canvas, a few milliseconds at a time (the season's sheet costs a tenth of a second or more,
+//  and drawn at once it held the game up while the player looked at the map): the sheet's own state is swapped in only while
+//  its slices run, so the sheet in view is untouched until the new one is done and handed to onDone
+const OW_ASIDE = ['canvas', 'mips', 'key', 'season', 'K', 'CS', 'CH', 'dirty'];
+function owBuildAside(key, season, onDone) {
+  if (OW.aside && OW.aside.key === key) return;
+  const from = currentSeason, job = OW.aside = { key, it: null, tilesRef: tiles, st: { canvas: OW.spare || null, mips: OW.spareMips || [], key: '', season, K: OW.K, CS: OW.CS, CH: OW.CH, dirty: false } };
+  OW.spare = null; OW.spareMips = null;
+  const step = () => {
+    if (OW.aside !== job) return;
+    // (another game, or the season has turned meanwhile: this sheet is no longer wanted; its canvas goes back as the spare)
+    if (job.tilesRef !== tiles || currentSeason !== from) { OW.aside = null; if (!OW.spare && job.st.canvas) { OW.spare = job.st.canvas; OW.spareMips = job.st.mips; } return; }
+    const live = {}, cs = currentSeason; for (const f of OW_ASIDE) { live[f] = OW[f]; OW[f] = job.st[f]; } currentSeason = season;
+    let fin = false, err = null;
+    try { if (!job.it) job.it = owChartSteps(key); const t0 = performance.now(); while (performance.now() - t0 < 6) if (job.it.next().done) { fin = true; break; } }
+    catch (e) { err = e; }
+    finally { for (const f of OW_ASIDE) { job.st[f] = OW[f]; OW[f] = live[f]; } currentSeason = cs; }
+    if (err) { console.error(err); OW.aside = null; return; }
+    if (fin) { OW.aside = null; onDone(job.st); return; }
+    setTimeout(step, 4);   // (a timer, not the next frame: frames are held back in some views, and the slices must still run)
+  };
+  setTimeout(step, 4);
 }
 // (tried once the turn is over and the player has left the mouse and keys alone a moment)
 let _owIdleTries = 0;
@@ -17340,9 +17358,18 @@ function owSchedulePrebuild() {
   _owIdleTries = 0;
   const tryIt = () => {
     if (++_owIdleTries > 30) return;
-    if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 1200 || !OW.canvas) { setTimeout(tryIt, 700); return; }
+    if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 1200 || !OW.canvas || OW.aside) { setTimeout(tryIt, 700); return; }
     const key = worldChartKey();
-    if (OW.key !== key) { OW.landLate = 0; try { buildWorldChart(key); OW.sheetTiles = tiles; } catch (e) { console.error(e); } setTimeout(tryIt, 700); return; }   // (the land changed: this season's sheet first)
+    // (the land changed: this season's sheet first, drawn aside and put in place when it is done)
+    if (OW.key !== key) {
+      owBuildAside(key, currentSeason, st => {
+        if (worldChartKey() !== key || !OW.canvas) { OW.spare = st.canvas; OW.spareMips = st.mips; return; }
+        OW.spare = OW.canvas; OW.spareMips = OW.mips;
+        OW.canvas = st.canvas; OW.mips = st.mips; OW.key = key; OW.season = st.season; OW.K = st.K; OW.CS = st.CS; OW.CH = st.CH;
+        OW.sheetTiles = tiles; OW.landLate = 0; OW.dirty = false; _owLayer.key = ''; render();
+      });
+      setTimeout(tryIt, 700); return;
+    }
     owPrebuildNextSeason();
   };
   setTimeout(tryIt, 1500);
