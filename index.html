@@ -5025,6 +5025,15 @@ function floatParts(text) {
   if (last < text.length) out.push({ s: text.slice(last) });
   return out;
 }
+// a symbol set on the map: drawn as the engraved icon the panels use (icons/<name>.png), never as a font's emoji; centred on x, y
+//  at the size of the context's font
+function fillIconText(c, t, x, y) {
+  const name = typeof EMOJI_ICONS !== 'undefined' && EMOJI_ICONS[String(t).replace(/\uFE0F/g, '')];
+  if (!name) { c.fillText(t, x, y); return; }
+  const img = _floatIcons[name] || (_floatIcons[name] = Object.assign(new Image(), { src: 'icons/' + name + '.png' }));
+  const px = (parseFloat((c.font.match(/([\d.]+)px/) || [])[1]) || 12) * 1.05;
+  if (img.complete && img.naturalWidth) c.drawImage(img, x - px / 2, y - px / 2, px, px);
+}
 function renderFloatingTexts() {
   const now = Date.now();
   const w = hexWidth(), facePad = Math.round(w * 1.5 * 4 / 48), ch = hexCellH();
@@ -16331,7 +16340,7 @@ function drawNaturalWonder(key, cx, cy, w) {
   ctx.setLineDash([]);
   ctx.font = `${Math.max(10, w * 0.42)}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = w * 0.08;
-  ctx.fillText(def.icon, cx, cy);
+  fillIconText(ctx, def.icon, cx, cy);
   ctx.restore();
 }
 
@@ -19174,7 +19183,7 @@ function render() {
         ctx.fillStyle = '#fff';
         ctx.font = `${Math.max(9, w * 0.4)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(imp.icon, sx + w / 2, fy + ch / 2);
+        fillIconText(ctx, imp.icon, sx + w / 2, fy + ch / 2);
       }
     }
 
@@ -19222,7 +19231,7 @@ function render() {
         } else {
           ctx.font = `${badgeSize}px 'EB Garamond', serif`;
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(ad.icon, bx, by);
+          fillIconText(ctx, ad.icon, bx, by);
         }
       }
     }
@@ -19336,10 +19345,9 @@ function render() {
           else {
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.beginPath(); ctx.arc(sx + w / 2, fy + faceH / 2, w * 0.28, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#d0603e';
-            ctx.font = `bold ${Math.max(9, w * 0.4)}px 'EB Garamond', serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('\uD83D\uDD25', sx + w / 2, fy + faceH / 2);
+            // (the camp's fire, in the engraved icon the panels use, not a font's emoji)
+            const fire = _floatIcons.fire || (_floatIcons.fire = Object.assign(new Image(), { src: 'icons/fire.png' }));
+            if (fire.complete && fire.naturalWidth) { const fs = w * 0.42; ctx.drawImage(fire, sx + w / 2 - fs / 2, fy + faceH / 2 - fs / 2, fs, fs); }
           }
         } else {
 
@@ -19828,7 +19836,7 @@ function render() {
         ctx.fillStyle = '#fff';
         ctx.font = `${Math.max(10, w * 0.45)}px 'EB Garamond', serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(UNIT_DEFS[u.type].icon, cx, cy);
+        fillIconText(ctx, UNIT_DEFS[u.type].icon, cx, cy);
       }
     }
 
@@ -19862,7 +19870,7 @@ function render() {
       ctx.fillStyle = '#94b4d8';
       ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('\uD83D\uDEE1', cx + rad * 0.8, cy - rad * 0.8);
+      fillIconText(ctx, '\uD83D\uDEE1', cx + rad * 0.8, cy - rad * 0.8);
     }
 
     if (u.building && VIEW_TILE >= 16) {
@@ -19872,7 +19880,7 @@ function render() {
       ctx.fillStyle = '#da4';
       ctx.font = `${Math.max(6, w * 0.22)}px 'EB Garamond', serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('\u2692', cx + rad * 0.8, cy - rad * 0.8);
+      fillIconText(ctx, '\u2692', cx + rad * 0.8, cy - rad * 0.8);
     }
 
     const uLevel = getUnitLevel(u);
