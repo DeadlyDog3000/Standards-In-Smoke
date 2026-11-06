@@ -20456,6 +20456,7 @@ function updateUI() {
     // (the season in its own wash: sap green, harvest gold, russet, frost)
     seasonEl.style.color = { spring: '#b4c47c', summer: '#dcc072', autumn: '#d0965a', winter: '#cdd6d6' }[currentSeason] || '#c8b89a';
     seasonEl.style.fontStyle = 'italic';
+    seasonEl.title = `${currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)}: ${se.desc}`;   // (what the season does, on a hover)
   }
 
   const planBtn = document.getElementById('planBtn');
