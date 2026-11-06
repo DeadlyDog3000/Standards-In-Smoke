@@ -13494,7 +13494,8 @@ function aiTurn(nationId) {
           continue;
         }
 
-        if (u.hp <= 3) {
+        // (badly hurt, or wearing away in the snow outside its own lands, where the cold takes men every turn: home to the nearest town)
+        if (u.hp <= 3 || (u.hp <= 5 && snowyAt(u.x, u.y) && tiles[u.y * MAP_COLS + u.x].owner !== nationId)) {
           let nearestCity = null, nearDist = Infinity;
           for (const c of aiCities) {
             const d = hexDistance(c.x, c.y, u.x, u.y);
