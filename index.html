@@ -18868,8 +18868,17 @@ function render() {
   const buildAt = charted ? new Map(units.filter(u => u.building && u.nationId === pId).map(u => [u.y * MAP_COLS + u.x, u.building])) : null;
   if (!charted) loadHexTiles();
 
-  // (the chart seen from afar: nothing in this loop is drawn below 12, so it isn't walked; a whole map's hexes otherwise)
-  for (let my = charted && VIEW_TILE < 12 ? endRow : startRow; my < endRow; my++) {
+  // (the chart seen from afar: below 16 all this loop draws is a village under a town without a picture of its own, so the towns
+  //  are walked, not the whole map's hexes)
+  if (charted && VIEW_TILE < 16) {
+    if (VIEW_TILE >= 12) for (const c of cities) {
+      if (c.x < startCol || c.x >= endCol || c.y < startRow || c.y >= endRow || tiles[c.y * MAP_COLS + c.x].type !== 4 || !tiles[c.y * MAP_COLS + c.x].revealed.has(pId)) continue;
+      const sx = c.x * cs - camXcs, sy = c.y * ch - camYch + (c.x & 1) * halfCh;
+      if (sx < -w * 2 || sy < -ch * 2 || sx > viewW + w || sy > viewH + ch) continue;
+      if (!townSprite(c)) drawVillageOverlay(ctx, sx, sy, drawW, drawH);
+    }
+  } else
+  for (let my = startRow; my < endRow; my++) {
     const baseWorldY = my * ch - camYch;
     for (let pass = 0; pass <= 1; pass++) {
       for (let mx = startCol; mx < endCol; mx++) {
