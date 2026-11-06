@@ -16521,7 +16521,7 @@ function drawFishingBoats(city, w, facePad, ch, pId) {
   const water = hexNeighbors(city.x, city.y).filter(nb => nb.col >= 0 && nb.row >= 0 && nb.col < MAP_COLS && nb.row < MAP_ROWS
     && tiles[nb.row * MAP_COLS + nb.col].type === 0 && tiles[nb.row * MAP_COLS + nb.col].revealed.has(pId)
     && !units.some(u => u.x === nb.col && u.y === nb.row));
-  if (!water.length || currentSeason === 'winter' || city._blockaded) return; // in winter the boats are drawn up for the ice; under blockade they stay in
+  if (!water.length || snowyAt(city.x, city.y) || city._blockaded) return; // in a snowy winter the boats are drawn up for the ice (in the south they fish on); under blockade they stay in
   const n = Math.min(water.length, (city.population || 1) >= 6 ? 2 : 1);
   for (let k = 0; k < n; k++) {
     const sp = water[(city.x * 3 + city.y * 5 + k) % water.length];
