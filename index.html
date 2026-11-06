@@ -17360,7 +17360,8 @@ function owSchedulePrebuild() {
   _owIdleTries = 0;
   const tryIt = () => {
     if (++_owIdleTries > 30) return;
-    if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 1200 || !OW.canvas || OW.aside) { setTimeout(tryIt, 700); return; }
+    // (the sheets are drawn in small slices now: a moment's pause in the mouse is enough to begin)
+    if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 400 || !OW.canvas || OW.aside) { setTimeout(tryIt, 500); return; }
     const key = worldChartKey();
     // (the land changed: this season's sheet first, drawn aside and put in place when it is done)
     if (OW.key !== key) {
