@@ -1115,6 +1115,11 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.4</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Gibraltar</b><br>
+        - A 1718 game played on goes to the siege of Gibraltar: Spain, the Emperor's ally since the Treaty of Vienna, is at war with Britain again in 1727, until the Convention of El Pardo in 1728<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.3</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Heirs, and the Years after Vienna</b><br>
@@ -2395,6 +2400,11 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.4</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Gibraltar</b><br>
+          - A 1718 game played on goes to the siege of Gibraltar: Spain, the Emperor's ally since the Treaty of Vienna, is at war with Britain again in 1727, until the Convention of El Pardo in 1728<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.3</b></div>
         <div style="margin-bottom:12px;">
@@ -8872,6 +8882,17 @@ function tickScenario1718() {
   }
   if (year >= 1720 && !done.frederiksborg) { done.frederiksborg = true; histPeace(sw, dk, makePeace, tell, '1720: by the Treaty of Frederiksborg Sweden and Denmark make peace.', 'The Treaty of Frederiksborg', sw && sw.id === playerNation ? 'Denmark offers peace, for the Sound dues.' : 'Sweden offers peace, and gives up its freedom from the Sound dues.'); histPeace(sw, sx, makePeace, tell, '1720: Sweden makes peace with Saxony and Poland.', 'Peace with Saxony', sw && sw.id === playerNation ? 'Augustus of Saxony offers peace.' : 'Sweden offers peace.'); }
   if (year >= 1721 && !done.nystad) { done.nystad = true; histPeace(sw, ru, makePeace, tell, '1721: by the Peace of Nystad Sweden makes peace with Russia, and gives up Livonia, Estonia and Ingria: Russia is an empire.', 'The Peace of Nystad', sw && sw.id === playerNation ? 'The Russian galleys burn the coast of Sweden itself: the Tsar offers peace for Livonia, Estonia and Ingria.' : 'Sweden offers peace, and gives up Livonia, Estonia and Ingria.'); }
+  // (after Nystad, in a game played on: Spain, allied to the Emperor by the Treaty of Vienna, lays siege to Gibraltar in February
+  //  1727, and Britain is at war with her again until the preliminaries of Paris that summer)
+  if (year >= 1727 && !done.gibraltar) {
+    done.gibraltar = true;
+    if (sp && gb && sp.relations[gb.id] !== 'war') {
+      if (ai(sp, gb)) { if (joinAgainst(sp, gb)) tell('1727: Spain lays siege to Gibraltar, and is at war with Britain again.', sp, gb); }
+      else if (sp.id === playerNation) warOffer(sp, gb, 'Gibraltar', 'The Emperor is your ally since the Treaty of Vienna, and Gibraltar is still in English hands. Lay siege to it?', () => joinAgainst(sp, gb), 'We lay siege to Gibraltar.');
+      else if (joinAgainst(sp, gb)) { tell('1727: Spain lays siege to Gibraltar, and is at war with you again.', sp, gb); showWarDeclaration(sp); }
+    }
+  }
+  if (year >= 1728 && !done.pardo) { done.pardo = true; histPeace(sp, gb, makePeace, tell, '1728: by the Convention of El Pardo Spain lifts the siege of Gibraltar and makes peace with Britain.', 'The Convention of El Pardo', sp && sp.id === playerNation ? 'Gibraltar holds, and Britain offers peace on the old terms.' : 'Spain offers peace, and lifts the siege of Gibraltar.'); }
 }
 // the years after 1733, as they went (if the crowns in question are still there and still as they were)
 function tickScenario1733() {
@@ -22868,7 +22889,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.3';
+const CURRENT_VERSION = 'beta-13.4';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
