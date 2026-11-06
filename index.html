@@ -1117,7 +1117,7 @@
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">The Seasons as They Fall, and History's Long Wars</b><br>
         - Winter snows where it snows: the lowland white from Sweden, Finland and the Baltic lands across Poland to Russia and the Ukraine, while Britain, France, the Low Countries, Denmark and the Norway shore stay open by the sea; and the mountains white wherever they stand, the Alps, Pyrenees, Carpathians, Dinaric Alps, Balkans and Caucasus, the Highlands only on their tops. Spring and autumn keep the snow on the higher mountains and in the Russian north-east, summer on the high Alps and the Caucasus, and the far north lies under it the year round<br>
-        - Snow only where it lies: in winter a town's roofs, the trees, the hills and a regiment's coats are white only where the sheet has snow, and the snow falls over the view only there; Seville and Naples stay green (the winter's hardships still fall on every crown)<br>
+        - Snow only where it lies: in winter a town's roofs, the trees, the hills and a regiment's coats are white only where the sheet has snow, and the snow falls over the view only there; Seville and Naples stay green. And the winter's march and cold are felt only where the snow lies: there a regiment moves a step less and, outside its own lands, loses men, while an army in Spain or Italy campaigns on through the winter, as they did (food falls by half everywhere)<br>
         - The winter ice holds the ships as well as the sheet: from the Gulfs of Bothnia and Finland to the White Sea no ship sails into it, and one caught there when winter comes lies frozen in till spring (the regiments aboard may still go ashore over the ice). The Atlantic, the North Sea and the Norway coast stay open, as the Gulf Stream keeps them, and are no longer drawn frozen<br>
         - History's wars last as they did: a war history declares sets the two courts against each other, so two crowns that were friends no longer make it up the next season, and a peace it makes ends the enmity<br>
         - 1805: the Finnish War. Sweden holds Åbo and Finland; in 1808 Russia, the Emperor's ally since Tilsit, falls on her to force her into the blockade, and by the Peace of Fredrikshamn in 1809 Finland and Åbo are Russian (yours to choose if you play Russia or Sweden). In 1812 Åbo is Russia's from the start<br>
@@ -2367,7 +2367,7 @@
         <div style="margin-bottom:12px;">
           <b style="color:#b8a070;">The Seasons as They Fall, and History's Long Wars</b><br>
           - Winter snows where it snows: the lowland white from Sweden, Finland and the Baltic lands across Poland to Russia and the Ukraine, while Britain, France, the Low Countries, Denmark and the Norway shore stay open by the sea; and the mountains white wherever they stand, the Alps, Pyrenees, Carpathians, Dinaric Alps, Balkans and Caucasus, the Highlands only on their tops. Spring and autumn keep the snow on the higher mountains and in the Russian north-east, summer on the high Alps and the Caucasus, and the far north lies under it the year round<br>
-          - Snow only where it lies: in winter a town's roofs, the trees, the hills and a regiment's coats are white only where the sheet has snow, and the snow falls over the view only there; Seville and Naples stay green (the winter's hardships still fall on every crown)<br>
+          - Snow only where it lies: in winter a town's roofs, the trees, the hills and a regiment's coats are white only where the sheet has snow, and the snow falls over the view only there; Seville and Naples stay green. And the winter's march and cold are felt only where the snow lies: there a regiment moves a step less and, outside its own lands, loses men, while an army in Spain or Italy campaigns on through the winter, as they did (food falls by half everywhere)<br>
           - The winter ice holds the ships as well as the sheet: from the Gulfs of Bothnia and Finland to the White Sea no ship sails into it, and one caught there when winter comes lies frozen in till spring (the regiments aboard may still go ashore over the ice). The Atlantic, the North Sea and the Norway coast stay open, as the Gulf Stream keeps them, and are no longer drawn frozen<br>
           - History's wars last as they did: a war history declares sets the two courts against each other, so two crowns that were friends no longer make it up the next season, and a peace it makes ends the enmity<br>
           - 1805: the Finnish War. Sweden holds Åbo and Finland; in 1808 Russia, the Emperor's ally since Tilsit, falls on her to force her into the blockade, and by the Peace of Fredrikshamn in 1809 Finland and Åbo are Russian (yours to choose if you play Russia or Sweden). In 1812 Åbo is Russia's from the start<br>
@@ -4544,7 +4544,7 @@ const SEASON_EFFECTS = {
   spring: { foodMult: 1.2, moveMod: 0, attrition: false, icon: '\uD83C\uDF31', desc: 'Fertile season, +20% food' },
   summer: { foodMult: 1.0, moveMod: 0, attrition: false, icon: '\u2600\uFE0F', desc: 'Clear weather, normal conditions' },
   autumn: { foodMult: 0.8, moveMod: 0, attrition: false, icon: '\uD83C\uDF42', desc: 'Harvest fades, -20% food' },
-  winter: { foodMult: 0.5, moveMod: -1, attrition: true, icon: '\u2744\uFE0F', desc: 'Harsh winter. -50% food, -1 movement, attrition outside cities' },
+  winter: { foodMult: 0.5, moveMod: -1, attrition: true, icon: '\u2744\uFE0F', desc: 'Harsh winter. -50% food; where the snow lies, -1 movement and attrition outside your lands' },
 };
 
 function getSeasonEffect() {
@@ -4560,7 +4560,7 @@ const HINTS = {
   ambition: 'Choose an ambition for your crown. It is shown under the top bar until fulfilled; fulfil ten to win.',
   orders: 'No orders left this turn. Regiments that have already moved can still fire, and the next turn brings a fresh set. Press E or the crest to end the turn.',
   ships: () => `This regiment stands beside one of your ships. ${rclickWord(true)} the ship (or press Go aboard in its panel) and it goes aboard; sail the ship, then ${rclickWord()} the coast beside it to put the regiment ashore.`,
-  winter: 'Winter: food falls by half, everyone moves a step less, and regiments outside your own lands lose men each turn. Bring them home or into a town.',
+  winter: 'Winter: food falls by half, and where the snow lies a regiment moves a step less and, outside your own lands, loses men each turn. Bring them home or into a town, or fight on in the south, where the snow does not lie.',
   war: 'War. Flank an enemy (each of your regiments beside it adds 10% to an attack), fire from a hill (one hex further), and dig in (V) to hold ground. A town falls only when an enemy regiment holds it for some turns.',
   navigation: 'Navigation: any land regiment can now take ship from a coast and cross the sea. Going aboard or ashore costs 3 moves; aboard it can\'t fight and is easily sunk.',
   peaceTown: () => `Your regiments stand at the gates of an enemy town. In the Kingdoms panel (${document.body.classList.contains('mobile-mode') ? 'its button in the top bar' : 'K'}) you can ask for that town as the price of peace: they give it up only when they are losing.`,
@@ -4600,7 +4600,8 @@ function tickWinterAttrition() {
     const inCity = cities.some(c => c.x === u.x && c.y === u.y && c.nationId === u.nationId);
     const ti = u.y * MAP_COLS + u.x;
     const inOwnTerritory = tiles[ti].owner === u.nationId;
-    if (!inCity && !inOwnTerritory) {
+    // (the cold takes its men only where the snow lies: an army in Spain or Italy campaigns through the winter, as they did)
+    if (!inCity && !inOwnTerritory && snowyAt(u.x, u.y)) {
       // General Winter: on the map of Europe a foreign army in Russia's lands suffers twice over
       const russian = mapStyle === 'europe' && tiles[ti].owner >= 0 && nations[tiles[ti].owner]?.name === 'Russia';
       if (russian && u.nationId === playerNation && tickWinterAttrition._told !== turnNumber) { tickWinterAttrition._told = turnNumber; showToast('General Winter: your regiments in Russia suffer twice over from the cold.'); }
@@ -7067,7 +7068,7 @@ function getShakeOffset() {
 
 // whether the snow lies on a hex this winter, by the same climate the sheet draws: on unknown lands by latitude and height; on the
 //  map of Europe by the January snow cover (the continental lowland, the mountains, not the Atlantic coasts), so a town or a
-//  regiment in Seville or Naples is not snowed on. (Only the look: the winter's hardships fall on every crown alike.)
+//  regiment in Seville or Naples is not snowed on, nor slowed or worn down by the cold.
 let _snowHex = null;
 function snowyAt(x, y) {
   if (currentSeason !== 'winter') return false;
@@ -12376,7 +12377,7 @@ function openManual(tab) {
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
         ['Historical starts', 'Begin in 1672, 1683, 1700, 1718, 1733, 1740, 1756, 1778, 1788, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1721, 1739, 1748, 1763, 1783, 1792, 1802 or 1815) among the great powers and you.'],
-        ['General Winter', 'In winter a regiment outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast.'],
+        ['General Winter', 'In winter, where the snow lies, a regiment moves a step less, and outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast. Where no snow lies, in the south and along the Atlantic coasts, armies march and fight on.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
         ['Opinion', 'Each crown thinks better of you for peace, gifts, pacts and trade, and worse for war, spies found out, refusals and borders crossed. Fall far enough and it declares war.'],
@@ -14517,7 +14518,7 @@ function _finishEndTurnImpl() {
     if (u.formation && FORMATIONS[u.formation]) moves += FORMATIONS[u.formation].moveMod;
     const cmd = getCommandBonus(u);
     if (cmd.moveBonus) moves += cmd.moveBonus;
-    if (currentSeason === 'winter') moves += SEASON_EFFECTS.winter.moveMod;
+    if (currentSeason === 'winter' && snowyAt(u.x, u.y)) moves += SEASON_EFFECTS.winter.moveMod;   // (the snow slows a march only where it lies)
     moves = Math.max(1, moves);
     if (iceBound(u)) moves = 0;   // (frozen in: she lies where the ice took her till the thaw)
     computedMoves.set(u, moves);
@@ -19859,7 +19860,7 @@ function render() {
       ctx.fillText(String(u.cargo.length), bx, by + br * 0.06); ctx.restore();
     }
     // winter in the open: a rime of frost on units outside a city (they suffer the cold)
-    const cold = currentSeason === 'winter' && rad >= 6 && !cities.some(c => c.x === u.x && c.y === u.y);
+    const cold = currentSeason === 'winter' && rad >= 6 && snowyAt(u.x, u.y) && !cities.some(c => c.x === u.x && c.y === u.y);
     if (cold && !fig) {
       ctx.save();
       ctx.strokeStyle = 'rgba(20, 40, 70, 0.6)'; ctx.lineWidth = Math.max(2, rad * 0.2);
