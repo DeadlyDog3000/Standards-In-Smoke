@@ -1115,6 +1115,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.3</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Heirs, and the Years after Vienna</b><br>
+        - Heirs who died before they could reign die in their year, and the heir history had takes their place: Frederick, Prince of Wales, in 1751 (his son George is heir), Prussia's Prince Augustus William in 1758, Louis XV's Dauphin in 1765 (Louis Auguste is Dauphin), and Peter the Great's son Alexei in 1718<br>
+        - After the Congress of Vienna, in a 1805 or 1812 game played on: the Holy Alliance of the Tsar, the Emperor and the King of Prussia, Napoleon's death on Saint Helena and the Greek rising in 1821, the French march into Spain for Ferdinand VII in 1823, and Louis XVIII's death in 1824, Charles X after him<br>
+        - A start set to be played on past its peace says in its opening card what history has next (the Grand Vizier before Vienna, Silesia, the Revolution's wars...)<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.2</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">History Goes On Past the Peace</b><br>
@@ -2388,6 +2395,13 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.3</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Heirs, and the Years after Vienna</b><br>
+          - Heirs who died before they could reign die in their year, and the heir history had takes their place: Frederick, Prince of Wales, in 1751 (his son George is heir), Prussia's Prince Augustus William in 1758, Louis XV's Dauphin in 1765 (Louis Auguste is Dauphin), and Peter the Great's son Alexei in 1718<br>
+          - After the Congress of Vienna, in a 1805 or 1812 game played on: the Holy Alliance of the Tsar, the Emperor and the King of Prussia, Napoleon's death on Saint Helena and the Greek rising in 1821, the French march into Spain for Ferdinand VII in 1823, and Louis XVIII's death in 1824, Charles X after him<br>
+          - A start set to be played on past its peace says in its opening card what history has next (the Grand Vizier before Vienna, Silesia, the Revolution's wars...)<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.2</b></div>
         <div style="margin-bottom:12px;">
@@ -8325,12 +8339,17 @@ function applyHistStart(S) {
   const say = `It is ${S.year}. ${body}`;
   const scoreYear = startYear + Math.floor((scoreTurnLimit - 1) / (SEASON_LENGTH * 4));
   const when = scoreTurnLimit > 0 ? ` The score is counted ${scoreYear === S.congress.year ? S.congress.at : 'in ' + scoreYear}.` : '';
+  // (and a game set to be played on past the peace is told what history has next)
+  const onward = { '1672': [1683, 'the Grand Vizier marches on Vienna in 1683'], '1683': [1700, 'in 1700 the north and the Spanish inheritance go to war'], '1700': [1718, 'in 1718 Spain lands in Sicily'],
+    '1733': [1740, 'in 1740 the Emperor dies and Frederick marches into Silesia'], '1756': [1768, 'in 1768 the Sultan goes to war with Catherine'], '1778': [1787, 'in 1787 the Sultan goes to war with Russia, and the Bastille falls'],
+    '1788': [1792, 'in 1792 revolutionary France goes to war with the crowned heads'], '1792': [1803, 'in 1803 Britain is at war with France again, and the First Consul makes himself Emperor'] }[scenario];
+  const goesOn = onward && scoreTurnLimit > 0 && scoreYear > onward[0] && scoreYear > S.congress.year ? ` Played on past the peace, history goes on: ${onward[1]}.` : '';
   // (the year laid before the player on a card, and written in the log)
   setTimeout(() => logEvent(say + when), 0);   // (after the game's own first line, 'You are ...')
   const myRuler = getNationRuler(playerNation), myCap = cities.find(c => c.nationId === playerNation && c.isCapital);
   // (a head named with his office: "William I, the Elector, reigns"; a regent, minister or governor governs)
   const office = myRuler && myRuler.name.match(/, (Grand Pensionary|Prince Regent|Regent|Viceroy|Governor|First Consul|Director|Stadtholder|Minister|Landammann|Crown Prince|Elector|Duke|Prince-Bishop)$/);
-  const brief = `${myRuler ? `${office ? myRuler.name.slice(0, office.index) + ', the ' + office[1] + ',' : myRuler.name + (/, the [^,]+$/.test(myRuler.name) ? ',' : '')} ${office && !/^(Elector|Duke|Prince-Bishop)$/.test(office[1]) ? 'governs' : 'reigns'}${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}`;
+  const brief = `${myRuler ? `${office ? myRuler.name.slice(0, office.index) + ', the ' + office[1] + ',' : myRuler.name + (/, the [^,]+$/.test(myRuler.name) ? ',' : '')} ${office && !/^(Elector|Duke|Prince-Bishop)$/.test(office[1]) ? 'governs' : 'reigns'}${myCap ? ` in ${myCap.name}` : ''}. ` : ''}${body}${when} ${S.briefTail}${goesOn}`;
   setTimeout(() => { if (!window.__film) scenChoice('Europe, ' + S.year, brief, [['To work', () => {}]]); }, 900);
   annal(body);
   // (all of the crowns are known to one another, and Europe is charted to its edges)
@@ -9119,6 +9138,38 @@ function peaceOffer(title, text, accept, said) {
 }
 // (January 1814, in the 1805 and 1812 starts: Denmark, the Emperor's last ally, beaten by Bernadotte's Swedes, gives Norway up to Sweden
 //  by the Treaty of Kiel: Christiania, Bergen and Trondheim, those of them Denmark holds. Only where Sweden is at war with France)
+// ---- after the Congress of Vienna, in a 1805 or 1812 game played on: the Holy Alliance, the Emperor's death on Saint Helena,
+//  the Greek rising, and the French march into Spain for Ferdinand VII ----
+function tickAfterVienna() {
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
+  if ((year >= 1816 || (year === 1815 && currentSeason === 'autumn')) && !done.v_holy) {   // (September 1815: the Tsar's Holy Alliance)
+    done.v_holy = true;
+    const three = ['Russia', 'Austria', 'Prussia'].map(anyName).filter(Boolean);
+    if (three.length === 3 && three.every(a => three.every(b => a === b || a.relations[b.id] !== 'war'))) {
+      for (const a of three) for (const b of three) if (a.id < b.id && !hasAgreement(a.id, b.id, 'war_help') && a.id !== playerNation && b.id !== playerNation) addAgreement(a.id, b.id, 'war_help');
+      showToast('1815: the Tsar, the Emperor and the King of Prussia bind themselves in the Holy Alliance, to keep the peace of Vienna and the thrones of Europe.');
+    }
+  }
+  if (year >= 1821 && !done.v_helena) {   // (May 1821: Napoleon dies on Saint Helena)
+    done.v_helena = true;
+    const fr = anyName('France'), nap = fr && characters.find(c => c.nationId === fr.id && c.name === 'Napoleon Bonaparte' && !c.deathTurn && c.role !== 'ruler');
+    if (nap) { nap.deathTurn = turnNumber; showToast('1821: Napoleon dies on Saint Helena, a prisoner of the British, at fifty-one.'); if (fr.id === playerNation) annal('Napoleon died on Saint Helena.'); }
+  }
+  if (year >= 1821 && !done.v_greeks) {   // (March 1821: the Greeks rise against the Sultan)
+    done.v_greeks = true;
+    const ot = anyName('Ottoman Empire');
+    if (ot) { ot.legitimacy = Math.max(0, (ot.legitimacy ?? 50) - 8); showToast('1821: the Greeks rise against the Sultan in the Morea, and Europe takes their part.'); if (ot.id === playerNation) annal('The Greeks rose against us in the Morea. -8 legitimacy'); }
+  }
+  if (year >= 1823 && !done.v_spain) {   // (April 1823: the Hundred Thousand Sons of Saint Louis restore Ferdinand VII's absolute power)
+    done.v_spain = true;
+    const fr = anyName('France'), sp = anyName('Spain'), r = sp && getNationRuler(sp.id);
+    if (fr && sp && r && r.name === 'Ferdinand VII' && fr.relations[sp.id] !== 'war' && getNationRuler(fr.id)?.name === 'Louis XVIII') {
+      sp.legitimacy = Math.min(100, (sp.legitimacy ?? 50) + 5);
+      showToast('1823: a French army, the Hundred Thousand Sons of Saint Louis, marches into Spain and gives Ferdinand VII back his absolute power.');
+    }
+  }
+}
 function kielNorway() {
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
   if (year < 1814 || done.kiel) return;
@@ -9682,6 +9733,7 @@ const HIST_REIGN_ENDS = [
   ['Westphalia', 'George II, Elector', 1760, 2, 'd', ['George, Prince of Wales', 'male', 22, 'George III, Elector'], 'George II is dead, and his grandson is Elector of Hanover'],
   ['Great Britain', 'George III', 1820, 0, 'd', ['George, Prince of Wales', 'male', 57, 'George IV'], 'George III is dead at eighty-one, and his son George IV reigns'],
   ['Great Britain', 'George, Prince Regent', 1820, 0, 'r', 'George IV', 'George III is dead, blind and mad, at eighty-one, and the Prince Regent is King George IV'],
+  ['France', 'Louis XVIII', 1824, 2, 'd', ['Charles, Count of Artois', 'male', 66, 'Charles X'], 'Louis XVIII is dead, and his brother the Count of Artois reigns as Charles X'],
   ['France', 'Napoleon Bonaparte, First Consul', 1804, 3, 'r', 'Napoleon Bonaparte', 'in Notre-Dame the First Consul crowns himself Napoleon, Emperor of the French'],
   ['Westphalia', 'Ernest Augustus, Duke', 1698, 0, 'd', ['Prince George Louis', 'male', 37, 'George Louis, Elector'], 'the Elector Ernest Augustus of Hanover is dead, and his son George Louis rules'],
   ['Westphalia', 'Christoph Bernhard von Galen, Prince-Bishop', 1678, 2, 'd', ['Ferdinand of Fürstenberg', 'male', 52, 'Ferdinand of Fürstenberg, Prince-Bishop'], 'the warlike Bishop of Münster is dead, and the chapter elects Ferdinand of Fürstenberg'],
@@ -9734,6 +9786,13 @@ const HIST_REIGN_ENDS = [
   ['Sweden', 'Gustav IV Adolf', 1809, 0, 'x', ['Duke Charles of Södermanland', 'male', 60, 'Charles XIII'], 'the army deposes Gustav IV Adolf after the loss of Finland, and his uncle reigns as Charles XIII'],
   ['Sweden', 'Charles XIII', 1818, 0, 'd', ['Crown Prince Charles John', 'male', 54, 'Charles XIV John'], 'Charles XIII of Sweden is dead, and the French marshal Bernadotte reigns as Charles XIV John', null, ['Désirée Clary', 41]],
 ];
+// (the heirs who died before they could reign, and the heir after them: [crown, heir's name, year, season, the new heir, what is told])
+const HIST_HEIR_DEATHS = [
+  ['Great Britain', 'Frederick, Prince of Wales', 1751, 0, ['George, Prince of Wales', 'male', 12, 'George III'], 'Frederick, Prince of Wales, is dead, and his son George is heir to the throne'],
+  ['Prussia', 'Prince Augustus William', 1758, 1, ['Prince Frederick William', 'male', 13, 'Frederick William II'], 'Prince Augustus William of Prussia, in disgrace since Kolin, is dead, and his son Frederick William is heir to his uncle'],
+  ['France', 'Louis, Dauphin of France', 1765, 3, ['Louis Auguste, Dauphin of France', 'male', 11, 'Louis XVI'], 'the Dauphin is dead of consumption, and his son Louis Auguste is Dauphin'],
+  ['Russia', 'Tsarevich Alexei', 1718, 1, null, 'Tsarevich Alexei, brought back from Naples, dies under torture in the Peter and Paul fortress'],
+];
 // (the sovereigns whose deaths a start's own script brings in their years, with what went with them)
 const HIST_REIGN_SCRIPTED = [['France', 'Louis XIV', 1715], ['Russia', 'Elizabeth', 1762], ['Bavaria', 'Charles Albert', 1745], ['Spain', 'Charles IV', 1808],
   // (and those whose reigns end after the last year any start is played to: they live as long as the game does)
@@ -9747,6 +9806,16 @@ function histReignEnds() {
   if (!scen()) return;
   const year = getCurrentYear(), si = SEASONS.indexOf(currentSeason);
   const done = nations[playerNation]._reigns || (nations[playerNation]._reigns = {});
+  for (const [crown, hn, y, s, next, say] of HIST_HEIR_DEATHS) {
+    if (year < y || (year === y && si < s) || done['heir|' + hn]) continue;
+    const n = nations.find(x => x.name === crown && !x.eliminated), h = n && characters.find(c => c.nationId === n.id && c.role === 'heir' && !c.deathTurn && c.name === hn);
+    if (!h) continue;
+    done['heir|' + hn] = true;
+    characterDeath(h);
+    if (next) { const r = getNationRuler(n.id); if (r) { const c = createCharacter(n.id, 'heir', next[1]); Object.assign(c, { name: next[0], age: next[2], birthTurn: turnNumber - next[2] * SEASON_LENGTH * 4, parentIds: [r.id], reignName: next[3], hale: true }); } }
+    if (n.id === playerNation || discoveredNations.has(n.id)) logEvent(`${y}: ${say}.`);
+    if (n.id === playerNation) annal(say.charAt(0).toUpperCase() + say.slice(1) + '.');
+  }
   for (const [crown, name, y, s, how, heir, say, as, cons] of HIST_REIGN_ENDS) {
     if (year < y || (year === y && si < s) || done[crown + '|' + name]) continue;
     const n = nations.find(x => x.name === crown && !x.eliminated), r = n && getNationRuler(n.id);
@@ -9825,7 +9894,7 @@ function histChain() {
 function tickScenario() {
   histReignEnds();
   if (scenario === '1672') { tickScenario1672(); return histChain(); }
-  if (scenario === '1812') { tickScenario1812(); return kielNorway(); }
+  if (scenario === '1812') { tickScenario1812(); tickAfterVienna(); return kielNorway(); }
   if (scenario === '1792') return tickScenario1792();
   if (scenario === '1683') { tickScenario1683(); return histChain(); }
   if (scenario === '1718') return tickScenario1718();
@@ -9836,7 +9905,7 @@ function tickScenario() {
   if (scenario === '1700') { tickScenario1700(); return histChain(); }
   if (scenario === '1756') return tickScenario1756();
   if (scenario !== '1805') return;
-  kielNorway();
+  kielNorway(); tickAfterVienna();
   const byName = nm => nations.find(n => n.name === nm && !n.eliminated && n.id !== playerNation);
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
   const fr = nations.find(n => n.name === 'France' && !n.eliminated);
@@ -22799,7 +22868,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.2';
+const CURRENT_VERSION = 'beta-13.3';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
