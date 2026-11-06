@@ -1123,6 +1123,7 @@
         - 1805: the Finnish War. Sweden holds Åbo and Finland; in 1808 Russia, the Emperor's ally since Tilsit, falls on her to force her into the blockade, and by the Peace of Fredrikshamn in 1809 Finland and Åbo are Russian (yours to choose if you play Russia or Sweden). In 1812 Åbo is Russia's from the start<br>
         - 1805: the Sultan, urged on by the French, declares war on Russia at the end of 1806, until the Treaty of Bucharest in 1812; in 1807 France and Spain march on Portugal, and Spain and Portugal make peace when Spain rises; and in 1814, if the Allies are still at war with him, the Emperor gives up the throne for Elba<br>
         - 1814, in the 1805 and 1812 starts: by the Treaty of Kiel Denmark, beaten with France, gives Norway up to Sweden<br>
+        - Reval, Swedish Estonia's town, in the 1672, 1683 and 1700 starts, and surrendering to Peter the Great with Riga in 1710<br>
         - Smoother on phones and tablets: the new season's sheet is drawn a little at a time over the next few frames, the old one standing meanwhile, so the end of a turn no longer stops for it (a quarter of a second or more on a phone); the new season is on the map a moment later<br>
         - Smoother on desktops: the next season's sheet, and the sheet again after a wood is felled or a town raised, are drawn aside a few milliseconds at a time and put in place when done, so the map no longer stops for a moment while you look at it<br>
         - Faster from afar: the whole of Europe seen at once draws about five times faster, and the middle zooms nearly twice as fast, on phones too<br>
@@ -2373,6 +2374,7 @@
           - 1805: the Finnish War. Sweden holds Åbo and Finland; in 1808 Russia, the Emperor's ally since Tilsit, falls on her to force her into the blockade, and by the Peace of Fredrikshamn in 1809 Finland and Åbo are Russian (yours to choose if you play Russia or Sweden). In 1812 Åbo is Russia's from the start<br>
           - 1805: the Sultan, urged on by the French, declares war on Russia at the end of 1806, until the Treaty of Bucharest in 1812; in 1807 France and Spain march on Portugal, and Spain and Portugal make peace when Spain rises; and in 1814, if the Allies are still at war with him, the Emperor gives up the throne for Elba<br>
           - 1814, in the 1805 and 1812 starts: by the Treaty of Kiel Denmark, beaten with France, gives Norway up to Sweden<br>
+          - Reval, Swedish Estonia's town, in the 1672, 1683 and 1700 starts, and surrendering to Peter the Great with Riga in 1710<br>
           - Smoother on phones and tablets: the new season's sheet is drawn a little at a time over the next few frames, the old one standing meanwhile, so the end of a turn no longer stops for it (a quarter of a second or more on a phone); the new season is on the map a moment later<br>
           - Smoother on desktops: the next season's sheet, and the sheet again after a wood is felled or a town raised, are drawn aside a few milliseconds at a time and put in place when done, so the map no longer stops for a moment while you look at it<br>
           - Faster from afar: the whole of Europe seen at once draws about five times faster, and the middle zooms nearly twice as fast, on phones too<br>
@@ -7475,7 +7477,7 @@ const TOWN_FOUNDED = { 'St. Petersburg': 1703, 'Kherson': 1778, 'Odessa': 1794 }
 const TOWN_SINCE = { 'Austria': { 'Buda': 1686 }, 'France': { 'Lille': 1668, 'Strasbourg': 1681 }, 'Prussia': { 'Stettin': 1713, 'Breslau': 1740 },
   'Bavaria': { 'Nuremberg': 1806, 'Augsburg': 1806, 'Regensburg': 1810, 'Würzburg': 1814, 'Bamberg': 1803, 'Passau': 1803, 'Bayreuth': 1810 },
   'Kingdom of Saxony': { 'Erfurt': 9999, 'Halle': 9999, 'Magdeburg': 9999 }, 'Belgium': { 'Liège': 9999 }, 'Kingdom of Holland': { 'Maastricht': [0, 1795] }, 'Swiss Confederation': { 'Geneva': 1815 },
-  'Kingdom of Naples': { 'Palermo': [0, 1806], 'Catania': [0, 1806], 'Messina': [0, 1806] }, 'Russia': { 'Åbo': 1809, 'Helsingfors': 1809 } };
+  'Kingdom of Naples': { 'Palermo': [0, 1806], 'Catania': [0, 1806], 'Messina': [0, 1806] }, 'Russia': { 'Åbo': 1809, 'Helsingfors': 1809, 'Riga': 1710, 'Reval': 1710 } };
 const townWasTheirs = (crown, nm, y) => { const r = TOWN_SINCE[crown]?.[nm]; return r == null || (Array.isArray(r) ? y >= r[0] && y < r[1] : y >= r); };
 function europeExtraTowns(nId, presetName) {
   const preset = PRESET_NATIONS.find(p => p.name === presetName); if (!preset) return;
@@ -7614,7 +7616,7 @@ const SCEN_1756 = {
 const SCEN_1700 = {
   year: 1700,
   first: ['France', 'Great Britain', 'Austria', 'Spain', 'Sweden', 'Russia', 'Kingdom of Holland', 'Prussia', 'Bavaria', 'Portugal', 'Denmark-Norway', 'Kingdom of Saxony', 'Ottoman Empire', 'Swiss Confederation', 'Kingdom of Naples', 'Duchy of Warsaw', 'Westphalia', 'Duchy of Nassau', 'Kingdom of Italy', 'Belgium'],
-  towns: { 'Sweden': ['Riga', 'Stettin'] },   // (Riga Swedish until Peter took it in 1710, Stettin until 1713)
+  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'] },   // (Riga and Reval Swedish until Peter took them in 1710, Stettin until 1713)
   coalition: ['Great Britain', 'Austria', 'Kingdom of Holland', 'Prussia', 'Portugal'],
   france: ['France', 'Spain', 'Bavaria'],
   extraWars: [['Sweden', 'Russia'], ['Sweden', 'Denmark-Norway'], ['Sweden', 'Kingdom of Saxony']],
@@ -7900,7 +7902,7 @@ const SCEN_1740 = {
 const SCEN_1683 = {
   year: 1683,
   first: ['Austria', 'Ottoman Empire', 'France', 'Duchy of Warsaw', 'Great Britain', 'Spain', 'Kingdom of Holland', 'Sweden', 'Russia', 'Prussia', 'Bavaria', 'Kingdom of Saxony', 'Denmark-Norway', 'Portugal', 'Belgium', 'Kingdom of Italy', 'Kingdom of Naples', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Sweden': ['Riga', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'] },   // (Swedish Livonia and Pomerania; Buda the Turk's until 1686, Belgrade until 1688)
+  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'] },   // (Swedish Livonia, Estonia and Pomerania; Buda the Turk's until 1686, Belgrade until 1688)
   coalition: ['Austria', 'Duchy of Warsaw', 'Bavaria', 'Kingdom of Saxony'],
   france: ['Ottoman Empire'],
   extraWars: [['France', 'Spain'], ['France', 'Belgium']],
@@ -8078,7 +8080,7 @@ const SCEN_1812 = {
 const SCEN_1672 = {
   year: 1672,
   first: ['Kingdom of Holland', 'France', 'Great Britain', 'Prussia', 'Austria', 'Spain', 'Sweden', 'Denmark-Norway', 'Duchy of Warsaw', 'Ottoman Empire', 'Westphalia', 'Belgium', 'Bavaria', 'Kingdom of Saxony', 'Portugal', 'Russia', 'Kingdom of Italy', 'Kingdom of Naples', 'Swiss Confederation', 'Duchy of Nassau'],
-  towns: { 'Sweden': ['Riga', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'], 'Duchy of Warsaw': ['Lemberg'] },   // (Swedish Livonia and Pomerania, the Turk's Hungary and Serbia, and Polish Lemberg)
+  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'], 'Duchy of Warsaw': ['Lemberg'] },   // (Swedish Livonia, Estonia and Pomerania, the Turk's Hungary and Serbia, and Polish Lemberg)
   coalition: ['Kingdom of Holland', 'Prussia'],
   france: ['France', 'Great Britain', 'Westphalia'],
   extraWars: [['Ottoman Empire', 'Duchy of Warsaw']],
@@ -8123,7 +8125,7 @@ const SCEN_1672 = {
 const SCENS = { '1718': SCEN_1718, '1733': SCEN_1733, '1778': SCEN_1778, '1788': SCEN_1788, '1805': SCEN_1805, '1756': SCEN_1756, '1700': SCEN_1700, '1740': SCEN_1740, '1683': SCEN_1683, '1792': SCEN_1792, '1812': SCEN_1812, '1672': SCEN_1672 };
 // the crowns of 1680, for a new game on the map of Europe (no armies or wars laid on: only who reigns, and the names of the day)
 const EUROPE_1680 = {
-  towns: { 'Sweden': ['Riga', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'] },   // (Swedish Livonia and Pomerania, the Turk's Hungary)
+  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade'] },   // (Swedish Livonia, Estonia and Pomerania, the Turk's Hungary)
   rulers: {
     'France': ['Louis XIV', 'male', 41, ['charismatic', 'martial'], 'Maria Theresa of Spain', 41, ['Louis, Grand Dauphin', 'male', 18, 'Louis XV']],
     'Great Britain': ['Charles II', 'male', 50, ['charismatic'], 'Catherine of Braganza', 41, ['James, Duke of York', 'male', 46, 'James II']],
@@ -8467,8 +8469,13 @@ function tickScenario1700() {
   // (after Poltava Sweden's Baltic provinces fall: Peter takes Riga in 1710, and in 1713 Prussia takes Stettin into her keeping)
   if (year >= 1710 && !done.riga) {
     done.riga = true;
-    const ru = anyName('Russia'), c = cities.find(x => x.name === 'Riga' && !x.ruined);
-    if (c && sw && ru && sw.id !== playerNation && ru.id !== playerNation && c.nationId === sw.id && sw.relations[ru.id] === 'war' && cedeTown(c, ru.id)) { c._cededBy = undefined; tell('1710: Riga surrenders to Peter the Great, and Livonia is Russia\'s.', sw, ru); }
+    const ru = anyName('Russia'), c = cities.find(x => x.name === 'Riga' && !x.ruined), rv = cities.find(x => x.name === 'Reval' && !x.ruined);
+    if (c && sw && ru && sw.id !== playerNation && ru.id !== playerNation && c.nationId === sw.id && sw.relations[ru.id] === 'war' && cedeTown(c, ru.id)) {
+      c._cededBy = undefined;
+      // (and Reval, a few weeks after: Estonia goes with Livonia)
+      const both = rv && rv.nationId === sw.id && cedeTown(rv, ru.id); if (both) rv._cededBy = undefined;
+      tell(both ? '1710: Riga and Reval surrender to Peter the Great, and Livonia and Estonia are Russia\'s.' : '1710: Riga surrenders to Peter the Great, and Livonia is Russia\'s.', sw, ru);
+    }
   }
   if (year >= 1713 && !done.stettin) {
     done.stettin = true;
