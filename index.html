@@ -1115,6 +1115,14 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">History Goes On Past the Peace</b><br>
+        - History goes on past the peace: a game played on past its start's peace runs into the wars the next start opens with, in their year, and you are asked which side your crown takes; then that start's own years follow. From 1672 into the Siege of Vienna, from 1683 into the Great Northern War and the Spanish Succession, from 1700 into the Quadruple Alliance's war over Sicily, from 1733 into Frederick's march on Silesia and the War of the Austrian Succession, from 1778 into the Turkish war of 1787 and the Bastille, and from 1788 into the Revolution's wars. And a 1756 game goes on to Corsica sold to France and Catherine's Turkish war in 1768, Kagul and Chesma, a 1792 game to the war renewed over Malta in 1803 and the Emperor crowned in Notre-Dame in 1804. The Field Manual's History tab shows the start your game goes on into after your own, with where you stand<br>
+        - A sovereign crowned when history's reign ends comes with the consort history gave: Maria Theresa with Francis Stephen of Lorraine, Frederick the Great with Elisabeth Christine, Bernadotte with Désirée Clary<br>
+        - Breslau, Silesia's town, the Emperor's in the starts before 1740, and Prussia's by the Peace of Breslau when a game goes on into Frederick's war; and Ajaccio, Corsica's town, French in every start from 1778 on<br>
+        - The autosave waits for a quiet moment, never more than two seconds, rather than adding a tenth of a second to the end of the turn; and it is made at once if the page is hidden or closed first<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.1</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Reigns as They Ended, and Winter Quarters</b><br>
@@ -2380,6 +2388,14 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.2</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">History Goes On Past the Peace</b><br>
+          - History goes on past the peace: a game played on past its start's peace runs into the wars the next start opens with, in their year, and you are asked which side your crown takes; then that start's own years follow. From 1672 into the Siege of Vienna, from 1683 into the Great Northern War and the Spanish Succession, from 1700 into the Quadruple Alliance's war over Sicily, from 1733 into Frederick's march on Silesia and the War of the Austrian Succession, from 1778 into the Turkish war of 1787 and the Bastille, and from 1788 into the Revolution's wars. And a 1756 game goes on to Corsica sold to France and Catherine's Turkish war in 1768, Kagul and Chesma, a 1792 game to the war renewed over Malta in 1803 and the Emperor crowned in Notre-Dame in 1804. The Field Manual's History tab shows the start your game goes on into after your own, with where you stand<br>
+          - A sovereign crowned when history's reign ends comes with the consort history gave: Maria Theresa with Francis Stephen of Lorraine, Frederick the Great with Elisabeth Christine, Bernadotte with Désirée Clary<br>
+          - Breslau, Silesia's town, the Emperor's in the starts before 1740, and Prussia's by the Peace of Breslau when a game goes on into Frederick's war; and Ajaccio, Corsica's town, French in every start from 1778 on<br>
+          - The autosave waits for a quiet moment, never more than two seconds, rather than adding a tenth of a second to the end of the turn; and it is made at once if the page is hidden or closed first<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.1</b></div>
         <div style="margin-bottom:12px;">
@@ -7533,21 +7549,25 @@ function europeExtraTowns(nId, presetName) {
   const wal = presetName === 'Westphalia' && ((curAliases(true)?.[presetName] || '').match(/Münster|Hanover|Hesse/) || (scen() && ['Westphalia']));
   for (const nm of ital ? ital : wal ? ({ 'Münster': ['Paderborn'], 'Hanover': ['Lüneburg', 'Göttingen'], 'Hesse': ['Marburg', 'Hanau'] }[wal[0]] || ['Magdeburg', 'Halle']) : sav ? (sav[0] === 'Sardinia' ? (scenario === '1733' ? ['Milan', 'Cagliari'] : ['Nice', 'Cagliari']) : ['Palermo', 'Nice']) : lomb ? [...(yearTowns[presetName] || []), 'Prague', 'Buda', 'Milan'] : [...(yearTowns[presetName] || []), ...preset.cityNames.slice(1, 14).filter(nm => !(scenario === '1718' && ['Palermo', 'Messina', 'Catania'].includes(nm) && presetName !== 'Kingdom of Italy')).filter(nm => !(TOWN_FOUNDED[nm] > (scen()?.year || 1680)) && townWasTheirs(presetName, nm, scen()?.year || 1680))]) {
     if (made >= (lomb ? 3 : 2) + (yearTowns[presetName]?.length || 0)) break;   // (a crown given towns the year had it hold keeps its own two besides)
-    const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) continue;
-    const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
-    let done = false;
-    for (let r = 0; r <= 3 && !done; r++) for (let dy = -r; dy <= r && !done; dy++) for (let dx = -r; dx <= r && !done; dx++) {
-      const x = cx + dx, y = cy + dy;
-      if (x < 1 || y < 1 || x >= MAP_COLS - 1 || y >= MAP_ROWS - 1 || hexDistance(cx, cy, x, y) !== r) continue;
-      const tt = tiles[y * MAP_COLS + x].type; if (tt !== 1 && tt !== 3 && tt !== 5 && tt !== 6) continue;
-      if (units.some(u => u.x === x && u.y === y)) continue;
-      if (europeTownName(x, y) !== nm) continue;   // (a hex that would be named for another town is not this one: Rotterdam pushed off its ground is no Bruges)
-      if (!isCitySite(x, y)) citySites.push({ x, y, settled: false });   // (an old town's ground is a site to settle)
-      if (!canFoundCity(x, y, nId).ok) continue;
-      const settler = spawnUnit('settler', nId, x, y); if (!settler) continue;
-      foundCity(settler, nm); made++; done = true;
-    }
+    if (europePlaceTown(nId, nm)) made++;
   }
+}
+// (a town of the map of Europe founded for a crown on its own ground, or as near it as the land and the neighbours allow)
+function europePlaceTown(nId, nm) {
+  const t = EUROPE_TOWNS.find(e => e[0] === nm); if (!t || cities.some(c => c.name === nm)) return false;
+  const c0 = euTile(t[1], t[2]), cx = c0 % MAP_COLS, cy = (c0 - cx) / MAP_COLS;
+  for (let r = 0; r <= 3; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const x = cx + dx, y = cy + dy;
+    if (x < 1 || y < 1 || x >= MAP_COLS - 1 || y >= MAP_ROWS - 1 || hexDistance(cx, cy, x, y) !== r) continue;
+    const tt = tiles[y * MAP_COLS + x].type; if (tt !== 1 && tt !== 3 && tt !== 5 && tt !== 6) continue;
+    if (units.some(u => u.x === x && u.y === y)) continue;
+    if (europeTownName(x, y) !== nm) continue;   // (a hex that would be named for another town is not this one: Rotterdam pushed off its ground is no Bruges)
+    if (!isCitySite(x, y)) citySites.push({ x, y, settled: false });   // (an old town's ground is a site to settle)
+    if (!canFoundCity(x, y, nId).ok) continue;
+    const settler = spawnUnit('settler', nId, x, y); if (!settler) continue;
+    foundCity(settler, nm); return true;
+  }
+  return false;
 }
 // ---- the 1805 start: Europe in the year of Austerlitz. The great crowns come first, every crown begins with the arms
 //  and learning of the age, and the Third Coalition (Britain, Austria, Russia, Sweden, Naples) is already at war with
@@ -7557,7 +7577,7 @@ const SCEN_1805 = {
   // (crowns not yet in the world: the Duchy of Warsaw was made at Tilsit in 1807, and Warsaw is Prussia's until then;
   //  Belgium had been France's since 1795. A start leaves them out, and gives their towns to those who held them)
   absent: ['Duchy of Warsaw', 'Belgium'],
-  towns: { 'Russia': ['Riga', 'Kaffa', 'Odessa'], 'Prussia': ['Warsaw'], 'France': ['Brussels', 'Hanover'], 'Austria': ['Ulm', 'Venice', 'Kraków'], 'Sweden': ['Åbo'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (and Mack's army has marched into Bavaria and holds Ulm; Venice is the Emperor's from 1797 to Pressburg, Hanover French-occupied since 1803)
+  towns: { 'Russia': ['Riga', 'Kaffa', 'Odessa'], 'Prussia': ['Warsaw'], 'France': ['Brussels', 'Hanover', 'Ajaccio'], 'Austria': ['Ulm', 'Venice', 'Kraków'], 'Sweden': ['Åbo'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (and Mack's army has marched into Bavaria and holds Ulm; Venice is the Emperor's from 1797 to Pressburg, Hanover French-occupied since 1803)
   coalition: ['Great Britain', 'Austria', 'Russia', 'Sweden', 'Kingdom of Naples'],
   france: ['France', 'Kingdom of Italy', 'Bavaria', 'Kingdom of Holland', 'Spain', 'Swiss Confederation', 'Duchy of Nassau'],
   great: ['France', 'Great Britain', 'Austria', 'Russia', 'Prussia'],
@@ -7653,7 +7673,7 @@ const SCEN_1756 = {
 const SCEN_1700 = {
   year: 1700,
   first: ['France', 'Great Britain', 'Austria', 'Spain', 'Sweden', 'Russia', 'Kingdom of Holland', 'Prussia', 'Bavaria', 'Portugal', 'Denmark-Norway', 'Kingdom of Saxony', 'Ottoman Empire', 'Swiss Confederation', 'Kingdom of Naples', 'Duchy of Warsaw', 'Westphalia', 'Duchy of Nassau', 'Kingdom of Italy', 'Belgium'],
-  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Russia': ['Azov'], 'Ottoman Empire': ['Belgrade', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Riga and Reval Swedish until Peter took them in 1710, Stettin until 1713)
+  towns: { 'Austria': ['Breslau'], 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Russia': ['Azov'], 'Ottoman Empire': ['Belgrade', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Riga and Reval Swedish until Peter took them in 1710, Stettin until 1713)
   coalition: ['Great Britain', 'Austria', 'Kingdom of Holland', 'Prussia', 'Portugal'],
   france: ['France', 'Spain', 'Bavaria'],
   extraWars: [['Sweden', 'Russia'], ['Sweden', 'Denmark-Norway'], ['Sweden', 'Kingdom of Saxony']],
@@ -7702,7 +7722,7 @@ const SCEN_1700 = {
 const SCEN_1778 = {
   year: 1778,
   first: ['Great Britain', 'France', 'Spain', 'Kingdom of Holland', 'Austria', 'Prussia', 'Kingdom of Saxony', 'Russia', 'Bavaria', 'Sweden', 'Denmark-Norway', 'Ottoman Empire', 'Portugal', 'Duchy of Warsaw', 'Kingdom of Naples', 'Kingdom of Italy', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Russia': ['Riga', 'Azov', 'Kherson'], 'Ottoman Empire': ['Belgrade', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Russia's Baltic port)
+  towns: { 'France': ['Ajaccio'], 'Russia': ['Riga', 'Azov', 'Kherson'], 'Ottoman Empire': ['Belgrade', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Russia's Baltic port)
   coalition: ['Great Britain'],
   france: ['France'],
   extraWars: [['Prussia', 'Austria'], ['Kingdom of Saxony', 'Austria']],
@@ -7751,7 +7771,7 @@ const SCEN_1778 = {
 const SCEN_1788 = {
   year: 1788,
   first: ['Russia', 'Austria', 'Ottoman Empire', 'Sweden', 'France', 'Great Britain', 'Prussia', 'Spain', 'Denmark-Norway', 'Duchy of Warsaw', 'Kingdom of Holland', 'Kingdom of Saxony', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Italy', 'Portugal', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Russia': ['Riga', 'Azov', 'Kherson', 'Kaffa'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Russia's Baltic port)
+  towns: { 'France': ['Ajaccio'], 'Russia': ['Riga', 'Azov', 'Kherson', 'Kaffa'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Russia's Baltic port)
   coalition: ['Russia', 'Austria'],
   france: ['Ottoman Empire'],
   extraWars: [['Sweden', 'Russia']],
@@ -7800,7 +7820,7 @@ const SCEN_1718 = {
   year: 1718,
   // (the Emperor's Naples, which Spain means to win back, comes before the Porte, at peace from Passarowitz in July)
   first: ['Spain', 'Austria', 'Great Britain', 'France', 'Sweden', 'Russia', 'Kingdom of Holland', 'Kingdom of Italy', 'Denmark-Norway', 'Prussia', 'Kingdom of Saxony', 'Duchy of Warsaw', 'Kingdom of Naples', 'Ottoman Empire', 'Bavaria', 'Portugal', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Russia': ['Riga', 'Reval'], 'Spain': ['Cagliari'], 'Austria': ['Belgrade'], 'Ottoman Empire': ['Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Livonia and Estonia, Peter's since 1710 and his by the Peace of Nystad in 1721; Sardinia, which Spain took in 1717)
+  towns: { 'Russia': ['Riga', 'Reval'], 'Spain': ['Cagliari'], 'Austria': ['Belgrade', 'Breslau'], 'Ottoman Empire': ['Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Livonia and Estonia, Peter's since 1710 and his by the Peace of Nystad in 1721; Sardinia, which Spain took in 1717)
   coalition: ['Austria', 'Kingdom of Naples', 'Kingdom of Italy'],
   france: ['Spain'],
   extraWars: [['Sweden', 'Russia'], ['Sweden', 'Denmark-Norway'], ['Sweden', 'Prussia'], ['Sweden', 'Kingdom of Saxony']],
@@ -7851,7 +7871,7 @@ const SCEN_1718 = {
 const SCEN_1733 = {
   year: 1733,
   first: ['France', 'Austria', 'Russia', 'Spain', 'Duchy of Warsaw', 'Kingdom of Saxony', 'Kingdom of Italy', 'Great Britain', 'Prussia', 'Ottoman Empire', 'Kingdom of Naples', 'Bavaria', 'Kingdom of Holland', 'Sweden', 'Denmark-Norway', 'Portugal', 'Belgium', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Russia': ['Riga'], 'Duchy of Warsaw': ['Danzig'], 'Austria': ['Belgrade'], 'Ottoman Empire': ['Azov', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the Polish crown's port, where King Stanisław shut himself up in 1734)
+  towns: { 'Russia': ['Riga'], 'Duchy of Warsaw': ['Danzig'], 'Austria': ['Belgrade', 'Breslau'], 'Ottoman Empire': ['Azov', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the Polish crown's port, where King Stanisław shut himself up in 1734)
   coalition: ['Austria', 'Russia', 'Kingdom of Saxony', 'Kingdom of Naples'],
   france: ['France', 'Spain', 'Kingdom of Italy', 'Duchy of Warsaw'],
   great: ['France', 'Austria', 'Russia', 'Spain', 'Great Britain', 'Prussia'],
@@ -7943,7 +7963,7 @@ const SCEN_1740 = {
 const SCEN_1683 = {
   year: 1683,
   first: ['Austria', 'Ottoman Empire', 'France', 'Duchy of Warsaw', 'Great Britain', 'Spain', 'Kingdom of Holland', 'Sweden', 'Russia', 'Prussia', 'Bavaria', 'Kingdom of Saxony', 'Denmark-Norway', 'Portugal', 'Belgium', 'Kingdom of Italy', 'Kingdom of Naples', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
-  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade', 'Azov', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Swedish Livonia, Estonia and Pomerania; Buda the Turk's until 1686, Belgrade until 1688)
+  towns: { 'Austria': ['Breslau'], 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade', 'Azov', 'Kaffa', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Swedish Livonia, Estonia and Pomerania; Buda the Turk's until 1686, Belgrade until 1688)
   coalition: ['Austria', 'Duchy of Warsaw', 'Bavaria', 'Kingdom of Saxony'],
   france: ['Ottoman Empire'],
   extraWars: [['France', 'Spain'], ['France', 'Belgium']],
@@ -8009,7 +8029,7 @@ const SCEN_1792 = {
   // (the Austrian Netherlands, where Jemappes and Fleurus were fought, before Denmark, neutral through the war)
   first: ['France', 'Austria', 'Prussia', 'Great Britain', 'Russia', 'Spain', 'Kingdom of Holland', 'Sweden', 'Ottoman Empire', 'Duchy of Warsaw', 'Kingdom of Naples', 'Portugal', 'Belgium', 'Bavaria', 'Kingdom of Saxony', 'Denmark-Norway', 'Kingdom of Italy', 'Swiss Confederation', 'Westphalia', 'Duchy of Nassau'],
   absent: ['Kingdom of Italy'],   // (Milan was the Emperor's from 1714 to 1796, governed from Vienna: no crown of its own)
-  towns: { 'Russia': ['Riga', 'Azov', 'Kherson', 'Kaffa'], 'France': ['Lille', 'Strasbourg'], 'Duchy of Warsaw': ['Danzig', 'Vilna'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the French frontier fortresses, and Poland's Baltic port and Lithuania before the last partitions)
+  towns: { 'Russia': ['Riga', 'Azov', 'Kherson', 'Kaffa'], 'France': ['Lille', 'Strasbourg', 'Ajaccio'], 'Duchy of Warsaw': ['Danzig', 'Vilna'], 'Ottoman Empire': ['Belgrade', 'Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the French frontier fortresses, and Poland's Baltic port and Lithuania before the last partitions)
   coalition: ['Austria', 'Prussia', 'Belgium'],
   france: ['France'],
   great: ['France', 'Austria', 'Prussia', 'Great Britain', 'Russia', 'Spain'],
@@ -8056,7 +8076,7 @@ const SCEN_1812 = {
   year: 1812,
   first: ['France', 'Russia', 'Great Britain', 'Austria', 'Prussia', 'Spain', 'Sweden', 'Duchy of Warsaw', 'Portugal', 'Ottoman Empire', 'Kingdom of Saxony', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Italy', 'Westphalia', 'Denmark-Norway', 'Kingdom of Holland', 'Swiss Confederation', 'Duchy of Nassau'],
   absent: ['Belgium', 'Kingdom of Holland'],   // (France's since 1795, and Holland annexed to the Empire in 1810)
-  towns: { 'France': ['Brussels', 'Amsterdam'], 'Russia': ['Vilna', 'Smolensk', 'Riga', 'Åbo', 'Kaffa', 'Odessa'], 'Ottoman Empire': ['Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the Empire's Belgian and Dutch departments; Russia's road from the Niemen to Moscow; and Finland, Russia's since 1809)
+  towns: { 'France': ['Brussels', 'Amsterdam', 'Ajaccio'], 'Russia': ['Vilna', 'Smolensk', 'Riga', 'Åbo', 'Kaffa', 'Odessa'], 'Ottoman Empire': ['Bucharest', 'Jassy'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (the Empire's Belgian and Dutch departments; Russia's road from the Niemen to Moscow; and Finland, Russia's since 1809)
   coalition: ['Russia', 'Great Britain', 'Spain', 'Portugal'],
   france: ['France', 'Austria', 'Prussia', 'Duchy of Warsaw', 'Kingdom of Saxony', 'Bavaria', 'Kingdom of Naples', 'Kingdom of Italy', 'Westphalia', 'Duchy of Nassau'],
   great: ['France', 'Russia', 'Great Britain', 'Austria', 'Prussia'],
@@ -8121,7 +8141,7 @@ const SCEN_1812 = {
 const SCEN_1672 = {
   year: 1672,
   first: ['Kingdom of Holland', 'France', 'Great Britain', 'Prussia', 'Austria', 'Spain', 'Sweden', 'Denmark-Norway', 'Duchy of Warsaw', 'Ottoman Empire', 'Westphalia', 'Belgium', 'Bavaria', 'Kingdom of Saxony', 'Portugal', 'Russia', 'Kingdom of Italy', 'Kingdom of Naples', 'Swiss Confederation', 'Duchy of Nassau'],
-  towns: { 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade', 'Azov', 'Bucharest', 'Jassy'], 'Duchy of Warsaw': ['Lemberg'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Swedish Livonia, Estonia and Pomerania, the Turk's Hungary and Serbia, and Polish Lemberg)
+  towns: { 'Austria': ['Breslau'], 'Sweden': ['Riga', 'Reval', 'Stettin'], 'Ottoman Empire': ['Buda', 'Belgrade', 'Azov', 'Bucharest', 'Jassy'], 'Duchy of Warsaw': ['Lemberg'], 'Denmark-Norway': ['Bergen', 'Trondheim'] },   // (Swedish Livonia, Estonia and Pomerania, the Turk's Hungary and Serbia, and Polish Lemberg)
   coalition: ['Kingdom of Holland', 'Prussia'],
   france: ['France', 'Great Britain', 'Westphalia'],
   extraWars: [['Ottoman Empire', 'Duchy of Warsaw']],
@@ -8440,6 +8460,33 @@ function tickScenario1756() {
       if (fr && !hasAgreement(sp.id, fr.id, 'war_help')) addAgreement(sp.id, fr.id, 'war_help');
       tell('1762: Spain comes into the war against Britain, on the side of France.', sp);
       const po = byName('Portugal'); if (po && joinAgainst(po, sp)) { if (!hasAgreement(po.id, gb.id, 'war_help')) addAgreement(po.id, gb.id, 'war_help'); tell('1762: Spain marches on Portugal, and Portugal stands with Britain.', po); }
+    }
+  }
+  // (after the Peace of Paris, in a game played on: the Sultan, urged on by France over the Russian armies in Poland, declares
+  //  war on Catherine in the autumn of 1768; Rumyantsev wins at Larga and Kagul, and the Russian fleet, come round from the
+  //  Baltic, burns the Turkish fleet in Chesma bay in 1770)
+  if ((year >= 1769 || (year === 1768 && (currentSeason === 'autumn' || currentSeason === 'winter'))) && !done.turk68) {
+    done.turk68 = true;
+    const ot = anyName('Ottoman Empire'), ru = anyName('Russia');
+    if (ot && ru && ot.relations[ru.id] !== 'war') {
+      if (ot.id !== playerNation && ru.id !== playerNation) { if (joinAgainst(ot, ru)) tell('1768: urged on by France, the Sultan declares war on Russia over her armies in Poland.', ot); }
+      else if (ot.id === playerNation) warOffer(ot, ru, 'The Russian War', 'Russian troops chasing the Confederates of Bar have burned Balta, on your side of the border, and France urges war. Declare it?', () => joinAgainst(ot, ru), 'We go to war with Russia.');
+      else if (joinAgainst(ot, ru)) { tell('1768: urged on by France, the Sultan declares war on you over your armies in Poland.', ot); showWarDeclaration(ot); }
+    }
+  }
+  // (May 1768: Genoa, unable to put down Paoli's Corsicans, sells the island to France; Ajaccio is French a year before Napoleon is born there)
+  if (year >= 1768 && !done.corsica) {
+    done.corsica = true;
+    if (fr && mapStyle === 'europe' && europePlaceTown(fr.id, 'Ajaccio')) tell('1768: by the Treaty of Versailles Genoa sells Corsica to France, and Ajaccio is French.', fr);
+  }
+  battle('kagul', 1770, anyName('Russia'), anyName('Ottoman Empire'), 3, '1770: at Larga and Kagul Rumyantsev routs armies three times his own.');
+  if (year >= 1770 && currentSeason !== 'spring' && !done.chesma) {
+    done.chesma = true;
+    const ru = anyName('Russia'), ot = anyName('Ottoman Empire');
+    if (ru && ot && ru.id !== playerNation && ot.id !== playerNation && ru.relations[ot.id] === 'war') {
+      const ships = units.filter(u => u.nationId === ot.id && UNIT_DEFS[u.type]?.naval).slice(0, 4);
+      for (const u of ships) removeUnit(u);
+      if (ships.length) tell('1770: in Chesma bay the Russian fleet, come round from the Baltic, burns the Turkish fleet.', ru);
     }
   }
 }
@@ -8903,6 +8950,48 @@ function tickScenario1733() {
   }
 }
 // the years after 1740, as they went (if the crowns in question are still there and still as they were)
+// ---- a game begun in 1733 and played on past 1740: the Emperor Charles VI dies (HIST_REIGN_ENDS), and the war over his
+//  daughter's inheritance comes as it did. Frederick marches into Silesia in December 1740, France, Bavaria, Saxony and Spain
+//  fall on Maria Theresa in 1741, Britain and the Dutch take her side; from then on the 1740 start's own years ----
+function tickAustrianSuccession() {
+  const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
+  const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
+  const pr = anyName('Prussia'), au = anyName('Austria');
+  const ai = (...ns) => ns.every(n => n && n.id !== playerNation);
+  const queen = au && getNationRuler(au.id)?.name === 'Maria Theresa';
+  const joinAgainst = (n, foe) => {
+    if (!n || !foe || n === foe || n.relations[foe.id] === 'war') return false;
+    for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, foe.id, t);
+    n.relations[foe.id] = 'war'; foe.relations[n.id] = 'war'; warEnmity(n, foe);
+    if (!n._warSince) n._warSince = {}; n._warSince[foe.id] = turnNumber;
+    for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[foe.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+    return true;
+  };
+  const go = (n, foe, key, say, title, ask, said) => {
+    if (done[key] || !n || !foe) return; done[key] = true;
+    if (ai(n, foe)) { if (joinAgainst(n, foe)) showToast(say); }
+    else if (n.id === playerNation) warOffer(n, foe, title, ask, () => joinAgainst(n, foe), said);
+    else if (foe.id === playerNation && joinAgainst(n, foe)) { showToast(say); showWarDeclaration(n); }
+  };
+  if (!queen && !done.silesia40) return;   // (the war was over the daughter's crowns: no Maria Theresa, no war of her succession)
+  if (year >= 1741 || (year === 1740 && currentSeason === 'winter'))
+    go(pr, au, 'silesia40', '1740: Frederick II marches into Silesia without a declaration of war: the War of the Austrian Succession.', 'Silesia',
+      'The Emperor is dead, and his crowns pass to a young woman whose army is weak. Silesia lies open. March in?', 'We march into Silesia.');
+  if (year >= 1741 && done.silesia40) {
+    for (const [nm, key] of [['France', 'aus_fr'], ['Bavaria', 'aus_bv'], ['Kingdom of Saxony', 'aus_sx'], ['Spain', 'aus_sp']]) {
+      const n = anyName(nm); if (!n) continue;
+      go(n, au, key, `1741: ${theCrown(n)} joins the league against Maria Theresa.`, 'The League of Nymphenburg',
+        'France, Bavaria and Spain are bound to divide the Habsburg lands. Join the league against Maria Theresa?', 'We join the league against Maria Theresa.');
+    }
+    tickScenario1740();
+  }
+  if (year >= 1743 && !done.pragmatic) {   // (the Pragmatic Army: Britain and Hanover for the Queen, against France, at Dettingen)
+    done.pragmatic = true;
+    const gb = anyName('Great Britain'), fr = anyName('France');
+    if (gb && fr && au && gb.relations[au.id] !== 'war') go(gb, fr, 'pragmatic_gb', '1743: George II leads the Pragmatic Army for Maria Theresa, and beats the French at Dettingen.', 'The Pragmatic Army',
+      'The King of France is at war with the Queen of Hungary, and Hanover lies near. Take the field for her?', 'We take the field for Maria Theresa.');
+  }
+}
 function tickScenario1740() {
   const anyName = nm => nations.find(n => n.name === nm && !n.eliminated);
   const year = getCurrentYear(), done = nations[playerNation]._scen || (nations[playerNation]._scen = {});
@@ -9348,6 +9437,15 @@ function tickScenario1792() {
     histPeace(fr, ru, makePeace, tell, '1801: Russia makes peace with France.', 'The Peace of Paris', fr && fr.id === playerNation ? 'The new Tsar, Alexander, offers peace.' : 'The First Consul offers peace to the new Tsar.');
   }
   if (year >= 1802 && !done.amiens) { done.amiens = true; histPeace(fr, gb, makePeace, tell, '1802: by the Peace of Amiens Britain makes peace with France.', 'The Peace of Amiens', fr && fr.id === playerNation ? 'Britain, alone and weary, offers peace.' : 'France offers peace, and Britain stands alone.'); }
+  // (after Amiens, in a game played on: Britain declares war again in May 1803, and the camp at Boulogne gathers for England)
+  if (year >= 1803 && !done.renewal) {
+    done.renewal = true;
+    if (gb && fr && gb.relations[fr.id] !== 'war') {
+      if (ai(gb, fr)) { if (joinAgainst(gb, fr)) tell('1803: Britain will not give up Malta, and declares war on France again; the army gathers at Boulogne for England.', gb, fr); }
+      else if (gb.id === playerNation) warOffer(gb, fr, 'Malta', 'The First Consul demands Malta, and is annexing half of Italy and Switzerland in peace. Declare war again?', () => joinAgainst(gb, fr), 'We are at war with France again.');
+      else if (joinAgainst(gb, fr)) { tell('1803: Britain will not give up Malta, and declares war on you again.', gb, fr); showWarDeclaration(gb); }
+    }
+  }
 }
 // the years after 1812, as they went (if the crowns in question are still there and still as they were)
 function tickScenario1812() {
@@ -9545,53 +9643,54 @@ function tickScenario1672() {
 //  King's), and a reign that has already ended otherwise is left alone, the ruler's name being no longer the same ----
 // [crown, ruler, year, season (0 spring, 1 summer, 2 autumn, 3 winter), 'd' dies | 'x' deposed | 'a' gives up the throne
 //  | 'r' the regent or crown prince who governed is crowned, heir [name, gender, age, regnal name] (for 'r', the new name),
-//  what is told, and the name taken by a successor the game crowns who has no regnal name]
+//  what is told, the name taken by a successor the game crowns who has no regnal name, and the new sovereign's consort [name, age]]
 const HIST_REIGN_ENDS = [
-  ['Austria', 'Leopold I', 1705, 0, 'd', ['Archduke Joseph', 'male', 26, 'Joseph I'], 'the Emperor Leopold I is dead, and his son Joseph I reigns'],
-  ['Austria', 'Joseph I', 1711, 0, 'd', ['Archduke Charles', 'male', 26, 'Charles VI'], 'the Emperor Joseph I dies of the smallpox, and his brother comes home from Spain to be the Emperor Charles VI'],
-  ['Austria', 'Charles VI', 1740, 2, 'd', ['Archduchess Maria Theresa', 'female', 23, 'Maria Theresa'], 'the Emperor Charles VI is dead, the last man of his house, and his daughter Maria Theresa takes his crowns'],
+  ['Austria', 'Leopold I', 1705, 0, 'd', ['Archduke Joseph', 'male', 26, 'Joseph I'], 'the Emperor Leopold I is dead, and his son Joseph I reigns', null, ['Amalia Wilhelmine of Brunswick', 32]],
+  ['Austria', 'Joseph I', 1711, 0, 'd', ['Archduke Charles', 'male', 26, 'Charles VI'], 'the Emperor Joseph I dies of the smallpox, and his brother comes home from Spain to be the Emperor Charles VI', null, ['Elisabeth Christine of Brunswick', 20]],
+  ['Austria', 'Charles VI', 1740, 2, 'd', ['Archduchess Maria Theresa', 'female', 23, 'Maria Theresa'], 'the Emperor Charles VI is dead, the last man of his house, and his daughter Maria Theresa takes his crowns', null, ['Francis Stephen of Lorraine', 32]],
   ['Austria', 'Maria Theresa', 1780, 2, 'd', null, 'the Empress Maria Theresa is dead, and her son Joseph II rules alone'],
-  ['Austria', 'Joseph II', 1790, 0, 'd', ['Archduke Leopold', 'male', 42, 'Leopold II'], 'the Emperor Joseph II is dead, his reforms undone, and his brother Leopold II reigns'],
-  ['Austria', 'Leopold II', 1792, 0, 'd', ['Archduke Francis', 'male', 24, 'Francis II'], 'the Emperor Leopold II dies suddenly, and his son Francis II reigns'],
+  ['Austria', 'Joseph II', 1790, 0, 'd', ['Archduke Leopold', 'male', 42, 'Leopold II'], 'the Emperor Joseph II is dead, his reforms undone, and his brother Leopold II reigns', null, ['Maria Louisa of Spain', 45]],
+  ['Austria', 'Leopold II', 1792, 0, 'd', ['Archduke Francis', 'male', 24, 'Francis II'], 'the Emperor Leopold II dies suddenly, and his son Francis II reigns', null, ['Maria Theresa of Naples', 20]],
   ['Bavaria', 'Ferdinand Maria', 1679, 0, 'd', ['Prince Maximilian Emanuel', 'male', 16, 'Maximilian II Emanuel'], 'the Elector Ferdinand Maria of Bavaria is dead, and his son Max Emanuel rules'],
-  ['Bavaria', 'Maximilian II Emanuel', 1726, 0, 'd', ['Prince Charles Albert', 'male', 28, 'Charles Albert'], 'the Elector Max Emanuel of Bavaria is dead, and his son Charles Albert rules'],
+  ['Bavaria', 'Maximilian II Emanuel', 1726, 0, 'd', ['Prince Charles Albert', 'male', 28, 'Charles Albert'], 'the Elector Max Emanuel of Bavaria is dead, and his son Charles Albert rules', null, ['Maria Amalia of Austria', 25]],
   ['Bavaria', 'Maximilian III Joseph', 1777, 3, 'd', ['Charles Theodore, Elector Palatine', 'male', 53, 'Charles Theodore'], 'the Elector of Bavaria dies the last of his line, and the Elector Palatine Charles Theodore inherits'],
   ['Bavaria', 'Charles Theodore', 1799, 0, 'd', ['Duke Maximilian Joseph of Zweibrücken', 'male', 42, 'Maximilian IV Joseph'], 'the Elector Charles Theodore is dead, and Max Joseph of Zweibrücken inherits Bavaria'],
   ['Bavaria', 'Maximilian I Joseph', 1825, 2, 'd', ['Crown Prince Ludwig', 'male', 39, 'Ludwig I'], 'King Max Joseph of Bavaria is dead, and his son Ludwig I reigns'],
   ['Denmark-Norway', 'Christian V', 1699, 1, 'd', ['Crown Prince Frederick', 'male', 28, 'Frederick IV'], 'Christian V of Denmark is dead, and his son Frederick IV reigns'],
-  ['Denmark-Norway', 'Frederick IV', 1730, 2, 'd', ['Crown Prince Christian', 'male', 31, 'Christian VI'], 'Frederick IV of Denmark is dead, and his son Christian VI reigns'],
-  ['Denmark-Norway', 'Christian VI', 1746, 1, 'd', ['Crown Prince Frederick', 'male', 23, 'Frederick V'], 'Christian VI of Denmark is dead, and his son Frederick V reigns'],
+  ['Denmark-Norway', 'Frederick IV', 1730, 2, 'd', ['Crown Prince Christian', 'male', 31, 'Christian VI'], 'Frederick IV of Denmark is dead, and his son Christian VI reigns', null, ['Sophie Magdalene of Brandenburg-Kulmbach', 30]],
+  ['Denmark-Norway', 'Christian VI', 1746, 1, 'd', ['Crown Prince Frederick', 'male', 23, 'Frederick V'], 'Christian VI of Denmark is dead, and his son Frederick V reigns', null, ['Louise of Great Britain', 22]],
   ['Denmark-Norway', 'Frederick V', 1766, 0, 'd', ['Crown Prince Christian', 'male', 16, 'Christian VII'], 'Frederick V of Denmark is dead, and his son Christian VII reigns'],
   ['Denmark-Norway', 'Frederick, Crown Prince', 1808, 0, 'r', 'Frederick VI', 'King Christian VII of Denmark is dead, and the Crown Prince, regent these twenty-four years, is King Frederick VI'],
   ['Denmark-Norway', 'Crown Prince Frederick, Regent', 1808, 0, 'r', 'Frederick VI', 'King Christian VII of Denmark is dead, and the Crown Prince, regent these twenty-four years, is King Frederick VI'],
   ['Duchy of Warsaw', 'Michael I', 1673, 2, 'd', ['John Sobieski, Grand Hetman', 'male', 44, 'John III Sobieski'], 'King Michael of Poland is dead, and the Diet elects the victor of Khotyn, John Sobieski'],
-  ['Duchy of Warsaw', 'John III Sobieski', 1696, 1, 'd', ['Augustus, Elector of Saxony', 'male', 26, 'Augustus II'], 'John Sobieski is dead, and the Diet elects the Elector of Saxony king, as Augustus II'],
+  ['Duchy of Warsaw', 'John III Sobieski', 1696, 1, 'd', ['Augustus, Elector of Saxony', 'male', 26, 'Augustus II'], 'John Sobieski is dead, and the Diet elects the Elector of Saxony king, as Augustus II', null, ['Christiane Eberhardine of Bayreuth', 25]],
   ['Duchy of Warsaw', 'Augustus III', 1763, 2, 'd', ['Stanisław Poniatowski', 'male', 31, 'Stanisław II Augustus'], 'Augustus III is dead, and the Diet elects the Empress Catherine\'s favourite, Stanisław Poniatowski'],
   ['Kingdom of Saxony', 'John George II', 1680, 1, 'd', ['Prince John George', 'male', 33, 'John George III'], 'the Elector John George II of Saxony is dead, and his son John George III rules'],
   ['Kingdom of Saxony', 'John George III', 1691, 2, 'd', ['Prince John George', 'male', 23, 'John George IV'], 'the Elector John George III of Saxony is dead, and his son John George IV rules'],
   ['Kingdom of Saxony', 'John George IV', 1694, 0, 'd', ['Prince Frederick Augustus', 'male', 24, 'Augustus the Strong'], 'the Elector John George IV dies of the smallpox, and his brother Frederick Augustus, the Strong, is Elector of Saxony'],
-  ['Kingdom of Saxony', 'Augustus the Strong', 1733, 0, 'd', ['Prince Frederick Augustus', 'male', 36, 'Frederick Augustus II'], 'Augustus the Strong is dead, and his son Frederick Augustus II is Elector of Saxony'],
+  ['Kingdom of Saxony', 'Augustus the Strong', 1733, 0, 'd', ['Prince Frederick Augustus', 'male', 36, 'Frederick Augustus II'], 'Augustus the Strong is dead, and his son Frederick Augustus II is Elector of Saxony', null, ['Maria Josepha of Austria', 34]],
   ['Kingdom of Saxony', 'Frederick Augustus II', 1763, 2, 'd', ['Prince Frederick Christian', 'male', 41, 'Frederick Christian'], 'the Elector Frederick Augustus II of Saxony is dead, and his son Frederick Christian rules'],
   ['Kingdom of Saxony', 'Augustus III', 1763, 2, 'd', ['Prince Frederick Christian', 'male', 41, 'Frederick Christian'], 'the Elector Frederick Augustus II of Saxony is dead, and his son Frederick Christian rules'],
   ['Kingdom of Saxony', 'Frederick Christian', 1763, 3, 'd', ['Prince Frederick Augustus', 'male', 13, 'Frederick Augustus III'], 'the Elector Frederick Christian of Saxony dies of the smallpox after ten weeks, and his son Frederick Augustus III, a boy of thirteen, rules'],
   ['Great Britain', 'Charles II', 1685, 0, 'd', ['James, Duke of York', 'male', 51, 'James II'], 'Charles II is dead, and his brother James II reigns'],
-  ['Great Britain', 'William III', 1702, 0, 'd', ['Princess Anne', 'female', 37, 'Anne'], 'William III dies after a fall from his horse, and Queen Anne reigns'],
+  ['Great Britain', 'William III', 1702, 0, 'd', ['Princess Anne', 'female', 37, 'Anne'], 'William III dies after a fall from his horse, and Queen Anne reigns', null, ['Prince George of Denmark', 49]],
   ['Kingdom of Holland', 'William III of Orange, Stadtholder', 1702, 0, 'd', ['Anthonie Heinsius', 'male', 61, 'Anthonie Heinsius, Grand Pensionary'], 'William III is dead, and the Dutch Republic goes without a stadtholder: the Grand Pensionary Heinsius governs'],
   ['Great Britain', 'Anne', 1714, 1, 'd', ['George Louis, Elector of Hanover', 'male', 54, 'George I'], 'Queen Anne is dead, the last of the Stuarts, and the Elector of Hanover comes over to be King George I'],
   ['Westphalia', 'George Louis, Elector', 1714, 1, 'r', 'George I, Elector', 'the Elector of Hanover is King of Great Britain too'],
-  ['Great Britain', 'George I', 1727, 1, 'd', ['George, Prince of Wales', 'male', 43, 'George II'], 'George I is dead, and his son George II reigns'],
+  ['Great Britain', 'George I', 1727, 1, 'd', ['George, Prince of Wales', 'male', 43, 'George II'], 'George I is dead, and his son George II reigns', null, ['Caroline of Ansbach', 44]],
   ['Westphalia', 'George I, Elector', 1727, 1, 'd', ['George Augustus', 'male', 43, 'George II, Elector'], 'George I is dead, and his son is Elector of Hanover'],
   ['Westphalia', 'George II, Elector', 1760, 2, 'd', ['George, Prince of Wales', 'male', 22, 'George III, Elector'], 'George II is dead, and his grandson is Elector of Hanover'],
   ['Great Britain', 'George III', 1820, 0, 'd', ['George, Prince of Wales', 'male', 57, 'George IV'], 'George III is dead at eighty-one, and his son George IV reigns'],
   ['Great Britain', 'George, Prince Regent', 1820, 0, 'r', 'George IV', 'George III is dead, blind and mad, at eighty-one, and the Prince Regent is King George IV'],
+  ['France', 'Napoleon Bonaparte, First Consul', 1804, 3, 'r', 'Napoleon Bonaparte', 'in Notre-Dame the First Consul crowns himself Napoleon, Emperor of the French'],
   ['Westphalia', 'Ernest Augustus, Duke', 1698, 0, 'd', ['Prince George Louis', 'male', 37, 'George Louis, Elector'], 'the Elector Ernest Augustus of Hanover is dead, and his son George Louis rules'],
   ['Westphalia', 'Christoph Bernhard von Galen, Prince-Bishop', 1678, 2, 'd', ['Ferdinand of Fürstenberg', 'male', 52, 'Ferdinand of Fürstenberg, Prince-Bishop'], 'the warlike Bishop of Münster is dead, and the chapter elects Ferdinand of Fürstenberg'],
   ['Kingdom of Italy', 'Victor Amadeus II', 1730, 2, 'a', ['Prince Charles Emmanuel', 'male', 29, 'Charles Emmanuel III'], 'Victor Amadeus II gives up the throne to his son Charles Emmanuel III'],
   ['Kingdom of Italy', 'Victor Amadeus III', 1796, 2, 'd', ['Prince Charles Emmanuel', 'male', 45, 'Charles Emmanuel IV'], 'Victor Amadeus III of Sardinia is dead, beaten by Bonaparte, and his son Charles Emmanuel IV reigns'],
-  ['Spain', 'Charles II', 1700, 2, 'd', ['Philip, Duke of Anjou', 'male', 17, 'Philip V'], 'Charles II, the last Habsburg King of Spain, dies without a son, and leaves his crowns to Louis XIV\'s grandson, Philip V'],
-  ['Spain', 'Philip V', 1746, 1, 'd', ['Ferdinand, Prince of Asturias', 'male', 32, 'Ferdinand VI'], 'Philip V of Spain is dead, and his son Ferdinand VI reigns'],
-  ['Spain', 'Ferdinand VI', 1759, 1, 'd', ['Charles, King of Naples', 'male', 43, 'Charles III'], 'Ferdinand VI of Spain dies without a son, and his half-brother the King of Naples is King Charles III of Spain'],
-  ['Spain', 'Charles III', 1788, 3, 'd', ['Charles, Prince of Asturias', 'male', 40, 'Charles IV'], 'Charles III of Spain is dead, and his son Charles IV reigns'],
+  ['Spain', 'Charles II', 1700, 2, 'd', ['Philip, Duke of Anjou', 'male', 17, 'Philip V'], 'Charles II, the last Habsburg King of Spain, dies without a son, and leaves his crowns to Louis XIV\'s grandson, Philip V', null, ['Maria Luisa of Savoy', 12]],
+  ['Spain', 'Philip V', 1746, 1, 'd', ['Ferdinand, Prince of Asturias', 'male', 32, 'Ferdinand VI'], 'Philip V of Spain is dead, and his son Ferdinand VI reigns', null, ['Barbara of Portugal', 35]],
+  ['Spain', 'Ferdinand VI', 1759, 1, 'd', ['Charles, King of Naples', 'male', 43, 'Charles III'], 'Ferdinand VI of Spain dies without a son, and his half-brother the King of Naples is King Charles III of Spain', null, ['Maria Amalia of Saxony', 35]],
+  ['Spain', 'Charles III', 1788, 3, 'd', ['Charles, Prince of Asturias', 'male', 40, 'Charles IV'], 'Charles III of Spain is dead, and his son Charles IV reigns', null, ['Maria Luisa of Parma', 37]],
   ['Kingdom of Naples', 'Charles VII', 1759, 1, 'a', ['Prince Ferdinand', 'male', 8, 'Ferdinand IV'], 'the King of Naples goes to Madrid to be King of Spain, and leaves Naples to his son Ferdinand IV, a boy of eight'],
   ['Ottoman Empire', 'Mehmed IV', 1687, 2, 'x', ['Prince Suleiman', 'male', 45, 'Suleiman II'], 'after the defeat at Mohács the army deposes Sultan Mehmed IV, and his brother Suleiman II reigns'],
   ['Ottoman Empire', 'Suleiman II', 1691, 1, 'd', ['Prince Ahmed', 'male', 48, 'Ahmed II'], 'Sultan Suleiman II is dead, and his brother Ahmed II reigns'],
@@ -9606,21 +9705,21 @@ const HIST_REIGN_ENDS = [
   ['Ottoman Empire', 'Mustafa IV', 1808, 1, 'x', ['Prince Mahmud', 'male', 23, 'Mahmud II'], 'Alemdar Pasha marches on Constantinople to bring back Selim, who is strangled first; Mustafa IV is deposed, and Mahmud II reigns'],
   ['Portugal', 'Peter, Prince Regent', 1683, 2, 'r', 'Peter II', 'King Afonso VI dies a prisoner at Sintra, and the Prince Regent is King Peter II'],
   ['Portugal', 'Peter II', 1706, 3, 'd', ['Prince John', 'male', 17, 'John V'], 'Peter II of Portugal is dead, and his son John V reigns'],
-  ['Portugal', 'John V', 1750, 1, 'd', ['Prince Joseph', 'male', 35, 'Joseph I'], 'John V of Portugal is dead, and his son Joseph I reigns'],
-  ['Portugal', 'Joseph I', 1777, 0, 'd', ['Princess Maria', 'female', 42, 'Maria I'], 'Joseph I of Portugal is dead, and his daughter Maria I reigns'],
+  ['Portugal', 'John V', 1750, 1, 'd', ['Prince Joseph', 'male', 35, 'Joseph I'], 'John V of Portugal is dead, and his son Joseph I reigns', null, ['Mariana Victoria of Spain', 31]],
+  ['Portugal', 'Joseph I', 1777, 0, 'd', ['Princess Maria', 'female', 42, 'Maria I'], 'Joseph I of Portugal is dead, and his daughter Maria I reigns', null, ['Peter of Braganza', 59]],
   ['Portugal', 'John, Prince Regent', 1816, 0, 'r', 'John VI', 'Queen Maria I dies at Rio de Janeiro, and the Prince Regent is King John VI'],
   ['Prussia', 'Frederick William, the Great Elector', 1688, 0, 'd', ['Prince Frederick', 'male', 30, 'Frederick III, Elector'], 'the Great Elector is dead, and his son Frederick III rules Brandenburg'],
-  ['Prussia', 'Frederick I', 1713, 0, 'd', ['Crown Prince Frederick William', 'male', 24, 'Frederick William I'], 'Frederick I, the first King in Prussia, is dead, and his son Frederick William I reigns'],
-  ['Prussia', 'Frederick William I', 1740, 0, 'd', ['Crown Prince Frederick', 'male', 28, 'Frederick II'], 'Frederick William I, the soldier king, is dead, and his son Frederick II reigns'],
-  ['Prussia', 'Frederick II', 1786, 1, 'd', ['Prince Frederick William', 'male', 41, 'Frederick William II'], 'Frederick the Great is dead at Sanssouci, and his nephew Frederick William II reigns'],
-  ['Prussia', 'Frederick William II', 1797, 2, 'd', ['Crown Prince Frederick William', 'male', 27, 'Frederick William III'], 'Frederick William II of Prussia is dead, and his son Frederick William III reigns'],
+  ['Prussia', 'Frederick I', 1713, 0, 'd', ['Crown Prince Frederick William', 'male', 24, 'Frederick William I'], 'Frederick I, the first King in Prussia, is dead, and his son Frederick William I reigns', null, ['Sophia Dorothea of Hanover', 26]],
+  ['Prussia', 'Frederick William I', 1740, 0, 'd', ['Crown Prince Frederick', 'male', 28, 'Frederick II'], 'Frederick William I, the soldier king, is dead, and his son Frederick II reigns', null, ['Elisabeth Christine of Brunswick', 25]],
+  ['Prussia', 'Frederick II', 1786, 1, 'd', ['Prince Frederick William', 'male', 41, 'Frederick William II'], 'Frederick the Great is dead at Sanssouci, and his nephew Frederick William II reigns', null, ['Frederika Louisa of Hesse-Darmstadt', 35]],
+  ['Prussia', 'Frederick William II', 1797, 2, 'd', ['Crown Prince Frederick William', 'male', 27, 'Frederick William III'], 'Frederick William II of Prussia is dead, and his son Frederick William III reigns', null, ['Louise of Mecklenburg-Strelitz', 21]],
   ['Russia', 'Alexis', 1676, 0, 'd', ['Tsarevich Feodor', 'male', 14, 'Feodor III'], 'Tsar Alexis is dead, and his son Feodor III reigns'],
   ['Russia', 'Peter I', 1725, 0, 'd', null, 'Peter the Great is dead, and his widow reigns as the Empress Catherine I', 'Catherine I'],
   ['Russia', 'Catherine I', 1727, 1, 'd', ['Grand Duke Peter', 'male', 11, 'Peter II'], 'the Empress Catherine I is dead, and Peter the Great\'s grandson Peter II reigns, a boy of eleven'],
   ['Russia', 'Anna', 1740, 2, 'd', null, 'the Empress Anna is dead; her great-nephew Ivan VI is Tsar in his cradle, and his mother Anna Leopoldovna governs', 'Anna Leopoldovna, Regent'],
-  ['Russia', 'Catherine II', 1796, 2, 'd', ['Grand Duke Paul', 'male', 42, 'Paul I'], 'Catherine the Great is dead, and her son Paul I reigns'],
-  ['Russia', 'Paul I', 1801, 0, 'd', ['Grand Duke Alexander', 'male', 23, 'Alexander I'], 'the Tsar Paul is murdered by his officers, and his son Alexander I reigns'],
-  ['Russia', 'Alexander I', 1825, 3, 'd', ['Grand Duke Nicholas', 'male', 29, 'Nicholas I'], 'Alexander I dies at Taganrog; his brother Constantine has given up the throne, and Nicholas I reigns'],
+  ['Russia', 'Catherine II', 1796, 2, 'd', ['Grand Duke Paul', 'male', 42, 'Paul I'], 'Catherine the Great is dead, and her son Paul I reigns', null, ['Maria Feodorovna', 37]],
+  ['Russia', 'Paul I', 1801, 0, 'd', ['Grand Duke Alexander', 'male', 23, 'Alexander I'], 'the Tsar Paul is murdered by his officers, and his son Alexander I reigns', null, ['Elizabeth Alexeievna', 22]],
+  ['Russia', 'Alexander I', 1825, 3, 'd', ['Grand Duke Nicholas', 'male', 29, 'Nicholas I'], 'Alexander I dies at Taganrog; his brother Constantine has given up the throne, and Nicholas I reigns', null, ['Alexandra Feodorovna', 27]],
   ['Russia', 'Feodor III', 1682, 0, 'd', ['Tsarevich Ivan', 'male', 16, 'Ivan V'], 'Tsar Feodor III is dead, and his brother Ivan V reigns, with the boy Peter beside him'],
   ['Kingdom of Naples', 'Ferdinand IV', 1825, 0, 'd', ['Francis, Duke of Calabria', 'male', 47, 'Francis I'], 'Ferdinand, King of the Two Sicilies, is dead, and his son Francis I reigns'],
   ['Kingdom of Saxony', 'Frederick Augustus I', 1827, 1, 'd', ['Prince Anthony', 'male', 71, 'Anthony'], 'King Frederick Augustus I of Saxony is dead, and his brother Anthony reigns'],
@@ -9629,11 +9728,11 @@ const HIST_REIGN_ENDS = [
   ['Sweden', 'Charles XI', 1697, 0, 'd', ['Crown Prince Charles', 'male', 15, 'Charles XII'], 'Charles XI of Sweden is dead, and his son Charles XII, fifteen, is declared of age to reign'],
   ['Sweden', 'Charles XII', 1718, 2, 'd', ['Princess Ulrika Eleonora', 'female', 30, 'Ulrika Eleonora'], 'Charles XII is shot dead in the trenches before Fredriksten, and his sister Ulrika Eleonora reigns'],
   ['Sweden', 'Ulrika Eleonora', 1720, 0, 'a', ['Frederick of Hesse', 'male', 43, 'Frederick I'], 'Queen Ulrika Eleonora gives up the throne to her husband, Frederick of Hesse, King Frederick I'],
-  ['Sweden', 'Frederick I', 1751, 0, 'd', ['Adolf Frederick of Holstein-Gottorp', 'male', 40, 'Adolf Frederick'], 'Frederick I of Sweden is dead, and the heir the Estates chose, Adolf Frederick, reigns'],
-  ['Sweden', 'Adolf Frederick', 1771, 0, 'd', ['Crown Prince Gustav', 'male', 25, 'Gustav III'], 'Adolf Frederick of Sweden is dead, and his son Gustav III reigns'],
+  ['Sweden', 'Frederick I', 1751, 0, 'd', ['Adolf Frederick of Holstein-Gottorp', 'male', 40, 'Adolf Frederick'], 'Frederick I of Sweden is dead, and the heir the Estates chose, Adolf Frederick, reigns', null, ['Louisa Ulrika of Prussia', 30]],
+  ['Sweden', 'Adolf Frederick', 1771, 0, 'd', ['Crown Prince Gustav', 'male', 25, 'Gustav III'], 'Adolf Frederick of Sweden is dead, and his son Gustav III reigns', null, ['Sophia Magdalena of Denmark', 24]],
   ['Sweden', 'Gustav III', 1792, 0, 'd', ['Crown Prince Gustav Adolf', 'male', 13, 'Gustav IV Adolf'], 'Gustav III is shot at a masked ball in Stockholm, and his son Gustav IV Adolf reigns, a boy, under his uncle Duke Charles'],
   ['Sweden', 'Gustav IV Adolf', 1809, 0, 'x', ['Duke Charles of Södermanland', 'male', 60, 'Charles XIII'], 'the army deposes Gustav IV Adolf after the loss of Finland, and his uncle reigns as Charles XIII'],
-  ['Sweden', 'Charles XIII', 1818, 0, 'd', ['Crown Prince Charles John', 'male', 54, 'Charles XIV John'], 'Charles XIII of Sweden is dead, and the French marshal Bernadotte reigns as Charles XIV John'],
+  ['Sweden', 'Charles XIII', 1818, 0, 'd', ['Crown Prince Charles John', 'male', 54, 'Charles XIV John'], 'Charles XIII of Sweden is dead, and the French marshal Bernadotte reigns as Charles XIV John', null, ['Désirée Clary', 41]],
 ];
 // (the sovereigns whose deaths a start's own script brings in their years, with what went with them)
 const HIST_REIGN_SCRIPTED = [['France', 'Louis XIV', 1715], ['Russia', 'Elizabeth', 1762], ['Bavaria', 'Charles Albert', 1745], ['Spain', 'Charles IV', 1808],
@@ -9648,7 +9747,7 @@ function histReignEnds() {
   if (!scen()) return;
   const year = getCurrentYear(), si = SEASONS.indexOf(currentSeason);
   const done = nations[playerNation]._reigns || (nations[playerNation]._reigns = {});
-  for (const [crown, name, y, s, how, heir, say, as] of HIST_REIGN_ENDS) {
+  for (const [crown, name, y, s, how, heir, say, as, cons] of HIST_REIGN_ENDS) {
     if (year < y || (year === y && si < s) || done[crown + '|' + name]) continue;
     const n = nations.find(x => x.name === crown && !x.eliminated), r = n && getNationRuler(n.id);
     if (!r || r.name !== name) continue;   // (the reign has ended otherwise already, or never was in this start)
@@ -9675,21 +9774,66 @@ function histReignEnds() {
     const sp = characters.find(c => c.id === r.spouseId && !c.deathTurn); if (sp) sp.role = 'dowager';
     h.role = 'ruler'; delete h.regent; n.rulerId = h.id; crownName(h);
     const ns = createCharacter(n.id, 'spouse', h.gender === 'male' ? 'female' : 'male'); h.spouseId = ns.id; ns.spouseId = h.id;
+    if (cons) Object.assign(ns, { name: cons[0], age: cons[1], birthTurn: turnNumber - cons[1] * SEASON_LENGTH * 4, hale: true });   // (the consort history gave the new sovereign)
     tell();
   }
 }
+// ---- history goes on past the peace: a game played on past its start's congress runs into the wars the next start opens
+//  with, declared in their year as they were (your own crown is asked which side it takes), and two seasons on, that
+//  start's own years. [from, into, the year and season (0 spring .. 3 winter) the wars break out, what is told, the question]
+const HIST_CHAINS = [
+  ['1672', '1683', 1683, 0, '1683: the Grand Vizier marches on Vienna with the Sultan\'s army, and the Emperor, Poland, Bavaria and Saxony stand together against him; in the west France falls on the Spanish Netherlands', 'The Siege of Vienna'],
+  ['1683', '1700', 1700, 0, '1700: Saxony, Denmark and Russia fall on the young Charles XII of Sweden, and the Spanish inheritance sets the Grand Alliance against Louis XIV and his grandson', 'Two Wars at Once'],
+  ['1700', '1718', 1718, 1, '1718: Philip V\'s Spain lands an army in Sicily, and the Emperor, Naples and Savoy go to war against it; in the north Charles XII\'s enemies are still in arms against him', 'The Quadruple Alliance'],
+  ['1778', '1788', 1787, 2, '1787: the Sultan declares war on Russia to win back the Crimea; the Emperor Joseph comes in beside Catherine, and Gustav III of Sweden falls on Russia from Finland', 'The Turkish War'],
+  ['1788', '1792', 1792, 0, '1792: revolutionary France declares war on the King of Hungary and Bohemia, and Prussia comes in beside Austria: the War of the First Coalition', 'The War of the First Coalition'],
+];
+function histChain() {
+  const ch = HIST_CHAINS.find(c => c[0] === scenario); if (!ch) return;
+  const [, into, y, s, say, title] = ch, S = SCENS[into], year = getCurrentYear();
+  if (!S || year < y || (year === y && SEASONS.indexOf(currentSeason) < s)) return;
+  const done = nations[playerNation]._scen || (nations[playerNation]._scen = {}), key = 'chain' + into;
+  if (!done[key]) {
+    done[key] = { turn: turnNumber };
+    const crown = nm => nations.find(n => n.name === nm && !n.eliminated && !n.isBarbarian);
+    const pairs = [];
+    for (const a of S.coalition || []) for (const b of S.france || []) pairs.push([crown(a), crown(b)]);
+    for (const [a, b] of S.extraWars || []) pairs.push([crown(a), crown(b)]);
+    const join = (n, foe) => {
+      if (!n || !foe || n === foe || n.relations[foe.id] === 'war') return false;
+      for (const t of ['open_borders', 'war_help', 'barb_help', 'mapping', 'marriage']) removeAgreement(n.id, foe.id, t);
+      n.relations[foe.id] = 'war'; foe.relations[n.id] = 'war'; warEnmity(n, foe);
+      if (!n._warSince) n._warSince = {}; n._warSince[foe.id] = turnNumber;
+      for (const o of nations) if (o !== n && !o.eliminated && !o.isBarbarian && o.relations[foe.id] === 'war' && o.relations[n.id] !== 'war' && !hasAgreement(o.id, n.id, 'war_help')) addAgreement(o.id, n.id, 'war_help');
+      return true;
+    };
+    const me = nations[playerNation], foes = [];
+    for (const [a, b] of pairs) {
+      if (!a || !b) continue;
+      if (a.id === playerNation || b.id === playerNation) { const f = a.id === playerNation ? b : a; if (me.relations[f.id] !== 'war' && !foes.includes(f)) foes.push(f); continue; }
+      join(a, b);
+    }
+    // (and the armies the next start sets where the year had them: the Grand Vizier's before Vienna)
+    if (into === '1683') try { S.setup?.(); } catch (e) { console.error(e); }
+    showToast(say + '.');
+    if (foes.length && !window.__film) scenChoice(title, `${say}. Go to war with ${listAnd(foes.map(theCrown))}, as your crown did?`,
+      [['Go to war', () => { for (const f of foes) join(me, f); showToast(`We go to war with ${listAnd(foes.map(theCrown))}.`); annal(`${title}: we went to war with ${listAnd(foes.map(theCrown))}.`); }],
+       ['Stay at peace', () => { annal(`${title}: we stayed at peace.`); }]]);
+  }
+  if (turnNumber - done[key].turn >= 2) ({ '1683': tickScenario1683, '1700': tickScenario1700, '1718': tickScenario1718, '1788': tickScenario1788, '1792': tickScenario1792 })[into]?.();
+}
 function tickScenario() {
   histReignEnds();
-  if (scenario === '1672') return tickScenario1672();
+  if (scenario === '1672') { tickScenario1672(); return histChain(); }
   if (scenario === '1812') { tickScenario1812(); return kielNorway(); }
   if (scenario === '1792') return tickScenario1792();
-  if (scenario === '1683') return tickScenario1683();
+  if (scenario === '1683') { tickScenario1683(); return histChain(); }
   if (scenario === '1718') return tickScenario1718();
-  if (scenario === '1733') return tickScenario1733();
-  if (scenario === '1778') return tickScenario1778();
-  if (scenario === '1788') return tickScenario1788();
+  if (scenario === '1733') { tickScenario1733(); if (getCurrentYear() >= 1740) tickAustrianSuccession(); return; }
+  if (scenario === '1778') { tickScenario1778(); return histChain(); }
+  if (scenario === '1788') { tickScenario1788(); return histChain(); }
   if (scenario === '1740') return tickScenario1740();
-  if (scenario === '1700') return tickScenario1700();
+  if (scenario === '1700') { tickScenario1700(); return histChain(); }
   if (scenario === '1756') return tickScenario1756();
   if (scenario !== '1805') return;
   kielNorway();
@@ -12389,9 +12533,16 @@ function updateRulerMedal() {
   if (el.title !== tip) el.title = tip;
   el.style.display = '';
 }
+// (the towns the crowns fight for: the start's, or, once a game has gone on into the next start's wars, that start's)
+function histAims() {
+  const d = nations[playerNation]?._scen, ch = typeof HIST_CHAINS !== 'undefined' && HIST_CHAINS.find(c => c[0] === scenario);
+  if (ch && d && d['chain' + ch[1]] && SCENS[ch[1]]?.aims) return SCENS[ch[1]].aims;
+  if (scenario === '1733' && d && d.silesia40) return SCEN_1740.aims || scen()?.aims;
+  return scen()?.aims;
+}
 // the town a crown fought for in its historical start, held now by a crown it is at war with (null if none is)
 function histAimTown() {
-  const me = nations[playerNation], aims = me && scen()?.aims?.[me.name]; if (!aims) return null;
+  const me = nations[playerNation], aims = me && histAims()?.[me.name]; if (!aims) return null;
   for (const nm of aims) { const c = cities.find(x => x.name === nm); if (c && c.nationId !== playerNation && me.relations[c.nationId] === 'war') return c; }
   return null;
 }
@@ -12648,9 +12799,13 @@ function openManual(tab) {
       // (in a game begun in one of them, that one first, with the years gone by dimmed and a mark where you stand)
       (() => {
         const mine = MAP_COLS && scen() ? H.find(([t]) => t.startsWith(scenario + ':')) : null, now = mine ? getCurrentYear() : 0;
-        return (mine ? [mine, ...H.filter(h => h !== mine)] : H).map(h => {
-          const [t, rows] = h, cur = h === mine; let marked = false;
-          return `<div class="section-title">${escHtml(t)}${cur ? ' (your game)' : ''}</div>` + [...rows].sort((a, b) => a[0] - b[0]).map(([y, d]) => {
+        // (and the start a game played on past its peace goes on into, next after it)
+        const into = mine && (scenario === '1733' ? '1740' : HIST_CHAINS.find(c => c[0] === scenario)?.[1]), after = into ? H.find(([t]) => t.startsWith(into + ':')) : null;
+        const lastOf = h => Math.max(...h[1].map(r => +r[0]));
+        return (mine ? [mine, ...(after ? [after] : []), ...H.filter(h => h !== mine && h !== after)] : H).map(h => {
+          const [t, rows] = h, cur = h === mine || h === after; let marked = h === mine && after && now > lastOf(mine);   // (the mark where you stand goes in the later start once the game is past the first)
+          if (h === after && now <= lastOf(mine)) marked = true;   // (still within the first start's years: the mark is there)
+          return `<div class="section-title">${escHtml(t)}${h === mine ? ' (your game)' : h === after ? ' (your game goes on into it)' : ''}</div>` + [...rows].sort((a, b) => a[0] - b[0]).map(([y, d]) => {
             let mark = '';
             if (cur && !marked && +y >= now) { marked = true; mark = `<div class="man-row man-text"><div><b class="man-name" style="color:#e0c880">Now, ${now}</b></div></div>`; }
             return mark + `<div class="man-row man-text"${cur && +y < now ? ' style="opacity:.55"' : ''}><div><b class="man-name">${y}</b><p>${escHtml(d)}</p></div></div>`;
@@ -12661,7 +12816,7 @@ function openManual(tab) {
     body = `<p class="man-lede">The other crowns of Europe, and how they deal with you and with each other.</p><div class="section-title">Tempers</div>` +
       Object.values(TEMPERS).map(t => `<div class="man-row man-text"><div><b class="man-name">${escHtml(t.name)}</b><p>${escHtml(t.desc)}</p></div></div>`).join('') +
       `<div class="section-title">War and peace</div>` + [
-        ['Historical starts', 'Begin in 1672, 1683, 1700, 1718, 1733, 1740, 1756, 1778, 1788, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1721, 1739, 1748, 1763, 1783, 1792, 1802 or 1815) among the great powers and you.'],
+        ['Historical starts', 'Begin in 1672, 1683, 1700, 1718, 1733, 1740, 1756, 1778, 1788, 1792, 1805 or 1812 (Historical Starts on the title screen, or Start when you set up a game) and the crowns stand as they did: their rulers, armies, fleets and alliances, with the wars of the year already begun. History moves on as it did while the crowns are placed for it, and the score is counted at the peace (1678, 1699, 1714, 1721, 1739, 1748, 1763, 1783, 1792, 1802 or 1815) among the great powers and you. Play on past it and history goes on: the next start\'s wars break out in their year (the Siege of Vienna, the Spanish Succession, Silesia, the Turkish war of 1787, the Revolution\'s wars), and you are asked which side your crown takes.'],
         ['General Winter', 'In winter, where the snow lies, a regiment moves a step less, and outside its own lands and towns loses men to the cold; on the map of Europe, in Russia\'s lands, twice as fast. Where no snow lies, in the south and along the Atlantic coasts, armies march and fight on. A regiment in winter quarters, in a town of its own, heals a point more each turn.'],
         ['Succession', 'When a ruler dies the eldest heir of sixteen or more is crowned; failing one the consort rules, as regent until a child heir comes of age; failing both, the nobles choose. The Royal Court shows the line. In a historical start the sovereigns die, are deposed or give up the throne in the years history had, and the heir history had is crowned; your own crown is never deposed by it.'],
         ['Allies &amp; foes', 'The button in the Kingdoms panel tints every crown\'s lands by how it stands with yours: your own gold, allies and in-laws green, enemies red, the rest grey.'],
@@ -13409,6 +13564,7 @@ function aiTurn(nationId) {
     return !combatUnits.some(cu => hexDistance(cu.x, cu.y, c.x, c.y) <= 3);
   };
   let winterQuarters = false;
+  const campAims = scen() ? histAims() : null;
   if (combatUnits.length) {
     const mx = combatUnits.reduce((a, cu) => a + cu.x, 0) / combatUnits.length, my = combatUnits.reduce((a, cu) => a + cu.y, 0) / combatUnits.length;
     let best = -Infinity;
@@ -13416,7 +13572,7 @@ function aiTurn(nationId) {
       if (c.nationId === nationId || n.relations[c.nationId] !== 'war') continue;
       const defenders = units.filter(eu => eu.nationId === c.nationId && UNIT_DEFS[eu.type]?.combat && hexDistance(eu.x, eu.y, c.x, c.y) <= 2).length;
       const sc = 100 - hexDistance(Math.round(mx), Math.round(my), c.x, c.y) - defenders * 8 - cityWallLevel(c) * 6 + (c.siegeTurns || 0) * 3 + (c.captureProgress?.[nationId] || 0) * 20
-        + ((scen()?.aims?.[n.name] || []).includes(c.name) ? 25 : 0)   // (in a historical start a crown makes for the towns it fought over)
+        + ((campAims?.[n.name] || []).includes(c.name) ? 25 : 0)   // (in a historical start a crown makes for the towns it fought over)
         - (winterFar(c) ? 40 : 0);
       if (sc > best) { best = sc; campaignTarget = c; }
     }
@@ -22643,7 +22799,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.1';
+const CURRENT_VERSION = 'beta-13.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -25275,9 +25431,21 @@ function saveGame(slot) {
   }
 }
 
+// (the autosave waits for a quiet moment, at most two seconds, rather than adding its 50-100 ms to the end of the turn; and if
+//  the page is hidden or closed before then, it is made at once)
+let _autoSavePending = null;
 function autoSave() {
-  setTimeout(() => { try { saveGame('auto'); } catch(e) {} }, 0);
+  if (_autoSavePending) return;
+  const run = () => { _autoSavePending = null; try { saveGame('auto'); } catch (e) {} };
+  _autoSavePending = window.requestIdleCallback ? { idle: requestIdleCallback(run, { timeout: 2000 }) } : { t: setTimeout(run, 0) };
 }
+function flushAutoSave() {
+  const p = _autoSavePending; if (!p) return;
+  if (p.idle) cancelIdleCallback(p.idle); else clearTimeout(p.t);
+  _autoSavePending = null; try { saveGame('auto'); } catch (e) {}
+}
+addEventListener('pagehide', flushAutoSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushAutoSave(); });
 
 let autoSaveInterval = null;
 function startAutoSaveTimer() {
