@@ -7065,29 +7065,34 @@ function getShakeOffset() {
   };
 }
 
-// whether the snow lies on a hex this winter: everywhere on unknown lands; on the map of Europe by the same climate the sheet
-//  draws (the January snow cover: the continental lowland, the mountains, not the Atlantic coasts), so a town or a regiment in
-//  Seville or Naples is not snowed on. (Only the look: the winter's hardships fall on every crown alike.)
+// whether the snow lies on a hex this winter, by the same climate the sheet draws: on unknown lands by latitude and height; on the
+//  map of Europe by the January snow cover (the continental lowland, the mountains, not the Atlantic coasts), so a town or a
+//  regiment in Seville or Naples is not snowed on. (Only the look: the winter's hardships fall on every crown alike.)
 let _snowHex = null;
 function snowyAt(x, y) {
   if (currentSeason !== 'winter') return false;
-  if (mapStyle !== 'europe') return true;
   if (!_snowHex || _snowHex.tiles !== tiles || _snowHex.n !== tiles.length) _snowHex = { tiles, n: tiles.length, v: new Int8Array(tiles.length).fill(-1) };
   const i = y * MAP_COLS + x, c = _snowHex.v[i];
   if (c >= 0) return !!c;
-  const t = tiles[i], [lon, lat] = euLonLat(x, y), H = t?.type === 2 ? 1.2 : t?.type === 7 ? 0.35 : 0.06;
-  const coast = lon < 22 && hexNeighbors(x, y).some(h => tiles[h.row * MAP_COLS + h.col]?.type === 0);
-  const hl = Math.max(0.35, Math.min(1.2, 0.5 + (47 - lat) * 0.035));
-  const v = Math.max(lat - owWinterEdge(lon) + H * 2.5 - (coast ? 2.5 : 0), (H - hl) * 8) > 0 ? 1 : 0;
+  const t = tiles[i], H = t?.type === 2 ? 1.2 : t?.type === 7 ? 0.35 : 0.06;
+  let v;
+  if (mapStyle === 'europe') {
+    const [lon, lat] = euLonLat(x, y), hl = Math.max(0.35, Math.min(1.2, 0.5 + (47 - lat) * 0.035));
+    const coast = lon < 22 && hexNeighbors(x, y).some(h => tiles[h.row * MAP_COLS + h.col]?.type === 0);
+    v = Math.max(lat - owWinterEdge(lon) + H * 2.5 - (coast ? 2.5 : 0), (H - hl) * 8) > 0 ? 1 : 0;
+  } else {   // (unknown lands: by the latitude the sheet gives them, the winter snow line at 52, and the mountains as on the map of Europe)
+    const lat = 70 - ((y + 0.5) / MAP_ROWS) * 34, hl = Math.max(0.35, Math.min(1.2, 0.5 + (47 - lat) * 0.035));
+    v = Math.max(lat + H * 5 - 52, (H - hl) * 8) > 0 ? 1 : 0;
+  }
   _snowHex.v[i] = v; return !!v;
 }
 // winter: snow drifting down over the map (a CSS layer, so it costs the map nothing to draw)
 let _weatherEl = null, _weatherSeason = '', _weatherImgs = null, _weatherHide = 0;
 function updateWeather() {
   const shown = document.getElementById('game')?.style.display !== 'none';
-  // (on the map of Europe, only while the middle of the view lies under the snow)
+  // (only while the middle of the view lies under the snow)
   let snowy = currentSeason === 'winter';
-  if (snowy && mapStyle === 'europe' && typeof camX === 'number' && tiles.length) { const mx = Math.max(0, Math.min(MAP_COLS - 1, Math.round(camX + visibleCols() / 2))), my = Math.max(0, Math.min(MAP_ROWS - 1, Math.round(camY + visibleRows() / 2))); snowy = snowyAt(mx, my); }
+  if (snowy && typeof camX === 'number' && tiles.length) { const mx = Math.max(0, Math.min(MAP_COLS - 1, Math.round(camX + visibleCols() / 2))), my = Math.max(0, Math.min(MAP_ROWS - 1, Math.round(camY + visibleRows() / 2))); snowy = snowyAt(mx, my); }
   const want = shown && snowy ? currentSeason : '';
   if (want === _weatherSeason) return;
   _weatherSeason = want;
@@ -17309,7 +17314,7 @@ const OW_WASH = {
   summer: { 1: [212, 192, 118], 3: [152, 150, 106], 4: [210, 190, 122], 5: [124, 134, 82], 6: [206, 188, 116], 7: [202, 174, 114], 2: [176, 160, 128] },
   autumn: { 1: [206, 170, 112], 3: [156, 140, 98], 4: [204, 176, 120], 5: [146, 112, 66], 6: [202, 168, 108], 7: [196, 158, 104], 2: [176, 156, 126] },
   winter: { 1: [214, 210, 194], 3: [180, 182, 168], 4: [214, 208, 192], 5: [146, 150, 128], 6: [212, 208, 192], 7: [206, 200, 184], 2: [200, 196, 186] },
-  // (the map of Europe in winter: the ground where no snow lies is dormant grass and bare fields, the snow laid white over it where it lies)
+  // (winter: the ground where no snow lies is dormant grass and bare fields, the snow laid white over it where it lies)
   winterEu: { 1: [182, 180, 150], 3: [152, 158, 134], 4: [188, 184, 158], 5: [128, 136, 112], 6: [178, 180, 148], 7: [180, 172, 144], 2: [188, 182, 168] },
 };
 function worldChartKey() {
@@ -17723,7 +17728,7 @@ function owStartSlices(key) {
 function owStopSlices() { OW.job = null; OW.dirty = false; }
 function* owChartSteps(key) {
   OW.key = key;
-  const season = currentSeason in OW_WASH ? currentSeason : 'spring', winter = season === 'winter', wash = OW_WASH[winter && mapStyle === 'europe' ? 'winterEu' : season];
+  const season = currentSeason in OW_WASH ? currentSeason : 'spring', winter = season === 'winter', wash = OW_WASH[winter ? 'winterEu' : season];
   // the lie of the land (heights, coasts, where every tree and peak stands) is worked out once per map; a new season only recolours it
   const tileKey = key.replace(/:[a-z]+$/, '');
   if (!OW.F || OW.F.tileKey !== tileKey) {
@@ -17758,9 +17763,9 @@ function* owChartSteps(key) {
   const SNOW = new Float32Array(LW * LH);   // (how deep the snow lies, for the drifts drawn over it below, and no grass tufts on it)
   (OW.snowBy || (OW.snowBy = {}))[season] = SNOW;
   const ICE = new Uint8Array(LW * LH); (OW.iceBy || (OW.iceBy = {}))[season] = ICE;
-  // (on the map of Europe in winter, where the snow lies at all, woods or no woods: the trees and peaks capped with it only there)
-  const LIE = winter && mapStyle === 'europe' ? new Uint8Array(LW * LH) : null;
-  if (LIE) (OW.lieBy || (OW.lieBy = {})).winter = LIE; else if (winter && OW.lieBy) delete OW.lieBy.winter;   // (where the sea is frozen: no waves drawn on it)
+  // (in winter, where the snow lies at all, woods or no woods: the trees and peaks capped with it only there)
+  const LIE = winter ? new Uint8Array(LW * LH) : null;
+  if (LIE) (OW.lieBy || (OW.lieBy = {})).winter = LIE;   // (where the sea is frozen: no waves drawn on it)
   const euro = mapStyle === 'europe', snowLat = { winter: 52, spring: 59, autumn: 59.5, summer: 60.5 }[season], iceLat = winter ? 58 : 65;
   // (the lowland snow edge for each column of the sheet, worked out once rather than for every pixel)
   const WEDGE = euro ? Float32Array.from({ length: LW }, (_, x) => owWinterEdge(EUROPE.lon0 + (x / LW) * EUROPE.w)) : null;
