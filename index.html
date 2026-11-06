@@ -17382,7 +17382,7 @@ function owDrawMarks(g, marks, season, u, x0 = -Infinity, y0 = -Infinity, x1 = I
   const autumnGreen = ['rgb(104, 112, 64)', 'rgb(146, 150, 92)'];
   for (const m of marks) {
     if (m.x < x0 || m.x > x1 || m.y < y0 || m.y > y1) continue;
-    if (m.k === 'wave' && ice) { const R0 = OW.F.R; if (ice[((m.y / R0) | 0) * OW.F.LW + ((m.x / R0) | 0)]) continue; }   // (no waves on a frozen sea)
+    if (m.k === 'wave' && ice) { const R0 = OW.F.R; if (ice[((m.y / R0) | 0) * OW.F.LW + ((m.x / R0) | 0)] > 100) continue; }   // (no waves on a frozen sea)
     if (m.k === 'tuft' && snow) { const R0 = OW.F.R; if (snow[((m.y / R0) | 0) * OW.F.LW + ((m.x / R0) | 0)] > 0.35) continue; }   // (no grass showing through the snow)
     const cap = season === 'winter' && (m._one || !lie || lie[((m.y / OW.F.R) | 0) * OW.F.LW + ((m.x / OW.F.R) | 0)] >= 64);
     const box = !m._one && OW_SPRITE_BOX[m.k];
@@ -17709,12 +17709,14 @@ function* owChartSteps(key) {
       const k = Math.min(1, Math.max(0, 1 - NEAR[i] * 2.4)), n = NS[i];
       r = sea0[0] + (sea1[0] - sea0[0]) * k + n * 14; g = sea0[1] + (sea1[1] - sea0[1]) * k + n * 14; b = sea0[2] + (sea1[2] - sea0[2]) * k + n * 12;
       // winter: the shallows along the shore freeze white
-      if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; ICE[i] = 1; }
+      if (winter && NEAR[i] > 0.34 + n * 0.2) { r = 222 + n * 20; g = 230 + n * 20; b = 234 + n * 16; ICE[i] = 255; }
       else if (lat > iceLat - 2 && !(euro && owIceOpen(x, y, lat))) {
         // sea ice: fast ice along the shore, broken into floes and open leads further out
-        const into = lat - iceLat + n * 1.5 + NEAR[i] * 3, fl = into > 1.6 || into <= 0 ? 0.5 : owFbm(x * 0.09, y * 0.09, 41, 3);   // (the noise only where the floes break up)
-        const k = into > 1.6 ? 0.9 : into > 0 && fl > 0.62 - into * 0.12 ? 0.75 + (fl - 0.5) * 0.4 : 0;
-        if (k) { const cr = owHash(x, y, 43) > 0.93 ? 0.88 : 1; r += (218 * cr - r) * k; g += (228 * cr - g) * k; b += (236 * cr - b) * k; ICE[i] = 1; }
+        const into = lat - iceLat + n * 1.5 + NEAR[i] * 3, fl = into > 1.6 || into <= -0.4 ? 0.5 : owFbm(x * 0.09, y * 0.09, 41, 3);   // (the noise only where the floes break up)
+        // (a floe's edge feathered over a little of the noise, so its outline is drawn, not stepped out pixel by pixel when the sheet is enlarged)
+        const th = 0.62 - into * 0.12, e = into > -0.4 ? (fl - th) / 0.11 : -9;
+        const k = into > 1.6 ? 0.9 : e > -1 ? Math.min(1, (e + 1) / 2) * (0.75 + (Math.max(fl, th) - 0.5) * 0.4) * Math.min(1, (into + 0.4) / 0.8) : 0;
+        if (k) { const cr = owHash(x, y, 43) > 0.93 ? 0.88 : 1; r += (218 * cr - r) * k; g += (228 * cr - g) * k; b += (236 * cr - b) * k; ICE[i] = Math.min(255, k * 300); }
       }
     } else {
       // relief: lit from the north-west, as an engraver shades a hill (the shade only half laid in tone: the hatching carries the rest)
@@ -18753,7 +18755,7 @@ function owWaterMask() {
   for (let i = 0; i < LW * LH; i++) {
     let a = Math.max(0, Math.min(1, (WAT[i] - 0.55) * 4));
     if (winter && NEAR && NEAR[i] > 0.3) a = 0; // (the frozen shallows)
-    if (ice && ice[i]) a = 0;   // (and the northern sea where it is frozen: no water moving under the ice)
+    if (ice && ice[i]) a *= 1 - ice[i] / 255;   // (and the northern sea where it is frozen: no water moving under the ice, fading out at a floe's edge)
     d[i * 4 + 3] = a * 255;
   }
   g.putImageData(img, 0, 0);
