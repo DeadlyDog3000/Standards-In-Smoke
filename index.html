@@ -17805,7 +17805,11 @@ function* owChartSteps(key) {
         const hl = Math.max(0.35 + cl.hl, Math.min(1.2 + cl.hl, 0.5 + cl.hl + (47 - lat) * 0.035));
         reach = Math.max(low, (H[i] - hl) * 8) + sh;
         if (!winter) reach = Math.max(reach, lat + H[i] * 5 + sh - snowLat);
-      } else reach = lat + H[i] * 5 + (1 - Math.min(1, SH[i])) * 2.2 - snowLat;
+      } else {
+        // (on unknown lands, by the latitude the sheet is given; and the mountains white as on the map of Europe, the snow line higher the further south)
+        const sh = (1 - Math.min(1, SH[i])) * 2.2, cl = OW_SNOW_SEASON[season], hl = Math.max(0.35 + cl.hl, Math.min(1.2 + cl.hl, 0.5 + cl.hl + (47 - lat) * 0.035));
+        reach = Math.max(lat + H[i] * 5 + sh - snowLat, (H[i] - hl) * 8 + sh);
+      }
       if (reach > -5.5 && reach < 6) reach += (owFbm(x * 0.02, y * 0.02, 71, 2) - 0.5) * 6;   // (the snow line wanders in broad lobes, never ruled straight)
       if (reach > -2.5) {
         const pat = reach > 4.5 ? 0.5 : owFbm(x * 0.11, y * 0.11, 29, 3), sn = Math.max(0, Math.min(1, (reach + (pat - 0.5) * 4 + n * 1.5) / 2.2));
