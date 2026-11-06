@@ -17328,6 +17328,8 @@ function owPrebuildNextSeason() {
   const order = ['spring', 'summer', 'autumn', 'winter'], nxt = order[(order.indexOf(currentSeason) + 1) % 4];
   const key = worldChartKey().replace(/:[a-z]+$/, ':' + nxt);
   if (OW.next && OW.next.key === key) return;
+  if (OW.next && !OW.spare) { OW.spare = OW.next.canvas; OW.spareMips = OW.next.mips; }   // (a sheet drawn ahead for land since changed: its canvas is drawn over)
+  OW.next = null;
   owBuildAside(key, nxt, st => { OW.next = { canvas: st.canvas, mips: st.mips, key, season: st.season, tilesRef: tiles }; });
 }
 // a sheet drawn aside, into the spare canvas, a few milliseconds at a time (the season's sheet costs a tenth of a second or more,
@@ -17338,18 +17340,23 @@ function owBuildAside(key, season, onDone) {
   if (OW.aside && OW.aside.key === key) return;
   const from = currentSeason, job = OW.aside = { key, it: null, tilesRef: tiles, st: { canvas: OW.spare || null, mips: OW.spareMips || [], key: '', season, K: OW.K, CS: OW.CS, CH: OW.CH, dirty: false } };
   OW.spare = null; OW.spareMips = null;
-  const step = () => {
-    if (OW.aside !== job) return;
-    // (another game, or the season has turned meanwhile: this sheet is no longer wanted; its canvas goes back as the spare)
-    if (job.tilesRef !== tiles || currentSeason !== from) { OW.aside = null; if (!OW.spare && job.st.canvas) { OW.spare = job.st.canvas; OW.spareMips = job.st.mips; } return; }
+  // (a slice of the drawing: budget in milliseconds, or Infinity to finish it at once, as when the season it is for has come)
+  const run = budget => {
     const live = {}, cs = currentSeason; for (const f of OW_ASIDE) { live[f] = OW[f]; OW[f] = job.st[f]; } currentSeason = season;
     let fin = false, err = null;
-    try { if (!job.it) job.it = owChartSteps(key); const t0 = performance.now(); while (performance.now() - t0 < 6) if (job.it.next().done) { fin = true; break; } }
+    try { if (!job.it) job.it = owChartSteps(key); const t0 = performance.now(); while (performance.now() - t0 < budget) if (job.it.next().done) { fin = true; break; } }
     catch (e) { err = e; }
     finally { for (const f of OW_ASIDE) { job.st[f] = OW[f]; OW[f] = live[f]; } currentSeason = cs; }
-    if (err) { console.error(err); OW.aside = null; return; }
-    if (fin) { OW.aside = null; onDone(job.st); return; }
-    setTimeout(step, 4);   // (a timer, not the next frame: frames are held back in some views, and the slices must still run)
+    if (err) { console.error(err); OW.aside = null; return true; }
+    if (fin) { OW.aside = null; onDone(job.st); return true; }
+    return false;
+  };
+  job.finish = () => run(Infinity);
+  const step = () => {
+    if (OW.aside !== job) return;
+    // (another game, or the season has turned meanwhile and the sheet was not wanted after all: its canvas goes back as the spare)
+    if (job.tilesRef !== tiles || (currentSeason !== from && currentSeason !== season)) { OW.aside = null; if (!OW.spare && job.st.canvas) { OW.spare = job.st.canvas; OW.spareMips = job.st.mips; } return; }
+    if (!run(6)) setTimeout(step, 4);   // (a timer, not the next frame: frames are held back in some views, and the slices must still run)
   };
   setTimeout(step, 4);
 }
@@ -17363,7 +17370,11 @@ function owSchedulePrebuild() {
     // (the sheets are drawn in small slices now: a moment's pause in the mouse is enough to begin)
     if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 400 || !OW.canvas || OW.aside) { setTimeout(tryIt, 500); return; }
     const key = worldChartKey();
-    // (the land changed: this season's sheet first, drawn aside and put in place when it is done)
+    // (the next season's sheet first, with the land as it now is: it is the one the end of the turn will want, and without it
+    //  the turn stops to draw it; the sheet in view, a few hexes out of date, can wait)
+    const order = ['spring', 'summer', 'autumn', 'winter'], nxtKey = key.replace(/:[a-z]+$/, ':' + order[(order.indexOf(currentSeason) + 1) % 4]);
+    if (!(OW.next && OW.next.key === nxtKey)) { owPrebuildNextSeason(); setTimeout(tryIt, 500); return; }
+    // (then, if the land changed, this season's sheet, drawn aside and put in place when it is done)
     if (OW.key !== key) {
       owBuildAside(key, currentSeason, st => {
         if (worldChartKey() !== key || !OW.canvas) { OW.spare = st.canvas; OW.spareMips = st.mips; return; }
@@ -17371,11 +17382,10 @@ function owSchedulePrebuild() {
         OW.canvas = st.canvas; OW.mips = st.mips; OW.key = key; OW.season = st.season; OW.K = st.K; OW.CS = st.CS; OW.CH = st.CH;
         OW.sheetTiles = tiles; OW.landLate = 0; OW.dirty = false; _owLayer.key = ''; render();
       });
-      setTimeout(tryIt, 700); return;
+      setTimeout(tryIt, 500); return;
     }
-    owPrebuildNextSeason();
   };
-  setTimeout(tryIt, 1500);
+  setTimeout(tryIt, 600);
 }
 for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, () => { window._lastInput = performance.now(); }, { passive: true, capture: true });
 function getWorldChart() {
@@ -17386,6 +17396,8 @@ function getWorldChart() {
   const want = split(key);
   // (a sheet drawn for another game, new or loaded, is never shown for this one: each is tied to its game's tiles)
   if (OW.next && OW.next.tilesRef !== tiles) OW.next = null;
+  // (the season has come while its sheet was still being drawn aside: finish what is left of it now, rather than begin again)
+  if (OW.key !== key && !OW.next && OW.aside && OW.aside.tilesRef === tiles && OW.aside.finish && split(OW.aside.key).season === want.season && split(OW.aside.key).season !== split(OW.key).season) OW.aside.finish();
   if (OW.key !== key && OW.next) {   // (the sheet drawn ahead for this season: swap it in, and keep the old one as the spare)
     const nx = split(OW.next.key);
     if (nx.season === want.season && nx.dims === want.dims) {
