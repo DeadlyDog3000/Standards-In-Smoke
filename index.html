@@ -17359,7 +17359,7 @@ function owSchedulePrebuild() {
   if (!owCanPrebuild()) return;
   _owIdleTries = 0;
   const tryIt = () => {
-    if (++_owIdleTries > 30) return;
+    if (++_owIdleTries > 60) return;
     // (the sheets are drawn in small slices now: a moment's pause in the mouse is enough to begin)
     if (window._endTurnBusy || document.hidden || performance.now() - (window._lastInput || 0) < 400 || !OW.canvas || OW.aside) { setTimeout(tryIt, 500); return; }
     const key = worldChartKey();
