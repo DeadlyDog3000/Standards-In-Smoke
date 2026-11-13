@@ -40,7 +40,7 @@ Open `index.html` in a browser, or play the link above. No build step or server 
 - Regiments with morale, formations, experience and promotions; merged regiments that fire as one; ships that carry regiments across the sea and land them, or troops that take to the water in their own boats; fleets that blockade ports
 - Rival crowns that expand, trade, ally, go to war, run campaigns and make peace, and that push back harder the further ahead you get
 - 120 events, four seasons, brigand bands and tribes, wonders, a market, and a chart of every crown's score through the game
-- Synthesised sound effects, period music, and saves in your browser
+- Recorded sound effects (made with ElevenLabs), period music, and saves in your browser
 - Plays on a phone as well: tap to order, with the panels sized for a small screen
 
 ## Tech Stack

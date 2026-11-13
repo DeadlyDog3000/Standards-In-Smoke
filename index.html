@@ -160,6 +160,10 @@
     .p-btn:disabled { opacity: 0.35; cursor: default; }
     .p-btn:disabled:hover { background: rgba(220, 210, 190, 0.08); border-color: rgba(180, 160, 120, 0.3); }
     .p-btn .cost { float: right; color: #a89878; font-size: 11px; }
+    .p-btn.sugg-btn { border-color: rgba(224, 200, 128, 0.85); background: rgba(224, 200, 128, 0.14); }
+    .p-btn .sugg-tag { font-size: 12px; color: #e0c880; font-style: italic; margin-left: 4px; }
+    #panel p.sugg-note { color: #d8c89a; font-size: 13px; font-style: italic; margin: 2px 0 8px; padding-left: 8px; border-left: 2px solid rgba(224, 200, 128, 0.55); line-height: 1.35; }
+    .tt-detail.tt-advice { color: #d8c89a; font-style: italic; border-left: 2px solid rgba(224, 200, 128, 0.55); padding-left: 6px; margin-top: 3px; }
     .p-btn-danger { border-color: rgba(170, 70, 50, 0.45); color: #e8c0b0; margin-top: 10px; }
     .p-btn-danger:hover { background: rgba(150, 50, 30, 0.3); border-color: rgba(210, 90, 60, 0.8); }
     .p-btn-danger[data-armed] { background: rgba(150, 50, 30, 0.45); color: #fff; }
@@ -1114,6 +1118,13 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.5</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">What to Build, and New Sounds</b><br>
+        - Your own bare land is given a surveyor's advice: the tile's note names the work that would serve best (a farm, a mine, a market...) and why, weighed on what the land can carry and what your realm runs shortest of<br>
+        - A worker's orders mark the advised work for its tile, and with a worker picked out the advised works for the land round it are pencilled on the chart and named in a light hand<br>
+        - Every sound in the game is new: clicks, paper and the quill, the seal, bells, drums, coin, the smith, the axe, volleys and guns, the march, the woods and the towns, all recorded afresh<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.4</b></div>
       <div style="margin-bottom:12px;">
@@ -2400,6 +2411,13 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.5</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">What to Build, and New Sounds</b><br>
+          - Your own bare land is given a surveyor's advice: the tile's note names the work that would serve best (a farm, a mine, a market...) and why, weighed on what the land can carry and what your realm runs shortest of<br>
+          - A worker's orders mark the advised work for its tile, and with a worker picked out the advised works for the land round it are pencilled on the chart and named in a light hand<br>
+          - Every sound in the game is new: clicks, paper and the quill, the seal, bells, drums, coin, the smith, the axe, volleys and guns, the march, the woods and the towns, all recorded afresh<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.4</b></div>
         <div style="margin-bottom:12px;">
@@ -5598,7 +5616,7 @@ const SOUND_VOL = (() => { try { return Object.assign({ music: 1, amb: 1, sfx: 1
 function soundKind(el) {
   const src = el.currentSrc || el.src || '';
   if (MUSIC_TRACKS.some(t => src.includes(encodeURI(t)) || src.includes(t))) return 'music';
-  if (/birds|town\.m4a|city_|marching_loop/.test(src)) return 'amb';
+  
   return 'sfx';
 }
 const _liveSounds = new Set();   // (the long ones: music and the loops, kept so a slider moved now is heard now)
@@ -5669,186 +5687,111 @@ function playNextTrack() {
 }
 bgMusic.addEventListener('ended', playNextTrack);
 bgMusic.addEventListener('error', playNextTrack);
-const birdSound = new Audio('eco-art-the-sound-of-birds-in-the-woods-165002.m4a');
-birdSound.loop = true; birdSound.volume = 0;
-let birdsPlaying = false;
 function playClick() { SMK.click(); }
 function playHover() { SMK.hover(); }
 function playAchievement() { SMK.chime(); }
 function playChop() { SMK.chop(); }
 function playWarHorn() { SMK.drum(1.6, true); }
-// A town heard from above: a market's crowd as the bed (recorded, CC0, BigSoundBank: "Outdoor Market #1", trimmed of its
-// rumble and made to loop), and now and then one sound of the place: a church bell swinging, a peal, a few bars of a
-// carillon, a horse walking by (all CC0, BigSoundBank). They replace the old loop and the synthesised street sounds.
-const townSound = new Audio('city_bed.m4a');
-townSound.loop = true; townSound.volume = 0;
-let townPlaying = false;
-const CITY_SHOTS = {
-  hooves:   { file: 'city_hooves.m4a',   vol: 0.42, gap: 12, w: 0.45 },
-  bell:     { file: 'city_bell.m4a',     vol: 0.34, gap: 45, w: 0.3 },
-  peal:     { file: 'city_peal.m4a',     vol: 0.28, gap: 90, w: 0.15 },
-  carillon: { file: 'city_carillon.m4a', vol: 0.24, gap: 120, w: 0.1 },
-};
-const _cityLast = {}, _cityEl = {};
-function cityOneShot(level) {
-  if (/[?&]mute\b/.test(location.search) || window.__sisMute) return;
-  const now = performance.now() / 1000;
-  const ready = Object.entries(CITY_SHOTS).filter(([k, c]) => now - (_cityLast[k] || -1e9) > c.gap);
-  // (only one bell at a time: a peal does not start over a bell still ringing)
-  const anyBell = ['bell', 'peal', 'carillon'].some(k => now - (_cityLast[k] || -1e9) < 25);
-  const pool = ready.filter(([k]) => k === 'hooves' || !anyBell);
-  if (!pool.length) return;
-  let r = Math.random() * pool.reduce((a, [, c]) => a + c.w, 0), pick = pool[0];
-  for (const e of pool) { r -= e[1].w; if (r <= 0) { pick = e; break; } }
-  const [k, c] = pick;
-  _cityLast[k] = now;
-  let el = _cityEl[k];
-  if (!el || !el.paused) el = _cityEl[k] = new Audio(c.file);
-  el.currentTime = 0; el.volume = Math.max(0, Math.min(1, c.vol * level));
-  el.play().catch(() => {});
-}
-// ---- THE SOUNDS OF THE TABLE, made as they play (Web Audio, no files): a wooden tick under a click, paper and the quill,
-//  the seal pressed at the turn's end, church bells for a town founded or a discovery, a smith's hammer for a thing built,
-//  the side drum for a regiment raised or a war begun, coin on the counter, boots and hooves on the march, steel on steel.
-//  Real-world sounds only: nothing tuned that isn't a bell, nothing arcade. All on the Effects slider. ----
+// ---- EVERY SOUND OF THE GAME BUT THE MUSIC: recordings made with ElevenLabs sound generation, in sfx/ (name_NN.m4a, a few
+//  takes of each, so no two in a row are alike). Played through Web Audio: the effects on the Effects slider, the land's
+//  beds and its sounds of the place on the Ambience one. Real-world sounds only: wood, paper, bells, drums, powder, boots ----
+const SFX_SET = /*SFX_SET*/{"click":[8,1.88],"hover":[5,1.67],"deny":[3,1.41],"pick":[5,1.0],"page":[2,1.92],"quill":[3,1.0],"seal":[2,1.0],"letter":[2,1.39],"peal_long":[1,1.0],"peal_short":[1,1.0],"chime":[1,1.0],"toll":[1,1.0],"oars":[2,1.0],"hammer":[2,1.0],"drum_ruff":[2,1.03],"drum_war":[2,1.0],"coins_few":[1,1.0],"coins_many":[1,1.0],"chop":[2,1.0],"melee":[3,1.0],"fall":[2,1.0],"volley":[3,1.0],"cannon":[2,1.0],"fieldgun":[2,1.0],"woodpecker":[1,1.0],"cuckoo":[1,1.0],"bough":[1,1.0],"hooves":[1,1.0],"bell":[1,1.0],"carillon":[1,1.0],"loop_forest":[1,1.0],"loop_town":[1,1.0],"loop_foot":[1,1.0],"loop_horse":[1,1.08],"loop_ship":[1,1.0]}/*END*/; // (name -> [takes, level]: written by ~/sis-tools/sfx/bake_sis.py)
 const SMK = (() => {
-  let ac = null, out = null, noiseBuf = null, room = null, comp = null, sfxOut = null;
+  let ac = null, comp = null, sfxOut = null, ambOut = null;
+  const BUF = {}, LOADING = {}, lastTake = {};
   const muted = () => /[?&]mute\b/.test(location.search) || window.__sisMute;
   function a() {
     if (muted()) return null;
     if (!ac) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
       try { ac = new AC(); } catch (e) { return null; }
-      comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(ac.destination);
-      out = sfxOut = ac.createGain(); out.connect(comp);
-      const len = ac.sampleRate * 2; noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
-      const d = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-      // a stone room's tail, made rather than loaded (a church for the bells, a hall for the drum)
-      const rl = Math.floor(ac.sampleRate * 2.2), rb = ac.createBuffer(2, rl, ac.sampleRate);
-      for (let ch = 0; ch < 2; ch++) { const q = rb.getChannelData(ch); let lp = 0; for (let i = 0; i < rl; i++) { lp += 0.25 * ((Math.random() * 2 - 1) - lp); q[i] = lp * Math.pow(1 - i / rl, 3); } }
-      room = ac.createConvolver(); room.buffer = rb; const rg = ac.createGain(); rg.gain.value = 0.5; room.connect(rg); rg.connect(out);
+      comp = ac.createDynamicsCompressor(); comp.threshold.value = -10; comp.ratio.value = 4; comp.connect(ac.destination);
+      sfxOut = ac.createGain(); sfxOut.connect(comp);
+      ambOut = ac.createGain(); ambOut.gain.value = 0.9 * (SOUND_VOL.amb ?? 1); ambOut.connect(comp);
+      for (const k in SFX_SET) load(k); // (all of them, small as they are, so the first of each is heard on time)
     }
     if (ac.state === 'suspended') ac.resume();
     sfxOut.gain.value = 0.9 * (SOUND_VOL.sfx ?? 1);
     return ac;
   }
-  const T = () => ac.currentTime + 0.01;
-  const env = (t, peak, att, dec, wet = 0) => { const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + att + dec); g.connect(out); if (wet) { const s = ac.createGain(); s.gain.value = wet; g.connect(s); s.connect(room); } return g; };
-  // filtered noise: a tick, a rustle, a scratch, a footfall, the hiss of powder
-  function noise(t, { f = 2000, q = 1, type = 'bandpass', dur = 0.05, vol = 0.2, att = 0.003, sweep = 0, wet = 0 } = {}) {
-    const s = ac.createBufferSource(); s.buffer = noiseBuf;
-    const bf = ac.createBiquadFilter(); bf.type = type; bf.Q.value = q; bf.frequency.setValueAtTime(f, t); if (sweep) bf.frequency.exponentialRampToValueAtTime(Math.max(40, f + sweep), t + att + dur);
-    s.connect(bf); bf.connect(env(t, vol, att, dur, wet)); s.start(t, Math.random() * 1.5); s.stop(t + att + dur + 0.05);
+  function load(name) {
+    if (BUF[name] || LOADING[name] || !SFX_SET[name]) return LOADING[name];
+    const n = SFX_SET[name][0];
+    LOADING[name] = Promise.all(Array.from({ length: n }, (_, i) => fetch(`sfx/${name}_${String(i).padStart(2, '0')}.m4a`)
+      .then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => ac.decodeAudioData(b, ok, no))).catch(() => null)))
+      .then(list => { BUF[name] = list.filter(Boolean); return BUF[name]; });
+    return LOADING[name];
   }
-  // a struck body: a sine falling a little in pitch, with partials (wood, a drum's skin, an anvil, a bell's hum)
-  function strike(t, f, { vol = 0.2, dec = 0.2, parts = [[1, 1]], drop = 0, wet = 0, att = 0.002 } = {}) {
-    const g = env(t, vol, att, dec, wet);
-    for (const [m, k, pd] of parts) {
-      const o = ac.createOscillator(), og = ac.createGain(); o.frequency.setValueAtTime(f * m, t); if (drop) o.frequency.exponentialRampToValueAtTime(f * m * (1 - drop), t + dec);
-      og.gain.setValueAtTime(k, t); if (pd) og.gain.exponentialRampToValueAtTime(0.0001, t + dec * pd);
-      o.connect(og); og.connect(g); o.start(t); o.stop(t + att + dec + 0.05);
-    }
+  // one take of a sound (never the one just heard), at a volume, a little varied in pitch; returns its gain to fade it
+  function play(name, vol = 1, { out = sfxOut, when = 0, rate = 1, vary = 0.04, loop = false, fadeIn = 0 } = {}) {
+    if (!a()) return null;
+    const list = BUF[name];
+    if (!list || !list.length) { const p = load(name); if (p && !loop) p.then(() => { if (BUF[name] && BUF[name].length && performance.now() - _asked < 400) play(name, vol, { out, rate, vary }); }); return null; }
+    let i = Math.floor(Math.random() * list.length); if (list.length > 1 && i === lastTake[name]) i = (i + 1) % list.length; lastTake[name] = i;
+    const s = ac.createBufferSource(); s.buffer = list[i]; s.loop = loop;
+    s.playbackRate.value = rate * (1 + (Math.random() * 2 - 1) * vary);
+    const g = ac.createGain(), lv = (SFX_SET[name] && SFX_SET[name][1]) || 1, t = ac.currentTime + 0.01 + when;
+    if (fadeIn) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * lv, t + fadeIn); } else g.gain.value = vol * lv;
+    s.connect(g); g.connect(out); s.start(t, loop ? Math.random() * list[i].duration : 0);
+    return { s, g };
   }
-  const BELL = [[0.5, 0.5], [1, 1], [1.183, 0.45, 0.6], [1.506, 0.35, 0.5], [2, 0.3, 0.4], [2.514, 0.18, 0.3], [2.662, 0.12, 0.25], [3.011, 0.1, 0.2]]; // (a church bell's hum, prime, tierce, quint, nominal and above)
-  const bell = (t, f, vol = 0.12, dec = 2.6) => { strike(t, f, { vol, dec, parts: BELL, wet: 0.6, att: 0.004 }); noise(t, { f: f * 6, q: 3, dur: 0.03, vol: vol * 0.6 }); };
-  const knock = (t, f = 180, vol = 0.15) => { noise(t, { f: f * 5, q: 1.4, dur: 0.04, vol: vol * 0.7 }); strike(t, f, { vol, dec: 0.09, parts: [[1, 1], [2.7, 0.3, 0.4]] }); };
-  const play = (fn) => { try { if (a()) fn(T()); } catch (e) {} };
-  let lastHover = 0, march = null, amb = null, ambOut = null;
+  let _asked = 0;
+  const once = (name, vol, o) => { _asked = performance.now(); try { return play(name, vol, o); } catch (e) { return null; } };
+  let lastHover = 0, march = null, beds = null, lastPlace = 0;
+  const fadeOut = (h, s = 0.25) => { if (!h || !ac) return; const t = ac.currentTime; h.g.gain.cancelScheduledValues(t); h.g.gain.setValueAtTime(h.g.gain.value, t); h.g.gain.linearRampToValueAtTime(0, t + s); h.s.stop(t + s + 0.05); };
   return {
-    // a button: a dry wooden tick; the pointer finding one: barely there
-    click: () => play(t => { noise(t, { f: 2800, q: 3, dur: 0.03, vol: 0.16 }); strike(t, 900, { vol: 0.05, dec: 0.06, parts: [[1, 1], [4.1, 0.3]] }); }),
-    hover: () => { const n = performance.now(); if (n - lastHover < 70) return; lastHover = n; play(t => noise(t, { f: 4200, q: 4, dur: 0.015, vol: 0.03 })); },
-    deny: () => play(t => { knock(t, 110, 0.14); knock(t + 0.09, 98, 0.14); }),
-    // a regiment taken up off the table: the knock of its wooden base, and a breath of cloth
-    pick: () => play(t => { knock(t, 210, 0.12); noise(t + 0.02, { f: 900, q: 0.7, dur: 0.12, vol: 0.04, sweep: 900 }); }),
-    // a town looked over: a page turned
-    page: () => play(t => { noise(t, { f: 700, q: 0.6, dur: 0.18, vol: 0.07, sweep: 2200 }); noise(t + 0.12, { f: 2600, q: 0.8, dur: 0.06, vol: 0.04 }); }),
-    // an order written: three strokes of the quill
-    quill: () => play(t => { for (let i = 0; i < 3; i++) noise(t + i * 0.08 + Math.random() * 0.02, { f: 3600 + i * 400, q: 2, dur: 0.06, vol: 0.05, sweep: -1800 }); }),
-    // the turn's end: the wax seal pressed down on the despatch
-    seal: () => play(t => { noise(t, { f: 1200, q: 0.6, dur: 0.12, vol: 0.05, sweep: 1400 }); strike(t + 0.14, 70, { vol: 0.32, dec: 0.18, parts: [[1, 1], [2.3, 0.3, 0.3]], drop: 0.3 }); noise(t + 0.14, { f: 400, q: 0.8, dur: 0.08, vol: 0.12, type: 'lowpass' }); }),
-    // a letter unfolded (an event, a foreign envoy)
-    letter: () => play(t => { noise(t, { f: 900, q: 0.5, dur: 0.22, vol: 0.07, sweep: 2600 }); noise(t + 0.2, { f: 1800, q: 0.7, dur: 0.16, vol: 0.06, sweep: -900 }); knock(t + 0.05, 320, 0.04); }),
-    // church bells: a town founded rings a short peal; a discovery or a wonder, a few bells; a loss, one bell tolled slow
-    peal: (n = 6) => play(t => { const sc = [392, 349.2, 329.6, 293.7, 261.6, 246.9]; for (let i = 0; i < n; i++) bell(t + i * 0.32, sc[i % sc.length], 0.09); }),
-    // oars dipping and pulling, the water off the blades: a regiment going aboard or ashore
-    oars: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.55; noise(tt, { f: 900, q: 0.8, dur: 0.18, vol: 0.13, att: 0.02, sweep: -400, wet: 0.2 }); noise(tt + 0.2, { f: 2600, q: 1.2, dur: 0.12, vol: 0.06, att: 0.01, wet: 0.3 }); } }),
-    chime: () => play(t => { bell(t, 523.3, 0.08, 2.2); bell(t + 0.28, 659.3, 0.07, 2.4); bell(t + 0.56, 784, 0.07, 3); }),
-    toll: (n = 2) => play(t => { for (let i = 0; i < n; i++) bell(t + i * 1.5, 130.8, 0.16, 3.6); }),
-    // a thing built: the smith's hammer on the anvil, then a beam set down
-    hammer: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.22; strike(tt, 1180 + i * 20, { vol: 0.07, dec: 0.5, parts: [[1, 1], [2.76, 0.6, 0.4], [5.4, 0.4, 0.2]], wet: 0.2 }); noise(tt, { f: 5000, q: 3, dur: 0.02, vol: 0.08 }); } knock(t + 0.8, 120, 0.16); }),
-    // the side drum: a ruff and a beat for a regiment raised; a long roll and the bass drum for a war
-    drum: (roll = 0.5, bass = false) => play(t => {
-      const n = Math.round(roll * 26);
-      for (let i = 0; i < n; i++) { const tt = t + i / 26, k = 0.5 + 0.5 * Math.min(1, i / (n * 0.6)); noise(tt, { f: 2400, q: 0.9, dur: 0.05, vol: 0.06 * k, wet: 0.15 }); strike(tt, 190, { vol: 0.03 * k, dec: 0.06 }); }
-      const e = t + n / 26; noise(e, { f: 2000, q: 0.8, dur: 0.14, vol: 0.14, wet: 0.3 }); strike(e, 180, { vol: 0.12, dec: 0.16, drop: 0.2 });
-      if (bass) for (let i = 0; i < 3; i++) strike(e + 0.05 + i * 0.55, 55, { vol: 0.4, dec: 0.6, drop: 0.25, parts: [[1, 1], [1.6, 0.3, 0.3]], wet: 0.4 });
-    }),
-    // coin counted out on the counter
-    coins: (n = 4) => play(t => { for (let i = 0; i < n; i++) { const tt = t + i * 0.07 + Math.random() * 0.03, f = 2600 + Math.random() * 1400; strike(tt, f, { vol: 0.05, dec: 0.25, parts: [[1, 1], [1.47, 0.7, 0.6], [2.31, 0.5, 0.4]] }); noise(tt, { f: 7000, q: 2, dur: 0.015, vol: 0.05 }); } }),
-    // the axe in the wood, and the tree going over
-    chop: () => play(t => { for (let i = 0; i < 3; i++) { const tt = t + i * 0.34; knock(tt, 150, 0.2); noise(tt, { f: 1400, q: 1.2, dur: 0.07, vol: 0.12 }); }
-      noise(t + 1.1, { f: 600, q: 0.6, dur: 0.6, vol: 0.06, sweep: -400 }); strike(t + 1.7, 48, { vol: 0.45, dec: 0.5, drop: 0.3 }); noise(t + 1.7, { f: 300, type: 'lowpass', dur: 0.4, vol: 0.2 }); }),
-    // steel on steel, and the press of men behind it
-    melee: (dur = 1.6) => play(t => {
-      noise(t, { f: 500, q: 0.5, type: 'bandpass', att: 0.3, dur: dur, vol: 0.06 });
-      const n = Math.round(dur * 5);
-      for (let i = 0; i < n; i++) { const tt = t + Math.random() * dur, f = 1800 + Math.random() * 1600;
-        strike(tt, f, { vol: 0.05, dec: 0.35, parts: [[1, 1], [1.41, 0.6, 0.5], [2.83, 0.4, 0.3]], wet: 0.15 }); noise(tt, { f: 6000, q: 2, dur: 0.03, vol: 0.09 });
-        if (Math.random() < 0.5) knock(tt + 0.05, 90 + Math.random() * 40, 0.12); }
-    }),
-    // a musket volley's rolling echo off the land, under the shots themselves
-    echo: (big = false) => play(t => { noise(t + 0.08, { f: big ? 160 : 320, type: 'lowpass', q: 0.5, att: 0.05, dur: big ? 2.2 : 1.4, vol: big ? 0.22 : 0.12, wet: 0.5 }); if (big) strike(t, 42, { vol: 0.45, dec: 0.9, drop: 0.4 }); }),
-    // a regiment broken: a body falling, a dropped musket
-    fall: () => play(t => { strike(t, 60, { vol: 0.3, dec: 0.25, drop: 0.4 }); noise(t, { f: 260, type: 'lowpass', dur: 0.18, vol: 0.14 }); knock(t + 0.18, 260, 0.06); }),
-    // boots or hooves on the march, for as long as the column moves
+    // a button: a dry wooden tick; the pointer finding one: a fingertip brushing paper
+    click: () => once('click', 0.3),
+    hover: () => { const n = performance.now(); if (n - lastHover < 70) return; lastHover = n; once('hover', 0.1); },
+    deny: () => once('deny', 0.4),
+    // a regiment taken up off the table: its wooden base knocking
+    pick: () => once('pick', 0.35),
+    page: () => once('page', 0.4),
+    quill: () => once('quill', 0.4),
+    seal: () => once('seal', 0.5),
+    letter: () => once('letter', 0.45),
+    // church bells: a town founded, a short peal; a town taken or a wonder raised, the full peal; a town lost, one bell tolled
+    peal: (n = 6) => once(n >= 5 ? 'peal_long' : 'peal_short', 0.55),
+    chime: () => once('chime', 0.5),
+    toll: () => once('toll', 0.6),
+    oars: () => once('oars', 0.6),
+    hammer: () => once('hammer', 0.6),
+    // the side drum: a ruff and a beat for a regiment raised; the long roll and the bass drum for a war
+    drum: (roll = 0.5, bass = false) => once(bass ? 'drum_war' : 'drum_ruff', bass ? 0.75 : 0.45 + Math.min(0.25, roll * 0.4)),
+    coins: (n = 4) => once(n >= 5 ? 'coins_many' : 'coins_few', 0.55),
+    chop: () => once('chop', 0.65),
+    melee: () => once('melee', 0.6),
+    echo: () => {},
+    fall: () => once('fall', 0.55),
+    // the volleys and the guns
+    shot: (kind, vol = 0.8, when = 0) => once(kind, vol, { when, vary: 0.05 }),
+    // boots, hooves or a ship's timbers, for as long as the column moves
     marchStart: (kind) => {
       if (march || !a()) return;
-      let i = 0;
-      const step = () => { if (!ac) return; const t = T();
-        if (kind === 'horse') { for (const d of [0, 0.07, 0.19, 0.26]) { strike(t + d, 95 + Math.random() * 25, { vol: 0.09, dec: 0.07 }); noise(t + d, { f: 900, q: 1, dur: 0.04, vol: 0.05 }); } }
-        else if (kind === 'ship') { if (i % 3 === 0) { noise(t, { f: 500, q: 0.4, att: 0.25, dur: 0.9, vol: 0.06, sweep: 500 }); strike(t + 0.3, 240 + Math.random() * 60, { vol: 0.02, dec: 0.5, att: 0.15 }); } }
-        else { noise(t, { f: 700 + Math.random() * 300, q: 0.8, dur: 0.06, vol: 0.07 }); strike(t, 80, { vol: 0.06, dec: 0.05 }); if (i % 4 === 0) { noise(t, { f: 2200, q: 1, dur: 0.05, vol: 0.05 }); strike(t, 200, { vol: 0.04, dec: 0.08 }); } } // (and the drum on the beat)
-        i++; };
-      step(); march = setInterval(step, kind === 'horse' ? 380 : kind === 'ship' ? 330 : 270);
+      march = play(kind === 'horse' ? 'loop_horse' : kind === 'ship' ? 'loop_ship' : 'loop_foot', kind === 'ship' ? 0.45 : 0.5, { loop: true, fadeIn: 0.25, vary: 0.02 });
     },
-    marchStop: () => { if (march) { clearInterval(march); march = null; } },
+    marchStop: () => { if (march) { fadeOut(march, 0.35); march = null; } },
     // the land's sounds hushed at once (back to the menu, or the tab put away): they're only raised again by the map
-    stopAmbience: () => { if (!amb || !ac) return; const t = ac.currentTime; for (const k of ['leaves', 'leavesLo', 'crowd', 'crowdHi']) amb[k].g.gain.setTargetAtTime(0, t, 0.08); },
-    // the beds of sound under the land (wind in leaves, a town's murmur), kept running and faded to the levels asked for, with
-    //  now and then a single sound of the place on top
+    stopAmbience: () => { if (!beds || !ac) return; const t = ac.currentTime; for (const k in beds) beds[k] && beds[k].g.gain.setTargetAtTime(0, t, 0.08); },
+    // the beds under the land (a wood, a town's market), kept running and faded to the levels asked for, with now and then
+    //  one sound of the place on top: a woodpecker, a cuckoo, a bough; a horse on the cobbles, a church bell, a carillon
     ambience: (lv) => {
-      if (!amb && !(lv.forest > 0.01 || lv.town > 0.01)) return; // (nothing made until there's something to hear)
+      if (!beds && !(lv.forest > 0.01 || lv.town > 0.01)) return; // (nothing made until there's something to hear)
       if (!a()) return;
-      if (!amb) {
-        const mk = (f, q) => { const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true; const bf = ac.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = f; bf.Q.value = q; const g = ac.createGain(); g.gain.value = 0; src.connect(bf); bf.connect(g); g.connect(ambOut); src.start(); return { g, bf }; };
-        ambOut = ac.createGain(); ambOut.connect(comp);
-        amb = { leaves: mk(1100, 0.5), leavesLo: mk(380, 0.7), crowd: mk(520, 1.1), crowdHi: mk(1500, 2), last: 0 };
+      beds = beds || {};
+      for (const [k, name] of [['forest', 'loop_forest'], ['town', 'loop_town']]) if (!beds[k] && BUF[name] && BUF[name].length) { const h = play(name, 1, { out: ambOut, loop: true, vary: 0 }); if (h) { h.g.gain.value = 0; beds[k] = h; } } else if (!beds[k]) load(name);
+      const t = ac.currentTime, F = lv.forest || 0, Tn = lv.town || 0;
+      ambOut.gain.setTargetAtTime(0.9 * (SOUND_VOL.amb ?? 1), t, 0.1); // (on the Ambience slider, not the Effects one)
+      if (beds.forest) beds.forest.g.gain.setTargetAtTime(F * 0.55 * SFX_SET.loop_forest[1], t, 0.6);
+      if (beds.town) beds.town.g.gain.setTargetAtTime(Tn * 0.4 * SFX_SET.loop_town[1], t, 0.6);
+      if (t - lastPlace < 1.2) return; lastPlace = t;
+      const R = Math.random();
+      if (F > 0.15 && R < F * 0.12) { const p = Math.random(); play(p < 0.4 ? 'woodpecker' : p < 0.7 ? 'cuckoo' : 'bough', 0.35 * F, { out: ambOut }); }
+      else if (Tn > 0.12 && R < Tn * 0.1) {
+        const p = Math.random(), bell = performance.now() - (beds._bell || -1e9) < 40000;
+        if (p < 0.55 || bell) play('hooves', 0.4 * Tn, { out: ambOut });
+        else { beds._bell = performance.now(); play(p < 0.8 ? 'bell' : p < 0.92 ? 'peal_short' : 'carillon', 0.3 * Tn, { out: ambOut }); }
       }
-      const t = ac.currentTime, vA = SOUND_VOL.amb ?? 1, F = lv.forest || 0, Tn = lv.town || 0;
-      ambOut.gain.setTargetAtTime(0.9 * vA, t, 0.1); // (on the Ambience slider, not the Effects one)
-      // wind through the leaves: swelling and falling in gusts
-      const gust = 0.55 + 0.45 * Math.sin(t * 0.37) * Math.sin(t * 0.13 + 1);
-      amb.leaves.g.gain.setTargetAtTime(F * 0.05 * gust, t, 0.6); amb.leavesLo.g.gain.setTargetAtTime(F * 0.03 * gust, t, 0.8);
-      amb.leaves.bf.frequency.setTargetAtTime(900 + gust * 600, t, 0.8);
-      // a town's streets: a murmur that rises and falls as people pass
-      const talk = 0.6 + 0.4 * Math.sin(t * 1.7) * Math.sin(t * 0.61);
-      // (the town's murmur is the recorded market now, under townSound: the synthesised one is kept silent)
-      amb.crowd.g.gain.setTargetAtTime(0 * talk, t, 0.25); amb.crowdHi.g.gain.setTargetAtTime(0, t, 0.2);
-      // and now and then, one sound of the place
-      if (t - amb.last < 1.2) return; amb.last = t;
-      const w = t + 0.05, R = Math.random();
-      out = ambOut; // (the sounds of the place go out on the ambience's own way)
-      try {
-      if (F > 0.15 && R < F * 0.35) {
-        const pick = Math.random();
-        if (pick < 0.35) { const n = 9 + Math.floor(Math.random() * 6), f = 900 + Math.random() * 300; for (let i = 0; i < n; i++) { noise(w + i * 0.055, { f: f * 2, q: 3, dur: 0.012, vol: 0.05 * F, wet: 0.3 }); strike(w + i * 0.055, f, { vol: 0.02 * F, dec: 0.03 }); } } // woodpecker
-        else if (pick < 0.65) { for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) { const tt = w + i * 0.75; strike(tt, 740, { vol: 0.045 * F, dec: 0.22, att: 0.03, parts: [[1, 1], [2, 0.08]], wet: 0.5 }); strike(tt + 0.24, 600, { vol: 0.04 * F, dec: 0.3, att: 0.03, parts: [[1, 1], [2, 0.08]], wet: 0.5 }); } } // cuckoo, far off
-        else { const f = 180 + Math.random() * 120; const o = ac.createOscillator(), g = env(w, 0.012 * F, 0.3, 0.9, 0.3); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, w); o.frequency.linearRampToValueAtTime(f * 1.3, w + 1.1); const lp = ac.createBiquadFilter(); lp.type = 'bandpass'; lp.frequency.value = f * 3; lp.Q.value = 6; o.connect(lp); lp.connect(g); o.start(w); o.stop(w + 1.3); } // a bough creaking
-      }
-      // a town's own sounds are recordings now (see CITY_SHOTS): a horse, a bell, a peal, a carillon, each in its turn
-      if (Tn > 0.12 && Math.random() < Tn * 0.3) { try { cityOneShot(Tn); } catch (e) {} }
-      } finally { out = sfxOut; }
     },
   };
 })();
@@ -5869,20 +5812,6 @@ function logEvent(msg) {
   el.scrollTop = el.scrollHeight;
 }
 
-// The shots as the trailer has them: its line volley (eight muskets inside a tenth of a second, with the boom and the
-// echo off the country) and its cannon, rendered from tools/score.py into shot_*.m4a
-const SHOTS = {
-  volley: ['shot_musket_volley_1.m4a', 'shot_musket_volley_2.m4a', 'shot_musket_volley_3.m4a'].map(f => new Audio(f)),
-  cannon: ['shot_cannon_1.m4a', 'shot_cannon_2.m4a'].map(f => new Audio(f)),
-  fieldGun: ['shot_field_gun_1.m4a', 'shot_field_gun_2.m4a'].map(f => new Audio(f)),
-};
-for (const k in SHOTS) for (const a of SHOTS[k]) a.preload = 'auto';
-function playShot(list, vol) {
-  const s = list[Math.floor(Math.random() * list.length)].cloneNode();
-  s.volume = vol * (0.9 + Math.random() * 0.1);
-  s.playbackRate = 0.97 + Math.random() * 0.06;
-  s.play().catch(() => {});
-}
 function canPlayerSee(x, y) {
   if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS) return false;
   return tiles[y * MAP_COLS + x].revealed.has(playerNation);
@@ -5893,15 +5822,14 @@ function playCombatSound(unitType, x, y) {
   const cannonTypes = ['cannon', 'mortar'];
   const fieldGunTypes = ['field_gun'];
   const navalGunTypes = ['galleon', 'man_of_war'];
-  // (the same volleys and guns as the trailer: rendered from its own sound script, a few of each so no two are alike)
   if (gunpowderRanged.includes(unitType)) {
-    playShot(SHOTS.volley, 0.55);
+    SMK.shot('volley', 0.85);
   } else if (cannonTypes.includes(unitType)) {
-    playShot(SHOTS.cannon, 0.6);
+    SMK.shot('cannon', 0.9);
   } else if (fieldGunTypes.includes(unitType)) {
-    playShot(SHOTS.fieldGun, 0.58);
+    SMK.shot('fieldgun', 0.85);
   } else if (navalGunTypes.includes(unitType)) {
-    playShot(SHOTS.cannon, 0.55); setTimeout(() => playShot(SHOTS.cannon, 0.45), 380); // (a broadside: gun after gun)
+    SMK.shot('cannon', 0.8); SMK.shot('cannon', 0.65, 0.38); // (a broadside: gun after gun)
   } else {
     SMK.melee();
   }
@@ -5936,22 +5864,12 @@ function ambientLevels() {
   const near = Math.max(0, Math.min(1, (VIEW_TILE - 26) / 70));
   return { forest: Math.min(1, fw / wsum * 1.4) * (0.35 + 0.65 * near), town: Math.min(1, Math.max(0, tn) + tw / wsum) * (0.25 + 0.75 * near) };
 }
-function fadeLoop(el, playing, target, maxV) {
-  if (target > 0.004 && !playing) { el.volume = 0; el.play().catch(() => {}); playing = true; }
-  if (playing) {
-    const diff = target - el.volume;
-    if (Math.abs(diff) < 0.004) { el.volume = target; if (target <= 0.004) { el.pause(); playing = false; } }
-    else el.volume = Math.max(0, Math.min(maxV, el.volume + diff * 0.2));
-  }
-  return playing;
-}
 function updateAmbientBirds() {
   _ambLv = ambientLevels();
-  birdsPlaying = fadeLoop(birdSound, birdsPlaying, _ambLv.forest * 0.5, 0.5);
   SMK.ambience(_ambLv);
 }
 function updateAmbientTown() {
-  townPlaying = fadeLoop(townSound, townPlaying, _ambLv.town * 0.3, 0.3);
+  // (the town's market is one of the beds SMK.ambience keeps, set by the same levels)
 }
 
 const TILE_COLORS = {
@@ -11268,6 +11186,139 @@ function canBuildImprovement(worker, impKey) {
   const cost = getImprovementCost(impKey, worker.nationId);
   for (const k in cost) if ((n[k] || 0) < cost[k]) return false;
   return true;
+}
+
+// ---- what to build here: for your own bare land, the work that would serve the realm best, weighed on what the tile can
+//  carry, what the realm runs shortest of (its stores and what comes in each turn), what the work costs and how long it takes,
+//  and the needs of the moment (a first harbour, a redoubt on a border at war). Shown in the tile's note, the worker's
+//  orders, and pencilled on the chart round a worker of yours. Advice only: nothing is built without your order ----
+const SUGGEST_RES = ['food', 'gold', 'wood', 'stone', 'steel', 'gunpowder', 'science'];
+let _sugIncome = { turn: -1 };
+function realmIncome(nationId) {
+  if (_sugIncome.turn !== turnNumber || _sugIncome.cities !== cities) _sugIncome = { turn: turnNumber, cities, by: new Map() };
+  if (!_sugIncome.by.has(nationId)) {
+    const inc = {}; for (const k of SUGGEST_RES) inc[k] = 0;
+    for (const c of cities) if (c.nationId === nationId) { try { const y = getCityYields(c); for (const k of SUGGEST_RES) inc[k] += y[k] || 0; } catch (e) {} }
+    _sugIncome.by.set(nationId, inc);
+  }
+  return _sugIncome.by.get(nationId);
+}
+// how badly the realm wants each thing: little in hand and little coming in counts most
+function realmWants(nationId) {
+  const n = nations[nationId], inc = realmIncome(nationId), w = {};
+  const base = { food: 1.15, gold: 1, wood: 0.8, stone: 0.75, steel: 0.95, gunpowder: 0.8, science: 1.05 };
+  // (gunpowder and steel are wanted only once the realm can raise what spends them)
+  const spends = (r) => Object.entries(PRODUCTION_COSTS).some(([u, c]) => c[r] && UNIT_DEFS[u] && (!unitRequiresTech(u) || nationHasTech(nationId, unitRequiresTech(u))));
+  for (const k of SUGGEST_RES) {
+    const stock = k === 'science' ? 40 : (n[k] || 0);
+    w[k] = base[k] * Math.min(2, 1 + Math.max(0, 1 - stock / 60) * 0.5 + 0.5 / (1 + Math.max(0, inc[k])));
+    if ((k === 'gunpowder' || k === 'steel') && !spends(k)) w[k] *= 0.35;
+  }
+  return { w, inc };
+}
+// could this work go on this tile at all (the land, the learning, the shore), leaving aside whether it can be paid for now
+function improvementFits(nationId, x, y, key, anyTech) {
+  const imp = IMPROVEMENT_DEFS[key], t = tiles[y * MAP_COLS + x];
+  if (!imp || !t || t.improvement || t.owner !== nationId) return false;
+  if (!imp.validOn.includes(t.type)) return false;
+  if (imp.requiresAnimal && !t.animal) return false;
+  if (imp.tech && !anyTech && !nationHasTech(nationId, imp.tech)) return false;
+  if (imp.coastal && !isCoastal(x, y)) return false;
+  if (key === 'science_lab') { const cc = cities.filter(c => c.nationId === nationId).length; if (scienceLabCount(nationId) >= Math.max(1, Math.floor(cc / 2))) return false; }
+  return true;
+}
+let _workCount = { k: '' };
+function realmWorkCount(nationId, key) {
+  const k = `${turnNumber}|${tiles.length}|${units.length}`;
+  if (_workCount.k !== k) { _workCount = { k, by: new Map() }; for (const t of tiles) if (t.improvement && t.owner >= 0) { const q = t.owner + ':' + t.improvement; _workCount.by.set(q, (_workCount.by.get(q) || 0) + 1); } for (const u of units) if (u.building) { const q = u.nationId + ':' + u.building; _workCount.by.set(q, (_workCount.by.get(q) || 0) + 1); } }
+  return _workCount.by.get(nationId + ':' + key) || 0;
+}
+function improvementYields(key, t) {
+  return key === 'pasture' && t.animal && ANIMAL_DATA[t.animal] ? ANIMAL_DATA[t.animal].baseYield : IMPROVEMENT_DEFS[key].yields;
+}
+function suggestImprovement(nationId, x, y, anyTech = false, planned = null) {
+  if (x < 0 || y < 0 || x >= MAP_COLS || y >= MAP_ROWS) return null;
+  const t = tiles[y * MAP_COLS + x], n = nations[nationId];
+  if (!t || !n || t.owner !== nationId || t.improvement || t.type === 0 || t.type === 4) return null;
+  const { w, inc } = realmWants(nationId);
+  const atWarBorder = nationAtRealWar(n) && hexNeighbors(x, y).some(nb => {
+    if (nb.col < 0 || nb.row < 0 || nb.col >= MAP_COLS || nb.row >= MAP_ROWS) return false;
+    const o = tiles[nb.row * MAP_COLS + nb.col].owner;
+    return o >= 0 && o !== nationId && n.relations?.[o] === 'war' && !nations[o]?.isBarbarian;
+  });
+  let best = null;
+  for (const key in IMPROVEMENT_DEFS) {
+    if (!improvementFits(nationId, x, y, key, anyTech)) continue;
+    if (anyTech && !(IMPROVEMENT_DEFS[key].tech && !nationHasTech(nationId, IMPROVEMENT_DEFS[key].tech))) continue; // (the second look: only what learning would open)
+    const imp = IMPROVEMENT_DEFS[key], ys = improvementYields(key, t), cost = getImprovementCost(key, nationId);
+    let score = 0, top = null, topV = 0, why = '';
+    for (const k in ys) { const v = ys[k] * (w[k] || 1); score += v; if (v > topV) { topV = v; top = k; } }
+    if (key === 'urban') score *= 0.8; // (a street of houses also widens the town's borders, but brings in least)
+    if (key === 'port' && aiNeedsPort(nationId)) { score += 6; why = 'the realm has no harbour yet, and without one no ship is built'; }
+    if (key === 'redoubt') { if (!atWarBorder) continue; score = 7; why = 'the enemy lies across this border: a regiment here would take a quarter less harm'; }
+    if (key === 'lumbermill' && t.type === 5) score += 0.8; // (keeps the forest, and its wood comes every turn)
+    // the land's own fitness: pits and quarries belong in hills and mountains, fields on the flat and the river banks
+    if ((key === 'mine' || key === 'quarry') && (t.type === 2 || t.type === 7)) score += 1.2;
+    if ((key === 'mine' || key === 'quarry') && t.type === 1) score -= 1.5;
+    if ((key === 'farm' || key === 'barn') && (t.type === 1 || t.type === 3)) score += t.hasRiver ? 1.4 : 0.8;
+    if (key === 'pasture' && (t.animal || t.type === 6)) score += 1.5;
+    if (t.type === 5 && key !== 'lumbermill') score -= 1.5; // (the wood must be felled for it, and its timber is lost)
+    // a realm wants a spread of works: each like one already standing (or being raised) weighs a little less
+    const same = realmWorkCount(nationId, key); score -= same * 0.18 + (planned ? (planned.get(key) || 0) * 0.45 : 0); // (and on the chart, each one already pencilled in)
+    const price = Object.values(cost).reduce((a, v) => a + v, 0);
+    score -= price / 12 + (imp.buildTurns || 1) * 0.3;
+    const short = Object.keys(cost).filter(k => (n[k] || 0) < cost[k]);
+    // (what can't be paid for yet weighs by the turns the realm would wait to save for it)
+    for (const k of short) score -= Math.min(4, (cost[k] - (n[k] || 0)) / (1 + Math.max(0, inc[k] || 0)) / 8);
+    if (!best || score > best.score) best = { key, score, top, why, short, cost };
+  }
+  if (!best || best.score <= 0) {
+    // nothing to build yet: say what learning would open here
+    if (anyTech) return null;
+    const later = suggestImprovement(nationId, x, y, true);
+    return later ? Object.assign(later, { later: true }) : null;
+  }
+  const imp = IMPROVEMENT_DEFS[best.key], ys = improvementYields(best.key, t);
+  const gives = Object.entries(ys).map(([k, v]) => `${v} ${k}`).join(' and ');
+  if (!best.why && best.top) {
+    const stock = best.top === 'science' ? null : Math.floor(n[best.top] || 0), per = Math.round((inc[best.top] || 0) * 10) / 10;
+    const LOW = { food: 'the granaries run low', gold: 'the treasury runs thin', wood: 'timber is scarce', stone: 'stone is wanting', steel: 'iron is wanting', gunpowder: 'the magazines are short of powder', science: 'learning wants patrons' };
+    best.why = `${LOW[best.top] || best.top + ' is wanting'}${stock !== null ? ` (${stock} in store, ${per} a turn)` : ''}`;
+    if (t.type === 5 && best.key !== 'lumbermill') best.why += '; the wood would be felled for it';
+  }
+  if (best.key === 'pasture' && t.animal && ANIMAL_DATA[t.animal]) best.why = `the ${ANIMAL_DATA[t.animal].name.toLowerCase()} here may be kept and bred; ` + best.why;
+  return { key: best.key, name: imp.name, icon: imp.icon, gives, why: best.why, short: best.short, cost: best.cost, tech: imp.tech && !nationHasTech(nationId, imp.tech) ? imp.tech : null };
+}
+// the suggestions round your selected worker (idle, on the chart), worked out once per turn and position
+let _suggCache = { k: '' };
+function workerSuggestions(pId) {
+  const u = selectedUnit;
+  if (!u || u.nationId !== pId || (u.type !== 'worker' && u.type !== 'veteran_worker') || u.building || !units.includes(u)) return null;
+  const k = `${turnNumber}|${u.id ?? ''}|${u.x},${u.y}|${tiles.length}|${['food','gold','wood','stone','steel'].map(r => Math.floor(nations[pId][r] || 0)).join(',')}`;
+  if (_suggCache.k === k) return _suggCache.m;
+  // (planned as a whole, nearest first: each work pencilled in weighs on the next, so the land round about gets a spread)
+  const m = new Map(), R = 4, planned = new Map(), cand = [];
+  for (let y = Math.max(0, u.y - R - 1); y <= Math.min(MAP_ROWS - 1, u.y + R + 1); y++) for (let x = Math.max(0, u.x - R - 1); x <= Math.min(MAP_COLS - 1, u.x + R + 1); x++) {
+    const d = hexDistance(x, y, u.x, u.y); if (d > R) continue;
+    const t = tiles[y * MAP_COLS + x]; if (t.owner !== pId || t.improvement || !t.revealed.has(pId)) continue;
+    if (units.some(o => o.building && o.x === x && o.y === y)) continue;
+    cand.push([d, x, y]);
+  }
+  cand.sort((p, q) => p[0] - q[0]);
+  for (const [, x, y] of cand) { const sg = suggestImprovement(pId, x, y, false, planned); if (sg && !sg.later) { m.set(y * MAP_COLS + x, sg.key); planned.set(sg.key, (planned.get(sg.key) || 0) + 1); } }
+  _suggCache = { k, m };
+  return m;
+}
+function suggestNote(s) {
+  if (!s) return '';
+  const a = /^[aeiou]/i.test(s.name) ? 'an' : 'a', nm = s.name.toLowerCase();
+  if (s.later) return `Best let lie until ${(TECHS[s.tech] && TECHS[s.tech].name) || s.tech} is learned; then ${a} ${nm} here, for ${s.gives} a turn.`;
+  return `${a[0].toUpperCase() + a.slice(1)} ${nm} would serve best here, for ${s.gives} a turn: ${s.why}.${suggestShort(s)}`;
+}
+function suggestShort(s) {
+  if (!s.short.length) return '';
+  const n = nations[playerNation];
+  return ` Lay by ${s.short.map(k => `${Math.ceil(s.cost[k] - (n[k] || 0))} more ${k}`).join(' and ')} first.`;
 }
 
 function buildImprovement(worker, impKey) {
@@ -19501,6 +19552,8 @@ function render() {
   const charted = drawWorldChart(pId, w, cs, ch, facePad, startRow, endRow, startCol, endCol);
   if (charted && ornamentsOver()) drawSheetOrnaments(cs, ch, facePad); // (from afar, printed over the land; close to, they'd hide it)
   const buildAt = charted ? new Map(units.filter(u => u.building && u.nationId === pId).map(u => [u.y * MAP_COLS + u.x, u.building])) : null;
+  // a worker of yours picked out (and idle): what would best go on the bare land of yours round about, pencilled in fainter still
+  const suggAt = charted && VIEW_TILE >= 16 ? workerSuggestions(pId) : null;
   if (!charted) loadHexTiles();
 
   // (the chart seen from afar: below 16 all this loop draws is a village under a town without a picture of its own, so the towns
@@ -19545,6 +19598,24 @@ function render() {
             const vw = w * 0.62, vh = vw * ghost.naturalHeight / ghost.naturalWidth, gy = sy + facePad + ch * 0.62;
             ctx.save(); ctx.globalAlpha = 0.6; ctx.drawImage(ghost, sx + (w - vw) / 2 - w * 0.12, gy - vh - ch * 0.08, vw, vh); ctx.restore();
           }
+        }
+        else if (!t.improvement && suggAt && suggAt.has(i)) {
+          const sk = suggAt.get(i), gk = { steel_mill: 'factory', lumbermill: 'lumber_mill' }[sk] || sk;
+          const ghost = sk !== 'redoubt' ? featSprite('v_' + gk) : null;
+          const vw = w * 0.5, gy = sy + facePad + ch * 0.62;
+          ctx.save(); ctx.globalAlpha = 0.32;
+          if (ghost && ghost.naturalWidth) { const vh = vw * ghost.naturalHeight / ghost.naturalWidth; ctx.drawImage(ghost, sx + (w - vw) / 2, gy - vh - ch * 0.04, vw, vh); }
+          // (ringed in a dashed pencil line, as an officer marks what he would have done)
+          ctx.globalAlpha = 0.55; ctx.setLineDash([Math.max(2, w * 0.05), Math.max(2, w * 0.04)]); ctx.strokeStyle = 'rgba(64, 38, 16, 0.9)'; ctx.lineWidth = Math.max(1, w * 0.018);
+          ctx.beginPath(); ctx.ellipse(sx + w / 2, sy + facePad + ch / 2, w * 0.36, ch * 0.34, 0, 0, Math.PI * 2); ctx.stroke();
+          // and its name written under it in a light italic hand
+          if (VIEW_TILE >= 40) {
+            ctx.setLineDash([]); ctx.globalAlpha = 0.8; ctx.font = `italic ${Math.round(Math.min(15, w * 0.17))}px 'EB Garamond', serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const label = (IMPROVEMENT_DEFS[sk]?.name || sk).toLowerCase(), lx = sx + w / 2, ly = sy + facePad + ch * 0.8;
+            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(236, 222, 190, 0.7)'; ctx.strokeText(label, lx, ly);
+            ctx.fillStyle = 'rgba(64, 38, 16, 0.95)'; ctx.fillText(label, lx, ly);
+          }
+          ctx.restore();
         }
         if (t.improvement && VIEW_TILE >= 16) {
           const impSpriteMap = { steel_mill: 'factory', lumbermill: 'lumber_mill' };
@@ -21155,6 +21226,9 @@ function showUnitPanel(unit) {
       if (t.type === 5) html += `<button class="p-btn" onclick="doChop()">Chop Forest <span class="cost">+15 wood</span></button>`;
       if (t.owner === unit.nationId && !t.improvement && t.type !== 4) {
         html += '<div class="section-title">Build Improvement</div>';
+        const sugg0 = suggestImprovement(unit.nationId, unit.x, unit.y), sugg = sugg0 && !sugg0.later ? sugg0 : null;
+        if (sugg0 && sugg0.later) html += `<p class="sugg-note">${escHtml(suggestNote(sugg0))}</p>`;
+        if (sugg) html += `<p class="sugg-note">${escHtml(suggestNote(sugg))}</p>`;
         for (const key in IMPROVEMENT_DEFS) {
           const imp = IMPROVEMENT_DEFS[key]; const can = canBuildImprovement(unit, key);
           const currentCost = getImprovementCost(key, unit.nationId);
@@ -21168,7 +21242,7 @@ function showUnitPanel(unit) {
             yieldStr = Object.entries(imp.yields).map(([k,v]) => `+${v} ${k}`).join(', ') || (key === 'redoubt' ? '-25% damage to its holder' : '');
           }
           const bTurns = (unit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
-          html += `<button class="p-btn" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name} <span class="cost">${costStr} | ${bTurns}t → ${yieldStr}</span></button>`;
+          html += `<button class="p-btn${sugg && sugg.key === key ? ' sugg-btn' : ''}" onclick="doBuild('${key}')" ${!can ? 'disabled' : ''}>${imp.icon} ${imp.name}${sugg && sugg.key === key ? ' <span class="sugg-tag">advised</span>' : ''} <span class="cost">${costStr} | ${bTurns}t → ${yieldStr}</span></button>`;
         }
       }
       if (unit.nationId === playerNation && unit.movesLeft > 0) {
@@ -22889,7 +22963,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.4';
+const CURRENT_VERSION = 'beta-13.5';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -22955,8 +23029,6 @@ function quitToMenu() {
   document.querySelectorAll('[data-first-contact]').forEach(e => e.remove());
 
   stopMarchSound();
-  birdSound.pause(); birdsPlaying = false;
-  townSound.pause(); townPlaying = false;
   document.getElementById('game').style.display = 'none';
   document.getElementById('menu').style.display = 'flex';
   { const ap = document.getElementById('ambitionPlaque'); if (ap) ap.style.display = 'none'; const rm = document.getElementById('rulerMedal'); if (rm) rm.style.display = 'none'; const fo = document.getElementById('firstOrders'); if (fo) fo.style.display = 'none'; document.getElementById('ambitionOverlay')?.remove(); }
@@ -23226,7 +23298,9 @@ function updateTileTooltip(mx, my, screenX, screenY) {
       html += `<div class="tt-detail">${imp.icon} ${imp.name} (${yStr})</div>`;
     }
   }
-  if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">Build lumbermill or chop for wood</div>`;
+  { const sg = !t.improvement && t.owner === playerNation && (!currentVisionSet || currentVisionSet.has(i)) ? suggestImprovement(playerNation, mx, my) : null;
+    if (sg) html += `<div class="tt-detail tt-advice">${escHtml(suggestNote(sg))}</div>`;
+    else if (t.type === 5 && !t.improvement) html += `<div class="tt-detail">Build lumbermill or chop for wood</div>`; }
   if (seaFrozen(mx, my)) html += `<div class="tt-detail" style="color:#cfe0ea">Frozen over: no ship can sail here till spring, and one caught in the ice lies fast till the thaw</div>`;
   if (t.hasRiver) html += `<div class="tt-detail" style="color:#8bc4ff">\u301C River: +${RIVER_FOOD} food, +${RIVER_GOLD} gold in a city's lands; ${currentSeason === 'winter' ? 'frozen over, so blows from the bank land in full until the thaw' : `defenders here are hard to reach (-${Math.round((1 - RIVER_CROSSING) * 100)}% to blows from the bank)`}</div>`;
   if (t.ruins) html += `<div class="tt-detail" style="color:#e0c880">\uD83C\uDFDB Ancient ruins: the first unit to reach them finds something</div>`;
