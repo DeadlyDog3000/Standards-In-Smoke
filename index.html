@@ -1119,6 +1119,17 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.7</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Movement and Battle, Brought to Life</b><br>
+        - Regiments march as columns do: they step off slowly, get into their stride and slow to a halt, along a smooth line rather than hex to hex, turning to face the way they go<br>
+        - Each kind keeps its own gait, timed to the ground it covers: the foot's even pace and sway, the cavalry's rocking canter, a gun carriage jolting on its wheels, ships pitching and rolling (and riding the swell at anchor)<br>
+        - Round shot is seen in flight, grazing short and skipping in among the enemy; mortar shells arc over and burst; a company's volley ripples raggedly along its front, and a ship's broadside goes off gun after gun<br>
+        - Powder smoke is driven out before the muzzles, then hangs and drifts off on the day's wind; the balls kick up the earth where they strike<br>
+        - A blow lands when it truly would (when the ball arrives, when the charge meets the line); a regiment struck is driven back and rocks on its feet, not flushed red; a charge goes in leaning forward and is checked at the enemy's front; a gun kicks back and is run up again<br>
+        - A broken company stands until the blow lands, topples under its own weight, strikes the ground in a puff of dust and lies a moment before it fades; no more coloured flecks<br>
+        - The view glides smoothly to a fight, a jolt of the table is a knock that rings down rather than a judder, and the regiments' pennants stir in the wind<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.6</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">Workers Take Advice, and More Sounds</b><br>
@@ -2418,6 +2429,17 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.7</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Movement and Battle, Brought to Life</b><br>
+          - Regiments march as columns do: they step off slowly, get into their stride and slow to a halt, along a smooth line rather than hex to hex, turning to face the way they go<br>
+          - Each kind keeps its own gait, timed to the ground it covers: the foot's even pace and sway, the cavalry's rocking canter, a gun carriage jolting on its wheels, ships pitching and rolling (and riding the swell at anchor)<br>
+          - Round shot is seen in flight, grazing short and skipping in among the enemy; mortar shells arc over and burst; a company's volley ripples raggedly along its front, and a ship's broadside goes off gun after gun<br>
+          - Powder smoke is driven out before the muzzles, then hangs and drifts off on the day's wind; the balls kick up the earth where they strike<br>
+          - A blow lands when it truly would (when the ball arrives, when the charge meets the line); a regiment struck is driven back and rocks on its feet, not flushed red; a charge goes in leaning forward and is checked at the enemy's front; a gun kicks back and is run up again<br>
+          - A broken company stands until the blow lands, topples under its own weight, strikes the ground in a puff of dust and lies a moment before it fades; no more coloured flecks<br>
+          - The view glides smoothly to a fight, a jolt of the table is a knock that rings down rather than a judder, and the regiments' pennants stir in the wind<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.6</b></div>
         <div style="margin-bottom:12px;">
@@ -5199,41 +5221,79 @@ function renderFloatingTexts() {
 }
 
 let particles = []; // { x, y, vx, vy, color, startTime, duration, size }
+// a regiment broken where it stood: no confetti, only the earth kicked up and the dust and smoke hanging over the spot
 function spawnDeathParticles(col, row, color) {
-  const count = 10;
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
-    const speed = 30 + Math.random() * 40;
-    particles.push({
-      col, row, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-      color, startTime: Date.now(), duration: 600, size: 2 + Math.random() * 3
-    });
+  if (particles.length > 420) return;
+  const now = Date.now(), W = windNow();
+  for (let i = 0; i < 6; i++) {
+    particles.push({ kind: 'smoke', col, row, ox: (Math.random() - 0.5) * 18, oy: 8 + (Math.random() - 0.5) * 6,
+      vx: W.x * 12 + (Math.random() - 0.5) * 10, vy: -8 - Math.random() * 8, bx: (Math.random() - 0.5) * 14, by: -6 - Math.random() * 6,
+      size: 6 + Math.random() * 6, tone: 140 + Math.floor(Math.random() * 30), startTime: now + i * 30, duration: 1400 + Math.random() * 900 });
   }
 }
 // Gunpowder: a muzzle flash and a bank of white smoke drifting off the firing line; dust where the blow lands
 const FIREARM_UNITS = new Set(['musketeer', 'rifleman', 'grenadier', 'dragoon', 'field_gun', 'cannon', 'mortar', 'frigate', 'galleon', 'man_of_war']);
-function spawnCombatSmoke(ax, ay, dx, dy, attackerType, shift) {
-  const now = Date.now();
+// how long a ball is in the air, in ms (none for small arms: the effect lands with the report)
+function shotFlight(attackerType, ax, ay, dx, dy) {
+  const d = Math.max(1, hexDistance(ax, ay, dx, dy));
+  if (attackerType === 'mortar') return 700 + d * 110;
+  if (UNIT_DEFS[attackerType]?.artillery || /frigate|galleon|man_of_war/.test(attackerType)) return 180 + d * 80;
+  return 0;
+}
+// the powder going off: the flash at each muzzle (a musket company's in a ragged ripple along its front, a ship's gun after
+//  gun down her side), the blast driving the smoke out before the muzzles, then the bank hanging and drifting off on the
+//  wind for a few seconds; and where the shot lands, the earth kicked up (round shot seen in flight, grazing and skipping)
+function spawnCombatSmoke(ax, ay, dx, dy, attackerType, shift, flight) {
+  const now = Date.now(), W = windNow();
   const [shx, shy] = shift || [0, 0];   // (a company standing off the centre of the base fires from where it stands)
-  const big = !!UNIT_DEFS[attackerType]?.artillery || /frigate|galleon|man_of_war/.test(attackerType);
-  // direction toward the target, in screen terms
-  const pa = hexScreenPos(ax, ay), pd = hexScreenPos(dx, dy), w = hexWidth();
+  const naval = /frigate|galleon|man_of_war/.test(attackerType), gun = !!UNIT_DEFS[attackerType]?.artillery;
+  const big = gun || naval;
+  const pa = hexScreenPos(ax, ay), pd = hexScreenPos(dx, dy), w = hexWidth(), k = w / 48;
   let vx = pd.x - pa.x, vy = pd.y - pa.y; const len = Math.hypot(vx, vy) || 1; vx /= len; vy /= len;
+  const px = -vy, py = vx; // (along the front)
+  if (flight === undefined) flight = shotFlight(attackerType, ax, ay, dx, dy);
   if (FIREARM_UNITS.has(attackerType)) {
-    particles.push({ kind: 'flash', col: ax, row: ay, ox: vx * 14 + shx, oy: vy * 14 - 4 + shy, vx: 0, vy: 0, size: big ? 26 : 16, startTime: now, duration: 200 });
-    const puffs = big ? 9 : 6;
-    // the bank hangs before the muzzles and drifts off sideways with the wind, never down the line of fire onto the target
-    let wx = -vy, wy = vx; if (wy > 0 || (wy === 0 && wx < 0)) { wx = -wx; wy = -wy; }
-    for (let i = 0; i < puffs; i++) {
-      const d = 8 + (i % 3) * 3, s = (i - (puffs - 1) / 2) * 3.2;
-      particles.push({ kind: 'smoke', col: ax, row: ay, ox: vx * d + wx * s + (Math.random() - 0.5) * 6 + shx, oy: vy * d + wy * s - 4 + (Math.random() - 0.5) * 6 + shy,
-        vx: vx * 3 + wx * 14 + Math.random() * 5, vy: wy * 14 - 8 - Math.random() * 8, size: (big ? 19 : 13) + Math.random() * 6,
-        tone: 205 + Math.floor(Math.random() * 35), startTime: now + i * 25, duration: 1600 + Math.random() * 900, ink: i % 3, rot: Math.random() * 6.28 });
+    const shots = naval ? 4 : gun ? 1 : 4;
+    for (let q = 0; q < shots; q++) {
+      const along = shots > 1 ? (q - (shots - 1) / 2) * (naval ? 7 : 6) : 0, at = naval ? q * 110 : gun ? 0 : Math.random() * 110;
+      const mx = vx * 14 + px * along + shx, my = vy * 14 - 4 + py * along + shy;
+      particles.push({ kind: 'flash', col: ax, row: ay, ox: mx, oy: my, vx: 0, vy: 0, size: big ? 24 : 11, startTime: now + at, duration: big ? 130 : 90 });
+      const puffs = big ? 4 : 2;
+      for (let i = 0; i < puffs; i++) {
+        particles.push({ kind: 'smoke', col: ax, row: ay, ox: mx + (Math.random() - 0.5) * 4, oy: my + (Math.random() - 0.5) * 4,
+          bx: vx * (big ? 22 : 12) * (0.6 + Math.random() * 0.6) + px * (Math.random() - 0.5) * 8, by: vy * (big ? 22 : 12) * (0.6 + Math.random() * 0.6) + (Math.random() - 0.5) * 6,
+          vx: W.x * W.k * (big ? 46 : 36) + (Math.random() - 0.5) * 8, vy: W.y * W.k * 36 - 14 - Math.random() * 10,
+          size: (big ? 10 : 5.5) + Math.random() * (big ? 4 : 3), tone: 205 + Math.floor(Math.random() * 35), startTime: now + at + i * 35,
+          duration: (big ? 4200 : 3400) + Math.random() * 1600, ink: (q + i) % 3, rot: Math.random() * 6.28 });
+      }
+      // (round shot and shells, seen in flight)
+      if (gun || naval) {
+        const tox = (pd.x - pa.x) / k + (Math.random() - 0.5) * 8, toy = (pd.y - pa.y) / k + 4 + (Math.random() - 0.5) * 6;
+        const mortar = attackerType === 'mortar';
+        particles.push({ kind: 'ball', col: ax, row: ay, ox: mx, oy: my, tx: tox, ty: toy, h: mortar ? 34 + len / k * 0.18 : 6 + len / k * 0.04, skip: !mortar,
+          mortar, vx: 0, vy: 0, startTime: now + at, duration: flight });
+        if (mortar) { // (the shell bursting where it falls)
+          particles.push({ kind: 'flash', col: ax, row: ay, ox: tox, oy: toy - 4, vx: 0, vy: 0, size: 26, startTime: now + at + flight, duration: 150 });
+          for (let i = 0; i < 5; i++) particles.push({ kind: 'smoke', col: ax, row: ay, ox: tox + (Math.random() - 0.5) * 10, oy: toy - 2 + (Math.random() - 0.5) * 8,
+            bx: (Math.random() - 0.5) * 22, by: -8 - Math.random() * 12, vx: W.x * W.k * 30, vy: W.y * 20 - 12, size: 11 + Math.random() * 6, tone: 120 + Math.floor(Math.random() * 30),
+            startTime: now + at + flight + i * 20, duration: 2600 + Math.random() * 1200, ink: i % 3, dark: true, rot: Math.random() * 6.28 });
+        } else { // (each graze throws up the earth: first short of the enemy, then among them)
+          for (const [f, tf] of [[0.7, 0.62], [1, 1]]) for (let i = 0; i < 3; i++)
+            particles.push({ kind: 'smoke', col: ax, row: ay, ox: mx + (tox - mx) * f + (Math.random() - 0.5) * 6, oy: my + (toy - my) * f + 4,
+              bx: vx * 10 + (Math.random() - 0.5) * 8, by: -10 - Math.random() * 10, vx: W.x * 10, vy: -4, size: 5 + Math.random() * 5,
+              tone: 135 + Math.floor(Math.random() * 30), startTime: now + at + flight * tf + i * 15, duration: 1000 + Math.random() * 600 });
+        }
+      }
     }
   }
-  for (let i = 0; i < 4; i++) {
-    particles.push({ kind: 'smoke', col: dx, row: dy, ox: (Math.random() - 0.5) * 14, oy: 6 + (Math.random() - 0.5) * 6,
-      vx: (Math.random() - 0.5) * 16, vy: -6 - Math.random() * 6, size: 10 + Math.random() * 6, tone: 150 + Math.floor(Math.random() * 25), startTime: now + 120, duration: 900 });
+  // small arms: the balls striking about the enemy, little spurts of earth among them
+  if (!(gun || naval)) {
+    const hitAt = FIREARM_UNITS.has(attackerType) ? 70 : 200;
+    for (let i = 0; i < (FIREARM_UNITS.has(attackerType) ? 6 : 4); i++) {
+      particles.push({ kind: 'smoke', col: dx, row: dy, ox: (Math.random() - 0.5) * 22 - vx * 4, oy: 6 + (Math.random() - 0.5) * 10,
+        bx: (Math.random() - 0.5) * 6, by: -6 - Math.random() * 8, vx: W.x * 8, vy: -3, size: 3.5 + Math.random() * 4,
+        tone: 140 + Math.floor(Math.random() * 30), startTime: now + hitAt + Math.random() * 140, duration: 700 + Math.random() * 400 });
+    }
   }
   if (!animationBlocking) requestAnimationFrame(() => render());
 }
@@ -5322,12 +5382,45 @@ function renderParticles() {
       ctx.restore();
       continue;
     }
+    if (p.kind === 'ball') {
+      // round shot or a shell in flight: its ground track straight from the muzzle, its height on an arc above it (a ball from a
+      //  gun grazes short of the enemy and skips in among them); its shadow on the ground, and a faint streak behind
+      if (elapsed < 0) continue;
+      const k = w / 48, bx0 = pos.x + w / 2, by0 = pos.y + facePad + ch / 2;
+      const at = (tt) => {
+        let g, h;
+        if (p.skip) { if (tt < 0.62) { const u = tt / 0.62; g = 0.7 * u; h = p.h * 4 * u * (1 - u); } else { const u = (tt - 0.62) / 0.38; g = 0.7 + 0.3 * u; h = p.h * 0.35 * 4 * u * (1 - u); } }
+        else { g = tt; h = p.h * 4 * tt * (1 - tt); }
+        return { gx: bx0 + (p.ox + (p.tx - p.ox) * g) * k, gy: by0 + (p.oy + (p.ty - p.oy) * g) * k, h: h * k };
+      };
+      const q = at(t), q0 = at(Math.max(0, t - 0.06)), r = Math.max(1.3, (p.mortar ? 2.4 : 1.9) * k);
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.28 * Math.max(0.3, 1 - q.h / (60 * k))})`; ctx.beginPath(); ctx.ellipse(q.gx, q.gy + r, r * 1.2, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = p.mortar ? 'rgba(90, 70, 50, 0.35)' : 'rgba(60, 50, 40, 0.3)'; ctx.lineWidth = r * 0.9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q0.gx, q0.gy - q0.h); ctx.lineTo(q.gx, q.gy - q.h); ctx.stroke();
+      const bg = ctx.createRadialGradient(q.gx - r * 0.35, q.gy - q.h - r * 0.35, r * 0.1, q.gx, q.gy - q.h, r);
+      bg.addColorStop(0, '#6a6660'); bg.addColorStop(1, '#141210');
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(q.gx, q.gy - q.h, r, 0, Math.PI * 2); ctx.fill();
+      if (p.mortar) { ctx.fillStyle = `rgba(255, ${170 + Math.floor(Math.random() * 60)}, 80, 0.95)`; ctx.beginPath(); ctx.arc(q.gx + r * 0.7, q.gy - q.h - r * 0.7, r * 0.45, 0, Math.PI * 2); ctx.fill(); } // (the fuse burning)
+      ctx.restore();
+      continue;
+    }
     if (p.kind === 'fall') {
       // a broken regiment: its figure tipping over on its base, lying a moment, and fading off the chart
-      if (elapsed < 0) continue;
+      // (until the blow lands it still stands where it stood, though the game has already struck it off)
+      if (elapsed < 0) {
+        if (now < (p.showFrom || 0)) continue;
+        const k0 = w / 48 * UNIT_FIG_SCALE, x0 = pos.x + w / 2, y0 = pos.y + facePad + ch / 2 + w * 0.32 * UNIT_FIG_SCALE * 0.62;
+        const md = w * 0.6 * UNIT_FIG_SCALE, sc0 = md / Math.max(p.img.width, p.img.height);
+        ctx.save(); ctx.translate(x0, y0); if (!p.fallRight) ctx.scale(-1, 1); ctx.drawImage(p.img, -p.img.width * sc0 / 2, -p.img.height * sc0, p.img.width * sc0, p.img.height * sc0); ctx.restore();
+        continue;
+      }
       const k = w / 48 * UNIT_FIG_SCALE, x = pos.x + w / 2, y = pos.y + facePad + ch / 2 + w * 0.32 * UNIT_FIG_SCALE * 0.62;
-      const tip = Math.min(1, t / 0.32), ang = (tip * tip) * 1.45 * (p.fallRight ? 1 : -1);
-      const a = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+      // (tipping under its own weight, faster and faster, striking the ground and rocking back a little before it lies still)
+      const T = elapsed / 1000, fallT = 0.42, tip = Math.min(1, T / fallT);
+      const after = Math.max(0, T - fallT), bounce = after > 0 ? 0.16 * Math.exp(-after * 9) * Math.abs(Math.sin(after * 18)) : 0;
+      const ang = (Math.pow(tip, 2.2) * 1.5 - bounce) * (p.fallRight ? 1 : -1);
+      const a = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
       const maxD = w * 0.6 * UNIT_FIG_SCALE, sc = maxD / Math.max(p.img.width, p.img.height), dw = p.img.width * sc, dh = p.img.height * sc;
       ctx.save(); ctx.globalAlpha = a;
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x + (p.fallRight ? 1 : -1) * dh * 0.45 * tip, y, w * 0.18 * UNIT_FIG_SCALE + dh * 0.4 * tip, w * 0.06, 0, 0, Math.PI * 2); ctx.fill(); // (its shadow lengthening as it falls)
@@ -5340,12 +5433,14 @@ function renderParticles() {
     if (p.kind === 'smoke' || p.kind === 'flash') {
       if (elapsed < 0) continue;
       const k = w / 48; // effects scale with the zoom
-      const x = pos.x + w / 2 + (p.ox + p.vx * t) * k, y = pos.y + facePad + ch / 2 + (p.oy + p.vy * t) * k;
-      const r = (p.kind === 'smoke' ? p.size * (0.6 + t * 1.2) : p.size * (1 - t * 0.6)) * k;
-      const a = p.kind === 'smoke' ? 0.72 * (1 - t) * (1 - t * 0.4) * Math.min(1, t * 6) : 0.95 * (1 - t);
+      // (a blast that spends itself at once, then the slow drift on the wind; the cloud swelling fast, then slowly)
+      const bl = p.bx !== undefined ? 1 - Math.exp(-elapsed / 140) : 0;
+      const x = pos.x + w / 2 + (p.ox + p.vx * t + (p.bx || 0) * bl) * k, y = pos.y + facePad + ch / 2 + (p.oy + p.vy * t + (p.by || 0) * bl) * k;
+      const r = (p.kind === 'smoke' ? p.size * (0.5 + Math.sqrt(t) * 0.95) : p.size * (1 - t * 0.6)) * k;
+      const a = p.kind === 'smoke' ? 0.78 * Math.pow(1 - t, 1.6) * Math.min(1, elapsed / 60) : 0.95 * (1 - t) * (1 - t);
       // powder smoke on the chart drawn as the battle prints drew it: a scalloped cloud, inked round and hatched on its shaded side
       if (p.ink !== undefined && OW.canvas) {
-        const puff = owSmokePuff(p.ink);
+        const puff = owSmokePuff(p.ink, p.dark);
         ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate((p.rot || 0) * 0.15 - 0.45 + t * 0.3);
         ctx.drawImage(puff, -r * 1.25, -r * 1.25, r * 2.5, r * 2.5); ctx.restore();
         continue;
@@ -5397,7 +5492,8 @@ function camPanTick() {
   if (targetCamX === null) { camPanActive = false; return; }
   targetCamX = clampCamX(targetCamX); targetCamY = clampCamY(targetCamY); // (the view may have been zoomed meanwhile)
   const dx = targetCamX - camX, dy = targetCamY - camY;
-  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+  if (Math.abs(dx) < 0.03 && Math.abs(dy) < 0.03) {
+    camPanTick._t = 0;
     camX = targetCamX; camY = targetCamY;
     targetCamX = null; targetCamY = null;
     camPanActive = false;
@@ -5405,7 +5501,10 @@ function camPanTick() {
     if (camPanCallback) { const cb = camPanCallback; camPanCallback = null; cb(); }
     return;
   }
-  camX += dx * 0.2; camY += dy * 0.2;
+  // (eased by the clock, not by the frame: the view glides the same on a fast screen or a slow one)
+  const nowT = performance.now(), dtp = Math.min(0.05, camPanTick._t ? (nowT - camPanTick._t) / 1000 : 0.016); camPanTick._t = nowT;
+  const kk = 1 - Math.exp(-dtp * 11);
+  camX += dx * kk; camY += dy * kk;
   render();
   requestAnimationFrame(camPanTick);
 }
@@ -5414,37 +5513,47 @@ let battleEvents = []; // collected during AI turns, replayed visually after
 // ---- regiments in action: a lunge into the enemy for a charge or the bayonet (and back), a kick of recoil for a shot,
 //  the enemy flinching and flushed red where the blow lands, and a broken regiment's figure toppling over and fading ----
 let _unitFxUntil = 0;
-const UNIT_FX_DUR = { lunge: 560, recoil: 420, hit: 460 };
+const UNIT_FX_DUR = { lunge: 700, recoil: 900, hit: 750 };
 function unitFxStart(u, kind, tx, ty, delay = 0) {
   if (!u) return;
   (u._fxs || (u._fxs = [])).push({ kind, tx, ty, start: Date.now() + delay });
   _unitFxUntil = Math.max(_unitFxUntil, Date.now() + delay + UNIT_FX_DUR[kind] + 30);
   if (!animationBlocking && !render._fx) render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
 }
-// where a regiment is drawn out of its place by what it's doing, and how red it's flushed
+// where a regiment is drawn out of its place by what it's doing, and how it leans: a charge goes in leaning forward, hard
+//  at first and checked at the enemy's front, then falls back at a walk; a gun kicks back on its trail and is run up
+//  again by its crew; a regiment struck is driven back a step and rocks on its feet before it steadies
 function unitFxOffset(u, w) {
   if (!u._fxs || !u._fxs.length) return null;
-  const now = Date.now(), ease = x => x * x * (3 - 2 * x);
-  let ox = 0, oy = 0, flash = 0;
+  const now = Date.now(), ease = x => x * x * (3 - 2 * x), out = x => 1 - (1 - x) * (1 - x);
+  let ox = 0, oy = 0, tilt = 0;
   u._fxs = u._fxs.filter(f => now - f.start < UNIT_FX_DUR[f.kind]);
   for (const f of u._fxs) {
     const p = (now - f.start) / UNIT_FX_DUR[f.kind]; if (p < 0) continue;
     const a = hexScreenPos(u.x, u.y), b = hexScreenPos(f.tx, f.ty);
     let dx = b.x - a.x, dy = b.y - a.y; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
-    if (f.kind === 'lunge') { // (in fast, a beat at the enemy's front, back steadily)
-      const k = p < 0.28 ? ease(p / 0.28) : p < 0.4 ? 1 : 1 - ease((p - 0.4) / 0.6);
-      const reach = Math.min(len, w * 1.2) * 0.45;
-      ox += dx * reach * k; oy += dy * reach * k - Math.sin(Math.min(1, p / 0.28) * Math.PI) * w * 0.05;
-    } else if (f.kind === 'recoil') { // (a sharp kick back, then eased up to the line again)
-      const big = UNIT_DEFS[u.type]?.artillery ? 0.13 : 0.06;
-      const k = p < 0.1 ? p / 0.1 : 1 - ease((p - 0.1) / 0.9);
-      ox -= dx * w * big * k; oy -= dy * w * big * k;
-    } else if (f.kind === 'hit') { // (shaken where it stands, and flushed red)
-      ox += Math.sin(p * 46) * (1 - p) * w * 0.045;
-      flash = Math.max(flash, 1 - p);
+    const side = dx >= 0 ? 1 : -1, horse = unitGaitKind(u) === 'horse';
+    if (f.kind === 'lunge') {
+      // (accelerating in, stopped short at the enemy's front with a jolt, a moment's press, and back)
+      const k = p < 0.3 ? (p / 0.3) * (p / 0.3) : p < 0.36 ? 1 - Math.sin((p - 0.3) / 0.06 * Math.PI) * 0.06 : p < 0.48 ? 0.97 : 1 - ease((p - 0.48) / 0.52);
+      const reach = Math.min(len, w * 1.2) * (horse ? 0.5 : 0.42);
+      ox += dx * reach * k; oy += dy * reach * k;
+      if (horse) oy -= Math.abs(Math.sin(Math.min(1, p / 0.3) * Math.PI * 3)) * w * 0.035 * (p < 0.3 ? 1 : 0); // (bounding in at the gallop)
+      tilt += side * (p < 0.3 ? (horse ? 0.14 : 0.1) * (p / 0.3) : p < 0.48 ? (horse ? -0.06 : 0.05) : (horse ? -0.06 : 0.05) * (1 - ease((p - 0.48) / 0.52)));
+    } else if (f.kind === 'recoil') {
+      const gun = !!UNIT_DEFS[u.type]?.artillery || unitGaitKind(u) === 'ship';
+      // (the kick is all in an instant; the run back up is the crew's slow work)
+      const k = p < 0.06 ? out(p / 0.06) : p < 0.22 ? 1 : 1 - ease((p - 0.22) / 0.78);
+      ox -= dx * w * (gun ? 0.14 : 0.035) * k; oy -= dy * w * (gun ? 0.14 : 0.035) * k;
+      tilt -= side * (gun ? 0.07 : 0.03) * (p < 0.06 ? out(p / 0.06) : Math.max(0, 1 - (p - 0.06) / 0.25));
+    } else if (f.kind === 'hit') {
+      // (driven back off the blow, then a damped rocking as it steadies)
+      const k = p < 0.12 ? out(p / 0.12) : 1 - ease((p - 0.12) / 0.88);
+      ox -= dx * w * 0.07 * k; oy -= dy * w * 0.07 * k;
+      tilt += -side * 0.16 * Math.exp(-p * 4.5) * Math.cos(p * 15) * Math.min(1, p / 0.06);
     }
   }
-  return { x: ox, y: oy, flash };
+  return { x: ox, y: oy, tilt, flash: 0 };
 }
 // the whole of an attack, seen: the powder, the attacker's lunge or recoil, the blow landing a moment later, the fallen
 function attackFx(ax, ay, dx, dy, aType, dType, aNid, dNid, ranged, defDied, atkDied) {
@@ -5461,16 +5570,28 @@ function attackFx(ax, ay, dx, dy, aType, dType, aNid, dNid, ranged, defDied, atk
   // (a regiment that broke the enemy and took their ground is seen going in, not found there already)
   const won = !A && !shot && units.find(u => u.x === dx && u.y === dy && u.nationId === aNid && u.type === aType);
   if (won && !won._animating) startUnitAnimation(won, [{ x: dx, y: dy }], null, ax, ay);
+  // (the blow lands when it truly would: as the volley strikes, when the ball arrives, or when the charge meets the enemy's front)
+  const flight = shot ? shotFlight(aType, ax, ay, dx, dy) : 0, land = shot ? Math.max(90, flight) : 210;
   unitFxStart(A, shot ? 'recoil' : 'lunge', dx, dy);
-  unitFxStart(D, 'hit', ax, ay, shot ? 110 : 150);
-  if (defDied || atkDied) setTimeout(() => SMK.fall(), shot ? 120 : 170); // (a body falling: heard only where one falls in battle)
-  if (defDied) spawnFallenFigure(dx, dy, dType, dNid, ax < dx, shot ? 120 : 170);
-  if (atkDied) spawnFallenFigure(ax, ay, aType, aNid, dx < ax, 260);
+  unitFxStart(D, 'hit', ax, ay, land);
+  if (!shot) { // (the clash: dust kicked up along the line where they meet)
+    const W = windNow(), now = Date.now(), pa = hexScreenPos(ax, ay), pd = hexScreenPos(dx, dy), k = hexWidth() / 48;
+    const mx = (pa.x - pd.x) / k * 0.35, my = (pa.y - pd.y) / k * 0.35;
+    for (let i = 0; i < 6; i++) particles.push({ kind: 'smoke', col: dx, row: dy, ox: mx + (Math.random() - 0.5) * 18, oy: my + 8 + (Math.random() - 0.5) * 6, bx: (Math.random() - 0.5) * 12, by: -6 - Math.random() * 8,
+      vx: W.x * 14, vy: -6, size: 6 + Math.random() * 6, tone: 160 + Math.floor(Math.random() * 25), startTime: now + 200 + i * 40, duration: 1300 + Math.random() * 700 });
+  }
+  if (defDied || atkDied) setTimeout(() => SMK.fall(), land + 20); // (a body falling: heard only where one falls in battle)
+  if (defDied) spawnFallenFigure(dx, dy, dType, dNid, ax < dx, land + 20);
+  if (atkDied) spawnFallenFigure(ax, ay, aType, aNid, dx < ax, land + 120);
 }
 function spawnFallenFigure(col, row, type, nid, fallRight, delay = 0) {
   const img = VIEW_TILE >= 14 ? uniformFigure(unitFigure(type), type, nid) : null;
   if (!img) return;
-  particles.push({ kind: 'fall', col, row, img, color: safeColor(nations[nid]?.color, '#888'), fallRight, vx: 0, vy: 0, startTime: Date.now() + delay, duration: 1000 });
+  particles.push({ kind: 'fall', col, row, img, color: safeColor(nations[nid]?.color, '#888'), fallRight, vx: 0, vy: 0, startTime: Date.now() + delay, showFrom: Date.now(), duration: 1900 });
+  // (the dust it throws up where it strikes the ground)
+  const now = Date.now(), dir = fallRight ? 1 : -1;
+  for (let i = 0; i < 4; i++) particles.push({ kind: 'smoke', col, row, ox: dir * (8 + Math.random() * 10), oy: 12 + Math.random() * 3, bx: dir * (4 + Math.random() * 8), by: -3 - Math.random() * 4,
+    vx: (Math.random() - 0.5) * 6, vy: -3, size: 4 + Math.random() * 4, tone: 150 + Math.floor(Math.random() * 25), startTime: now + delay + 400 + i * 20, duration: 900 + Math.random() * 400 });
   if (!animationBlocking && !render._fx) render._fx = requestAnimationFrame(() => { render._fx = 0; render(); });
 }
 
@@ -5484,7 +5605,7 @@ function afterAttack(then) {
   (function frame() {
     render();
     const el = Date.now() - t0, falling = particles.some(p => p.kind === 'fall' && Date.now() < p.startTime + p.duration);
-    if (el < 650 || (falling && el < 1500)) { requestAnimationFrame(frame); return; }
+    if (el < 650 || ((falling || Date.now() < _unitFxUntil - 250) && el < 2400)) { requestAnimationFrame(frame); return; }
     attackHold = false;
     if (!battleReplayActive && animatingUnits.length === 0) animationBlocking = false;
     try { then && then(); } catch (e) { console.error(e); }
@@ -5572,7 +5693,7 @@ async function replayBattleEvents() {
 
       // (the attack itself, played out where it was fought)
       attackFx(evt.attackerX, evt.attackerY, evt.defenderX, evt.defenderY, evt.attackerType, evt.defenderType, evt.attackerNationId, evt.defenderNationId, evt.isRanged, evt.defenderDied, evt.attackerDied);
-      await new Promise(r => setTimeout(r, fast ? 300 : 560));
+      await new Promise(r => setTimeout(r, Math.max(fast ? 300 : 560, _unitFxUntil - Date.now() - 250))); // (a shell still in the air is waited for)
       if (window._skipReplay) break;
 
       if (evt.defenderDied) {
@@ -7072,18 +7193,16 @@ function showFirstContact(nation) {
   show(0);
 }
 
-let shakeIntensity = 0, shakeEndTime = 0;
+let shakeIntensity = 0, shakeEndTime = 0, shakeDur = 400;
 function screenShake(intensity, duration) {
-  shakeIntensity = intensity;
+  shakeIntensity = intensity; shakeDur = duration;
   shakeEndTime = Date.now() + duration;
 }
 function getShakeOffset() {
   if (Date.now() > shakeEndTime || shakeIntensity <= 0) return { x: 0, y: 0 };
-  const remaining = (shakeEndTime - Date.now()) / (shakeEndTime - Date.now() + 100);
-  return {
-    x: (Math.random() - 0.5) * shakeIntensity * 2 * remaining,
-    y: (Math.random() - 0.5) * shakeIntensity * 2 * remaining
-  };
+  // (the table jolted: a sharp knock that rings down quickly, not a random judder)
+  const age = (Date.now() - (shakeEndTime - (shakeDur || 400))) / 1000, damp = Math.exp(-age * 9) * 0.6;
+  return { x: Math.sin(age * 2 * Math.PI * 11) * shakeIntensity * damp, y: Math.sin(age * 2 * Math.PI * 7 + 1) * shakeIntensity * 0.6 * damp };
 }
 
 // whether the snow lies on a hex this winter, by the same climate the sheet draws: on unknown lands by latitude and height; on the
@@ -17811,7 +17930,8 @@ function figureSilhouette(img) {
 }
 // regiments stand as small figures on the chart, well inside their hex, as a wargamer's miniatures on a map table
 const UNIT_FIG_SCALE = 0.76;
-let _unitFlush = 0; // (how red the figure being drawn is flushed by a blow, 0..1)
+let _unitFlush = 0; // (no longer used: a blow shows as a stagger, not a red flush)
+let _unitTilt = 0;  // (how far the figure being drawn leans on its base, radians: its gait, a charge, a stagger)
 const _greyed = new WeakMap();
 function greyedSprite(img) {
   let c = _greyed.get(img); if (c) return c;
@@ -17879,7 +17999,13 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0, 
     const px = cx + (flip ? -1 : 1) * rx * 0.78, pb = baseY - ry * 0.2, pt = baseY - dh * 0.92, pw = w * 0.13 * (flip ? -1 : 1), ph = w * 0.075;
     ctx.strokeStyle = '#3a2a16'; ctx.lineWidth = Math.max(0.8, w * 0.012);
     ctx.beginPath(); ctx.moveTo(px, pb); ctx.lineTo(px, pt); ctx.stroke();
-    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(px, pt); ctx.lineTo(px + pw, pt + ph * 0.25); ctx.lineTo(px + pw * 0.72, pt + ph * 0.5); ctx.lineTo(px + pw, pt + ph * 0.8); ctx.lineTo(px, pt + ph); ctx.closePath(); ctx.fill();
+    // (stirring in the wind: a ripple running out along the cloth to the swallowtail)
+    const tw = Date.now() / 1000 * 5.5 + cx * 0.05, wv = (q) => Math.sin(tw - q * 2.6) * ph * 0.16 * q;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(px, pt);
+    ctx.quadraticCurveTo(px + pw * 0.5, pt + ph * 0.12 + wv(0.5), px + pw, pt + ph * 0.25 + wv(1));
+    ctx.lineTo(px + pw * 0.72, pt + ph * 0.5 + wv(0.72)); ctx.lineTo(px + pw, pt + ph * 0.8 + wv(1));
+    ctx.quadraticCurveTo(px + pw * 0.5, pt + ph * 0.9 + wv(0.5), px, pt + ph); ctx.closePath(); ctx.fill();
+    _liveInView = true;
     ctx.strokeStyle = 'rgba(20, 12, 6, 0.7)'; ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.stroke();
     ctx.fillStyle = '#c8a050'; ctx.beginPath(); ctx.arc(px, pt, Math.max(1, w * 0.012), 0, Math.PI * 2); ctx.fill();
   }
@@ -17894,6 +18020,7 @@ function drawUnitFigure(img, cx, baseY, w, col, selected, flip, frost, hop = 0, 
   }
   // seen through a camera looking down on the table: what stands up leans a little away from the middle of the view
   if (OW.canvas) { const lean = Math.max(-0.22, Math.min(0.22, (cx - viewW / 2) / viewW * 0.3)); ctx.transform(1, 0, -lean, 1, lean * baseY, 0); }
+  if (_unitTilt) { ctx.translate(cx, baseY); ctx.rotate(_unitTilt); ctx.translate(-cx, -baseY); }
   if (flip) { ctx.translate(cx * 2, 0); ctx.scale(-1, 1); }
   ctx.drawImage(spent ? greyedSprite(img) : img, cx - dw / 2, baseY - dh + ry * (naval ? 0.9 : 0.4) - (naval ? 0 : hop), dw, dh);
   if (_unitFlush > 0.02) { // (struck: the figure flushed red for a moment)
@@ -20482,14 +20609,14 @@ function render() {
     }
     let pos = (u._animating && u._animX !== undefined) ? { x: u._animX, y: u._animY } : hexScreenPos(u.x, u.y);
     const fxo = unitFxOffset(u, w); if (fxo) pos = { x: pos.x + fxo.x, y: pos.y + fxo.y };
-    _unitFlush = fxo ? fxo.flash : 0;
+    _unitFlush = 0;
     if (pos.x < -w || pos.y < -ch || pos.x > viewW + w || pos.y > viewH + ch) continue;
     if (u.nationId !== pId) discoverNation(u.nationId);
     const nCol = nations[u.nationId].color;
 
-    const bobHash = (u.x * 31 + u.y * 17) % 100;
-    // on the march, a figure steps along (a little hop each pace); at rest it barely breathes
-    const bobY = u._animating ? -Math.abs(Math.sin(Date.now() / 85)) * Math.max(1.5, hexWidth() * 0.045) : Math.sin((Date.now() / 800 + bobHash) * Math.PI * 2 / 3) * 1.5;
+    // on the march, a figure moves in its own gait (see unitPose); at rest it barely breathes, and a ship rides the swell
+    const pose = unitPose(u, w), bobY = -pose.lift;
+    _unitTilt = pose.tilt + (fxo ? fxo.tilt || 0 : 0);
     // (on the chart a regiment in a town stands at its south-east gate, so the town itself can be seen)
     const atGate = townAt && !u._animating && townAt.has(u.y * MAP_COLS + u.x) && VIEW_TILE >= 34;
     const cx = pos.x + w / 2 + (atGate ? w * 0.26 : 0), cy = pos.y + facePad + ch / 2 + bobY + (atGate ? ch * 0.16 : 0);
@@ -20506,9 +20633,9 @@ function render() {
       (u.merged || []).forEach((t, k) => {
         const mf = uniformFigure(unitFigure(t), t, u.nationId); if (!mf) return;
         const [sx, sy] = MERGE_SPOTS[k] || [0, 0];
-        drawUnitFigure(mf, cx + sx * w, cy - bobY + rad * 0.62 + sy * w, w * UNIT_FIG_SCALE * 0.9, safeColor(nCol), false, u._faceLeft, snowyAt(u.x, u.y) && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, false, !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
+        drawUnitFigure(mf, cx + sx * w, cy - bobY + rad * 0.62 + sy * w, w * UNIT_FIG_SCALE * 0.9, safeColor(nCol), false, u._faceLeft, snowyAt(u.x, u.y) && !cities.some(c => c.x === u.x && c.y === u.y), pose.lift, false, !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u));
       });
-      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit && !aboard, u._faceLeft, snowyAt(u.x, u.y) && !cities.some(c => c.x === u.x && c.y === u.y), u._animating ? -bobY : 0, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
+      drawUnitFigure(fig, cx, cy - bobY + rad * 0.62, w * UNIT_FIG_SCALE, safeColor(nCol), u === selectedUnit && !aboard, u._faceLeft, snowyAt(u.x, u.y) && !cities.some(c => c.x === u.x && c.y === u.y), pose.lift, !window.__film && u.nationId === pId && !u._animating && unitAwaitsOrders(u), !window.__film && u.nationId === pId && !u._animating && u !== selectedUnit && !unitAwaitsOrders(u)); // (no turn marks when filming)
       if (aboard) drawEmbarkBoat(cx, cy - bobY + rad * 0.62, w, safeColor(nCol), 'front');
     }
     else drawUnitMedallion(cx, cy, cy - bobY, rad, nCol);
@@ -22992,7 +23119,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.6';
+const CURRENT_VERSION = 'beta-13.7';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -24127,40 +24254,82 @@ function getHexesInRange(cx, cy, range) {
 
 let lastAnimTime = 0;
 let _animTicking = false;
+// ---- a regiment on the march, moved as a real column moves: it steps off slowly, gets into its stride, and slows as it
+//  comes up to its halt; it follows a smooth line through the hexes rather than turning at each corner; and each kind keeps
+//  its own gait, timed to the ground it covers so no figure slides: the foot's even pace and sway, a horse's rocking
+//  canter, a gun's carriage jolting on its wheels, a ship rolling and pitching on the swell ----
+function unitGaitKind(u) {
+  const d = UNIT_DEFS[u.type] || {};
+  if (d.naval || /frigate|galleon|man_of_war|ship|boat|caravel/.test(u.type)) return 'ship';
+  if (d.artillery) return 'gun';
+  if (/cavalry|dragoon|knight|horse|hussar|cuirass|lancer|raider|general/.test(u.type) || u.type === 'scout' || u.type === 'veteran_scout') return 'horse';
+  return 'foot';
+}
+const GAIT_PACE = { foot: 0.8, horse: 1.2, gun: 0.7, ship: 0.85 };   // (top speed, against the game's march speed)
+// a point along the smoothed line through the hexes (Catmull-Rom through the centres), s in hexes from the start
+function marchPoint(pts, s) {
+  const n = pts.length - 1, i = Math.max(0, Math.min(n - 1, Math.floor(s))), t = Math.max(0, Math.min(1, s - i));
+  const P = k => pts[Math.max(0, Math.min(n, k))];
+  const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2), t2 = t * t, t3 = t2 * t;
+  const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+  return { x: f(p0.x, p1.x, p2.x, p3.x), y: f(p0.y, p1.y, p2.y, p3.y) };
+}
 function animationTick(timestamp) {
   if (animatingUnits.length === 0) { _animTicking = false; if (!battleReplayActive && !attackHold) animationBlocking = false; return; }
-  const dt = lastAnimTime ? (timestamp - lastAnimTime) / 1000 : 0.016;
+  const dt = Math.min(0.05, lastAnimTime ? (timestamp - lastAnimTime) / 1000 : 0.016);
   lastAnimTime = timestamp;
-  const speed = window.__animSpeed || 6; // (hexes a second; slower when filming)
+  const base = window.__animSpeed || 6; // (hexes a second at full stride; slower when filming)
   for (let i = animatingUnits.length - 1; i >= 0; i--) {
-    const a = animatingUnits[i];
-    a.progress += dt * speed;
-    if (a.progress >= 1) {
-      const target = a.path[a.step];
-      if (target) spawnStepDust(target.x, target.y, a.unit);
-      a.unit._animX = undefined; a.unit._animY = undefined;
-      a.step++;
-      a.progress = 0;
-      if (a.step >= a.path.length) {
-        a.unit._animating = false;
-        const cb = a.onComplete;
-        animatingUnits.splice(i, 1);
-        if (cb) try { cb(); } catch(e) { console.error('Animation callback error:', e); }
-        continue;
-      }
+    const a = animatingUnits[i], n = a.path.length;
+    const kind = a.kind || (a.kind = unitGaitKind(a.unit));
+    // the speed: rising as the column gets into its stride, falling as it comes up to its halt
+    const s0 = a.s || 0, vmax = base * GAIT_PACE[kind];
+    const acc = kind === 'ship' ? 0.9 : kind === 'gun' ? 0.7 : 0.45;  // (hexes to reach full speed: a ship and a gun team are slow to get going)
+    const up = Math.min(1, Math.sqrt((s0 + 0.08) / acc)), down = Math.min(1, Math.sqrt(Math.max(0, n - s0 + 0.02) / acc));
+    const v = vmax * Math.max(0.12, Math.min(up, down));
+    const s = Math.min(n, s0 + v * dt);
+    a.s = s; a.v = v / vmax;
+    // a little dust thrown up at each hex passed
+    while ((a.step || 0) < Math.floor(s) && a.step < n) { const tg = a.path[a.step]; if (tg) spawnStepDust(tg.x, tg.y, a.unit); a.step++; }
+    if (s >= n) {
+      a.unit._animX = undefined; a.unit._animY = undefined; a.unit._gait = null;
+      a.unit._animating = false;
+      const cb = a.onComplete;
+      animatingUnits.splice(i, 1);
+      if (cb) try { cb(); } catch(e) { console.error('Animation callback error:', e); }
+      continue;
     }
-    const fromPos = a.step === 0
-      ? hexScreenPos(a.startX, a.startY)
-      : hexScreenPos(a.path[a.step - 1].x, a.path[a.step - 1].y);
-    const toPos = hexScreenPos(a.path[a.step].x, a.path[a.step].y);
-    const t = Math.min(a.progress, 1);
-    a.unit._animX = fromPos.x + (toPos.x - fromPos.x) * t;
-    a.unit._animY = fromPos.y + (toPos.y - fromPos.y) * t;
+    const pts = [hexScreenPos(a.startX, a.startY), ...a.path.map(p => hexScreenPos(p.x, p.y))];
+    const q = marchPoint(pts, s), q2 = marchPoint(pts, Math.min(n, s + 0.05));
+    a.unit._animX = q.x; a.unit._animY = q.y;
+    if (Math.abs(q2.x - q.x) > 0.3) { a.unit._faceLeft = q2.x < q.x; a.unit._fx = a.unit.x; } // (it faces the way it is going, turning as the line bends)
+    a.unit._gait = { kind, s, v: a.v };
     a.unit._animating = true;
   }
   render();
   if (animatingUnits.length > 0) requestAnimationFrame(animationTick);
   else { _animTicking = false; if (!battleReplayActive && !attackHold) animationBlocking = false; lastAnimTime = 0; }
+}
+// how a figure rides on its base this instant: lifted (px) and tilted (radians, screen), by its gait or at rest
+function unitPose(u, w) {
+  const g = u._gait, now = Date.now(), hash = ((u.id || 0) * 7919 + u.x * 31 + u.y * 17) % 1000;
+  const face = u._faceLeft ? -1 : 1;
+  if (g) {
+    const v = g.v;
+    if (g.kind === 'foot') { const p = g.s * 7; return { lift: Math.abs(Math.sin(Math.PI * p)) * w * 0.028 * v, tilt: Math.sin(Math.PI * p) * 0.035 * v + face * 0.04 * v }; }
+    if (g.kind === 'horse') { const p = g.s * 3.2 * 2 * Math.PI; return { lift: Math.max(0, Math.sin(p)) * w * 0.05 * v, tilt: face * (Math.cos(p) * 0.1 + 0.03) * v }; }
+    if (g.kind === 'gun') { const p = g.s * 9; return { lift: Math.pow(Math.abs(Math.sin(p * 1.7)), 8) * w * 0.012 * v, tilt: Math.sin(p) * 0.025 * v }; }
+    // a ship under way: pitching to the swell, heeled a little to the wind
+    return { lift: Math.sin(now / 520 + hash) * w * 0.008, tilt: Math.sin(now / 760 + hash) * 0.05 + Math.sin(now / 410) * 0.02 * v - face * 0.04 };
+  }
+  if (unitGaitKind(u) === 'ship') _liveInView = true;
+  if (unitGaitKind(u) === 'ship') return { lift: Math.sin(now / 900 + hash) * w * 0.006, tilt: Math.sin(now / 1300 + hash) * 0.035 }; // (riding at anchor on the swell)
+  return { lift: Math.sin((now / 1100 + hash / 97) * Math.PI * 2 / 3) * w * 0.006, tilt: 0 }; // (at rest it barely breathes)
+}
+// the wind of the day: which way the smoke drifts and the pennants stream (it veers a little from turn to turn)
+function windNow() {
+  const a = ((turnNumber || 0) * 0.37 + 0.6) % (Math.PI * 2), wob = Math.sin(Date.now() / 7000) * 0.25;
+  return { x: Math.cos(a + wob), y: Math.sin(a + wob) * 0.45, k: 0.7 + 0.3 * Math.sin((turnNumber || 0) * 1.3) };
 }
 
 let marchTrails = [];
