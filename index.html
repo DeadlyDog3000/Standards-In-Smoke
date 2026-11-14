@@ -1119,6 +1119,13 @@
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
       </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.6</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Workers Take Advice, and More Sounds</b><br>
+        - Workers you leave to work by themselves build what the surveyor advises, where it can be paid for<br>
+        - The advice weighs food by what comes in (the towns eat their store as they grow), and a realm's works more evenly: fields, then markets and mines<br>
+        - New sounds: a worker setting to (a stake driven, a spade in the turf), land bought, regiments digging in, standing easy and issued new arms, a hunting shot in the woods, a lock brought to cock before a volley, a ball rammed home, a law sealed, an ambition written, a work cancelled and paid back<br>
+      </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.5</b></div>
       <div style="margin-bottom:12px;">
         <b style="color:#b8a070;">What to Build, and New Sounds</b><br>
@@ -2411,6 +2418,13 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.6</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Workers Take Advice, and More Sounds</b><br>
+          - Workers you leave to work by themselves build what the surveyor advises, where it can be paid for<br>
+          - The advice weighs food by what comes in (the towns eat their store as they grow), and a realm's works more evenly: fields, then markets and mines<br>
+          - New sounds: a worker setting to (a stake driven, a spade in the turf), land bought, regiments digging in, standing easy and issued new arms, a hunting shot in the woods, a lock brought to cock before a volley, a ball rammed home, a law sealed, an ambition written, a work cancelled and paid back<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.5</b></div>
         <div style="margin-bottom:12px;">
@@ -5695,7 +5709,7 @@ function playWarHorn() { SMK.drum(1.6, true); }
 // ---- EVERY SOUND OF THE GAME BUT THE MUSIC: recordings made with ElevenLabs sound generation, in sfx/ (name_NN.m4a, a few
 //  takes of each, so no two in a row are alike). Played through Web Audio: the effects on the Effects slider, the land's
 //  beds and its sounds of the place on the Ambience one. Real-world sounds only: wood, paper, bells, drums, powder, boots ----
-const SFX_SET = /*SFX_SET*/{"click":[8,1.88],"hover":[5,1.67],"deny":[3,1.41],"pick":[5,1.0],"page":[2,1.92],"quill":[3,1.0],"seal":[2,1.0],"letter":[2,1.39],"peal_long":[1,1.0],"peal_short":[1,1.0],"chime":[1,1.0],"toll":[1,1.0],"oars":[2,1.0],"hammer":[2,1.0],"drum_ruff":[2,1.03],"drum_war":[2,1.0],"coins_few":[1,1.0],"coins_many":[1,1.0],"chop":[2,1.0],"melee":[3,1.0],"fall":[2,1.0],"volley":[3,1.0],"cannon":[2,1.0],"fieldgun":[2,1.0],"woodpecker":[1,1.0],"cuckoo":[1,1.0],"bough":[1,1.0],"hooves":[1,1.0],"bell":[1,1.0],"carillon":[1,1.0],"loop_forest":[1,1.0],"loop_town":[1,1.0],"loop_foot":[1,1.0],"loop_horse":[1,1.08],"loop_ship":[1,1.0]}/*END*/; // (name -> [takes, level]: written by ~/sis-tools/sfx/bake_sis.py)
+const SFX_SET = /*SFX_SET*/{"click":[8,1.88],"hover":[5,1.67],"deny":[3,1.41],"pick":[5,1.0],"page":[2,1.92],"quill":[3,1.0],"seal":[2,1.0],"letter":[2,1.39],"peal_long":[1,1.0],"peal_short":[1,1.0],"chime":[1,1.0],"toll":[1,1.0],"oars":[2,1.0],"hammer":[2,1.0],"drum_ruff":[2,1.03],"drum_war":[2,1.0],"coins_few":[1,1.0],"coins_many":[1,1.0],"chop":[2,1.0],"melee":[3,1.0],"fall":[2,1.0],"volley":[3,1.0],"cannon":[2,1.0],"fieldgun":[2,1.0],"woodpecker":[1,1.0],"cuckoo":[1,1.0],"bough":[1,1.0],"hooves":[1,1.0],"bell":[1,1.0],"carillon":[1,1.0],"works":[1,1.0],"dig":[2,1.0],"hunt":[2,1.0],"rest":[2,1.0],"arms":[2,1.0],"cock":[4,1.19],"load":[2,1.0],"loop_forest":[1,1.0],"loop_town":[1,1.0],"loop_foot":[1,1.0],"loop_horse":[1,1.08],"loop_ship":[1,1.0]}/*END*/; // (name -> [takes, level]: written by ~/sis-tools/sfx/bake_sis.py)
 const SMK = (() => {
   let ac = null, comp = null, sfxOut = null, ambOut = null;
   const BUF = {}, LOADING = {}, lastTake = {};
@@ -5762,6 +5776,15 @@ const SMK = (() => {
     chop: () => once('chop', 0.65),
     melee: () => once('melee', 0.6),
     echo: () => {},
+    // a worker setting to: a stake driven and the first spade; regiments digging in, standing easy, issued new arms
+    works: () => once('works', 0.5),
+    dig: () => once('dig', 0.55),
+    rest: () => once('rest', 0.5),
+    arms: () => once('arms', 0.55),
+    // a shot in the woods and the birds going up; a lock brought to full cock; a ball rammed home
+    hunt: () => once('hunt', 0.6),
+    cock: () => once('cock', 0.4),
+    load: () => once('load', 0.5),
     fall: () => once('fall', 0.55),
     // the volleys and the guns
     shot: (kind, vol = 0.8, when = 0) => once(kind, vol, { when, vary: 0.05 }),
@@ -10545,6 +10568,7 @@ function buyTile(city, tx, ty) {
   }
   if (!adj) return false;
   n.gold -= 25;
+  try { SMK.coins(3); SMK.works(); } catch (e) {}
   tiles[i].owner = city.nationId;
   city.ownedTiles.add(i);
   _tileCityMapDirty = true;
@@ -11210,7 +11234,8 @@ function realmWants(nationId) {
   // (gunpowder and steel are wanted only once the realm can raise what spends them)
   const spends = (r) => Object.entries(PRODUCTION_COSTS).some(([u, c]) => c[r] && UNIT_DEFS[u] && (!unitRequiresTech(u) || nationHasTech(nationId, unitRequiresTech(u))));
   for (const k of SUGGEST_RES) {
-    const stock = k === 'science' ? 40 : (n[k] || 0);
+    // (food is eaten as the towns grow, so its store always reads low: it counts by what comes in alone)
+    const stock = k === 'science' || k === 'food' ? 60 : (n[k] || 0);
     w[k] = base[k] * Math.min(2, 1 + Math.max(0, 1 - stock / 60) * 0.5 + 0.5 / (1 + Math.max(0, inc[k])));
     if ((k === 'gunpowder' || k === 'steel') && !spends(k)) w[k] *= 0.35;
   }
@@ -11264,7 +11289,7 @@ function suggestImprovement(nationId, x, y, anyTech = false, planned = null) {
     if (key === 'pasture' && (t.animal || t.type === 6)) score += 1.5;
     if (t.type === 5 && key !== 'lumbermill') score -= 1.5; // (the wood must be felled for it, and its timber is lost)
     // a realm wants a spread of works: each like one already standing (or being raised) weighs a little less
-    const same = realmWorkCount(nationId, key); score -= same * 0.18 + (planned ? (planned.get(key) || 0) * 0.45 : 0); // (and on the chart, each one already pencilled in)
+    const same = realmWorkCount(nationId, key); score -= same * 0.35 + (planned ? (planned.get(key) || 0) * 0.45 : 0); // (and on the chart, each one already pencilled in)
     const price = Object.values(cost).reduce((a, v) => a + v, 0);
     score -= price / 12 + (imp.buildTurns || 1) * 0.3;
     const short = Object.keys(cost).filter(k => (n[k] || 0) < cost[k]);
@@ -12619,6 +12644,7 @@ window.chooseAmbition = function (id) {
   const n = nations[playerNation];
   if (!n.ambitionOffer || !n.ambitionOffer.includes(id)) return;
   n.ambition = id; n.ambitionOffer = [];
+  try { SMK.quill(); } catch (e) {}
   document.getElementById('ambitionOverlay')?.remove();
   logEvent(`The crown's ambition: ${ambitionById(id).name}`);
   updateAmbitionPlaque();
@@ -13343,7 +13369,10 @@ function aiWorkerStep(u, nationId, opts = {}) {
         const o = tiles[nb.row * MAP_COLS + nb.col].owner;
         return o >= 0 && o !== nationId && nations[nationId].relations?.[o] === 'war' && !nations[o]?.isBarbarian;
       });
-      if (facesFoe && canBuildImprovement(u, 'redoubt')) buildImprovement(u, 'redoubt');
+      // your own workers, left to work by themselves, take the surveyor's advice where it can be paid for
+      const advice = opts.chop === false ? suggestImprovement(nationId, u.x, u.y) : null;
+      if (advice && !advice.later && canBuildImprovement(u, advice.key)) buildImprovement(u, advice.key);
+      else if (facesFoe && canBuildImprovement(u, 'redoubt')) buildImprovement(u, 'redoubt');
       else if (opts.chop !== false && aiNeedsPort(nationId) && canBuildImprovement(u, 'port')) buildImprovement(u, 'port'); // a first harbour comes before another farm
       else if (t.type === 6 && canBuildImprovement(u, 'pasture')) buildImprovement(u, 'pasture');
         else if (t.type === 5 && canBuildImprovement(u, 'lumbermill')) buildImprovement(u, 'lumbermill');
@@ -22963,7 +22992,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.5';
+const CURRENT_VERSION = 'beta-13.6';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -23718,6 +23747,7 @@ canvas.addEventListener('click', (e) => {
       const bought = workerBuyTile(selectedUnit, mx, my);
       workerBuyMode = false; reachableTiles.clear();
       if (bought) {
+        try { SMK.coins(3); SMK.works(); } catch (e) {}
         showToast(`Tile purchased for ${tileCost} gold.`);
         if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
       }
@@ -24353,7 +24383,7 @@ window.enterRangedMode = function() {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type].ranged || !canRanged) return;
 
   if (UNIT_DEFS[selectedUnit.type].artillery && selectedUnit.reloadTurns > 0) return;
-  rangedMode = true; moveMode = false; gotoMode = false; buyTileMode = false; workerBuyMode = false;
+  rangedMode = true; try { UNIT_DEFS[selectedUnit.type].artillery ? SMK.load() : SMK.cock(); } catch (e) {} moveMode = false; gotoMode = false; buyTileMode = false; workerBuyMode = false;
   reachableTiles.clear();
   render();
 };
@@ -24786,6 +24816,7 @@ window.doHunt = function() {
   if (!t.animal || t.improvement || t.owner === playerNation) return;
   if (!ANIMAL_DATA[t.animal]) return;
   if (!tryActivateUnit(selectedUnit)) return;
+  try { SMK.hunt(); } catch (e) {}
   const ad = ANIMAL_DATA[t.animal];
   if (!ad) return;
   const n = nations[playerNation];
@@ -24805,6 +24836,7 @@ window.doRepair = function() {
   if (selectedUnit.movesLeft <= 0) return;
   if (!tryActivateUnit(selectedUnit)) return;
   repairTile(selectedUnit);
+  try { SMK.hammer(); } catch (e) {}
   if (selectedUnit.movesLeft <= 0) { cycleToNextUnit(); updateUI(); return; }
   showUnitPanel(selectedUnit); updateUI(); render();
 };
@@ -24818,6 +24850,7 @@ window.doBuild = function(key) {
   if (selectedUnit.movesLeft <= 0) return;
   if (!tryActivateUnit(selectedUnit)) return;
   buildImprovement(selectedUnit, key);
+  try { SMK.works(); } catch (e) {}
   const imp = IMPROVEMENT_DEFS[key];
   const bTurns = (selectedUnit.type === 'veteran_worker') ? Math.max(1, (imp.buildTurns || 1) - 1) : (imp.buildTurns || 1);
   if (bTurns <= 1) showToast(`Built ${imp.name}`);
@@ -24833,6 +24866,7 @@ window.cancelBuild = function() {
   const impKey = selectedUnit.building;
   const cost = selectedUnit.buildCost || IMPROVEMENT_DEFS[impKey].cost; // what was paid, not today's price
   const n = nations[selectedUnit.nationId];
+  try { SMK.coins(3); } catch (e) {}
   for (const k in cost) n[k] = (n[k] || 0) + cost[k];
   selectedUnit.building = null;
   delete selectedUnit.buildCost;
@@ -25055,6 +25089,7 @@ window.toggleLawsPanel = function() {
 
 window.playerAdoptLaw = function(lawKey) {
   if (adoptLaw(playerNation, lawKey)) {
+    try { SMK.seal(); } catch (e) {}
     renderLawsPanel();
     updateUI();
     render();
@@ -25225,6 +25260,7 @@ window.setAmmo = function(ammo) {
   if (!selectedUnit || !UNIT_DEFS[selectedUnit.type]?.artillery) return;
   if (!UNIT_DEFS[selectedUnit.type].ammoTypes?.includes(ammo)) return;
   selectedUnit.ammo = ammo;
+  try { SMK.load(); } catch (e) {}
   showToast(`Ammo set to ${ammo}`);
   showUnitPanel(selectedUnit); render();
 };
@@ -25236,6 +25272,7 @@ window.setFormation = function(formation) {
   if (selectedUnit.formation === formation) return;
   if (!FORMATIONS[formation]) return;
   if (!tryActivateUnit(selectedUnit)) return;
+  try { SMK.drum(0.2); } catch (e) {}
   selectedUnit.formation = formation;
 
   selectedUnit.movesLeft--;
@@ -25250,6 +25287,7 @@ window.fortifyUnit = function() {
   if (selectedUnit.movesLeft <= 0) return;
   if (isEmbarked(selectedUnit)) { showToast('Troops aboard ship cannot dig in.'); return; }
   if (!tryActivateUnit(selectedUnit)) return;
+  try { SMK.dig(); } catch (e) {}
   selectedUnit.fortified = true;
   selectedUnit.movesLeft = 0;
   showToast(UNIT_DEFS[selectedUnit.type].naval ? 'She lies at anchor (+20% defence).' : 'Unit fortified (+20% defense)');
@@ -25289,6 +25327,7 @@ window.upgradeUnit = function() {
   if (!tryActivateUnit(selectedUnit)) return;
 
   for (const [r, amt] of Object.entries(upg.cost)) n[r] -= amt * same;
+  try { SMK.arms(); } catch (e) {}
 
   const newDef = UNIT_DEFS[upg.to];
   const hpRatio = selectedUnit.hp / Math.max(1, getEffectiveMaxHp(selectedUnit));
@@ -25324,6 +25363,7 @@ window.restUnit = function() {
   if (selectedUnit.hp >= maxHp) return;
   if (selectedUnit.movesLeft <= 0) return;
   if (!tryActivateUnit(selectedUnit)) return;
+  try { SMK.rest(); } catch (e) {}
   const inCity = cities.some(c => c.x === selectedUnit.x && c.y === selectedUnit.y && c.nationId === selectedUnit.nationId);
   const healAmt = inCity ? 5 : 3;
   selectedUnit.hp = Math.min(maxHp, selectedUnit.hp + healAmt);
