@@ -552,12 +552,15 @@
     #techTreeOverlay { background: linear-gradient(rgba(8, 6, 4, 0.55), rgba(8, 6, 4, 0.7)), var(--ow-leather) !important; }
     /* the edges of the view darken like an old print under a lamp */
     #game::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0) 62%, rgba(12, 7, 2, 0.42) 100%); }
-    #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; transition: opacity 1.2s; background-size: 256px 256px, 180px 180px; animation: snowfall 22s linear infinite; }
+    #weather { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.75; transition: opacity 1.2s; overflow: hidden; }
     #weather.off { opacity: 0; }
-    #weather.autumn { opacity: 0.9; background-size: 420px 420px, 300px 300px; animation: leaffall 26s linear infinite; }
-    @keyframes snowfall { from { background-position: 0 0, 0 0; } to { background-position: 60px 512px, -40px 360px; } }
-    @keyframes leaffall { from { background-position: 0 0, 0 0; } to { background-position: 840px 420px, 600px 600px; } }
-    @media (prefers-reduced-motion: reduce) { #weather { animation: none; } }
+    #weather.autumn { opacity: 0.9; }
+    /* (three depths of fall: far flakes small, faint and slow, near ones large, soft and quick; each sways on its own beat and
+        is carried off by the turn's wind, so the snow never moves as one sheet) */
+    #weather > i { position: absolute; inset: -48px; background-repeat: repeat; animation: wfall var(--d) linear infinite, wsway var(--s) ease-in-out infinite alternate; }
+    @keyframes wfall { from { background-position: 0 0; } to { background-position: var(--wx) var(--fy); } }
+    @keyframes wsway { from { transform: translateX(calc(var(--sw) * -1)); } to { transform: translateX(var(--sw)); } }
+    @media (prefers-reduced-motion: reduce) { #weather > i { animation: none; } }
     #game > canvas { image-rendering: auto; cursor: url(ui/quill32.png) 1 1, default; cursor: -webkit-image-set(url(ui/quill32.png) 1x, url(ui/quill64.png) 2x) 1 1, default; }
     #game::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: soft-light; background: radial-gradient(ellipse 60% 55% at 48% 45%, rgba(255, 214, 140, 0.32), rgba(255, 214, 140, 0) 70%); }
     /* the top bar's stores as painted tokens, not coloured squares */
@@ -1118,6 +1121,16 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.8</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">Smoke, Snow and Sea</b><br>
+        - Hearth smoke rises from the chimneys in a slow, thin stream and is drawn off by the wind, instead of standing still<br>
+        - A burning town's smoke billows up sooty and pales as it climbs, leaning away downwind; its embers gutter and flare<br>
+        - The factory's stacks keep smoking<br>
+        - A ship under sail leaves a wake of foam rings spreading on the water, not a puff of dust<br>
+        - Snow falls at three depths, far flakes slow and faint, near ones large and quick, each swaying on its own and carried by the turn's wind<br>
+        - Figures on the map (food, gold, damage) lift off the spot and settle before they fade, instead of creeping upward<br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.7</b></div>
       <div style="margin-bottom:12px;">
@@ -2429,6 +2442,16 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.8</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">Smoke, Snow and Sea</b><br>
+          - Hearth smoke rises from the chimneys in a slow, thin stream and is drawn off by the wind, instead of standing still<br>
+          - A burning town's smoke billows up sooty and pales as it climbs, leaning away downwind; its embers gutter and flare<br>
+          - The factory's stacks keep smoking<br>
+          - A ship under sail leaves a wake of foam rings spreading on the water, not a puff of dust<br>
+          - Snow falls at three depths, far flakes slow and faint, near ones large and quick, each swaying on its own and carried by the turn's wind<br>
+          - Figures on the map (food, gold, damage) lift off the spot and settle before they fade, instead of creeping upward<br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 13.7</b></div>
         <div style="margin-bottom:12px;">
@@ -5194,8 +5217,8 @@ function renderFloatingTexts() {
     const elapsed = now - ft.startTime;
     if (elapsed >= ft.duration) { floatingTexts.splice(i, 1); continue; }
     const t = elapsed / ft.duration;
-    const alpha = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
-    const yOff = -t * 40;
+    const alpha = t < 0.12 ? t / 0.12 : t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4; // (lifts off the spot quickly, settles, then fades where it rests)
+    const yOff = -34 * (1 - Math.pow(1 - t, 3));
     const pos = hexScreenPos(ft.col, ft.row);
     const sx = pos.x + w / 2, sy = pos.y + facePad + ch / 2 + yOff;
     if (sx < -50 || sx > viewW + 50 || sy < -50 || sy > viewH + 50) continue;
@@ -5347,6 +5370,10 @@ function spawnStepDust(col, row, unit) {
   if (currentVisionSet && !currentVisionSet.has(row * MAP_COLS + col)) return;
   const naval = !!UNIT_DEFS[unit.type]?.naval, mounted = /cavalry|hussar|lancer|dragoon|scout/.test(unit.type);
   const now = Date.now(), n = naval ? 3 : mounted ? 4 : 2;
+  if (naval) { // (a ship raises no dust: she leaves a wake, foam rings spreading and flattening out on the water behind her)
+    for (let i = 0; i < 3; i++) particles.push({ kind: 'wake', col, row, vx: 0, vy: 0, ox: (Math.random() - 0.5) * 6, oy: 9 + Math.random() * 3, size: 9 + i * 3 + Math.random() * 3, startTime: now + i * 260, duration: 1700 + Math.random() * 500 });
+    return;
+  }
   for (let i = 0; i < n; i++) {
     particles.push({ kind: 'smoke', col, row, ox: (Math.random() - 0.5) * 16, oy: 10 + Math.random() * 5,
       vx: (Math.random() - 0.5) * 14, vy: -3 - Math.random() * 5, size: (naval ? 6 : 5) + Math.random() * 4,
@@ -5363,6 +5390,19 @@ function renderParticles() {
     const t = elapsed / p.duration;
     const pos = hexScreenPos(p.col, p.row);
     const sx = pos.x + w / 2 + p.vx * t, sy = pos.y + facePad + ch / 2 + p.vy * t;
+    if (p.kind === 'wake') {
+      if (elapsed < 0) continue;
+      const k = w / 48, x = pos.x + w / 2 + p.ox * k, y = pos.y + facePad + ch / 2 + p.oy * k, e = 1 - Math.pow(1 - t, 2.2);
+      const rx = p.size * k * (0.45 + e * 1.4), ry = rx * 0.36, a = 0.5 * Math.pow(1 - t, 1.4) * Math.min(1, t * 8);
+      ctx.save();
+      ctx.strokeStyle = `rgba(246, 248, 240, ${a})`; ctx.lineWidth = Math.max(0.7, k * (1.6 - t)); // (broken foam: the ring drawn in short dashes)
+      ctx.setLineDash([rx * 0.35, rx * 0.18]); ctx.lineDashOffset = p.size * 3;
+      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = `rgba(20, 40, 46, ${a * 0.35})`; ctx.setLineDash([]); ctx.lineWidth = Math.max(0.5, k * 0.8); // (and its shadowed trough just inside)
+      ctx.beginPath(); ctx.ellipse(x, y + k, rx * 0.88, ry * 0.85, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      continue;
+    }
     if (p.kind === 'seal') {
       // pressed down hard, then lifted away
       const k = w / 48, x = pos.x + w / 2, y = pos.y + facePad + ch / 2;
@@ -7234,6 +7274,8 @@ function updateWeather() {
   let snowy = currentSeason === 'winter';
   if (snowy && typeof camX === 'number' && tiles.length) { const mx = Math.max(0, Math.min(MAP_COLS - 1, Math.round(camX + visibleCols() / 2))), my = Math.max(0, Math.min(MAP_ROWS - 1, Math.round(camY + visibleRows() / 2))); snowy = snowyAt(mx, my); }
   const want = shown && snowy ? currentSeason : '';
+  // (the drift follows the wind of the turn)
+  if (_weatherEl && _weatherEl._turn !== turnNumber) { _weatherEl._turn = turnNumber; const wd = windNow(); for (const l of _weatherEl.children) l.style.setProperty('--wx', Math.round(+l.dataset.fy * 0.4 * wd.x * wd.k) + 'px'); }
   if (want === _weatherSeason) return;
   _weatherSeason = want;
   if (!_weatherEl) {
@@ -7258,12 +7300,25 @@ function updateWeather() {
       }
       return c.toDataURL();
     };
-    _weatherImgs = { winter: `url(${flakes(26, 1.6, 3.2, 7)}), url(${flakes(40, 1, 2, 31)})`, autumn: `url(${leaves(3, 11)}), url(${leaves(2, 53)})` };
+    // [image, tile size, fall per loop, seconds a loop, sway px, sway seconds, opacity, blur]
+    _weatherImgs = {
+      winter: [[flakes(46, 0.7, 1.3, 31), 200, 400, 34, 6, 4.1, 0.55, 0], [flakes(26, 1.4, 2.5, 7), 256, 512, 21, 10, 3.3, 0.85, 0], [flakes(9, 2.6, 4.2, 97), 340, 680, 12, 16, 2.6, 0.9, 0.7]],
+      autumn: [[leaves(3, 11), 420, 420, 30, 22, 3.6, 0.85, 0], [leaves(2, 53), 300, 600, 17, 30, 2.8, 0.95, 0]]
+    };
     document.getElementById('game')?.appendChild(_weatherEl);
   }
   // (the snow sets in and lets up over a second or so, as the view is carried over the snow line)
   clearTimeout(_weatherHide);
-  if (want) { _weatherEl.className = want + ' off'; _weatherEl.style.backgroundImage = _weatherImgs[want]; _weatherEl.style.display = 'block'; void _weatherEl.offsetWidth; _weatherEl.classList.remove('off'); }
+  if (want) {
+    _weatherEl.className = want + ' off'; _weatherEl.textContent = '';
+    const wd = windNow();
+    for (const [img, sz, fy, d, sw, ss, op, bl] of _weatherImgs[want]) {
+      const l = document.createElement('i'); l.dataset.fy = fy;
+      l.style.cssText = `background-image:url(${img});background-size:${sz}px ${sz}px;opacity:${op};${bl ? `filter:blur(${bl}px);` : ''}--fy:${fy}px;--wx:${Math.round(fy * 0.4 * wd.x * wd.k)}px;--d:${d}s;--sw:${sw}px;--s:${ss}s;animation-delay:${-(Math.random() * d).toFixed(1)}s,${-(Math.random() * ss).toFixed(1)}s`;
+      _weatherEl.appendChild(l);
+    }
+    _weatherEl.style.display = 'block'; void _weatherEl.offsetWidth; _weatherEl.classList.remove('off');
+  }
   else { _weatherEl.classList.add('off'); _weatherHide = setTimeout(() => { if (!_weatherSeason) _weatherEl.style.display = 'none'; }, 1300); }
 }
 function toRoman(v) {
@@ -17350,6 +17405,8 @@ function drawLandmark(kind, x, y, w) {
   if (painted) { // the painted building, its base on the spot
     const lw = w * (CITY_BUILDING_DEFS[kind].wonder ? 0.29 : 0.23), lh = lw * painted.naturalHeight / painted.naturalWidth;
     ctx.drawImage(painted, x - lw / 2, y - lh * 0.88, lw, lh);
+    if (kind === 'factory' && VIEW_TILE >= 30) for (const [fx, fy, sd] of [[0.27, 0.23, 1], [0.59, 0.13, 2]]) // (the two stacks still smoking, above the painted plumes)
+      smokeStream(x - lw / 2 + lw * fx, y - lh * 0.88 + lh * fy, w, { n: 6, period: 3600 + sd * 500, rise: 0.32, drift: 0.22, r0: 0.012, r1: 0.05, a: 0.55, dark: 0.35, seed: ((x * 0.31 + y * 0.17) | 0) + sd * 7 });
     return;
   }
   const u = w * 0.01; // one hundredth of a tile
@@ -17369,7 +17426,7 @@ function drawLandmark(kind, x, y, w) {
       block(x - u * 10, y - u * 9, u * 16, u * 9, '#8f4a35');
       ctx.fillStyle = '#5b3a2c'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x - u * 10 + i * u * 5.3, y - u * 9); ctx.lineTo(x - u * 10 + i * u * 5.3 + u * 5.3, y - u * 9); ctx.lineTo(x - u * 10 + i * u * 5.3 + u * 5.3, y - u * 13); ctx.closePath(); ctx.fill(); }
       block(x + u * 7, y - u * 20, u * 3.5, u * 20, '#7a3d2c');
-      ctx.fillStyle = 'rgba(200,200,200,0.55)'; ctx.beginPath(); ctx.arc(x + u * 10, y - u * 24, u * 3.5, 0, Math.PI * 2); ctx.arc(x + u * 14, y - u * 28, u * 4.5, 0, Math.PI * 2); ctx.fill();
+      if (VIEW_TILE >= 22) smokeStream(x + u * 8.75, y - u * 20.5, w, { n: 7, period: 4200, rise: 0.7, drift: 0.45, r0: 0.04, r1: 0.14, a: 0.62, dark: 0.3, seed: (x * 0.31 + y * 0.17) | 0 }); // (coal smoke, sooty as it leaves the stack)
       break;
     }
     case 'great_library': { // a domed hall with a portico
@@ -17417,20 +17474,34 @@ function drawLandmark(kind, x, y, w) {
 }
 
 // A town on its city tile: houses that multiply as it grows, a church and flag for a capital, a ring wall once fortified
-// hearth smoke: thin pale wisps from the chimneys in the cold months
+// a rising stream of smoke: puffs leave the source one after another, swell and thin as they climb, and are carried off
+//  downwind (the same wind that bends the powder smoke on the field); a little eddying as they go
+function smokeStream(bx, by, w, o) {
+  const now = Date.now(), wd = windNow(), n = o.n, sd0 = (o.seed || 0) * 0.137;
+  for (let i = n - 1; i >= 0; i--) {
+    const ph = ((now / o.period + i / n + sd0) % 1 + 1) % 1, e = Math.pow(ph, 1.4);
+    const h1 = Math.sin(i * 12.9898 + sd0 * 78.233) * 43758.5453, jit = h1 - Math.floor(h1); // (each puff its own: a little to one side, a little bigger or smaller)
+    const x = bx + (wd.x * wd.k * o.drift * e + (jit - 0.5) * 0.09 * ph + Math.sin(now / 1100 + i * 2.1 + sd0 * 9) * 0.035 * ph) * w;
+    const y = by - o.rise * w * ph * (1 - 0.3 * ph) + (wd.y * wd.k * o.drift * 0.35 * e + Math.cos(now / 1500 + i * 1.7) * 0.015 * ph) * w;
+    const r = w * (o.r0 + (o.r1 - o.r0) * Math.sqrt(ph)) * (0.75 + jit * 0.5);
+    const a = o.a * Math.min(1, ph / 0.1) * Math.pow(1 - ph, 1.6) * (0.7 + jit * 0.5);
+    if (a < 0.01) continue;
+    const dark = o.dark != null && ph < o.dark;
+    if (OW.canvas) { ctx.globalAlpha = Math.min(1, a); ctx.drawImage(owSmokePuff((i + (o.seed | 0)) % 3, dark), x - r * 1.25, y - r * 1.25, r * 2.5, r * 2.5); ctx.globalAlpha = 1; continue; }
+    const tone = dark ? 70 + ph * 90 : 175 + ph * 40;
+    ctx.fillStyle = `rgba(${tone | 0}, ${(tone - 3) | 0}, ${(tone - 6) | 0}, ${a})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  _liveInView = true;
+}
+// hearth smoke: thin pale wisps from the chimneys in the cold months, rising slowly and drawn off by the wind
 function drawChimneySmoke(cx, cy, w, n, seed) {
   let sd = seed * 7 + 3; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
   const k = Math.min(1, n);
   ctx.save();
   for (let c = 0; c < Math.ceil(n); c++) {
     const bx = cx + (rnd() - 0.5) * w * 0.45, by = cy - w * 0.12 - rnd() * w * 0.08;
-    for (let i = 0; i < 6; i++) {
-      const t = i / 6, x = bx + w * 0.022 * i * i, y = by - w * 0.11 * i, r = w * (0.05 + t * 0.1);
-      const a = (0.62 - t * 0.5) * k;
-      if (OW.canvas) { ctx.globalAlpha = Math.min(1, a * 1.3); ctx.drawImage(owSmokePuff((c + i) % 3), x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6); ctx.globalAlpha = 1; continue; } // (an engraver's little billows)
-      ctx.fillStyle = `rgba(${170 + i * 8}, ${168 + i * 8}, ${165 + i * 8}, ${a})`;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    }
+    smokeStream(bx, by, w, { n: 7, period: 6200 + rnd() * 1800, rise: 0.75, drift: 0.55, r0: 0.025, r1: 0.11, a: 0.42 * k, seed: seed + c * 5 });
   }
   ctx.restore();
 }
@@ -17443,20 +17514,13 @@ function drawTownFire(cx, cy, w, k, seed) {
     const bx = cx + (rnd() - 0.5) * w * 0.5, by = cy - w * 0.05 + (rnd() - 0.3) * w * 0.2;
     // embers at the foot of the column while the fire is fresh
     if (k > 0.6) {
-      const g = ctx.createRadialGradient(bx, by, 0, bx, by, w * 0.16);
-      g.addColorStop(0, 'rgba(255,170,60,0.85)'); g.addColorStop(0.5, 'rgba(220,80,20,0.4)'); g.addColorStop(1, 'rgba(160,40,10,0)');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, w * 0.16, 0, Math.PI * 2); ctx.fill();
+      // (a fire never burns steady: it gutters and flares, two flickers beating against each other)
+      const tq = Date.now() / 1000 + c * 1.7, fl = 0.78 + 0.13 * Math.sin(tq * 7.3) + 0.09 * Math.sin(tq * 12.9 + 1.1), er = w * 0.16 * (0.92 + fl * 0.12);
+      const g = ctx.createRadialGradient(bx, by, 0, bx, by, er);
+      g.addColorStop(0, `rgba(255,${(150 + fl * 30) | 0},60,${0.85 * fl})`); g.addColorStop(0.5, `rgba(220,80,20,${0.4 * fl})`); g.addColorStop(1, 'rgba(160,40,10,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, er, 0, Math.PI * 2); ctx.fill();
     }
-    const n = 6 + Math.round(k * 4), lean = w * (0.1 + rnd() * 0.08);
-    for (let i = 0; i < n; i++) {
-      const t = i / n, x = bx + lean * i * t * 1.6, y = by - w * 0.2 * i * (1 - t * 0.3);
-      const r = w * (0.13 + t * 0.3) * (0.85 + rnd() * 0.3), tone = Math.round(48 + t * 80);
-      const a = (0.9 - t * 0.55) * (0.5 + k * 0.5);
-      if (OW.canvas) { ctx.globalAlpha = Math.min(1, a * 1.1); ctx.drawImage(owSmokePuff((c + i) % 3, t < 0.6), x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4); ctx.globalAlpha = 1; continue; } // (sooty billows, paling as they rise)
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, `rgba(${tone},${tone - 4},${tone - 8},${a})`); g.addColorStop(0.55, `rgba(${tone},${tone - 4},${tone - 8},${a * 0.6})`); g.addColorStop(1, `rgba(${tone},${tone - 4},${tone - 8},0)`);
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    }
+    smokeStream(bx, by, w, { n: 9 + Math.round(k * 5), period: 3800 + rnd() * 900, rise: 1.7, drift: 1.1 + rnd() * 0.3, r0: 0.09, r1: 0.4, a: 0.72 * (0.5 + k * 0.5), dark: 0.45, seed: seed + c * 11 });
   }
   ctx.restore();
 }
@@ -23119,7 +23183,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-13.7';
+const CURRENT_VERSION = 'beta-13.8';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
