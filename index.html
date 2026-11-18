@@ -894,7 +894,7 @@
     <button class="menu-btn" onclick="showNewGame()">New Game</button>
     <button class="menu-btn" onclick="showHistStarts()">Historical Starts</button>
     <button class="menu-btn" id="resumeBtn" onclick="resumeLastGame()" style="display:none;">Resume Last Game</button>
-    <button class="menu-btn" onclick="location.href='lab3d.html'" title="An early look at the campaign played on a modelled board">The 3D Board (early)</button>
+    <button class="menu-btn" id="viewBtn" onclick="toggleBoardView()" title="Where your campaigns are played: on the modelled 3D board, or on the engraved chart">Play on: the 3D Board</button>
     <button class="menu-btn" onclick="showVictoryHistory()">Victories &amp; Achievements</button>
     <button class="menu-btn" onclick="showMenuOptions()">Options</button>
     <a class="promo-card" href="https://deadlydog3000.github.io/deadlydog-productions/reckoning.html" target="_blank" rel="noopener"><img src="promo_reckoning.jpg" alt="Forester: Reckoning" width="150" height="84"><span><small>From the makers of Standards In Smoke</small><b>Forester: Reckoning</b>Hamburg, 1683. Build a town from the ashes, then hold it. Free demo for Mac and Windows.</span></a>
@@ -1139,6 +1139,15 @@
       <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
         <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
         <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+      </div>
+      <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 14.2</b></div>
+      <div style="margin-bottom:12px;">
+        <b style="color:#b8a070;">The 3D Board is where campaigns are played</b><br>
+        - New Game, the Historical Starts and Resume now open your campaign on the 3D board; the menu, the setup and the saves are as they were<br>
+        - To play on the engraved chart instead, set "Play on" in the main menu to the Chart<br>
+        - "The Chart" on the board saves the campaign and takes you back to the menu<br>
+        - A town is heard more quietly: its murmur, the hooves on its cobbles and its bells are kept well under the rest<br>
+        <br>
       </div>
       <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 14.1</b></div>
       <div style="margin-bottom:12px;">
@@ -2552,6 +2561,15 @@
         <div style="background:rgba(212,168,86,0.12);border:1px solid rgba(212,168,86,0.3);border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;">
           <div style="color:#e0c880;font-size:15px;margin-bottom:4px;"><b>Looking for Beta Testers!</b></div>
           <div style="color:#c8b8a0;font-size:12px;line-height:1.5;">This game is in beta and we need your feedback.<br>Found a bug? Have a suggestion? Let us know at<br><a href="https://deadlydog3000.github.io/deadlydog-productions/" target="_blank" style="color:#d8b060;text-decoration:underline;">DeadlyDog Productions</a></div>
+        </div>
+        <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 14.2</b></div>
+        <div style="margin-bottom:12px;">
+          <b style="color:#b8a070;">The 3D Board is where campaigns are played</b><br>
+          - New Game, the Historical Starts and Resume now open your campaign on the 3D board; the menu, the setup and the saves are as they were<br>
+          - To play on the engraved chart instead, set "Play on" in the main menu to the Chart<br>
+          - "The Chart" on the board saves the campaign and takes you back to the menu<br>
+          - A town is heard more quietly: its murmur, the hooves on its cobbles and its bells are kept well under the rest<br>
+          <br>
         </div>
         <div style="color:#e0c880;font-size:14px;margin-bottom:4px;"><b>Beta 14.1</b></div>
         <div style="margin-bottom:12px;">
@@ -6136,9 +6154,19 @@ const MUSIC_LIB = [   // [file, the moods it suits]: the music chosen to fit the
   ['music/f_begger.m4a', 'country peace'],
   ['music/f_greensleeves.m4a', 'country lament'],
   ['music/f_aston.m4a', 'country peace'],
+  ['music/f_haymakers.m4a', 'country peace'],
+  ['music/f_jig.m4a', 'country peace'],
+  ['music/r_semai.m4a', 'east'],
+  ['music/r_sivastopol.m4a', 'east war'],
+  ['music/r_yangguan.m4a', 'asia'],
+  ['music/r_zuiyu.m4a', 'asia'],
+  ['music/r_yuda.m4a', 'asia'],
+  ['music/r_shika.m4a', 'asia'],
+  ['music/r_flute1.m4a', 'americas'],
+  ['music/r_flute2.m4a', 'americas'],
 ];
 const MUSIC_TRACKS = MUSIC_LIB.map(t => t[0]);
-const MUSIC_NAMES = {"Mozart-Serenade-in-G-major(chosic.com).m4a":"Mozart, Serenade in G","Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).m4a":"Pachelbel, Canon in D","scott-buckley-permafrost(chosic.com).m4a":"Scott Buckley, Permafrost","nnchannel-church-choir-297898.m4a":"A church choir","tunetank-church-choir-349262.m4a":"A church choir","music/air.m4a":"Bach, Air","music/brandenburg3.m4a":"Bach, Brandenburg Concerto No. 3","music/canon_guitar.m4a":"Pachelbel, Canon (guitar)","music/cello_prelude.m4a":"Bach, Cello Suite No. 1, Prelude","music/corelli_1.m4a":"Corelli, Christmas Concerto","music/goldberg_aria.m4a":"Bach, Goldberg Variations, Aria","music/goldberg_capo.m4a":"Bach, Goldberg Variations, Aria da capo","music/innomine6.m4a":"Purcell, In Nomine a 6","music/innomine7.m4a":"Purcell, In Nomine a 7","music/lully_turcs.m4a":"Lully, March for the Turkish Ceremony","music/spring_allegro.m4a":"Vivaldi, Spring","music/spring_largo.m4a":"Vivaldi, Spring, Largo","music/summer_presto.m4a":"Vivaldi, Summer, Presto","music/te_deum.m4a":"Charpentier, Te Deum","music/toccata.m4a":"Bach, Toccata and Fugue in D minor","music/winter_allegro.m4a":"Vivaldi, Winter","music/winter_largo.m4a":"Vivaldi, Winter, Largo","music/w_presidents.m4a":"The President's March (fifes and drums)","music/w_soldiers.m4a":"Soldier's Farewell, Montezuma, Windsor Park (fifes and drums)","music/w_reveille.m4a":"Reveille, the Scotch Duty (fifes and drums)","music/w_cornwallis.m4a":"The Rage of Cornwallis (drums)","music/w_brandywine.m4a":"Brandywine Quickstep (fifes and drums)","music/w_bachmarch.m4a":"Bach, March (fifes and drums)","music/w_grenadiers.m4a":"The British Grenadiers","music/w_cockade.m4a":"The White Cockade","music/w_boru.m4a":"Brian Boru's March","music/w_haydn100.m4a":"Haydn, the \"Military\" Symphony, Allegretto","music/s_hornpipe.m4a":"Handel, Water Music, Bourree and Hornpipe","music/s_overture.m4a":"Handel, Water Music, Overture","music/s_air.m4a":"Handel, Water Music, Air","music/s_allegro.m4a":"Handel, Water Music, Allegro","music/s_fqhornpipe.m4a":"Purcell, The Fairy Queen, Hornpipe","music/s_fishers.m4a":"Fisher's Hornpipe (fifes)","music/s_lowlands.m4a":"Lowlands Away (fifes)","music/c_gavotte.m4a":"Rameau, Gavotte and Variations","music/c_gavotte4.m4a":"Rameau, Gavotte, a variation","music/c_romance.m4a":"Mozart, Eine kleine Nachtmusik, Romance","music/c_minuet525.m4a":"Mozart, Eine kleine Nachtmusik, Minuet","music/c_rondeau.m4a":"Purcell, The Fairy Queen, Rondeau","music/c_aire.m4a":"Purcell, The Fairy Queen, Air","music/c_barricades.m4a":"Couperin, Les Barricades Mysterieuses","music/c_scarlatti.m4a":"Scarlatti, Sonata K. 159","music/c_telemann.m4a":"Telemann, Minuet","music/c_fwminuet.m4a":"Handel, Royal Fireworks, Minuet","music/c_boismortier.m4a":"Boismortier, Concerto for Five Flutes","music/t_fwoverture.m4a":"Handel, Royal Fireworks, Overture","music/t_rejouissance.m4a":"Handel, Royal Fireworks, La Rejouissance","music/t_zadok.m4a":"Handel, Zadok the Priest","music/t_trumpet.m4a":"Clarke, The Prince of Denmark's March","music/t_bourree.m4a":"Handel, Royal Fireworks, Bourree","music/l_queenmary.m4a":"Purcell, March for the Funeral of Queen Mary","music/l_letmeweep.m4a":"Purcell, The Fairy Queen, O Let Me Weep","music/l_paix.m4a":"Handel, Royal Fireworks, La Paix","music/f_peascods.m4a":"Gathering Peascods (Playford, 1651)","music/f_begger.m4a":"The Begger Boy (Playford, 1651)","music/f_greensleeves.m4a":"Greensleeves","music/f_aston.m4a":"Aston, Hornpipe"};
+const MUSIC_NAMES = {"Mozart-Serenade-in-G-major(chosic.com).m4a":"Mozart, Serenade in G","Kevin_MacLeod_-_Canon_in_D_Major(chosic.com).m4a":"Pachelbel, Canon in D","scott-buckley-permafrost(chosic.com).m4a":"Scott Buckley, Permafrost","nnchannel-church-choir-297898.m4a":"A church choir","tunetank-church-choir-349262.m4a":"A church choir","music/air.m4a":"Bach, Air","music/brandenburg3.m4a":"Bach, Brandenburg Concerto No. 3","music/canon_guitar.m4a":"Pachelbel, Canon (guitar)","music/cello_prelude.m4a":"Bach, Cello Suite No. 1, Prelude","music/corelli_1.m4a":"Corelli, Christmas Concerto","music/goldberg_aria.m4a":"Bach, Goldberg Variations, Aria","music/goldberg_capo.m4a":"Bach, Goldberg Variations, Aria da capo","music/innomine6.m4a":"Purcell, In Nomine a 6","music/innomine7.m4a":"Purcell, In Nomine a 7","music/lully_turcs.m4a":"Lully, March for the Turkish Ceremony","music/spring_allegro.m4a":"Vivaldi, Spring","music/spring_largo.m4a":"Vivaldi, Spring, Largo","music/summer_presto.m4a":"Vivaldi, Summer, Presto","music/te_deum.m4a":"Charpentier, Te Deum","music/toccata.m4a":"Bach, Toccata and Fugue in D minor","music/winter_allegro.m4a":"Vivaldi, Winter","music/winter_largo.m4a":"Vivaldi, Winter, Largo","music/w_presidents.m4a":"The President's March (fifes and drums)","music/w_soldiers.m4a":"Soldier's Farewell, Montezuma, Windsor Park (fifes and drums)","music/w_reveille.m4a":"Reveille, the Scotch Duty (fifes and drums)","music/w_cornwallis.m4a":"The Rage of Cornwallis (drums)","music/w_brandywine.m4a":"Brandywine Quickstep (fifes and drums)","music/w_bachmarch.m4a":"Bach, March (fifes and drums)","music/w_grenadiers.m4a":"The British Grenadiers","music/w_cockade.m4a":"The White Cockade","music/w_boru.m4a":"Brian Boru's March","music/w_haydn100.m4a":"Haydn, the \"Military\" Symphony, Allegretto","music/s_hornpipe.m4a":"Handel, Water Music, Bourree and Hornpipe","music/s_overture.m4a":"Handel, Water Music, Overture","music/s_air.m4a":"Handel, Water Music, Air","music/s_allegro.m4a":"Handel, Water Music, Allegro","music/s_fqhornpipe.m4a":"Purcell, The Fairy Queen, Hornpipe","music/s_fishers.m4a":"Fisher's Hornpipe (fifes)","music/s_lowlands.m4a":"Lowlands Away (fifes)","music/c_gavotte.m4a":"Rameau, Gavotte and Variations","music/c_gavotte4.m4a":"Rameau, Gavotte, a variation","music/c_romance.m4a":"Mozart, Eine kleine Nachtmusik, Romance","music/c_minuet525.m4a":"Mozart, Eine kleine Nachtmusik, Minuet","music/c_rondeau.m4a":"Purcell, The Fairy Queen, Rondeau","music/c_aire.m4a":"Purcell, The Fairy Queen, Air","music/c_barricades.m4a":"Couperin, Les Barricades Mysterieuses","music/c_scarlatti.m4a":"Scarlatti, Sonata K. 159","music/c_telemann.m4a":"Telemann, Minuet","music/c_fwminuet.m4a":"Handel, Royal Fireworks, Minuet","music/c_boismortier.m4a":"Boismortier, Concerto for Five Flutes","music/t_fwoverture.m4a":"Handel, Royal Fireworks, Overture","music/t_rejouissance.m4a":"Handel, Royal Fireworks, La Rejouissance","music/t_zadok.m4a":"Handel, Zadok the Priest","music/t_trumpet.m4a":"Clarke, The Prince of Denmark's March","music/t_bourree.m4a":"Handel, Royal Fireworks, Bourree","music/l_queenmary.m4a":"Purcell, March for the Funeral of Queen Mary","music/l_letmeweep.m4a":"Purcell, The Fairy Queen, O Let Me Weep","music/l_paix.m4a":"Handel, Royal Fireworks, La Paix","music/f_peascods.m4a":"Gathering Peascods (Playford, 1651)","music/f_begger.m4a":"The Begger Boy (Playford, 1651)","music/f_greensleeves.m4a":"Greensleeves","music/f_aston.m4a":"Aston, Hornpipe","music/f_haymakers.m4a":"Purcell, Dance of the Haymakers","music/f_jig.m4a":"Purcell, The Fairy Queen, Jig","music/r_semai.m4a":"Huseyni Saz Semaisi (Ottoman)","music/r_sivastopol.m4a":"An Ottoman march","music/r_yangguan.m4a":"Yangguan Sandie (guqin)","music/r_zuiyu.m4a":"Zuiyu Changwan (guqin)","music/r_yuda.m4a":"Rain on the Plantain (Cantonese)","music/r_shika.m4a":"Shika no Tone (shakuhachi)","music/r_flute1.m4a":"A cedar flute of the Americas","music/r_flute2.m4a":"A flute of the Americas"};
 function musicName(src) { return MUSIC_NAMES[src] || ''; }
 // ---- volume, by kind: the music, the land's own sounds (birds, a town, a column on the march), and the effects (shots,
 //  clicks, fanfares). Every sound sets its volume as it always did; what reaches the ear is that times its kind's slider ----
@@ -6232,6 +6260,16 @@ const MUSIC_CREDITS = [
   ["Traditional", "The Begger Boy (Playford, 1651)", "Milena Cord-to-Krax, Elena Escartín, Gonzalo Llao (recorders), David Ruiz (percussion)", "CC BY 4.0"],
   ["Traditional", "Greensleeves", "Emilio Villalba (La Juglaresa)", "CC BY 3.0"],
   ["Aston", "Hornpipe", "Steamboat Electric (Zwergelstern)", "Public domain"],
+  ["Purcell", "Dance of the Haymakers", "Escola Superior de Música de Catalunya (ESMUC)", "CC BY-SA 4.0"],
+  ["Purcell", "The Fairy Queen, Jig", "Escola Superior de Música de Catalunya (ESMUC)", "CC BY-SA 4.0"],
+  ["Traditional", "Huseyni Saz Semaisi (Ottoman)", "Hafiz Kemal Bey (kemenche) and Hayrie Hanoum (oud)", "Public domain"],
+  ["Traditional", "An Ottoman march", "An Ottoman military band", "Public domain"],
+  ["Traditional", "Yangguan Sandie (guqin)", "CharlieHuang (guqin)", "CC BY-SA 3.0"],
+  ["Traditional", "Zuiyu Changwan (guqin)", "CharlieHuang (guqin)", "CC BY-SA 3.0"],
+  ["Traditional", "Rain on the Plantain (Cantonese)", "Recorded by David290", "CC BY-SA 4.0"],
+  ["Traditional", "Shika no Tone (shakuhachi)", "Araki Kodō III (shakuhachi)", "Public domain"],
+  ["Traditional", "A cedar flute of the Americas", "Guy Simard (flute), music by Marc Lautenbacher", "CC BY-SA 4.0"],
+  ["Traditional", "A flute of the Americas", "Jossi Fresco", "CC BY 2.5"],
 ];
 window.showMusicCredits = function() {
   document.getElementById('musicCredits')?.remove();
@@ -6414,7 +6452,7 @@ const SMK = (() => {
     // the beds under the land (a wood, a town's market), kept running and faded to the levels asked for, with now and then
     //  one sound of the place on top: a woodpecker, a cuckoo, a bough; a horse on the cobbles, a church bell, a carillon
     ambience: (lv) => {
-      const BEDS = [['forest', 'loop_forest', 0.55], ['town', 'loop_town', 0.4], ['sea', 'loop_sea', 0.45], ['fields', 'loop_fields', 0.4], ['wind', 'loop_wind', 0.45], ['fire', 'loop_fire', 0.5], ['marsh', 'loop_marsh', 0.4], ['mountain', 'loop_mountain', 0.4], ['river', 'loop_river', 0.35], ['falls', 'loop_falls', 0.5]];
+      const BEDS = [['forest', 'loop_forest', 0.55], ['town', 'loop_town', 0.16], ['sea', 'loop_sea', 0.45], ['fields', 'loop_fields', 0.4], ['wind', 'loop_wind', 0.45], ['fire', 'loop_fire', 0.5], ['marsh', 'loop_marsh', 0.4], ['mountain', 'loop_mountain', 0.4], ['river', 'loop_river', 0.35], ['falls', 'loop_falls', 0.5]];
       if (!beds && !BEDS.some(([k]) => lv[k] > 0.01) && !(lv.crows > 0.01)) return; // (nothing made until there's something to hear)
       if (!a()) return;
       beds = beds || {};
@@ -6429,10 +6467,10 @@ const SMK = (() => {
       const R = Math.random(), warm = currentSeason === 'spring' || currentSeason === 'summer';
       if ((lv.crows || 0) > 0.15 && R < lv.crows * 0.3) play('crows', 0.35 * lv.crows, { out: ambOut }); // (the crows over a field where men fell)
       else if (F > 0.15 && R < F * 0.12) { const p = Math.random(); play(p < 0.4 ? 'woodpecker' : p < 0.7 && warm ? 'cuckoo' : 'bough', 0.35 * F, { out: ambOut }); } // (the cuckoo only in spring and summer)
-      else if (Tn > 0.12 && R < Tn * 0.1) {
+      else if (Tn > 0.12 && R < Tn * 0.05) {
         const p = Math.random(), bell = performance.now() - (beds._bell || -1e9) < 40000;
-        if (p < 0.55 || bell) play('hooves', 0.4 * Tn, { out: ambOut });
-        else { beds._bell = performance.now(); play(p < 0.8 ? 'bell' : p < 0.92 ? 'peal_short' : 'carillon', 0.3 * Tn, { out: ambOut }); }
+        if (p < 0.55 || bell) play('hooves', 0.2 * Tn, { out: ambOut });
+        else { beds._bell = performance.now(); play(p < 0.8 ? 'bell' : p < 0.92 ? 'peal_short' : 'carillon', 0.16 * Tn, { out: ambOut }); }   // (a town is heard, not shouted: its murmur, hooves and bells kept well under the rest)
       }
     },
   };
@@ -24243,7 +24281,7 @@ function hideUpdateLog() {
     document.getElementById('escMain').style.display = 'block';
   }
 }
-const CURRENT_VERSION = 'beta-14.1';
+const CURRENT_VERSION = 'beta-14.2';
 function showUpdateLogPopup() {
   const seen = localStorage.getItem('sis_update_log_seen');
   if (seen === CURRENT_VERSION) return;
@@ -24493,7 +24531,18 @@ function cancelSetup() {
   document.getElementById('menuSetup').style.display = 'none';
   document.getElementById('menuMain').style.display = 'block';
 }
+// ---- where a campaign is played: on the 3D board, which is the default, or on the chart. The menu, the setup and the saves stay
+//  here; starting or loading a game opens it on the board (the board runs this same page out of sight and plays it there) ----
+const BOARD_HOST = window.top === window && !/[?&](mute|chart)\b/.test(location.search);
+function playOnBoard() { try { return BOARD_HOST && localStorage.getItem('sis_view') !== 'chart'; } catch (e) { return BOARD_HOST; } }
+function boardViewLabel() { const b = document.getElementById('viewBtn'); let chart = false; try { chart = localStorage.getItem('sis_view') === 'chart'; } catch (e) {} if (b) b.textContent = 'Play on: ' + (chart ? 'the Chart' : 'the 3D Board'); }
+window.toggleBoardView = function () { try { localStorage.setItem('sis_view', localStorage.getItem('sis_view') === 'chart' ? 'board' : 'chart'); } catch (e) {} boardViewLabel(); };
 function confirmSetupAndStart() {
+  if (playOnBoard()) {   // (the setup as chosen, carried to the board, which begins the campaign with it)
+    const v = {}; document.querySelectorAll('#menuSetup input[id], #menuSetup select[id]').forEach(el => { v[el.id] = el.type === 'checkbox' ? el.checked : el.value; });
+    try { sessionStorage.setItem('sis_board_setup', JSON.stringify({ v, tab: _nationTab, nation: _selectedNationIdx })); } catch (e) {}
+    location.href = 'lab3d.html?setup=1'; return;
+  }
   let name, color;
   if (_nationTab === 'preset') {
     const preset = PRESET_NATIONS[_selectedNationIdx] || PRESET_NATIONS[0];
@@ -27080,6 +27129,7 @@ function stopAutoSaveTimer() {
 }
 
 function loadGame(slot) {
+  if (playOnBoard() && /^[a-z0-9_]+$/.test(String(slot))) { location.href = 'lab3d.html?load=' + slot; return; }   // (played on the board)
   window._scenQueue = []; document.getElementById('scenOverlay')?.remove();
   const data = localStorage.getItem('sis_save_' + slot);
   if (!data) { showToast('No save found'); return; }
@@ -27539,7 +27589,7 @@ window.addEventListener('resize', () => {
 
 setTimeout(updateTopbarOffset, 100);
 
-refreshSaveSlots();
+refreshSaveSlots(); boardViewLabel();
 
 let musicStarted = false;
 document.addEventListener('click', function initMusic() {

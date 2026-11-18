@@ -110,7 +110,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 'use strict';
-const qs = new URLSearchParams(location.search); let EUROPE = qs.has('europe'), WORLD = qs.has('earth'), LOADSLOT = /^[a-z0-9_]+$/.test(qs.get('load') || '') ? qs.get('load') : null, SAVESLOT = LOADSLOT === 'auto' ? 'auto' : 'board', CROWN = null;
+const qs = new URLSearchParams(location.search); let EUROPE = qs.has('europe'), WORLD = qs.has('earth'), LOADSLOT = /^[a-z0-9_]+$/.test(qs.get('load') || '') ? qs.get('load') : null, SETUP = qs.has('setup'), SAVESLOT = (LOADSLOT && LOADSLOT !== 'board') || qs.has('setup') ? 'auto' : 'board', CROWN = null;   // (a campaign begun or loaded from the game's own menu is saved as the chart saves it; only the table's own quick games keep a slot of their own)
 (() => {   // (the paper's grain, made once: a mottle, fine fibres, and foxing here and there)
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); const id = g.createImageData(256, 256);
   let sd = 77; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -146,7 +146,7 @@ let G = null, E = null;   // (the hidden game's window, and a way to read its wo
 //  the table raises in relief and stands up as trees instead
 // (what to lay on the table: the table's own game carried on, your campaign brought over from the chart, or a new world)
 function chooseStart() {
-  if (EUROPE || WORLD || LOADSLOT || qs.has('seed') || qs.has('new')) return Promise.resolve();
+  if (EUROPE || WORLD || LOADSLOT || SETUP || qs.has('seed') || qs.has('new')) return Promise.resolve();
   const meta = k => { try { return JSON.parse(localStorage.getItem('sis_meta_' + k) || 'null'); } catch (e) { return null; } };
   const has = k => { try { return !!localStorage.getItem('sis_save_' + k); } catch (e) { return false; } };
   const desc = m => m ? [m.nation, m.turn ? 'turn ' + m.turn : '', m.year || ''].filter(Boolean).join(', ') : '';
@@ -209,7 +209,12 @@ async function bootGame() {
   const afx = G.attackFx; G.attackFx = function (...a) { try { noteFight(...a); } catch (e) {} return afx.apply(this, a); };
   const toast = G.showToast; G.showToast = function (msg, noLog) { toast.call(this, msg, noLog); showToast(E('ofTheDay')(msg)); };
   E(`pickDevice('desktop'); mapStyle = ${EUROPE ? "'europe'" : WORLD ? "'earth'" : "'random'"}; scenario = ${EUROPE ? "'1740'" : 'null'}; startYear = 1680;`);
-  if (LOADSLOT) { E(`loadGame('${LOADSLOT}')`); WORLD = E('mapStyle') === 'earth'; EUROPE = E('mapStyle') === 'europe'; }
+  if (SETUP) {   // (the campaign as it was set up on the game's own menu: its choices laid into the hidden page's setup, and begun there)
+    let st = null; try { st = JSON.parse(sessionStorage.getItem('sis_board_setup') || 'null'); } catch (e) {}
+    if (st) { for (const [id, v] of Object.entries(st.v || {})) { const el = G.document.getElementById(id); if (!el) continue; if (el.type === 'checkbox') el.checked = !!v; else el.value = v; }
+      E(`_nationTab = ${JSON.stringify(st.tab === 'custom' ? 'custom' : 'preset')}; _selectedNationIdx = ${+st.nation || 0};`); }
+    E('confirmSetupAndStart()'); WORLD = E('mapStyle') === 'earth'; EUROPE = E('mapStyle') === 'europe';
+  } else if (LOADSLOT) { E(`loadGame('${LOADSLOT}')`); WORLD = E('mapStyle') === 'earth'; EUROPE = E('mapStyle') === 'europe'; }
   else { const nm = CROWN || 'Testland', col = CROWN ? E(`(PRESET_NATIONS.find(n => n.name === ${JSON.stringify(CROWN)}) || {}).color || '#3366cc'`) : '#3366cc';
     E(`startGame(${EUROPE ? '120, 80' : WORLD ? '315, 122' : '80, 52'}, ${JSON.stringify(nm)}, ${JSON.stringify(col)}, ${WORLD ? 8 : 4})`); }
   await sleep(900);
@@ -3275,6 +3280,8 @@ function boardAmbience() {
   try { E(`(() => { const s = [camX, camY, VIEW_TILE]; let lv; try { VIEW_TILE = ${vt}; camX = ${col} - viewW / hexColStep() / 2; camY = ${row} - viewH / hexCellH() / 2; lv = ambientLevels(); } finally { camX = s[0]; camY = s[1]; VIEW_TILE = s[2]; } SMK.ambience(lv); MUSIC.view = { x: ${col}, y: ${row} }; })()`); } catch (e) {}
 }
 setInterval(boardAmbience, 1000);
+// (back to the chart's menu: the campaign saved first, so Resume carries on from here)
+$('backChart').addEventListener('click', e => { if (!G || !window.LAB) return; try { E('saveGame()'); } catch (er) {} });
 $('music').addEventListener('click', () => { if (MUTED || !G) return; try { E('musicEnabled = !musicEnabled; if (musicEnabled) playNextTrack(); else bgMusic.pause();'); } catch (e) {} showMusic(); });
 
 // the game's own pages, mirrored on the table: a regiment's page (its orders, a worker's improvements, a settler's founding) or a
