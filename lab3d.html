@@ -55,6 +55,8 @@
   #modal p { line-height: 1.5; font-size: 15px; }
   #modal button { display: block; width: 100%; text-align: left; margin-top: 8px; padding: 9px 12px; font: inherit; font-size: 14px; color: #f3e6c8; cursor: pointer;
     background: rgba(220, 210, 190, 0.08); border: 1px solid rgba(201, 162, 74, 0.45); border-radius: 2px; }
+  #modal button small { display: block; margin-top: 3px; font-size: 12px; color: #c9b48a; letter-spacing: 0.02em; }
+  #modal button:disabled { opacity: 0.45; cursor: default; }
   #modal button:hover { background: rgba(220, 210, 190, 0.18); border-color: var(--gilt2); }
   #labels { position: fixed; inset: 0; pointer-events: none; }
   /* (a town's name lettered on a parchment ribbon, in the realm's colour at its ends, as the game's own banners are) */
@@ -92,7 +94,7 @@
 <div id="labels"></div>
 <div id="modal"><div class="card panel" id="modalCard"></div></div>
 <div id="card0">The chartmaker is setting up the table<small>(the world is being drawn first)</small></div>
-<iframe id="game" src="index.html?mute"></iframe>
+<iframe id="game"></iframe>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
@@ -109,6 +111,14 @@ const qs = new URLSearchParams(location.search), EUROPE = qs.has('europe'), WORL
 })();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const $ = id => document.getElementById(id);
+// the game's own sounds on the table: it is loaded unmuted (unless the table is: ?mute), its music left off, and every sound it
+//  makes played through the table's own audio, which a click on the table is allowed to start
+const MUTED = qs.has('mute');
+$('game').src = 'index.html' + (MUTED ? '?mute' : '');
+let labAC = null;
+const labAudio = () => { if (!labAC) { const AC = window.AudioContext || window.webkitAudioContext; labAC = new AC(); } return labAC; };
+for (const t of ['pointerdown', 'keydown']) addEventListener(t, () => { if (labAC && labAC.state === 'suspended') labAC.resume(); }, true);
+const snd = (name, ...a) => { try { if (!MUTED && G && G.SMK && G.SMK[name]) G.SMK[name](...a); } catch (e) {} };
 let G = null, E = null;   // (the hidden game's window, and a way to read its world)
 
 // ===========================================================================================================================
@@ -120,6 +130,11 @@ async function bootGame() {
   const ready = () => { try { return fr.contentWindow.document.readyState === 'complete' && fr.contentWindow.location.href !== 'about:blank' && typeof fr.contentWindow.startGame === 'function'; } catch (e) { return false; } };
   if (!ready()) await new Promise(r => { fr.addEventListener('load', r, { once: true }); const iv = setInterval(() => { if (ready()) { clearInterval(iv); r(); } }, 200); });
   G = fr.contentWindow; E = (x) => G.eval(x);
+  if (!MUTED) {
+    G.AudioContext = G.webkitAudioContext = function () { return labAudio(); };
+    G.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };   // (no music under the table)
+    G.updateAmbientBirds = () => {};   // (the land's sounds follow the table's view, not the hidden chart's: boardAmbience)
+  }
   // (?seed=N: the same world every time, for comparing one look against another)
   if (qs.has('seed')) { let a = (+qs.get('seed') || 1) >>> 0; G.Math.random = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   G.requestAnimationFrame = cb => G.setTimeout(() => cb(G.performance.now()), 16);   // (the frame sits off the page, where a browser may starve its animation frames)
@@ -158,7 +173,7 @@ function tidyGame() {
   if (ev && !modalOpen) {
     const card = ev.querySelector('.event-card') || ev, art = card.querySelector('.ev-art'), h = card.querySelector('h3'), p = card.querySelector('p');
     const btns = [...card.querySelectorAll('button')];
-    showModal(h ? h.textContent : 'An event', p ? p.textContent : '', btns.map(b => [b.textContent.trim(), () => b.click()]), art ? (art.style.backgroundImage.match(/url\("?([^")]+)/) || [])[1] : null);
+    showModal(h ? h.textContent : 'An event', p ? p.textContent : '', btns.map(b => { const eff = b.querySelector('.event-effect'), own = [...b.childNodes].filter(n => n !== eff).map(n => n.textContent).join(' ').trim(); const parts = eff ? (eff.children.length ? [...eff.children].map(x => x.textContent.trim()) : eff.textContent.split(/(?=[+-]\d)/).map(x => x.trim())).filter(Boolean) : []; return [own || b.textContent.trim(), () => b.click(), parts.join(' \u00b7 ').replace(/: \u00b7 /g, ': '), b.disabled]; }), art ? (art.style.backgroundImage.match(/url\("?([^")]+)/) || [])[1] : null);
   }
 }
 
@@ -773,7 +788,12 @@ function treeKit(kind, season, v) {
 }
 // the sheet and the woods follow the season: when the game draws its chart anew (spring green, autumn gold, the winter snow),
 //  the table's sheet is laid again and the trees are stood up in their season's dress
-let chartKey = '', treeMeshes = [];
+let chartKey = '', treeMeshes = [], dressed = '';
+function dressKey() {
+  const marks = E('OW.F && OW.F.marks') || []; let h = 0, n = 0;
+  for (const m of marks) if (m.k === 'tree' || m.k === 'pine') { h = (h * 31 + (m.x | 0) * 7 + (m.y | 0)) | 0; n++; }
+  return E('currentSeason') + ':' + n + ':' + h;
+}
 async function refreshSeason() {
   // (the game draws the next season's sheet in the background, but waits while its page is hidden, as it always is here:
   //  so when the season has turned, ask it for the new sheet outright)
@@ -786,7 +806,10 @@ async function refreshSeason() {
   if (chart.width > maxT || chart.height > maxT) { const k = maxT / Math.max(chart.width, chart.height); src = document.createElement('canvas'); src.width = Math.round(chart.width * k); src.height = Math.round(chart.height * k); src.getContext('2d').drawImage(chart, 0, 0, src.width, src.height); }
   else { const c = document.createElement('canvas'); c.width = chart.width; c.height = chart.height; c.getContext('2d').drawImage(chart, 0, 0); src = c; }
   const old = U.map.value, tex = new THREE.CanvasTexture(src); tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); U.map.value = tex; if (old) old.dispose();
-  for (const m of treeMeshes) { scene.remove(m); m.material.dispose(); } treeMeshes = []; buildGround(E('currentSeason')); buildTrees();
+  // (the chart is drawn anew most turns, but the ground and the woods only change with the season or when woods are felled: only
+  //  then are they laid again. Laying them every turn was slow and filled the graphics card)
+  const dk = dressKey(); if (dk === dressed) return; dressed = dk;
+  for (const m of treeMeshes) dropMesh(m); treeMeshes = []; buildGround(E('currentSeason')); buildTrees();
 }
 // (the trees' own shader additions: they step aside for a regiment or a town, shrink away as you stand back, sit on the relief
 //  as it flattens, stir in the wind, and are hidden in unexplored country and greyed where you cannot see now)
@@ -925,12 +948,22 @@ function natureMat(name, map, season, plain) {
 // (each model's parts worked out once and shared by every block of the table that stands it: they used to be copied for each
 //  block, some four hundred megabytes of the same trees over the map of the Earth, more than a graphics card will hold)
 const _natureParts = new Map();
+// (the cached models' own buffers, shared by every block of woods: when a block is taken off the table only its own buffers are
+//  freed, never these. Blocks that were only taken off and not freed filled the graphics card turn by turn until the table went blank)
+const KEEP_GPU = new WeakSet();
+function dropMesh(m) {
+  if (m.parent) m.parent.remove(m);
+  const g = m.geometry;
+  if (g) { for (const [n, at] of Object.entries(g.attributes)) if (KEEP_GPU.has(at)) g.deleteAttribute(n); if (g.index && KEEP_GPU.has(g.index)) g.setIndex(null); g.dispose(); }
+  if (m.isInstancedMesh && m.dispose) m.dispose();
+  if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => x.dispose());
+}
 function natureParts(file, v) { const k = file + '#' + v; if (!_natureParts.has(k)) _natureParts.set(k, natureParts0(file, v)); return _natureParts.get(k); }
 function natureParts0(file, v) {
   const g = MODELS[file]; if (!g) return null;
   const node = g.scene.getObjectByName(typeof v === 'string' ? v : 'v' + v) || g.scene.children[v] || g.scene; node.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(node.matrixWorld).invert(), parts = [];
-  node.traverse(o => { if (o.isMesh) { const geo = o.geometry.clone(); geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)); parts.push({ geo, name: o.material.name, map: o.material.map }); } });
+  node.traverse(o => { if (o.isMesh) { const geo = o.geometry.clone(); geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)); parts.push({ geo, name: o.material.name, map: o.material.map }); for (const at of Object.values(geo.attributes)) KEEP_GPU.add(at); if (geo.index) KEEP_GPU.add(geo.index); } });
   return parts;
 }
 function natureVariants(file) { const g = MODELS[file]; if (!g) return 0; let n = 0; while (g.scene.getObjectByName('v' + n)) n++; return Math.max(1, n); }
@@ -2482,7 +2515,7 @@ function colourTex(nCol, fac) {
   const c = document.createElement('canvas'); c.width = 64; c.height = 44; const g = c.getContext('2d');
   g.fillStyle = nCol; g.fillRect(0, 0, 64, 44); g.strokeStyle = fac; g.lineWidth = 7; g.beginPath(); g.moveTo(0, 0); g.lineTo(64, 44); g.moveTo(64, 0); g.lineTo(0, 44); g.stroke();
   g.strokeStyle = '#c9a24a'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, 61, 41);
-  return new THREE.CanvasTexture(c);
+  const t = new THREE.CanvasTexture(c); OWN_TEX.add(t); return t;
 }
 const flockTex = (() => {   // (a base's flocked top: grass, with a little earth and stones)
   const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#6e7a42'; g.fillRect(0, 0, 128, 128);
@@ -2512,6 +2545,16 @@ function animShader(mat, A) {
       else if (part > 4.5 && part < 5.5) ang = sin(ph * uGait) * 0.7 * uAmp;
       else if (part > 5.5) ang = -sin(ph * uGait) * 0.7 * uAmp;
       if (ang != 0.0) { vec3 q = transformed - pivot; float c = cos(ang), s = sin(ang); transformed = pivot + vec3(q.x, q.y * c - q.z * s, q.y * s + q.z * c); }`);
+  });
+}
+// (a piece taken off the table is freed from the graphics card: its own paints and colours, and a town's own model; the figures'
+//  models are shared by every regiment of the kind and kept)
+const OWN_TEX = new WeakSet();
+function dropPiece(p) {
+  scene.remove(p); const town = p.userData.kind === 'town';
+  p.traverse(o => {
+    if (o.geometry && (town || o.geometry.type === 'PlaneGeometry')) o.geometry.dispose();
+    if (o.material) for (const m of Array.isArray(o.material) ? o.material : [o.material]) { if (m.map && OWN_TEX.has(m.map)) m.map.dispose(); m.dispose(); }
   });
 }
 function makePiece(o, kind) {
@@ -2583,7 +2626,7 @@ function syncPieces(dt) {
     for (const c of cities) {
       if (!E(`tiles[${c.y * W.cols + c.x}].revealed.has(playerNation)`)) continue;
       seen.add(c); let p = pieces.get(c);
-      if (p && p.userData.key !== townKey(c)) { scene.remove(p); pieces.delete(c); p = null; }   // (grown, walled, taken, or snowed on: built anew)
+      if (p && p.userData.key !== townKey(c)) { dropPiece(p); pieces.delete(c); p = null; }   // (grown, walled, taken, or snowed on: built anew)
       if (!p) { p = makePiece(c, 'town'); if (!p) continue; pieces.set(c, p); const [x, z] = hexCentre(c.x, c.y); levelSite(x, z); p.position.set(x, groundAt(x, z), z); }
       p.userData.target = hexCentre(c.x, c.y);
     }
@@ -2625,7 +2668,7 @@ function syncPieces(dt) {
   for (const [o, p] of pieces) {
     const d = p.userData;
     d.alpha += ((d.gone ? 0 : 1) - d.alpha) * Math.min(1, dt * 6);
-    if (d.gone && d.alpha < 0.02) { scene.remove(p); pieces.delete(o); continue; }
+    if (d.gone && d.alpha < 0.02) { dropPiece(p); pieces.delete(o); continue; }
     setAlpha(p, d.alpha);
     let ox = 0, oz = 0;
     if (!d.pos) d.pos = [p.position.x, p.position.z];
@@ -2916,7 +2959,7 @@ function clickHex([x, y]) {
   }
   const c = E(`cities.find(c => c.x === ${x} && c.y === ${y})`);
   E('selectedUnit = null; moveMode = false; reachableTiles.clear();'); setReach(null);
-  if (c) { E(`showCityPanel(cities.find(c => c.x === ${x} && c.y === ${y}))`); return; }
+  if (c) { E(`showCityPanel(cities.find(c => c.x === ${x} && c.y === ${y}))`); snd('page'); return; }
   showUnitCard(null);
 }
 function orderHex([x, y]) {
@@ -2938,7 +2981,7 @@ async function endTurn() {
   for (let i = 0; i < 200 && E('animationBlocking || battleReplayActive'); i++) { await sleep(80); tidyGame(); }
   tidyGame(); await refreshSeason(); updateFog(); refreshHud();
   busy = false; $('endTurn').classList.remove('busy');
-  showToast(`${cap(E('currentSeason'))}, Anno Domini ${E('toRoman(getCurrentYear())')}`);
+  showToast(`${cap(E('currentSeason'))}, Anno Domini ${E('toRoman(getCurrentYear())')}`); snd('page');
 }
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : '';
 
@@ -2967,15 +3010,28 @@ let toastTimer = 0;
 function showToast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = '1'; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.opacity = '0', 2600); }
 let modalOpen = false;
 function showModal(title, text, choices, art) {
-  modalOpen = true;
+  modalOpen = true; snd(/war/i.test(title) ? 'drum' : 'letter', ...(/war/i.test(title) ? [1.6, true] : []));
   const card = $('modalCard');
   card.innerHTML = (art ? `<div class="art"></div>` : '<div style="height:6px"></div>') + `<h3></h3><p></p>`;
   if (art) card.querySelector('.art').style.backgroundImage = `url("${art}")`;
   card.querySelector('h3').textContent = title; card.querySelector('p').textContent = text;
-  for (const [label, fn] of choices) { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { $('modal').style.display = 'none'; modalOpen = false; try { fn(); } catch (e) {} setTimeout(() => { tidyGame(); refreshHud(); }, 200); }; card.appendChild(b); }
+  for (const [label, fn, note, off] of choices) { const b = document.createElement('button'); b.textContent = label; if (note) { const sm = document.createElement('small'); sm.textContent = note; b.appendChild(sm); } if (off) b.disabled = true; b.onclick = () => { $('modal').style.display = 'none'; modalOpen = false; try { fn(); } catch (e) {} setTimeout(() => { tidyGame(); refreshHud(); }, 200); }; card.appendChild(b); }
   $('modal').style.display = 'flex';
 }
-$('endTurn').addEventListener('click', () => { if (!busy && !modalOpen) endTurn(); });
+$('endTurn').addEventListener('click', () => { if (!busy && !modalOpen) { snd('click'); endTurn(); } else snd('deny'); });
+// (the table's own buttons tick when pressed and are brushed as the pointer finds them; the game's mirrored page makes its own clicks)
+addEventListener('click', e => { const t = e.composedPath()[0]; if (t.closest && t.closest('#gpanel, #endTurn')) return; if (t.closest && t.closest('button, a, .panel button')) snd('click'); }, true);
+let _hovB = null;
+addEventListener('pointerover', e => { const t = e.composedPath()[0], b = t.closest && t.closest('button, a, #endTurn, .p-btn, .btn'); if (b && b !== _hovB) snd('hover'); _hovB = b; }, true);
+// (the land's sounds: woods, a town's streets, the sea, the wind on the heights, from what lies about the middle of the view, the
+//  louder the closer you lean in)
+function boardAmbience() {
+  if (MUTED || !W || !G || !G.SMK || busy) return;
+  const CS = W.CS, CH = W.CH, col = Math.round((cam.tx - 0.5) / CS), row = Math.round((cam.tz - (col & 1) * CH / 2 - CH / 2) / CH);
+  const vt = Math.round(Math.max(20, Math.min(96, 96 - (cam.dist - 4) * 3.6)));
+  try { E(`(() => { const s = [camX, camY, VIEW_TILE]; let lv; try { VIEW_TILE = ${vt}; camX = ${col} - viewW / hexColStep() / 2; camY = ${row} - viewH / hexCellH() / 2; lv = ambientLevels(); } finally { camX = s[0]; camY = s[1]; VIEW_TILE = s[2]; } SMK.ambience(lv); })()`); } catch (e) {}
+}
+setInterval(boardAmbience, 1000);
 
 // the game's own pages, mirrored on the table: a regiment's page (its orders, a worker's improvements, a settler's founding) or a
 //  town's (what it builds, its queue, rushing); every button presses the game's own, so all its rules hold
@@ -3109,7 +3165,7 @@ setInterval(frame, 16);   // (by a timer as well as the screen, so the table sti
       for (const u of Object.values(U)) { const t = u.value; if (t && t.isTexture && t.image) ts.set(t, (t.image.width || 0) * (t.image.height || 0) * 4 * (t.image.depth || 1)); }
       console.log('census geo MB', Math.round([...gs.values()].reduce((a, b) => a + b, 0) / 1e6), 'n', gs.size, 'tex MB', Math.round([...ts.values()].reduce((a, b) => a + b, 0) / 1e6), JSON.stringify(Object.entries(byKind).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => k + '=' + Math.round(v / 1e6)))); };
     if (qs.has('stages')) { const of = frame; }
-    stg('boot'); await sheetSettled(); stg('sheet'); buildWorld(); stg('world'); buildGround(E('currentSeason')); stg('ground'); if (!qs.has('notrees')) buildTrees(); stg('trees'); census(); chartKey = E('OW.key');
+    stg('boot'); await sheetSettled(); stg('sheet'); buildWorld(); stg('world'); buildGround(E('currentSeason')); stg('ground'); if (!qs.has('notrees')) buildTrees(); stg('trees'); census(); chartKey = E('OW.key'); dressed = dressKey();
     const capC = E('cities.find(c => c.nationId === playerNation)');
     if (capC) { lookAtHex(capC.x, capC.y, 30); cam.tx = cam.want.tx; cam.tz = cam.want.tz; cam.dist = 30; cam.want.dist = 9; }   // (leaning in over the table at the start)
     refreshHud(); gpInit();
