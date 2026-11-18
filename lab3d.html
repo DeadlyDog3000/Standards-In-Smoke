@@ -39,6 +39,9 @@
   #unitCard .hint { color: #a8956c; font-size: 12px; font-style: italic; margin-top: 8px; }
   /* (the hover note: a small slip of paper by the cursor, naming the ground under it; it waits a moment and fades in, so it does
      not flicker as the mouse crosses the board) */
+  #music { position: fixed; left: 14px; top: 46px; padding: 4px 12px; font-size: 12.5px; color: #d8c8a0; cursor: pointer; z-index: 4; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none; }
+  #music b { color: var(--gilt2); font-weight: normal; font-family: 'Uncial Antiqua', serif; margin-right: 7px; } #music i { color: #b8a680; } #music.off i { display: none; } #music.off b { opacity: 0.55; }
+  @media (max-width: 760px) { #music { display: none !important; } }
   #backChart { position: fixed; left: 14px; top: 10px; padding: 5px 14px; font-family: 'Uncial Antiqua', serif; font-size: 14px; color: var(--gilt2); text-decoration: none; z-index: 4; }
   @media (max-width: 760px) { #backChart { top: auto; bottom: 10px; left: auto; right: 150px; } }
   #tip { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; padding: 5px 10px 6px; max-width: 240px; font-size: 13px; line-height: 1.3; color: #3a2a16;
@@ -76,6 +79,13 @@
     .tl { font-size: 12px; }
   }
   #card0 { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #e0c880; text-align: center; font-size: 22px; font-family: 'Uncial Antiqua', serif; }
+  #card0 .ch { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; min-width: min(420px, 86vw); font-family: 'EB Garamond', serif; }
+  #card0 .ch button { font: inherit; font-size: 16px; text-align: left; padding: 9px 14px; color: #f3e6c8; cursor: pointer; background: rgba(40, 30, 18, 0.85); border: 1px solid rgba(201, 162, 74, 0.55); border-radius: 2px; }
+  #card0 .ch button:hover { background: rgba(80, 62, 36, 0.9); border-color: var(--gilt2); }
+  #card0 .ch button small { display: block; margin: 2px 0 0; font-size: 12.5px; color: #c9b48a; }
+  #card0 .ch .row { display: flex; gap: 8px; } #card0 .ch .row button { flex: 1; text-align: center; }
+  #card0 .ch select { font: inherit; font-size: 15px; padding: 6px 10px; color: #f3e6c8; background: rgba(40, 30, 18, 0.9); border: 1px solid rgba(201, 162, 74, 0.55); border-radius: 2px; }
+  #card0 .ch .lbl { color: #c8b890; font-size: 13px; font-style: italic; margin-top: 6px; }
   #card0 small { display: block; color: #c8b890; font-size: 14px; margin-top: 8px; font-style: italic; font-family: 'EB Garamond', serif; }
 </style>
 </head>
@@ -87,6 +97,7 @@
 <div id="toast" class="panel"></div>
 <div id="tip"></div>
 <a id="backChart" class="panel" href="index.html" title="Back to the game's own chart and menu">The Chart</a>
+<div id="music" class="panel" title="The music: click to have it play or be still"><b>Music</b><i id="musicName"></i></div>
 <div id="unitCard" class="panel"></div>
 <div id="gpanel" class="panel"></div>
 <div id="endTurn" class="panel" style="display:none"><div class="t1">End Turn</div><div class="t2" id="etN">1</div><div class="t3" id="etO"></div></div>
@@ -99,7 +110,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 'use strict';
-const qs = new URLSearchParams(location.search), EUROPE = qs.has('europe'), WORLD = qs.has('earth');
+const qs = new URLSearchParams(location.search); let EUROPE = qs.has('europe'), WORLD = qs.has('earth'), LOADSLOT = /^[a-z0-9_]+$/.test(qs.get('load') || '') ? qs.get('load') : null, SAVESLOT = LOADSLOT === 'auto' ? 'auto' : 'board', CROWN = null;
 (() => {   // (the paper's grain, made once: a mottle, fine fibres, and foxing here and there)
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); const id = g.createImageData(256, 256);
   let sd = 77; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -118,13 +129,47 @@ $('game').src = 'index.html' + (MUTED ? '?mute' : '');
 let labAC = null;
 const labAudio = () => { if (!labAC) { const AC = window.AudioContext || window.webkitAudioContext; labAC = new AC(); } return labAC; };
 for (const t of ['pointerdown', 'keydown']) addEventListener(t, () => { if (labAC && labAC.state === 'suspended') labAC.resume(); }, true);
+const labMusic = new Audio(); labMusic.preload = 'auto';
+function musicLevel() { try { labMusic.volume = Math.max(0, Math.min(1, (E('bgMusic')._baseVol ?? 0.35) * (E('SOUND_VOL.music') ?? 1))); } catch (e) {} }
+setInterval(musicLevel, 120);   // (follows the game's fades and its Music slider)
+function showMusic() {
+  if (!G) return; const on = E('musicEnabled'); $('music').classList.toggle('off', !on); $('music').style.display = 'block';
+  let nm = ''; try { nm = E(`musicName(MUSIC_TRACKS[musicTrackIndex])`) || ''; } catch (e) {} $('musicName').textContent = on ? nm : 'is still';
+}
+// (the music starts with the first click on the table, as a browser asks)
+addEventListener('pointerdown', function first() { if (MUTED || !G || !window.LAB) return; removeEventListener('pointerdown', first, true); try { E('musicStarted = true; if (musicEnabled && bgMusic.paused) playNextTrack()'); } catch (e) {} }, true);
 const snd = (name, ...a) => { try { if (!MUTED && G && G.SMK && G.SMK[name]) G.SMK[name](...a); } catch (e) {} };
 let G = null, E = null;   // (the hidden game's window, and a way to read its world)
 
 // ===========================================================================================================================
 // the game, hidden: started on the chosen map; its chart drawn without the flat symbols for the hills, peaks and woods, which
 //  the table raises in relief and stands up as trees instead
+// (what to lay on the table: the table's own game carried on, your campaign brought over from the chart, or a new world)
+function chooseStart() {
+  if (EUROPE || WORLD || LOADSLOT || qs.has('seed') || qs.has('new')) return Promise.resolve();
+  const meta = k => { try { return JSON.parse(localStorage.getItem('sis_meta_' + k) || 'null'); } catch (e) { return null; } };
+  const has = k => { try { return !!localStorage.getItem('sis_save_' + k); } catch (e) { return false; } };
+  const desc = m => m ? [m.nation, m.turn ? 'turn ' + m.turn : '', m.year || ''].filter(Boolean).join(', ') : '';
+  const card = $('card0'); card.innerHTML = 'The Table<small>Lay a world out on it</small><div class="ch"></div>';
+  const ch = card.querySelector('.ch');
+  return new Promise(done => {
+    const add = (parent, label, note, fn) => { const b = document.createElement('button'); b.textContent = label; if (note) { const sm = document.createElement('small'); sm.textContent = note; b.appendChild(sm); } b.onclick = () => { fn(); card.innerHTML = 'The chartmaker is setting up the table<small>(the world is being drawn first)</small>'; done(); }; parent.appendChild(b); };
+    if (has('board')) add(ch, 'Carry on the table\'s game', desc(meta('board')), () => { LOADSLOT = 'board'; SAVESLOT = 'board'; });
+    if (has('auto')) add(ch, 'Bring your campaign to the table', desc(meta('auto')) + ' (it is saved as you play, as on the chart)', () => { LOADSLOT = 'auto'; SAVESLOT = 'auto'; });
+    const l = document.createElement('div'); l.className = 'lbl'; l.textContent = 'or a new world, as the crown of'; ch.appendChild(l);
+    // (the crowns the game offers, read from it once its page is up)
+    const sel = document.createElement('select'); sel.id = 'crownPick'; ch.appendChild(sel);
+    const fill = () => { let names = ['Great Britain', 'France', 'Spain', 'Prussia', 'Austria', 'Russia', 'Sweden', 'Netherlands', 'Ottoman Empire'];
+      try { const w = $('game').contentWindow; if (w && w.PRESET_NATIONS) names = w.eval('PRESET_NATIONS.map(n => n.name)'); } catch (e) {}
+      sel.innerHTML = ''; for (const n of names) { const o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o); } };
+    fill(); $('game').addEventListener('load', fill, { once: true }); setTimeout(fill, 1500);
+    const row = document.createElement('div'); row.className = 'row'; ch.appendChild(row);
+    const crown = () => { CROWN = sel.value; };
+    add(row, 'Random lands', '', crown); add(row, 'Europe, 1740', '', () => { crown(); EUROPE = true; }); add(row, 'The Earth', '(slow to lay out)', () => { crown(); WORLD = true; });
+  });
+}
 async function bootGame() {
+  await chooseStart();
   const fr = $('game');
   // (the game's page may have finished loading before this runs: then its load has already been and gone)
   const ready = () => { try { return fr.contentWindow.document.readyState === 'complete' && fr.contentWindow.location.href !== 'about:blank' && typeof fr.contentWindow.startGame === 'function'; } catch (e) { return false; } };
@@ -132,12 +177,24 @@ async function bootGame() {
   G = fr.contentWindow; E = (x) => G.eval(x);
   if (!MUTED) {
     G.AudioContext = G.webkitAudioContext = function () { return labAudio(); };
-    G.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };   // (no music under the table)
+    G.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };   // (nothing plays in the hidden page itself...)
+    // (...but the game's music, which it still chooses to fit the moment, is played here on the table's own page)
+    const bm = E('bgMusic'); bm.preload = 'none';
+    bm.play = function () { const src = new URL(this.getAttribute('src') || '', G.location.href).href; if (labMusic.src !== src) labMusic.src = src; musicLevel(); return labMusic.play().catch(() => {}); };
+    bm.pause = function () { labMusic.pause(); };
+    Object.defineProperty(bm, 'paused', { configurable: true, get: () => labMusic.paused });
+    labMusic.addEventListener('ended', () => bm.dispatchEvent(new G.Event('ended')));
+    labMusic.addEventListener('error', () => bm.dispatchEvent(new G.Event('error')));
+    labMusic.addEventListener('play', showMusic);
     G.updateAmbientBirds = () => {};   // (the land's sounds follow the table's view, not the hidden chart's: boardAmbience)
   }
   // (?seed=N: the same world every time, for comparing one look against another)
   if (qs.has('seed')) { let a = (+qs.get('seed') || 1) >>> 0; G.Math.random = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   G.requestAnimationFrame = cb => G.setTimeout(() => cb(G.performance.now()), 16);   // (the frame sits off the page, where a browser may starve its animation frames)
+  // (the game's own settings, which starting it here would change for the chart as well, are put back once it has started)
+  const keep = ['sis_device_mode', 'sis_update_log_seen', 'sis_tutorial_done'].map(k => [k, G.localStorage.getItem(k)]);
+  // (and its saves go to the table's own slot, never over the chart's autosave, unless it is your campaign brought over)
+  { const sv = G.saveGame; G.saveGame = function (slot) { return sv.call(this, !slot || slot === 'auto' ? SAVESLOT : slot); }; }
   G.localStorage.setItem('sis_tutorial_done', 'true');
   try { G.localStorage.setItem('sis_update_log_seen', E('CURRENT_VERSION')); } catch (e) {}
   // (no symbols drawn on the ground at all: the chart's own sheet keeps only its colour, the land and sea and snow and ice;
@@ -152,8 +209,11 @@ async function bootGame() {
   const afx = G.attackFx; G.attackFx = function (...a) { try { noteFight(...a); } catch (e) {} return afx.apply(this, a); };
   const toast = G.showToast; G.showToast = function (msg, noLog) { toast.call(this, msg, noLog); showToast(E('ofTheDay')(msg)); };
   E(`pickDevice('desktop'); mapStyle = ${EUROPE ? "'europe'" : WORLD ? "'earth'" : "'random'"}; scenario = ${EUROPE ? "'1740'" : 'null'}; startYear = 1680;`);
-  E(`startGame(${EUROPE ? '120, 80' : WORLD ? '249, 96' : '80, 52'}, 'Testland', '#3366cc', ${WORLD ? 8 : 4})`);
+  if (LOADSLOT) { E(`loadGame('${LOADSLOT}')`); WORLD = E('mapStyle') === 'earth'; EUROPE = E('mapStyle') === 'europe'; }
+  else { const nm = CROWN || 'Testland', col = CROWN ? E(`(PRESET_NATIONS.find(n => n.name === ${JSON.stringify(CROWN)}) || {}).color || '#3366cc'`) : '#3366cc';
+    E(`startGame(${EUROPE ? '120, 80' : WORLD ? '315, 122' : '80, 52'}, ${JSON.stringify(nm)}, ${JSON.stringify(col)}, ${WORLD ? 8 : 4})`); }
   await sleep(900);
+  for (const [k, v] of keep) { try { if (v === null) G.localStorage.removeItem(k); else G.localStorage.setItem(k, v); } catch (e) {} }
   E('VIEW_TILE = 32; render();');
   for (let i = 0; i < 400; i++) { if (E('!!(OW.canvas && OW.F && !OW.job)')) break; E('render()'); await sleep(100); }
   await sleep(200);
@@ -402,6 +462,55 @@ function levelSite(cx, cz, r0 = 0.62, r1 = 0.98) {
     nor[k * 3] = -gx / L; nor[k * 3 + 1] = 1 / L; nor[k * 3 + 2] = -gz / L; }
   P.needsUpdate = true; Nn.needsUpdate = true;
 }
+// the table's ground in blocks, each drawn finer the nearer the eye: all share the one set of points, and each block keeps its edge
+//  at full fineness, stitched to its coarser middle, so blocks drawn at different finenesses meet without a crack. (The ground drawn
+//  whole at full fineness was millions of faces on the larger maps: Europe's was more than the graphics card would bear.) A coarse
+//  copy of the whole, not drawn, is what a click is found on
+const terrainLod = [];
+function terrainBlocks(geo, nx, nz) {
+  const B = 128, STEPS = [1, 2, 4, 8], I = (i, j) => j * (nx + 1) + i, pos = geo.attributes.position.array;
+  const mk = (idx, sphere) => { const g = new THREE.BufferGeometry(); for (const n of ['position', 'normal', 'uv']) g.setAttribute(n, geo.attributes[n]); g.setIndex(new THREE.BufferAttribute(idx.length > 65535 * 3 || (nx + 1) * (nz + 1) > 65535 ? new Uint32Array(idx) : new Uint16Array(idx), 1)); if (sphere) g.boundingSphere = sphere; return g; };
+  for (let j0 = 0; j0 < nz; j0 += B) for (let i0 = 0; i0 < nx; i0 += B) {
+    const i1 = Math.min(nx, i0 + B), j1 = Math.min(nz, j0 + B);
+    let ylo = 1e9, yhi = -1e9; for (let j = j0; j <= j1; j += 4) for (let i = i0; i <= i1; i += 4) { const y = pos[I(i, j) * 3 + 1]; if (y < ylo) ylo = y; if (y > yhi) yhi = y; }
+    const cx = (i0 + i1) / 2 / nx * W.w, cz = (j0 + j1) / 2 / nz * W.d, hx = (i1 - i0) / 2 / nx * W.w, hz = (j1 - j0) / 2 / nz * W.d;
+    const sphere = new THREE.Sphere(new THREE.Vector3(cx, (ylo + yhi) / 2, cz), Math.hypot(hx, hz, (yhi - ylo) / 2) + 0.3);
+    const meshes = [];
+    for (const s of STEPS) {
+      if (s > 1 && (i1 - i0 < 4 * s || j1 - j0 < 4 * s)) { meshes.push(meshes[meshes.length - 1]); continue; }
+      const idx = [], tri = (a, b, c) => { const cr = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]); if (!cr) return; if (cr < 0) idx.push(I(...a), I(...b), I(...c)); else idx.push(I(...a), I(...c), I(...b)); };
+      if (s === 1) { for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) { tri([i, j], [i, j + 1], [i + 1, j]); tri([i + 1, j], [i, j + 1], [i + 1, j + 1]); } }
+      else {
+        const line = (a, b) => { const o = []; for (let v = a; v < b; v += s) o.push(v); o.push(b); return o; };
+        const xs = line(i0 + s, i1 - s), ys = line(j0 + s, j1 - s);
+        for (let q = 0; q < ys.length - 1; q++) for (let r = 0; r < xs.length - 1; r++) { const a = [xs[r], ys[q]], b = [xs[r + 1], ys[q]], c = [xs[r], ys[q + 1]], d = [xs[r + 1], ys[q + 1]]; tri(a, c, b); tri(b, c, d); }
+        // (the ring between the block's full-fineness edge and its coarser middle, zipped together side by side)
+        const zip = (A, Bv, ax) => { let ia = 0, ib = 0; while (ia < A.length - 1 || ib < Bv.length - 1) {
+          if (ib === Bv.length - 1 || (ia < A.length - 1 && A[ia + 1][ax] <= Bv[ib + 1][ax])) { tri(A[ia], A[ia + 1], Bv[ib]); ia++; } else { tri(A[ia], Bv[ib], Bv[ib + 1]); ib++; } } };
+        const rng = (a, b) => { const o = []; for (let v = a; v <= b; v++) o.push(v); return o; };
+        zip(rng(i0, i1).map(i => [i, j0]), xs.map(x => [x, ys[0]]), 0);
+        zip(rng(i0, i1).map(i => [i, j1]), xs.map(x => [x, ys[ys.length - 1]]), 0);
+        zip(rng(j0, j1).map(j => [i0, j]), ys.map(y => [xs[0], y]), 1);
+        zip(rng(j0, j1).map(j => [i1, j]), ys.map(y => [xs[xs.length - 1], y]), 1);
+      }
+      const m = new THREE.Mesh(mk(idx, sphere), terrainMat); m.name = 'terrain'; m.visible = s === 8; scene.add(m); meshes.push(m);
+    }
+    terrainLod.push({ c: new THREE.Vector3(cx, (ylo + yhi) / 2, cz), hx, hz, meshes, cur: 3 });
+  }
+  // (the coarse copy a click is found on)
+  const pidx = [], S = 4; for (let j = 0; j < nz; j += S) for (let i = 0; i < nx; i += S) { const i2 = Math.min(nx, i + S), j2 = Math.min(nz, j + S); pidx.push(I(i, j), I(i, j2), I(i2, j), I(i2, j), I(i, j2), I(i2, j2)); }
+  W.terrain = new THREE.Mesh(mk(pidx, null), terrainMat); W.terrain.geometry.computeBoundingSphere();
+}
+// (each block's fineness by how far it lies from the eye)
+function fitTerrain() {
+  const e = camera.position, K = Math.max(0.6, lodK);
+  for (const b of terrainLod) {
+    const dx = Math.max(0, Math.abs(e.x - b.c.x) - b.hx), dz = Math.max(0, Math.abs(e.z - b.c.z) - b.hz), d = Math.hypot(dx, dz, e.y - b.c.y);
+    const want = d < 7 * K ? 0 : d < 14 * K ? 1 : d < 28 * K ? 2 : 3;
+    if (want !== b.cur) { b.meshes[b.cur].visible = false; b.cur = want; }
+    b.meshes[b.cur].visible = true;
+  }
+}
 function hexCentre(x, y) { const { CS, CH } = W; return [x * CS + 0.5, y * CH + (x & 1) * CH / 2 + CH / 2]; }
 function hexAt(wx, wz) {
   const { CS, CH, cols, rows } = W; const c0 = Math.round((wx - 0.5) / CS); let best = null, bd = 1e9;
@@ -587,7 +696,9 @@ const riverMat = new THREE.ShaderMaterial({
   side: THREE.DoubleSide, transparent: true,
   uniforms: { relief: U.relief, time: U.time, known: U.known, dim: U.dim, ice0: { value: 0 }, iceLat: { value: new THREE.Vector3(0, 0, 0) }, ww: { value: 1 }, wd: { value: 1 } },
   vertexShader: `uniform float relief; uniform float ww; uniform float wd; attribute vec2 rv; attribute float fa; varying vec2 vR; varying vec2 vUv; varying float vFa;
-    void main() { vFa = fa; vec3 p = position; p.y = p.y * relief + 0.0015; vR = rv; vUv = vec2(p.x / ww, 1.0 - p.z / wd); gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
+    // (further off the ground is drawn coarser (terrainBlocks) and smooths over the river's narrow channel: the water is raised a
+    //  little with the distance, which from that far cannot be seen, so it still shows above the coarser ground)
+    void main() { vFa = fa; vec3 p = position; float ed = distance(cameraPosition, p); p.y = p.y * relief + 0.0015 + smoothstep(2.5, 8.0, ed) * (0.026 + 0.0025 * ed) * max(relief, 0.2); vR = rv; vUv = vec2(p.x / ww, 1.0 - p.z / wd); gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
   fragmentShader: `uniform float time; uniform float ice0; uniform vec3 iceLat; uniform sampler2D known; uniform sampler2D dim; varying vec2 vR; varying vec2 vUv; varying float vFa;
     void main() {
       // (on the map of the Earth only the rivers of the north freeze: those of the tropics and the warm south run all winter)
@@ -677,8 +788,8 @@ function buildWorld() {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(new THREE.BufferAttribute(idx, 1));
   geo.computeVertexNormals();
-  const terrain = new THREE.Mesh(geo, terrainMat); terrain.name = 'terrain'; scene.add(terrain); W.terrain = terrain;
   W.nx = nx; W.nz = nz;
+  terrainBlocks(geo, nx, nz);
   // (every town's ground levelled before the trees and stones are set on it)
   try { for (const c of E('cities')) levelSite(...hexCentre(c.x, c.y)); } catch (e) { console.warn('level', e); }
   try { buildRivers(); } catch (e) { console.warn('rivers', e); }
@@ -690,14 +801,38 @@ function buildWorld() {
 }
 // the fog: the game's own masks of the known and the watched land, laid over the sheet (redrawn after each move and turn)
 function updateFog() {
+  // (made here from the game's own record of what is known and watched, hex by hex, rather than copied from the masks its chart
+  //  draws: a copy taken while the chart was redrawing them came out blank, and the whole land went to vellum)
   E('visionDirty = true; render();');
-  const m = E('OW.masks'); if (!m) return;
-  for (const [key, cv] of [['known', m.knownM ? m.knownM[1] || m.known : m.known], ['dim', m.dimM ? m.dimM[1] || m.dim : m.dim]]) {
-    const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; c.getContext('2d').drawImage(cv, 0, 0);
-    if (U[key].value) U[key].value.dispose();
-    const t = new THREE.CanvasTexture(c); U[key].value = t;
+  const st = E(`(() => { const p = playerNation, v = dimUnseen ? currentVisionSet : null; let o = ''; for (let i = 0; i < tiles.length; i++) { const t = tiles[i]; o += !t.revealed || !t.revealed.has(p) ? '0' : v && !v.has(i) ? '1' : '2'; } return o; })()`);
+  if (!st || !W) return;
+  const N = Math.min(2048, W.cols * 3), NH = Math.max(1, Math.round(N * W.d / W.w));
+  const kc = fogCanvas.known.width === N && fogCanvas.known.height === NH ? fogCanvas.known : (fogCanvas.known = Object.assign(document.createElement('canvas'), { width: N, height: NH }));
+  const dc = fogCanvas.dim.width === N && fogCanvas.dim.height === NH ? fogCanvas.dim : (fogCanvas.dim = Object.assign(document.createElement('canvas'), { width: N, height: NH }));
+  const kI = new ImageData(N, NH), dI = new ImageData(N, NH), kd = kI.data, dd = dI.data;
+  for (let v = 0; v < NH; v++) { const z = (v + 0.5) / NH * W.d;
+    for (let u = 0; u < N; u++) { const h = hexAt((u + 0.5) / N * W.w, z); if (!h) continue; const c = st.charCodeAt(h[1] * W.cols + h[0]) - 48; if (!c) continue;
+      const o = (v * N + u) * 4; kd[o + 3] = 255; if (c === 1) { dd[o] = 104; dd[o + 1] = 94; dd[o + 2] = 80; dd[o + 3] = 112; } } }
+  // (softened at the edge, once, on a sheet this small: the chart's own border is a soft one)
+  const tmp = fogCanvas.tmp && fogCanvas.tmp.width === N && fogCanvas.tmp.height === NH ? fogCanvas.tmp : (fogCanvas.tmp = Object.assign(document.createElement('canvas'), { width: N, height: NH }));
+  for (const [cv, img] of [[kc, kI], [dc, dI]]) { tmp.getContext('2d', { willReadFrequently: true }).putImageData(img, 0, 0); const g = cv.getContext('2d', { willReadFrequently: true }); /* (kept in memory, not on the graphics card, where a reset of the card would blank them) */ g.clearRect(0, 0, N, NH); g.filter = 'blur(1.2px)'; g.drawImage(tmp, 0, 0); g.filter = 'none'; }
+  for (const [key, cv] of [['known', kc], ['dim', dc]]) {
+    const t = U[key].value;
+    if (t && t.image === cv) { t.needsUpdate = true; continue; }
+    if (t) t.dispose();
+    const nt = new THREE.CanvasTexture(cv); nt.minFilter = THREE.LinearFilter; nt.generateMipmaps = false; U[key].value = nt;
   }
 }
+const fogCanvas = { known: { width: 0 }, dim: { width: 0 } };
+// (should the graphics card be reset, the browser gives the table back its context, but the sheets it was drawing from may come
+//  back blank: everything the table paints for itself is laid again)
+renderer.domElement.addEventListener('webglcontextrestored', () => setTimeout(() => {
+  if (!W || !G) return;
+  try { chartKey = ''; dressed = dressKey(); refreshSeason(); } catch (e) {}
+  try { buildGround(E('currentSeason')); } catch (e) {}
+  try { paintGroundMarks(); } catch (e) {}
+  try { updateFog(); } catch (e) {}
+}, 200));
 
 // ===========================================================================================================================
 // the woods stood up where the chart drew them, as a wargamer's model trees: broadleaves of rounded leafy clumps and firs of
@@ -724,6 +859,9 @@ function seasonAt(z, season) {
   if (!W || W.style !== 'earth') return season;
   const lat = W.lat0 - z / W.d * W.latH; return Math.abs(lat) < 24 ? 'summer' : season;
 }
+// (a stand-in's leaves: the leaf colour as the modelled crowns show it, in their own shade and texture, darker and a little greyer
+//  than the bare paint; untextured, the paint alone came out a bright yellow-green beside the modelled woods)
+function farLeaf(c, sh) { const col = new THREE.Color(c), hsl = {}; col.getHSL(hsl); col.setHSL(hsl.h, hsl.s * 0.72, hsl.l * 0.6); return col.multiplyScalar(sh).getHex(); }
 function farTreeKit(kind, season) {
   const parts = natureParts(...setOf(kind)[0]), box = new THREE.Box3();
   for (const pt of parts || []) { pt.geo.computeBoundingBox(); box.union(pt.geo.boundingBox); }
@@ -735,14 +873,14 @@ function farTreeKit(kind, season) {
     k.add(blob(Rr * 0.5), new THREE.Color(P.leaves.c.summer).multiplyScalar(0.85).getHex(), M(0, H * 0.86, 0, 0, 0, 0, 1, 0.35, 1), 0);
   } else if (kind === 'fir') {
     k.add(Gm.cyl(H * 0.03, H * 0.045, H * 0.25, 5), bark, M(0, H * 0.12, 0), 0);
-    for (let i = 0; i < 3; i++) { const t = i / 3, r = Rr * (0.95 - t * 0.55), h = H * (0.42 - t * 0.08); k.add(new THREE.ConeGeometry(r, h, 7, 1), new THREE.Color(leaf).multiplyScalar(0.92 + i * 0.06).getHex(), M(0, H * (0.3 + t * 0.42) + h / 2 - h * 0.25, 0), 0); }
+    for (let i = 0; i < 3; i++) { const t = i / 3, r = Rr * (0.95 - t * 0.55), h = H * (0.42 - t * 0.08); k.add(new THREE.ConeGeometry(r, h, 7, 1), farLeaf(leaf, 0.92 + i * 0.06), M(0, H * (0.3 + t * 0.42) + h / 2 - h * 0.25, 0), 0); }
   } else {
     k.add(Gm.cyl(H * 0.04, H * 0.06, H * 0.5, 5), bark, M(0, H * 0.25, 0), 0);
     // (bare in winter: from afar a leafless crown is a grey-brown haze of twigs about its limbs)
     if (leaf === null) for (const [x, y, z, r, sh] of [[0, 0.7, 0, 0.55, 1], [Rr * 0.35, 0.62, Rr * 0.1, 0.42, 0.92], [-Rr * 0.3, 0.64, -Rr * 0.16, 0.44, 0.96]])
       k.add(blob(Rr * r), new THREE.Color(0x6a6052).multiplyScalar(sh).getHex(), M(x, H * y, z), 0);
     else for (const [x, y, z, r, sh] of [[0, 0.68, 0, 0.62, 1], [Rr * 0.35, 0.58, Rr * 0.12, 0.5, 0.9], [-Rr * 0.3, 0.6, -Rr * 0.18, 0.52, 0.95], [Rr * 0.05, 0.84, -Rr * 0.05, 0.42, 1.08]])
-      k.add(blob(Rr * r), new THREE.Color(leaf).multiplyScalar(sh).getHex(), M(x, H * y, z), 0);
+      k.add(blob(Rr * r), farLeaf(leaf, sh), M(x, H * y, z), 0);
   }
   return k.build().body;
 }
@@ -861,9 +999,10 @@ function scatterKit(kind, season, v) {
     if (winter) k.add(blob(0.3, 1), 0xeef1f4, M(0, 0.28, 0, 0, 0, 0, 1.15, 0.3, 0.9), 0);
     else k.add(blob(0.14, 1), 0x5e6a3a, M(-0.18, 0.18, -0.08, 0, 0, 0, 1.2, 0.35, 1), 0);   // (a patch of moss)
   } else if (kind === 'tuft' || kind === 'flowers') {
-    const g = winter ? 0xb8ae88 : autumn ? 0xa8904a : spring ? 0x6a8a3a : 0x7a8a40;
-    for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, t = 0.25 + rnd() * 0.35; const b = Gm.cone(0.025, 0.5 + rnd() * 0.3, 4); b.translate(0, 0.25, 0); k.add(b, g, M(Math.cos(a) * 0.08, 0, Math.sin(a) * 0.08, Math.sin(a) * t, 0, Math.cos(a) * t), 0.012); }
-    if (kind === 'flowers' && !winter) {
+    // (a clump of blades fanned out low; in autumn olive and straw, never upright brown spikes, which read as dead sticks)
+    const g = winter ? 0xb8ae88 : autumn ? 0x84843e : spring ? 0x6a8a3a : 0x7a8a40;
+    for (let i = 0; i < 11; i++) { const a = rnd() * 6.28, t = 0.45 + rnd() * 0.4; const b = Gm.cone(0.03, 0.34 + rnd() * 0.22, 4); b.translate(0, 0.17, 0); k.add(b, g, M(Math.cos(a) * 0.08, 0, Math.sin(a) * 0.08, Math.sin(a) * t, 0, Math.cos(a) * t), 0.012); }
+    if (kind === 'flowers' && !winter && !autumn) {   // (no flowers in autumn: their dead heads were brown knobs on sticks)
       const cols = autumn ? [0x6a4a2a, 0x7a5a32] : [[0xc23a2a, 0xd8b03a], [0xe8e2d0, 0xd8b03a], [0x5a62b0, 0xe8e2d0]][v % 3];
       for (let i = 0; i < 6; i++) { const a = rnd() * 6.28, r = 0.1 + rnd() * 0.18, h = 0.4 + rnd() * 0.25; k.add(Gm.cyl(0.008, 0.008, h, 5), 0x5a7a32, M(Math.cos(a) * r, h / 2, Math.sin(a) * r), 0.004); k.add(Gm.ball(0.055, 8), cols[i % 2], M(Math.cos(a) * r, h + 0.02, Math.sin(a) * r, 0, 0, 0, 1, 0.6, 1), 0.008); }
     }
@@ -1068,14 +1207,16 @@ function buildTrees() {
     // (and further off, the same trees as simple painted masses: a few dozen faces each rather than thousands. The whole wood
     //  of the map of the Earth modelled leaf by leaf was more than a graphics card could draw in one frame)
     const fc = new Map();
-    for (const kind of ['oak', 'fir', 'palm']) for (const t of spots[kind]) { const k = kind + '|' + seasonAt(t[1], season) + ':' + Math.floor(t[0] / CH) + ',' + Math.floor(t[1] / CH); if (!fc.has(k)) fc.set(k, []); fc.get(k).push(t); }
+    const CHF = 6;   // (in the same blocks as the modelled trees, each thinned with distance (cullBlocks) from a list in no order, so any share of it is spread evenly)
+    for (const kind of ['oak', 'fir', 'palm']) for (const t of spots[kind]) { const k = kind + '|' + seasonAt(t[1], season) + ':' + Math.floor(t[0] / CHF) + ',' + Math.floor(t[1] / CHF); if (!fc.has(k)) fc.set(k, []); fc.get(k).push(t); }
+    for (const list of fc.values()) for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
     const fk = {}, fmat = treeShader(paintMat());
     for (const [key, list] of fc) {
-      const ks = key.split(':')[0], kind = ks.split('|')[0], kit = fk[ks] || (fk[ks] = farTreeKit(kind, ks.split('|')[1])), [cx, cz] = key.split(':')[1].split(',').map(n => (+n + 0.5) * CH), iMap = new Float32Array(list.length * 2);
+      const ks = key.split(':')[0], kind = ks.split('|')[0], kit = fk[ks] || (fk[ks] = farTreeKit(kind, ks.split('|')[1])), [cx, cz] = key.split(':')[1].split(',').map(n => (+n + 0.5) * CHF), iMap = new Float32Array(list.length * 2);
       const im = new THREE.InstancedMesh(kit, fmat, list.length);
       list.forEach(([x, z, sc, , yaw], i) => { m4.compose(pos.set(x, groundAt(x, z) / Math.max(0.001, U.relief.value), z), q.setFromAxisAngle(up, yaw), scl.set(sc, sc * (0.92 + (i % 5) * 0.04), sc)); im.setMatrixAt(i, m4); iMap[i * 2] = x / W.w; iMap[i * 2 + 1] = 1 - z / W.d; });
       const g = new THREE.BufferGeometry(); for (const [n, at] of Object.entries(kit.attributes)) g.setAttribute(n, at); g.setAttribute('iMap', new THREE.InstancedBufferAttribute(iMap, 2)); im.geometry = g;
-      im.frustumCulled = false; im.userData.cull = new THREE.Sphere(new THREE.Vector3(cx, 0.3, cz), CH * 0.75); im.userData.far = true; scene.add(im); treeMeshes.push(im);
+      im.frustumCulled = false; im.userData.cull = new THREE.Sphere(new THREE.Vector3(cx, 0.3, cz), CHF * 0.75); im.userData.far = true; im.userData.n = list.length; scene.add(im); treeMeshes.push(im);
     }
   } else
   for (const kind of ['oak', 'fir']) for (const t of spots[kind]) { const key = kind + t[3] + ':' + Math.floor(t[0] / CH) + ',' + Math.floor(t[1] / CH); if (!chunks.has(key)) chunks.set(key, []); chunks.get(key).push(t); }
@@ -1159,7 +1300,7 @@ function engrave(mat) {
   });
 }
 // (the surfaces of built things, Poly Haven CC0: roof tiles, plaster, brick, rough timber, cobbles; under the painted colour)
-const KTEX = ['clay_roof_tiles_02', 'clay_plaster', 'castle_brick_01', 'rough_wood', 'cobblestone_floor_01', 'bark_brown_02', 'rock_face_03'], KTEX_DENS = [16, 9, 14, 7, 10, 5, 7];
+const KTEX = ['clay_roof_tiles_02', 'clay_plaster', 'castle_brick_01', 'rough_wood', 'cobblestone_floor_01', 'bark_brown_02', 'rock_face_03', 'brown_mud_leaves_01'], KTEX_DENS = [16, 9, 14, 7, 10, 5, 7, 6];
 const KU = { kTex: { value: null }, kMean: { value: KTEX.map(() => new THREE.Vector3(0.5, 0.5, 0.5)) }, kOn: { value: 0 } };
 async function loadKitTex() { if (!GL2) return; try { KU.kTex.value = await texArray(KTEX, 'd', KU.kMean.value, 256); KU.kOn.value = 1; } catch (e) { console.warn('kit textures', e); } }
 function kitTex(m) {
@@ -1167,9 +1308,9 @@ function kitTex(m) {
   return chainShader(m, 'kittex', sh => {
     Object.assign(sh.uniforms, KU);
     sh.vertexShader = 'attribute vec2 tuv; attribute float surf; varying vec2 vTuv; varying float vSurf;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vTuv = tuv; vSurf = surf;');
-    sh.fragmentShader = 'uniform highp sampler2DArray kTex; uniform vec3 kMean[7]; uniform float kOn; varying vec2 vTuv; varying float vSurf;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+    sh.fragmentShader = 'uniform highp sampler2DArray kTex; uniform vec3 kMean[' + KTEX.length + ']; uniform float kOn; varying vec2 vTuv; varying float vSurf;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       if (vSurf > 0.5 && kOn > 0.5) { int si = int(vSurf + 0.5) - 1; vec3 kt = texture(kTex, vec3(vTuv, float(si))).rgb, km = kMean[0];
-        for (int i = 1; i < 7; i++) if (i == si) km = kMean[i];
+        for (int i = 1; i < ${KTEX.length}; i++) if (i == si) km = kMean[i];
         vec3 r = kt / max(km, vec3(0.05)); float rl = dot(r, vec3(0.3, 0.59, 0.11));
         diffuseColor.rgb *= clamp(pow(max(mix(vec3(rl), r, 0.35), vec3(0.0)), vec3(1.2)), 0.3, 1.9); }`);
   });
@@ -1466,12 +1607,25 @@ function defenceWorks(k, bl, gate, star, winter) {
     if (bl.has('moat')) for (const sx of [-1, 1]) bk.add(Gm.box(0.002, 0.002, 0.07), 0x2a2a2a, M(sx * 0.016, 0.03, 0.02, -0.5, 0, 0), 0);   // (the drawbridge's chains)
   }
 }
+// (a town's ground: trodden earth with a ragged edge, laid on the land and following it, and about it a band of worn, thin grass;
+//  not a raised round counter, which is what a cylinder of earth looked like)
+function townGround(k, r, earth, worn, seed) {
+  let sd = (seed >>> 0) % 2147483646 + 1; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ph = [rnd() * 6, rnd() * 6, rnd() * 6];
+  const ragged = (R, amt) => { const sh = new THREE.Shape(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, f = 1 + amt * (Math.sin(a * 3 + ph[0]) * 0.5 + Math.sin(a * 7 + ph[1]) * 0.3 + Math.sin(a * 13 + ph[2]) * 0.2);
+    const x = Math.cos(a) * R * f, z = Math.sin(a) * R * f; if (i) sh.lineTo(x, z); else sh.moveTo(x, z); } const g = new THREE.ShapeGeometry(sh, 2); g.rotateX(-Math.PI / 2); return g; };
+  // (the shape's own points only at its edge: filled in between with rings, so laid on the ground it follows the land's rise and fall)
+  const fill = (g, R) => { const ring = new THREE.RingGeometry(0.001, R, 32, 6); ring.rotateX(-Math.PI / 2); return ring; };
+  const lay = k.lay(true);
+  lay.add(ragged(r * 1.12, 0.07), worn, M(0, 0.0012, 0), 0);
+  lay.add(fill(null, r * 0.97), earth, M(0, 0.0022, 0), 0);
+  lay.add(ragged(r * 1.0, 0.05), earth, M(0, 0.002, 0), 0);
+}
 function worldTownKit(c, nCol, winter, style) {
   const k = new Kit(), pop = c.population || 1, cap = !!c.isCapital, INK = 0.0045;
   let sd = (c.x * 73856093 ^ c.y * 19349663) >>> 0 || 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, pick = a => a[(rnd() * a.length) | 0];
   const urban = ['east', 'south', 'hindu', 'abyssinia', 'maya', 'andes'].includes(style), THATCH = [0xb89a58, 0xa88a4c, 0xc4a866], SNOWY = winter;
   // (the ground: beaten earth, and in the towns a paved square)
-  k.add(Gm.cyl(0.44, 0.45, 0.012, 36), SNOWY ? 0xd8d8d2 : style === 'south' ? 0xb49a6c : 0x7a6a50, M(0, 0.006, 0), 0);
+  townGround(k, 0.44, SNOWY ? 0xd8d8d2 : style === 'south' ? 0xa8906a : 0x6e5e46, SNOWY ? 0xc8ccc4 : style === 'south' ? 0x9a9060 : 0x6a6a40, (c.x * 31 + c.y * 17) | 0);
   if (urban) k.tex('cobblestone_floor_01').add(Gm.cyl(0.1, 0.1, 0.004, 20), SNOWY ? 0xe6e8ea : style === 'south' ? 0xc8b48a : 0x9a9078, M(0, 0.009, 0), 0);
   const roofSnow = (hk, w, d, h, rh) => { if (SNOWY) hk.add(prism, SNOWC, M(0, h + rh * 0.22, 0, 0, 0, 0, w * 0.62, rh * 0.58, d * 1.08), 0); };
   // (one dwelling, in the people's manner)
@@ -1596,7 +1750,7 @@ function townKit(c, nCol, winter) {
     if (rnd() < 0.6) hk.add(Gm.box(0.012, 0.03, 0.012), 0x7a5a48, M(w * 0.25, h + w * 0.28, d * 0.2), INK);   // (a chimney)
   };
   // (the ground of the town: beaten earth, a small cobbled market square with its well)
-  k.add(Gm.cyl(0.44, 0.45, 0.012, 36), winter ? 0xd8d8d2 : 0x7a6a50, M(0, 0.006, 0), 0);
+  townGround(k, 0.44, winter ? 0xd8d8d2 : 0x6e5e46, winter ? 0xc8ccc4 : 0x6a6a40, (c.x * 31 + c.y * 17) | 0);
   (winter ? k : k.tex('cobblestone_floor_01')).add(Gm.cyl(0.1, 0.1, 0.004, 20), winter ? 0xe6e8ea : 0x9a9078, M(0, 0.009, 0), 0);
   k.tex('castle_brick_01').add(Gm.cyl(0.012, 0.013, 0.012, 10), 0xa49a84, M(0.02, 0.016, -0.02), 0.002); k.add(Gm.box(0.002, 0.03, 0.002), WOOD, M(0.02, 0.03, -0.032), 0); k.add(Gm.box(0.002, 0.03, 0.002), WOOD, M(0.02, 0.03, -0.008), 0); k.add(Gm.box(0.003, 0.003, 0.03), WOOD, M(0.02, 0.045, -0.02), 0);
   // (the houses packed in blocks between the streets that run in from the gates, back to back, the blocks filling outward from
@@ -1709,24 +1863,39 @@ function fields(k, x0, z0, nx, nz, cw, cd, rot, season, rnd) {
 // (a farm as the old country had them: the open fields in long narrow strips, each family's selions side by side and each its own
 //  crop, ploughed in ridge and furrow, parcels lying every which way to the lie of the land, hedgerows with a tree here and there;
 //  the farmstead a yard walled in dry stone, a timbered house under thatch, a great barn, ricks, an orchard, a track out to the fields)
-const STRIPS = { spring: [0x72904a, 0x6a5034, 0x80964e, 0x889c58, 0x5e4a30, 0x7a8a4c], summer: [0xb49650, 0xa8915a, 0x7e8c4a, 0xbca262, 0x9a8a52, 0x748246],
-  autumn: [0x9c8450, 0x6a4e30, 0x846a44, 0xa48c58, 0x5a4630, 0x8e7a4c], winter: [0xe6e8e6, 0xd8dcdc, 0xe0e2e0, 0xcfd2d0, 0xe2e4e2, 0xd4d6d4] };
+// (the strips' crops by season: young corn and ploughland in spring; ripe corn, hay and green in summer; stubble, fresh ploughing
+//  and winter wheat coming up in autumn; snow in winter. Earthy and muted, as the land is: pale tans read as planks of wood)
+const STRIPS = { spring: [0x627c40, 0x54422e, 0x6a8042, 0x72864a, 0x4e3e2a, 0x667640], summer: [0x7a6c3c, 0x5e6e36, 0x72663c, 0x566832, 0x625a3e, 0x80723f],
+  autumn: [0x76683e, 0x4a3a26, 0x5e6834, 0x6c603c, 0x52402e, 0x66703a], winter: [0xe6e8e6, 0xd8dcdc, 0xe0e2e0, 0xcfd2d0, 0xe2e4e2, 0xd4d6d4] };
 function oldFarm(k, season, rnd, wall) {
   const winter = season === 'winter', SC = STRIPS[season], HEDGE = winter ? 0x5a5a4e : season === 'autumn' ? 0x6a6a34 : 0x3e5a2a;
   const parcel = (x0, z0, w, d, rot) => {
-    const pk = k.at(M(x0, 0, z0, 0, rot, 0)), fk = pk.lay(true), n = Math.max(3, Math.round(w / 0.024)), sw = w / n;
-    for (let i = 0; i < n; i++) { const x = -w / 2 + (i + 0.5) * sw, c = SC[(rnd() * SC.length) | 0], dd = d * (0.9 + rnd() * 0.1);
-      fk.add(new THREE.BoxGeometry(sw * 0.94, 0.002, dd, 2, 1, 8), c, M(x, 0.0055, (d - dd) / 2), 0);   // (the strip, its own crop)
+    const pk = k.at(M(x0, 0, z0, 0, rot, 0)), fk = pk.lay(true), n = Math.max(3, Math.round(w / 0.024)), sw = w / n, crop = SC[(rnd() * SC.length) | 0];
+    for (let i = 0; i < n; i++) { const x = -w / 2 + (i + 0.5) * sw, c = rnd() < 0.7 ? crop : SC[(rnd() * SC.length) | 0], dd = d;   // (a field mostly of one crop, a strip or two of another)
+      fk.tex(winter ? null : 'brown_mud_leaves_01').add(new THREE.BoxGeometry(sw * 0.9, 0.002, dd, 2, 1, 8), c, M(x, 0.003, 0), 0);   // (the strip, its own crop)
+      if (!winter) { fk.add(new THREE.BoxGeometry(sw * 0.1, 0.0016, dd, 1, 1, 8), new THREE.Color(c).lerp(new THREE.Color(season === 'autumn' ? 0x7a7a44 : 0x7a9444), 0.6).getHex(), M(x - sw * 0.5, 0.0028, (d - dd) / 2), 0);   // (the grass balk between two strips)
+        for (const f of [-0.22, 0.22]) fk.add(new THREE.BoxGeometry(sw * 0.05, 0.0012, dd * 0.96, 1, 1, 8), new THREE.Color(c).multiplyScalar(0.92).getHex(), M(x + f * sw, 0.0042, (d - dd) / 2), 0); }   // (furrows, faint)
       if (!winter && season !== 'spring' && (c === SC[0] || c === SC[3]) && rnd() < 0.6) for (let q = 0; q < 4; q++) pk.lay(false).add(Gm.cone(0.005, 0.012, 6), 0xc8a050, M(x, 0.011, -d / 2 + (q + 0.5 + rnd() * 0.3) * d / 4), 0.0012);   // (sheaves stooked in the stubble)
     }
     // (the hedgerow along the parcel's head and one side, a tree standing in it)
     const hk = pk.lay(false);
-    for (const [ax, az, L, r] of [[0, d / 2 + 0.008, w, 0], [-w / 2 - 0.008, 0, d, Math.PI / 2]]) { const m = Math.round(L / 0.008);
+    for (const [ax, az, L, r] of [[0, d / 2 + 0.004, w, 0], [-w / 2 - 0.004, 0, d, Math.PI / 2]]) { if (rnd() < 0.45) continue; const m = Math.round(L / 0.008);
       for (let q = 0; q <= m; q++) { const t = q / m - 0.5 + (rnd() - 0.5) * 0.01, rr = 0.005 + rnd() * 0.005; hk.add(new THREE.IcosahedronGeometry(rr, 1), HEDGE, M(ax + Math.cos(r) * t * L + (rnd() - 0.5) * 0.004, rr * 0.7, az - Math.sin(r) * t * L + (rnd() - 0.5) * 0.004, rnd(), rnd(), 0, 1, 0.75 + rnd() * 0.4, 1.2), 0); }
       if (rnd() < 0.7) { const t = rnd() - 0.5, tx = ax + Math.cos(r) * t * L, tz = az - Math.sin(r) * t * L; hk.add(Gm.cyl(0.0025, 0.0035, 0.035, 5), 0x4a3828, M(tx, 0.017, tz), 0.001); if (!winter) hk.add(new THREE.IcosahedronGeometry(0.02, 1), HEDGE, M(tx, 0.045, tz, 0, 0, 0, 1, 0.85, 1), 0.0015); } }
   };
   const tilt = (rnd() - 0.5) * 0.5;
-  parcel(0.13, 0.1, 0.3, 0.26, tilt + 0.12); parcel(0.17, -0.22, 0.26, 0.18, tilt - 0.08); parcel(-0.13, 0.27, 0.26, 0.17, tilt - 0.35); parcel(-0.02, -0.38, 0.2, 0.1, tilt + 0.3);
+  // (the fields a patchwork over the whole tile, edge to edge as old enclosures were, each ploughed its own way, the farmstead and
+  //  its orchard in one corner: not plots laid apart on the grass)
+  { const hw = 0.44, hh = 0.32, inHex = (x, z) => Math.abs(z) <= hh && Math.abs(x) <= hw - Math.abs(z) * (hw / 2) / hh;
+    const c = Math.cos(tilt), sn = Math.sin(tilt), CW = 0.2, CD = 0.16;
+    for (let gj = -3; gj <= 3; gj++) for (let gi = -3; gi <= 3; gi++) {
+      const w = CW, d = CD, lx = gi * CW + (gj & 1) * CW * 0.35, lz = gj * CD;
+      const x = lx * c + lz * sn, z = -lx * sn + lz * c;
+      const corners = [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]].map(([a, b]) => [x + a * c + b * sn, z - a * sn + b * c]);
+      if (!corners.every(([a, b]) => inHex(a, b))) continue;
+      if (Math.hypot(x + 0.24, z + 0.16) < 0.17 || Math.hypot(x + 0.33, z - 0.04) < 0.09) continue;   // (the yard, the orchard)
+      const turn = (gi + gj) & 1; parcel(x, z, turn ? d : w, turn ? w : d, tilt + (turn ? Math.PI / 2 : 0));   // (turned a quarter, its own width and depth swapped, so it still fills its plot)
+    } }
   // (the track out from the yard between the parcels)
   k.lay(true).add(new THREE.BoxGeometry(0.022, 0.003, 0.36, 1, 1, 10), winter ? 0xc8c4bc : 0x8a7454, M(-0.04, 0.005, -0.02, 0, 0.7 + tilt, 0), 0);
   // (the farmstead: the yard walled in dry stone, a gap for the gate)
@@ -1784,18 +1953,31 @@ function worksKit(imp, sd, season, sea, gf) {
       break;
     }
     case 'market': {
-      // (the square, cobbled and laid over the ground's rise and fall, worn darker where the carts stand, a kerb of setts about it)
-      k.lay(true).tex('cobblestone_floor_01').add(new THREE.RingGeometry(0.001, 0.25, 28, 6), winter ? 0xb8b6b0 : 0x7a705e, M(0, 0.003, 0, -Math.PI / 2, 0, 0), 0);
-      k.lay(true).add(new THREE.RingGeometry(0.25, 0.268, 28, 1), 0x4a4034, M(0, 0.0032, 0, -Math.PI / 2, 0, 0), 0);
-      k.lay(true).add(new THREE.RingGeometry(0.03, 0.09, 20, 2), winter ? 0xa8a6a0 : 0x6a604e, M(0, 0.0036, 0, -Math.PI / 2, 0, 0), 0);
-      k.lay(false).tex('castle_brick_01').add(Gm.cyl(0.008, 0.01, 0.07, 8), STONE, M(0, 0.035, 0), 0.003); k.lay(false).add(Gm.box(0.03, 0.005, 0.005), STONE, M(0, 0.06, 0), 0.002);   // (the market cross)
-      const AW = [0xb03a2a, 0xe6dcc0, 0x3a5a7a, 0xc8a040, 0x5a7a3a];
-      for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3, r = 0.17, sk = k.at(M(Math.sin(a) * r, 0, Math.cos(a) * r, 0, a, 0)).lay(false);
-        for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) sk.add(Gm.box(0.003, 0.04, 0.003), WOOD, M(px * 0.022, 0.02, pz * 0.015), 0);
-        sk.tex('rough_wood').add(Gm.box(0.044, 0.012, 0.03), WOOD, M(0, 0.016, 0), 0.002);
-        sk.add(prism, winter ? SNOWC : AW[i % AW.length], M(0, 0.04, 0, 0, Math.PI / 2, 0, 0.04, 0.014, 0.05), 0.002);
-        for (let q = 0; q < 3; q++) sk.add(Gm.ball(0.005, 8), [0xc8a040, 0x8a3a2a, 0x7a9a40][q], M((q - 1) * 0.012, 0.025, 0.004), 0); }
-      cart(k, 0.3, 0.1, 0.8); bldg(k, -0.32, -0.2, 0.6, 0.08, 0.07, 0.07, { wall: wall(), roof: roof(), timber: true, winter }); break;
+      // (a market place out in the country, where the roads meet: a trodden square, worn bare, with the market hall standing on its
+      //  posts in the middle (the stalls under it, the town's room above), stalls under awnings about it, the inn with its sign,
+      //  houses fronting the square, a cart or two and the market cross)
+      townGround(k, 0.27, winter ? 0xd0d2cc : 0x7a6a50, winter ? 0xc0c4bc : 0x6e6c44, (sd * 7) | 0);
+      k.lay(true).tex('cobblestone_floor_01').add(new THREE.RingGeometry(0.001, 0.1, 20, 3), winter ? 0xc4c2bc : 0x7e7462, M(0, 0.0034, 0, -Math.PI / 2, 0, 0), 0);
+      { const hk = k.at(M(0, 0, 0, 0, rnd() * 6.28, 0)).lay(false), W2 = 0.12, D2 = 0.07, P = 0.032;   // (the market hall)
+        for (let i = -2; i <= 2; i++) for (const sdz of [-1, 1]) hk.tex('rough_wood').add(Gm.box(0.006, P, 0.006), DARKW, M(i * W2 / 4.4, P / 2, sdz * D2 / 2.3), 0.0015);
+        hk.tex('clay_plaster').add(Gm.box(W2, 0.038, D2), wall(), M(0, P + 0.019, 0), 0.0035);
+        for (let i = -2; i <= 2; i++) hk.add(Gm.box(0.004, 0.036, 0.003), DARKW, M(i * W2 / 4.4, P + 0.019, D2 / 2 + 0.0015), 0);
+        hk.add(Gm.box(W2, 0.004, 0.003), DARKW, M(0, P + 0.002, D2 / 2 + 0.0015), 0);
+        hk.tex('clay_roof_tiles_02').add(prism, winter ? SNOWC : roof(), M(0, P + 0.038, 0, 0, Math.PI / 2, 0, D2 * 1.15, 0.05, W2 * 1.08), 0.0035 / D2);
+        hk.add(Gm.box(0.012, 0.022, 0.012), PALE, M(0, P + 0.07, 0), 0.002); hk.add(Gm.cone(0.011, 0.02, 4), winter ? SNOWC : 0x3e4a48, M(0, P + 0.091, 0, 0, Math.PI / 4, 0), 0.002);   // (the bell turret)
+        for (let i = 0; i < 3; i++) hk.tex('rough_wood').add(Gm.box(0.022, 0.008, 0.014), WOOD, M((i - 1) * 0.034, 0.012, 0), 0.0012); }   // (the stalls under it)
+      k.lay(false).tex('castle_brick_01').add(Gm.cyl(0.006, 0.008, 0.05, 8), STONE, M(0.09, 0.025, 0.07), 0.002); k.lay(false).add(Gm.box(0.022, 0.004, 0.004), STONE, M(0.09, 0.043, 0.07), 0.0015);   // (the market cross)
+      const AW = [0xa83a2a, 0xd8ccb0, 0x3a5a7a, 0xb89038, 0x5a7a3a];
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.5, r = 0.15 + rnd() * 0.02, sk = k.at(M(Math.sin(a) * r, 0, Math.cos(a) * r, 0, a, 0)).lay(false);
+        for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) sk.add(Gm.box(0.003, 0.034, 0.003), WOOD, M(px * 0.02, 0.017, pz * 0.013), 0);
+        sk.tex('rough_wood').add(Gm.box(0.04, 0.01, 0.026), WOOD, M(0, 0.013, 0), 0.0015);
+        sk.add(prism, winter ? SNOWC : AW[i % AW.length], M(0, 0.034, 0, 0, Math.PI / 2, 0, 0.034, 0.012, 0.046), 0.0015);
+        for (let q = 0; q < 3; q++) sk.add(Gm.ball(0.0045, 8), [0xb89038, 0x8a3a2a, 0x6a8a3a][q], M((q - 1) * 0.011, 0.021, 0.003), 0); }
+      // (about the square: the inn with its sign out on a bracket, and houses, all facing in)
+      for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.2 + rnd() * 0.2, r = 0.27 + rnd() * 0.04, x = Math.sin(a) * r, z = Math.cos(a) * r;
+        if (i === 0) { const ik = bldg(k, x, z, a + Math.PI, 0.085, 0.06, 0.07, { wall: 0xd8c8a0, roof: winter ? 0x6a5a48 : 0x8e3a26, timber: true, chimney: true, winter }); ik.lay(false).add(Gm.box(0.002, 0.002, 0.024), DARKW, M(0.03, 0.06, 0.04), 0); ik.lay(false).add(Gm.box(0.002, 0.014, 0.012), 0x8a2a1a, M(0.03, 0.05, 0.05), 0.001); continue; }
+        bldg(k, x, z, a + Math.PI, 0.05 + rnd() * 0.015, 0.05, 0.05 + rnd() * 0.02, { wall: wall(), roof: winter ? 0x6a5a48 : roof(), timber: rnd() < 0.5, chimney: rnd() < 0.5, winter }); }
+      cart(k, -0.07, 0.17, 1.3); cart(k, 0.2, -0.05, 2.6); break;
     }
     case 'mine': {
       k.lay(false).add(Gm.cone(0.24, 0.12, 16), 0x7a6a56, M(-0.1, 0.0, -0.12, 0, 0, 0, 1, 1, 0.8), INK);   // (the hillside the shaft is driven into)
@@ -1827,28 +2009,78 @@ function worksKit(imp, sd, season, sea, gf) {
       cart(k, -0.1, 0.25, 1.6); break;
     }
     case 'urban': {
-      // (a quarter of streets filling the whole tile: a high street and a cross street of cobbles, a little square where they
-      //  meet with its well, a church, and close-built houses fronting every street, gardens and yards behind)
-      const hw = 0.46, hh = 0.33, inHex = (x, z, m = 0) => Math.abs(z) <= hh - m && Math.abs(x) <= hw - m - Math.abs(z) * (hw / 2) / hh;
-      const sk = k.lay(true).tex('cobblestone_floor_01');
-      sk.add(new THREE.BoxGeometry(hw * 2 - 0.04, 0.003, 0.05, 12, 1, 1), 0x8a8270, M(0, 0.002, 0), 0); sk.add(new THREE.BoxGeometry(0.045, 0.003, hh * 2 - 0.04, 1, 1, 10), 0x8a8270, M(0, 0.002, 0), 0);
-      sk.add(new THREE.BoxGeometry(0.11, 0.0035, 0.11, 2, 1, 2), 0x94897a, M(0, 0.002, 0), 0);
-      k.lay(false).tex('castle_brick_01').add(Gm.cyl(0.012, 0.012, 0.012, 10), STONE, M(0.02, 0.006, 0.02), 0.002);
-      for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {   // (back lanes, a shade narrower and of beaten earth)
-        k.lay(true).add(new THREE.BoxGeometry(0.03, 0.002, hh - 0.06, 1, 1, 5), 0x7a6a50, M(x * hw * 0.5, 0.0015, z * hh * 0.5), 0); }
-      { const ck = k.at(M(-0.12, 0, -0.12, 0, Math.PI / 2, 0, 1.15)); ck.tex('castle_brick_01').add(Gm.box(0.06, 0.065, 0.11), 0xd8ccb0, M(0, 0.0325, 0), INK);
-        ck.add(prism, winter ? SNOWC : 0x5a5450, M(0, 0.065, 0, 0, 0, 0, 0.07, 0.055, 0.115), INK / 0.07);
-        ck.tex('castle_brick_01').add(Gm.box(0.04, 0.13, 0.04), 0xd0c4a6, M(0, 0.065, 0.07), INK); ck.add(Gm.cone(0.032, 0.09, 4), winter ? SNOWC : 0x3e4a48, M(0, 0.175, 0.07, 0, Math.PI / 4, 0), INK); }
-      const used = (x, z) => (x < -0.04 && x > -0.21 && z < -0.03 && z > -0.22);
-      for (let z = -hh + 0.045; z <= hh - 0.04; z += 0.072) for (let x = -hw + 0.045; x <= hw - 0.04; x += 0.062) {
-        const jx = x + (rnd() - 0.5) * 0.008, jz = z + (rnd() - 0.5) * 0.008;
-        if (!inHex(jx, jz, 0.035) || Math.abs(jz) < 0.05 || Math.abs(jx) < 0.05 || used(jx, jz)) continue;
-        if (Math.abs(Math.abs(jx) - hw * 0.5) < 0.03) continue;   // (the back lanes)
-        if (rnd() < 0.12) { k.lay(true).add(new THREE.BoxGeometry(0.05, 0.003, 0.05, 2, 1, 2), winter ? SNOWC : 0x5e7a3a, M(jx, 0.002, jz), 0); continue; }   // (a garden)
-        // (each house turned to face the nearer street)
-        const faceZ = Math.abs(jz) < Math.abs(jx) * 0.8 + 0.06, rot = faceZ ? (jz > 0 ? Math.PI : 0) : (jx > 0 ? -Math.PI / 2 : Math.PI / 2);
-        const tall = 0.05 + rnd() * 0.035 + (Math.hypot(jx, jz) < 0.2 ? 0.02 : 0);
-        bldg(k, jx, jz, rot, 0.052 + rnd() * 0.008, 0.058, tall, { wall: wall(), roof: roof(), timber: rnd() < 0.45, chimney: rnd() < 0.55, winter });
+      // (a whole quarter of the town, built up to the edge of the tile: the high street and a cross street of cobbles meeting
+      //  in a market square, back lanes of beaten earth, and every street fronted by an unbroken row of tall narrow houses,
+      //  gable to the street; behind the rows, yards, sheds and a garden tree or two; a church and a guildhall over the roofs)
+      const hw = 0.47, hh = 0.34, inHex = (x, z, m = 0) => Math.abs(z) <= hh - m && Math.abs(x) <= hw - m - Math.abs(z) * (hw / 2) / hh;
+      const okRect = (x, z, ax, az, m) => inHex(x - ax, z - az, m) && inHex(x + ax, z - az, m) && inHex(x - ax, z + az, m) && inHex(x + ax, z + az, m);
+      const taken = [], free = (x, z, ax, az) => !taken.some(([tx, tz, bx, bz]) => Math.abs(x - tx) < ax + bx && Math.abs(z - tz) < az + bz);
+      const take = (x, z, ax, az) => taken.push([x, z, ax, az]);
+      // (the ground of the whole quarter: trodden earth and old paving, no grass)
+      { const g = new THREE.RingGeometry(0.001, hw, 6, 8); g.rotateX(-Math.PI / 2); g.scale(1, 1, hh / (hw * 0.866));
+        k.lay(true).tex('cobblestone_floor_01').add(g, winter ? 0xd8dce0 : 0x7e7262, M(0, 0.0012, 0), 0); }
+      const ST = [   // [x, z, half-length, half-width, along x?, cobbled?]
+        [0, 0, hw, 0.026, true, true], [0, 0, hh, 0.024, false, true],
+        [0, -0.2, hw, 0.016, true, false], [0, 0.2, hw, 0.016, true, false], [-0.25, 0, hh, 0.016, false, false], [0.25, 0, hh, 0.016, false, false]]
+        .map(([x, z, L, wd, ax, cob]) => [x, z, ax ? hw - Math.abs(z) * (hw / 2) / hh - wd * 0.6 : (Math.abs(x) <= hw / 2 ? hh : hh * (hw - Math.abs(x)) / (hw / 2)) - wd * 0.6, wd, ax, cob]);   // (each street running to the tile's edge and no further)
+      const sk = k.lay(true);
+      for (const [x, z, L, wd, ax, cob] of ST) {
+        const g = new THREE.BoxGeometry(ax ? L * 2 : wd * 2, 0.003, ax ? wd * 2 : L * 2, ax ? 14 : 1, 1, ax ? 1 : 10);
+        (cob ? sk.tex('cobblestone_floor_01') : sk).add(g, winter ? SNOWC : cob ? 0x9a8f7c : 0x806c52, M(x, 0.0025, z), 0);
+        take(x, z, ax ? L : wd, ax ? wd : L);
+      }
+      // (the market square: paving, the well, stalls under awnings)
+      const SQ = [0.075, 0.06]; sk.tex('cobblestone_floor_01').add(new THREE.BoxGeometry(SQ[0] * 2, 0.0035, SQ[1] * 2, 3, 1, 3), winter ? SNOWC : 0xa09682, M(0, 0.0027, 0), 0); take(0, 0, SQ[0], SQ[1]);
+      k.lay(false).tex('castle_brick_01').add(Gm.cyl(0.013, 0.014, 0.014, 12), STONE, M(0.022, 0.007, 0.018), 0.002);
+      for (const [x, z, c] of [[-0.045, -0.03, 0xb03a2a], [-0.05, 0.032, 0xd8c8a0], [0.05, -0.034, 0x3a5a8a]]) {
+        const st = k.at(M(x, 0, z)).lay(false); st.tex('rough_wood').add(Gm.box(0.026, 0.012, 0.016), WOOD, M(0, 0.006, 0), 0.002);
+        st.add(prism, winter ? SNOWC : c, M(0, 0.022, 0, 0, Math.PI / 2, 0, 0.022, 0.012, 0.032), 0.002);
+        for (const s of [-1, 1]) st.add(Gm.box(0.002, 0.024, 0.002), DARKW, M(s * 0.012, 0.012, 0.009), 0); }
+      // (the church, its tower, in the north-west block; the guildhall with its bell turret facing the square from the south-east)
+      { const cx = -0.13, cz = -0.1; const ck = k.at(M(cx, 0, cz, 0, Math.PI / 2, 0, 1.25));
+        ck.tex('castle_brick_01').add(Gm.box(0.06, 0.07, 0.12), 0xd8ccb0, M(0, 0.035, 0), INK);
+        ck.add(prism, winter ? SNOWC : 0x5a5450, M(0, 0.07, 0, 0, 0, 0, 0.07, 0.055, 0.125), INK / 0.07);
+        ck.tex('castle_brick_01').add(Gm.box(0.042, 0.15, 0.042), 0xd0c4a6, M(0, 0.075, 0.075), INK);
+        ck.add(Gm.cone(0.034, 0.1, 4), winter ? SNOWC : 0x3e4a48, M(0, 0.2, 0.075, 0, Math.PI / 4, 0), INK);
+        take(cx, cz, 0.1, 0.06); }
+      { const gx = 0.115, gz = 0.09, gk = k.at(M(gx, 0, gz, 0, Math.PI, 0));
+        gk.tex('castle_brick_01').add(Gm.box(0.1, 0.075, 0.06), 0xc8b894, M(0, 0.0375, 0), INK);
+        for (let i = 0; i < 4; i++) gk.lay(false).add(Gm.box(0.012, 0.02, 0.004), 0x3a2a1a, M(-0.034 + i * 0.023, 0.05, 0.031), 0);
+        gk.add(Gm.box(0.012, 0.03, 0.004), 0x3a2414, M(0, 0.015, 0.031), 0);
+        gk.add(prism, winter ? SNOWC : 0x6a4a3a, M(0, 0.075, 0, 0, Math.PI / 2, 0, 0.065, 0.04, 0.105), INK / 0.065);
+        gk.add(Gm.box(0.018, 0.03, 0.018), 0xd8ccb0, M(0, 0.12, 0), INK); gk.add(Gm.cone(0.016, 0.035, 8), winter ? SNOWC : 0x4a5a58, M(0, 0.152, 0), INK);
+        take(gx, gz, 0.056, 0.036); }
+      // (the rows: along each side of every street, house against house, each front on the street's edge)
+      const house = (x, z, rot, fw, dp, h) => {
+        bldg(k, x, z, rot, fw, dp, h, { wall: wall(), roof: roof(), timber: rnd() < 0.4, chimney: rnd() < 0.5, winter, roofH: 0.8 + rnd() * 0.5, doorW: 0.3 });
+        // (an upper window or two on the front)
+        const c = Math.cos(rot), s = Math.sin(rot), fx = x + s * (dp / 2 + 0.0015), fz = z + c * (dp / 2 + 0.0015);
+        for (let q = 0; q < Math.max(1, Math.floor(h / 0.035)); q++) k.lay(false).add(Gm.box(fw * 0.3, 0.011, 0.003), 0x2e2a26, M(fx, h * 0.62 + q * 0.0 - (q ? 0.032 : 0), fz, 0, rot, 0), 0);
+      };
+      for (const [sx, sz, L, wd, ax] of ST) for (const side of [-1, 1]) {
+        let t = -L + 0.01;
+        while (t < L - 0.01) {
+          const fw = 0.034 + rnd() * 0.02, dp = 0.05 + rnd() * 0.022;
+          const along = t + fw / 2, off = wd + 0.003 + dp / 2;
+          const x = ax ? sx + along : sx + side * off, z = ax ? sz + side * off : sz + along;
+          const hx = ax ? fw / 2 : dp / 2, hz = ax ? dp / 2 : fw / 2;
+          if (okRect(x, z, hx, hz, 0.006) && free(x, z, hx - 0.001, hz - 0.001)) {
+            const near = 1 - Math.min(1, Math.hypot(x, z) / 0.4), h = 0.055 + rnd() * 0.035 + near * 0.04;
+            const rot = ax ? (side > 0 ? Math.PI : 0) : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+            house(x, z, rot, fw, dp, h); take(x, z, hx, hz);
+          }
+          t += fw + (rnd() < 0.08 ? 0.012 : 0.0005);   // (now and then a passage between two houses)
+        }
+      }
+      // (behind the rows: yards and sheds, a garden tree, a back house)
+      for (let z = -hh + 0.02; z <= hh - 0.02; z += 0.034) for (let x = -hw + 0.02; x <= hw - 0.02; x += 0.034) {
+        const jx = x + (rnd() - 0.5) * 0.01, jz = z + (rnd() - 0.5) * 0.01;
+        if (!okRect(jx, jz, 0.016, 0.016, 0.004) || !free(jx, jz, 0.016, 0.016)) continue;
+        const r = rnd();
+        if (r < 0.32) { bldg(k, jx, jz, ((rnd() * 4) | 0) * Math.PI / 2, 0.03, 0.03, 0.03 + rnd() * 0.02, { wall: wall(), roof: roof(), winter, door: false }); take(jx, jz, 0.017, 0.017); }
+        else if (r < 0.46 && !winter) { k.lay(false).add(new THREE.IcosahedronGeometry(0.02 + rnd() * 0.008, 1), [0x4e6a2c, 0x5a7432, 0x46602a][(rnd() * 3) | 0], M(jx, 0.04, jz, rnd(), rnd(), rnd(), 1, 0.9, 1), 0.002); k.lay(false).tex('bark_brown_02').add(Gm.cyl(0.003, 0.004, 0.025), DARKW, M(jx, 0.0125, jz), 0); take(jx, jz, 0.014, 0.014); }
+        else if (r < 0.62) { k.lay(true).add(new THREE.BoxGeometry(0.03, 0.002, 0.03), winter ? SNOWC : 0x5e7a3a, M(jx, 0.003, jz), 0); take(jx, jz, 0.016, 0.016); }   // (a kitchen garden)
+        else if (r < 0.7) { k.lay(false).tex('rough_wood').add(Gm.box(0.03, 0.012, 0.002), DARKW, M(jx, 0.006, jz + 0.015), 0); }   // (a yard fence)
       }
       break;
     }
@@ -1955,6 +2187,7 @@ function syncWorks(force) {
   for (const [i, g] of works) if (want.get(i) !== g.userData.imp || g.userData.season !== season) { scene.remove(g); g.children.forEach(c => c.geometry.dispose()); works.delete(i); }
   for (const [i, imp] of want) {
     if (works.has(i)) continue;
+    if (imp === 'urban') { const xx = i % W.cols; levelSite(...hexCentre(xx, (i - xx) / W.cols), 0.52, 0.86); }   // (a quarter of the town stands on level ground, as the town does)
     const x = i % W.cols, y = (i - x) / W.cols, [cx, cz] = hexCentre(x, y), rel = Math.max(0.001, U.relief.value), g0 = groundAt(cx, cz) / rel;
     // (a port turns toward the nearest sea beside it)
     let sea = 0; if (imp === 'port') { let best = 9; for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, (x & 1) ? 1 : -1], [1, (x & 1) ? 1 : -1]]) { const t = E(`tiles[${(y + dy) * W.cols + x + dx}]?.type`); if (t === 0) { const [hx, hz] = hexCentre(x + dx, y + dy), a = Math.atan2(hx - cx, hz - cz); sea = a; best = 0; break; } } }
@@ -1974,6 +2207,7 @@ let roadGroup = null, roadKeySeen = '', roadChains = [], groundMarks = [];
 // (what is worn into the ground itself, as the sheet's own texture: red the beaten earth of the tracks and of trodden and
 //  churned ground, green the wider strip the woods are cleared from, blue the black of burning)
 let marksCanvas = null, clearKeySeen = '';
+let markLayer = null;
 function paintGroundMarks() {
   if (!W) return;
   const MW = Math.min(renderer.capabilities.maxTextureSize, innerWidth <= 760 ? 2048 : 4096), MH = Math.round(MW * W.d / W.w);
@@ -1989,12 +2223,20 @@ function paintGroundMarks() {
     mg.filter = 'none';
     for (const [x, z, r] of spots) { const gr = mg.createRadialGradient(x * px, z * pz, 0.26 * r * px, x * px, z * pz, 0.42 * r * px); gr.addColorStop(0, 'rgb(0,255,0)'); gr.addColorStop(1, 'rgb(0,0,0)');
       mg.fillStyle = gr; mg.beginPath(); mg.arc(x * px, z * pz, 0.42 * r * px, 0, 6.283); mg.fill(); } }
-  // (the marks: ragged blots, softened at the edge)
-  for (const m of groundMarks) {
-    let sd = m.seed || 1; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ph = [rnd() * 6, rnd() * 6, rnd() * 6];
-    mg.filter = 'blur(' + Math.max(0.8, m.r * 0.25 * px).toFixed(2) + 'px)'; mg.fillStyle = m.col; mg.beginPath();
+  // (the marks: ragged blots, softened at the edge. Drawn sharp on a layer of their own and softened all at once, a layer for each
+//  softness: softening each blot on its own was hundreds of blurs of the whole sheet on the graphics card, which on the map of
+//  Europe, with its many towns' lanes, was more than the card would bear: it gave up and the table went blank)
+  const groups = new Map(); for (const m of groundMarks) { const b = Math.round(Math.max(0.8, m.r * 0.25 * px) * 2) / 2; if (!groups.has(b)) groups.set(b, []); groups.get(b).push(m); }
+  const lc = markLayer || (markLayer = document.createElement('canvas')); lc.width = MW; lc.height = MH; const lg = lc.getContext('2d');
+  for (const [blur, list] of groups) {
+    lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, MW, MH); lg.globalCompositeOperation = 'lighter';
+    for (const m of list) {
+      let sd = m.seed || 1; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ph = [rnd() * 6, rnd() * 6, rnd() * 6];
+      const mg = lg; mg.fillStyle = m.col; mg.beginPath();
     for (let i = 0; i <= 40; i++) { const a = i / 40 * 6.283, f = 1 + (m.rag ?? 0.35) * (Math.sin(a * 3 + ph[0]) * 0.5 + Math.sin(a * 5 + ph[1]) * 0.3 + Math.sin(a * 11 + ph[2]) * 0.2), x = (m.x + Math.cos(a) * m.r * f) * px, z = (m.z + Math.sin(a) * m.r * f) * pz; i ? mg.lineTo(x, z) : mg.moveTo(x, z); }
-    mg.fill();
+      mg.fill();
+    }
+    mg.filter = 'blur(' + blur.toFixed(2) + 'px)'; mg.drawImage(lc, 0, 0); mg.filter = 'none';
   }
   mg.filter = 'none';
   if (U.roadM.value) U.roadM.value.dispose(); const rt = new THREE.CanvasTexture(mc); rt.anisotropy = renderer.capabilities.getMaxAnisotropy(); U.roadM.value = rt;
@@ -2185,7 +2427,7 @@ function featureKit(kind, sd, season, gf, info) {
           // (the sails on their own, so they turn in the wind)
           const sk = new Kit();
           for (let t = 0; t < 4; t++) { const st = sk.at(M(0, 0, 0, 0, 0, t * Math.PI / 2)); st.add(Gm.box(0.003, 0.06, 0.002), DARKW, M(0, 0.03, 0), 0); st.add(Gm.box(0.012, 0.045, 0.001), winter ? 0xd8d4c8 : 0xe0d6bc, M(0.007, 0.036, 0.001), 0.001); }
-          spin.push({ kit: sk.build(), x, z, y: 0.07, yaw: mk._yaw, fwd: 0.024, speed: 0.9 }); } }
+          if (!qs.has('nospin')) spin.push({ kit: sk.build(), x, z, y: 0.07, yaw: mk._yaw, fwd: 0.024, speed: 0.9 }); } }
       break;
     }
     case 'siege': {
@@ -2291,6 +2533,7 @@ function syncFeatures(force) {
   const [season, list] = key.split('|'), want = new Map((list ? list.split(',') : []).map(s => { const [i, kind, arg] = s.split(':'); return [i + ':' + kind, { i: +i, kind, arg: +arg }]; })), mats = worksMat();
   for (const [kk, g] of feats) if (!want.has(kk) || g.userData.season !== season || g.userData.arg !== want.get(kk).arg || (worksMoved && g.userData.kind === 'outskirts')) { scene.remove(g); g.traverse(c => c.geometry && c.geometry !== g.userData.keep && c.geometry.dispose()); feats.delete(kk); }
   const takenTiles = new Set(E('cities').map(c => c.y * W.cols + c.x)); for (const f of want.values()) if (f.kind !== 'outskirts' && f.kind !== 'siege') takenTiles.add(f.i);
+  const only = qs.get('featonly'); if (only) for (const [kk, f] of [...want]) if (!only.split(',').includes(f.kind.replace(/^w-.*/, 'w'))) want.delete(kk);   // (testing: only these kinds)
   for (const [kk, f] of want) {
     if (feats.has(kk)) continue;
     const x = f.i % W.cols, y = (f.i - x) / W.cols, [cx, cz] = hexCentre(x, y), rel = Math.max(0.001, U.relief.value), g0 = groundAt(cx, cz) / rel;
@@ -2856,7 +3099,7 @@ function tileNote(x, y) {
     const c = cities.find(c => c.x === ${x} && c.y === ${y}), esc = s => String(s).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
     let name = t.desert && t.type === 1 ? 'Desert' : t.type === 4 ? 'Town' : (TILE_NAMES[t.type] || 'Land'); if (t.hasRiver && t.type !== 8) name += ', by a river';
     const lines = [];
-    if (c) lines.push('<b>' + esc(c.name) + '</b>, ' + (c.population || 1) + ' souls' + (typeof cityDefenceName === 'function' && cityDefenceName(c) !== 'no walls' ? '; ' + cityDefenceName(c) : ''));
+    if (c) lines.push('<b>' + esc(c.name) + '</b>, ' + (c.population || 1) + ((c.population || 1) === 1 ? ' soul' : ' souls') + (typeof cityDefenceName === 'function' && cityDefenceName(c) !== 'no walls' ? '; ' + cityDefenceName(c) : ''));
     if (t.improvement && IMPROVEMENT_DEFS[t.improvement]) { const d = IMPROVEMENT_DEFS[t.improvement]; lines.push(d.name + ' (' + Object.entries(d.yields || {}).map(([k, v]) => '+' + v + ' ' + k).join(', ') + ')'); }
     else if (t.animal && typeof ANIMAL_DATA !== 'undefined' && ANIMAL_DATA[t.animal]) lines.push(ANIMAL_DATA[t.animal].name);
     if (t.wonder && typeof NATURAL_WONDERS !== 'undefined' && NATURAL_WONDERS[t.wonder]) lines.push(NATURAL_WONDERS[t.wonder].name);
@@ -3029,9 +3272,10 @@ function boardAmbience() {
   if (MUTED || !W || !G || !G.SMK || busy) return;
   const CS = W.CS, CH = W.CH, col = Math.round((cam.tx - 0.5) / CS), row = Math.round((cam.tz - (col & 1) * CH / 2 - CH / 2) / CH);
   const vt = Math.round(Math.max(20, Math.min(96, 96 - (cam.dist - 4) * 3.6)));
-  try { E(`(() => { const s = [camX, camY, VIEW_TILE]; let lv; try { VIEW_TILE = ${vt}; camX = ${col} - viewW / hexColStep() / 2; camY = ${row} - viewH / hexCellH() / 2; lv = ambientLevels(); } finally { camX = s[0]; camY = s[1]; VIEW_TILE = s[2]; } SMK.ambience(lv); })()`); } catch (e) {}
+  try { E(`(() => { const s = [camX, camY, VIEW_TILE]; let lv; try { VIEW_TILE = ${vt}; camX = ${col} - viewW / hexColStep() / 2; camY = ${row} - viewH / hexCellH() / 2; lv = ambientLevels(); } finally { camX = s[0]; camY = s[1]; VIEW_TILE = s[2]; } SMK.ambience(lv); MUSIC.view = { x: ${col}, y: ${row} }; })()`); } catch (e) {}
 }
 setInterval(boardAmbience, 1000);
+$('music').addEventListener('click', () => { if (MUTED || !G) return; try { E('musicEnabled = !musicEnabled; if (musicEnabled) playNextTrack(); else bgMusic.pause();'); } catch (e) {} showMusic(); });
 
 // the game's own pages, mirrored on the table: a regiment's page (its orders, a worker's improvements, a settler's founding) or a
 //  town's (what it builds, its queue, rushing); every button presses the game's own, so all its rules hold
@@ -3093,13 +3337,30 @@ function cullBlocks() {
   camera.updateMatrixWorld(); projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frustum.setFromProjectionMatrix(projView);
   const on = U.props.value > 0.01;
   // (the lesser growth, bushes and stones and tufts, only near where the eye is: further off it is too small to see, and costly)
-  const near = 5 + cam.dist * 0.55, smallOn = on && cam.dist < 16;
+  const near = (5 + cam.dist * 0.55) * lodK, smallOn = on && cam.dist < 16;
   // (the trees modelled leaf by leaf only near the eye; further off, their simple stand-ins)
-  const treeR = 6 + cam.dist * 0.45;
-  for (const m of treeMeshes) if (m.userData.cull) { const c = m.userData.cull.center, d = Math.hypot(c.x - cam.tx, c.z - cam.tz);
-    m.visible = on && (!m.userData.small || (smallOn && Math.abs(c.x - cam.tx) < near + 3 && Math.abs(c.z - cam.tz) < near + 3)) && (!m.userData.near || d < treeR) && (!m.userData.far || d >= treeR) && frustum.intersectsSphere(m.userData.cull); }
+  const treeR = Math.max(3.5 + cam.dist * 0.3, (6 + cam.dist * 0.45) * lodK);
+  // (the stand-ins thin out with distance, and with the card's budget: far off a wood is a scatter of its trees on the painted ground)
+  const farR = treeR + 8 + cam.dist * 1.1;
+  // (the modelled trees and their stand-ins are both judged by the larger block they lie in, so a wood is either the one or the other:
+  //  judged each by its own block, the two overlapped near the eye and left gaps further off)
+  // (distance is reckoned from the line between the eye and the point it looks at, so the foreground counts as near as it is)
+  const ex = camera.position.x, ez = camera.position.z, sx = cam.tx - ex, sz = cam.tz - ez, sl = sx * sx + sz * sz || 1;
+  const segD = (x, z) => { const t = Math.max(0, Math.min(1, ((x - ex) * sx + (z - ez) * sz) / sl)); return Math.hypot(x - ex - sx * t, z - ez - sz * t); };
+  const blockD = c => Math.max(0, segD((Math.floor(c.x / 6) + 0.5) * 6, (Math.floor(c.z / 6) + 0.5) * 6) - 4.25);   // (to the block's nearest edge, near enough)
+  for (const m of treeMeshes) if (m.userData.cull) { const c = m.userData.cull.center, d = Math.hypot(c.x - cam.tx, c.z - cam.tz), dB = (m.userData.near || m.userData.far) ? blockD(c) : d;
+    m.visible = on && (!m.userData.small || (smallOn && Math.abs(c.x - cam.tx) < near + 3 && Math.abs(c.z - cam.tz) < near + 3)) && (!m.userData.near || dB < treeR) && (!m.userData.far || dB >= treeR) && frustum.intersectsSphere(m.userData.cull);
+    if (m.visible && m.userData.far) { const f = Math.max(0.06, Math.min(1, 1 - (d - treeR) / farR)) * Math.min(1, lodK * 1.6); m.count = Math.max(1, Math.round(m.userData.n * f)); } }
 }
 let frameN = 0;
+// (how much is drawn in full is fitted to what the graphics card manages: a frame of more than some three million faces draws the
+//  modelled woods and the undergrowth over a smaller round, and a light one lets it grow again. Starting small, the first frames of
+//  a large map (Europe drew seven million faces at once) cannot overwhelm the card)
+let lodK = 0.45;
+function fitDetail() {
+  const t = renderer.info.render.triangles; if (!W || t < 1000) return;   // (nothing on the table yet)
+  if (t > 3.2e6) lodK = Math.max(0.3, lodK * 0.9); else if (t < 2.0e6) lodK = Math.min(1, lodK * 1.015);
+}
 
 // the weather over the table: snow falling in winter, drifting on the wind; on some turns of spring and autumn, rain in fine
 //  slanting strokes, as an engraver ruled it. Only about where the eye is, and only when leaning in
@@ -3146,9 +3407,12 @@ function frame() {
   const wantShift = innerWidth <= 760 && $('gpanel').classList.contains('on') ? innerHeight * 0.19 : 0;
   viewShift += (wantShift - viewShift) * Math.min(1, dt * 6);
   if (Math.abs(viewShift) > 0.5) camera.setViewOffset(innerWidth, innerHeight, 0, viewShift, innerWidth, innerHeight); else camera.clearViewOffset();
-  if (W) { clampWant(); placeCamera(dt); cullBlocks(); syncPieces(dt); syncFx(); syncEmitters(dt); syncSmoke(dt); syncWeather(dt); syncLabels(); if ((frameN = (frameN + 1) % 45) === 0) { syncWorks(); syncRoads(); } else if (frameN === 15) syncFeatures(); else if (frameN === 30) syncTownSmoke(); placeWorks(); placeFeatures(); }
-  renderer.render(scene, camera);
+  const T = STAGES ? (name, f) => { const t0 = performance.now(); f(); const dtm = performance.now() - t0; if (dtm > 25) console.log('slow', name, Math.round(dtm), 'at', Math.round(t0)); } : (name, f) => f();
+  if (W) { clampWant(); placeCamera(dt); cullBlocks(); fitTerrain(); T('pieces', () => syncPieces(dt)); T('fx', syncFx); T('emit', () => syncEmitters(dt)); T('smoke', () => syncSmoke(dt)); T('weather', () => syncWeather(dt)); T('labels', syncLabels); if ((frameN = (frameN + 1) % 45) === 0) { if (!qs.has('noworks')) T('works', syncWorks); T('roads', syncRoads); } else if (frameN === 15 && !qs.has('nofeat')) T('features', syncFeatures); else if (frameN === 30) syncTownSmoke(); T('placeW', placeWorks); T('placeF', placeFeatures); }
+  T('render', () => renderer.render(scene, camera)); fitDetail();
+  if (STAGES && (++STAGES.n % 10) === 1) console.log('frame', STAGES.n, 'tris', renderer.info.render.triangles, 'calls', renderer.info.render.calls, 'lod', lodK.toFixed(2), 'dist', cam.dist.toFixed(1), JSON.stringify(renderer.info.memory));
 }
+const STAGES = qs.has('stages') ? { n: 0 } : null;
 setInterval(frame, 16);   // (by a timer as well as the screen, so the table still draws in a pane the browser has put in the background)
 
 (async () => {
@@ -3173,7 +3437,7 @@ setInterval(frame, 16);   // (by a timer as well as the screen, so the table sti
     ['top', 'endTurn', 'legend'].forEach(id => $(id) && ($(id).style.display = ''));
     $('card0').style.display = 'none';
     setInterval(() => { if (!busy) tidyGame(); }, 500);
-    window.LAB = { U, terrainMat, renderer, cam, scene, camera, W: () => W, E, G, frame, clickHex, orderHex, endTurn, lookAtHex, updateFog, pieces, fights, figCache };
+    window.LAB = { lod: () => lodK, treeMeshes: () => treeMeshes, syncFeatures, feats: () => feats, U, terrainMat, renderer, cam, scene, camera, W: () => W, E, G, frame, clickHex, orderHex, endTurn, lookAtHex, updateFog, pieces, fights, figCache };
   } catch (e) { $('card0').innerHTML = 'The table could not be set up<small>' + String(e && e.stack || e).replace(/</g, '&lt;') + '</small>'; console.error(e); }
 })();
 </script>
