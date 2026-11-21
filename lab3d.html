@@ -94,6 +94,7 @@
 <canvas id="view"></canvas>
 <div id="paper"></div>
 <div id="vignette"></div>
+<div id="labels"></div>   <!-- (the towns' ribbons under every panel: they slide beneath the bars, not over them) -->
 <div id="top" class="panel" style="display:none"></div>
 <div id="toast" class="panel"></div>
 <div id="tip"></div>
@@ -103,7 +104,6 @@
 <div id="gpanel" class="panel"></div>
 <div id="endTurn" class="panel" style="display:none"><div class="t1">End Turn</div><div class="t2" id="etN">1</div><div class="t3" id="etO"></div></div>
 <div id="legend" style="display:none">Drag to slide the table · wheel to lean in or stand back · Q / E or middle-drag to turn it · click a regiment, right-click to march or attack</div>
-<div id="labels"></div>
 <div id="modal"><div class="card panel" id="modalCard"></div></div>
 <div id="card0">The chartmaker is setting up the table<small>(the world is being drawn first)</small></div>
 <iframe id="game"></iframe>
@@ -264,6 +264,9 @@ const U = {   // (shared by the table's shaders)
   // (the ground's own textures: which lies where, hex by hex, and the season's dryness)
   gTex: { value: null }, gNor: { value: null }, gMean: { value: Array.from({ length: 10 }, () => new THREE.Vector3(0.4, 0.4, 0.4)) }, texOn: { value: 0 },
   mixA: { value: null }, mixB: { value: null }, mixC: { value: null }, dry: { value: 0 }, marsh: { value: null }, reliefN: { value: null },
+  // (where the modelled trees give way to the wood's massed canopy: the eye's line to the point it looks at, and the round)
+  canSeg: { value: new THREE.Vector4(0, 0, 0, 0) }, canR: { value: new THREE.Vector2(20, 40) },
+  tint: { value: new THREE.Vector3(1, 1, 1) },   // (the season's light: a little gold in summer and autumn, cold in winter)
 };
 // the ground's textures (Poly Haven, CC0), laid under the painted colour: they give the grain of grass, leaf litter, scree, mud,
 //  cobbles, sand and snow, and the light catching in it, while the colour stays the painter's
@@ -303,10 +306,20 @@ const terrainMat = new THREE.ShaderMaterial({
     uniform vec2 wsize; uniform sampler2D map; uniform sampler2D ground; uniform sampler2D known; uniform sampler2D dim; uniform vec3 camPos; uniform float time; uniform float relief; uniform sampler2D shoreD;
     varying vec2 vUv; varying vec3 vN; varying vec3 vP; varying float vH;
     ${GL2 ? `uniform highp sampler2DArray gTex; uniform highp sampler2DArray gNor; uniform vec3 gMean[10]; uniform float texOn; uniform float dry;
-    uniform sampler2D mixA; uniform sampler2D mixB; uniform sampler2D mixC; uniform sampler2D roadM; uniform float snowLine; uniform vec3 latS; uniform sampler2D marsh; uniform sampler2D reliefN;
+    uniform sampler2D mixA; uniform sampler2D mixB; uniform sampler2D mixC; uniform sampler2D roadM; uniform float snowLine; uniform vec3 latS; uniform sampler2D marsh; uniform sampler2D reliefN; uniform vec4 canSeg; uniform vec2 canR; uniform vec3 tint;
     #define GTEX 1` : ''}
     float lines(float u, float w) { float f = abs(fract(u) - 0.5); float aa = fwidth(u) * 0.75; return 1.0 - smoothstep(w - aa, w + aa, f); }
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    // (the floes of pack ice: the nearest and second-nearest of a scatter of points, whose difference is a crack between them)
+    vec3 cells(vec2 p) { vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0, id = 0.0;
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)), o = vec2(hash(i + g), hash(i + g + 19.7)) * 0.85 + 0.075;
+        float d = length(g + o - f); if (d < d1) { d2 = d1; d1 = d; id = hash(i + g + 3.3); } else if (d < d2) d2 = d; }
+      return vec3(d1, d2 - d1, id); }
+    // (the same, giving the nearest point's id and the way from it to here, for crowns lit on one side)
+    vec4 cellsV(vec2 p) { vec2 i = floor(p), f = fract(p), best = vec2(0.0); float d1 = 8.0, id = 0.0;
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)), o = vec2(hash(i + g), hash(i + g + 19.7)) * 0.85 + 0.075, r = f - g - o;
+        float d = length(r); if (d < d1) { d1 = d; id = hash(i + g + 3.3); best = r; } }
+      return vec4(d1, id, best); }
     float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
       return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
     void main() {
@@ -319,10 +332,17 @@ const terrainMat = new THREE.ShaderMaterial({
       vec4 gr = texture2D(ground, gUv);
       float cl = dot(chartC, vec3(0.299, 0.587, 0.114)), sat = max(chartC.r, max(chartC.g, chartC.b)) - min(chartC.r, min(chartC.g, chartC.b));
       float snow = smoothstep(0.82, 0.9, cl) * (1.0 - smoothstep(0.06, 0.16, sat));
+      float snow0 = snow;
     #ifdef GTEX
       snow *= step(0.85, dry);   // (the chart's pale is snow only in winter: in the other seasons a pale stretch is paper or shading, and the mountains' snow lies by height)
+      // (and in winter the snow runs on over what the chart shaded rather than whitened, the foot of a mountain, a hollow, when the
+      //  country all about is under it: lying thinner there, broken, the ground showing through in patches)
+      snow0 = snow;
+      if (dry > 0.85) { float snB = smoothstep(0.72, 0.86, dot(texture2D(map, vUv, 5.0).rgb, vec3(0.299, 0.587, 0.114)));
+        snow = max(snow, snB * smoothstep(0.3, 0.62, noise(vP.xz * 1.7 + 2.3) * 0.55 + noise(vP.xz * 6.5) * 0.3 + 0.32)); }
     #endif
       vec3 base = mix(chartC, gr.rgb * (0.82 + cl * 0.36), gr.a * (1.0 - snow) * 0.85);
+      base = mix(base, vec3(0.93, 0.93, 0.92), clamp(snow - snow0, 0.0, 1.0));   // (the snow laid on beyond the chart's own white is snow, not the chart's ink showing through)
       base = pow(base, vec3(1.05)) * vec3(0.99, 0.95, 0.86);
       // (the lie of the land from the full relief, not only from the mesh's own points: far off, where the mesh is laid coarser,
       //  every ridge and gully is still lit as it lies)
@@ -332,7 +352,7 @@ const terrainMat = new THREE.ShaderMaterial({
         vNf = normalize(mix(vNf, tn, smoothstep(7.0, 15.0, distance(vP, camPos)))); }
     #endif
       vec3 N = vNf, L = normalize(vec3(-0.55, 0.78, -0.45));
-      float land = step(${(SEA * HS + 0.004).toFixed(4)}, vH / max(relief, 0.001)), pond = 0.0;
+      float land = step(${(SEA * HS + 0.004).toFixed(4)}, vH / max(relief, 0.001)), pond = 0.0, pdeep = 0.0;
     #ifdef GTEX
       if (texOn > 0.5) land = step(0.004, texture2D(reliefN, vUv).a * 0.06);   // (the water's edge from the fine heights, not the mesh's points)
     #endif
@@ -375,18 +395,36 @@ const terrainMat = new THREE.ShaderMaterial({
         { float grassW = clamp(w[0] + w[1] + w[9], 0.0, 1.0), pv = noise(vP.xz * 0.35 + 3.7) * 0.6 + noise(vP.xz * 1.1 - 2.1) * 0.4;
           base = mix(base, mix(base * vec3(0.84, 1.02, 0.82), base * vec3(1.13, 1.05, 0.8), smoothstep(0.3, 0.75, pv)), grassW * 0.6 * (1.0 - snow));
           // (and never the acid green of a lawn: the meadow's green a little greyed and deepened, as old varnish leaves a painting)
-          base = mix(base, vec3(dot(base, vec3(0.3, 0.59, 0.11))) * vec3(1.02, 1.0, 0.9), grassW * 0.2 * (1.0 - snow)) * mix(1.0, 0.95, grassW); }
+          base = mix(base, vec3(dot(base, vec3(0.3, 0.59, 0.11))) * vec3(1.03, 1.0, 0.88), grassW * 0.28 * (1.0 - snow)) * mix(1.0, 0.94, grassW); }
+        // (a wood seen from far off, where its trees are too small to model one by one: the canopy massed as the atlas engravers
+        //  laid in a forest, crown against crown, lit on the side toward the light and dark in the hollows between, green in
+        //  summer, russet in autumn, the bare grey-brown of winter boughs; under the near trees it is only the wood's shade)
+        { float fw = smoothstep(0.25, 0.75, wa.b) * (1.0 - snow * 0.6);
+          if (fw > 0.01) {
+            vec2 sa = canSeg.xy, sb = canSeg.zw - canSeg.xy; float st = clamp(dot(vP.xz - sa, sb) / max(dot(sb, sb), 0.001), 0.0, 1.0);
+            float sdist = distance(vP.xz, sa + sb * st), cf = max(smoothstep(canR.x, canR.y, sdist), smoothstep(16.0, 34.0, distance(vP, camPos)));   // (and wherever the trees are too small to tell apart)
+            vec2 cq = vP.xz * 3.4 + vec2(noise(vP.xz * 1.6), noise(vP.xz * 1.6 + 4.0)) * 0.7;
+            vec4 cv4 = cellsV(cq); vec3 cr = vec3(cv4.x, 0.0, cv4.y);
+            float crown = 1.0 - smoothstep(0.15, 0.62, cr.x), litS = smoothstep(-0.05, 0.35, dot(cv4.zw, normalize(vec2(-0.55, -0.45)))) * crown;   // (lit on the side toward the light)
+            vec3 summerC = mix(vec3(0.16, 0.18, 0.09), vec3(0.3, 0.31, 0.15), cr.z), autC = mix(vec3(0.25, 0.15, 0.07), vec3(0.4, 0.25, 0.1), cr.z), winC = mix(vec3(0.24, 0.21, 0.17), vec3(0.33, 0.3, 0.25), cr.z);
+            vec3 cc = mix(summerC, autC, smoothstep(0.3, 0.7, dry)); cc = mix(cc, winC, smoothstep(0.8, 0.9, dry));
+            cc = mix(cc, mix(vec3(0.11, 0.13, 0.07), vec3(0.19, 0.21, 0.11), cr.z * 3.0), step(cr.z, 0.32));   // (the firs and pines among them, dark the year round)
+            cc *= mix(0.55, 1.0, crown) * (1.0 + litS * 0.35);
+            float under = (1.0 - cf) * 0.22;   // (the shade of the wood on its floor, beneath the modelled trees)
+            base *= 1.0 - fw * under;
+            float fe = smoothstep(0.42, 0.62, wa.b + (crown - 0.55) * 0.45) * (1.0 - snow * 0.6);   // (the wood's edge crown by crown, not a blur)
+            base = mix(base, cc * 1.08, fe * cf * 0.92); } }
         base = mix(base, vec3(0.4, 0.47, 0.24) * mix(grain, vec3(1.0), 0.3), clamp(oasis * 1.6, 0.0, 0.85));
         base = mix(base, base * vec3(0.78, 0.8, 0.66), smoothstep(0.1, 0.8, wcv.b) * (1.0 - snow) * 0.8);   // (wet banks)
         // (the marsh: still pools of dark water among the tussocks, a rim of black mud round each, the peat wet and sour between;
         //  frozen grey in winter. Where the pools lie is the table's own reckoning, so the reeds can stand round their edges)
         { vec2 mk = texture2D(marsh, vUv).rg; float msh = smoothstep(0.18, 0.6, mk.r);
           if (msh > 0.01) {
-            float pn = mk.g + (noise(vP.xz * 14.0) - 0.5) * 0.025;
+            float pn = mk.g + (noise(vP.xz * 14.0) - 0.5) * 0.025 - smoothstep(0.1, 0.55, texture2D(roadM, vUv).g) * 0.14;   // (the pools drawn back, their edges kept, from where a town, a work, a camp or a road stands)
             base = mix(base, base * vec3(0.74, 0.76, 0.6), msh * 0.6 * (1.0 - snow));
             float rim = smoothstep(0.6, 0.635, pn) * msh;
             base = mix(base, vec3(0.24, 0.21, 0.15) * mix(grain, vec3(1.0), 0.3), rim * 0.4 * (1.0 - snow));
-            pond = smoothstep(0.635, 0.643, pn) * smoothstep(0.45, 0.7, mk.r);
+            pond = smoothstep(0.635, 0.643, pn) * smoothstep(0.45, 0.7, mk.r) ; pdeep = smoothstep(0.645, 0.71, pn);
             N = normalize(mix(N, vec3(0.0, 1.0, 0.0), pond)); nd *= 1.0 - pond;
           } }
         // (the mountains: bare rock on the steep faces and cliffs, scree below; snow lying on the high ground where it can lie,
@@ -396,14 +434,39 @@ const terrainMat = new THREE.ShaderMaterial({
         float sL = snowLine + (latS.z > 0.5 ? clamp(0.16 * (1.0 - abs(latS.x - (1.0 - vUv.y) * latS.y) / 38.0), -0.35, 0.16) : 0.0);
         float rockW = smoothstep(0.12, 0.34, stp + (noise(vP.xz * 9.0) - 0.5) * 0.12) * mtn;
         // (alpine meadow on the lower, gentler slopes; grey-brown rock above and on every steep face)
-        float meadow = (1.0 - rockW) * smoothstep(sL - 0.12, sL - 0.38, hgt + (noise(vP.xz * 4.0) - 0.5) * 0.08) * wb.r;
+        float meadow = (1.0 - rockW) * smoothstep(sL - 0.12, sL - 0.38, hgt + (noise(vP.xz * 4.0) - 0.5) * 0.08) * wb.r * (1.0 - snow);
+        // (in winter the snow the chart lays on the country lies on the mountains' gentler slopes too, the rock showing only where it is too steep to hold)
+        float wsn = snow * (1.0 - smoothstep(0.18, 0.42, stp + (noise(vP.xz * 6.0) - 0.5) * 0.14));
         base = mix(base, mix(vec3(0.42, 0.48, 0.28), vec3(0.56, 0.5, 0.32), dry) * mix(grain, vec3(1.0), 0.2), meadow * 0.75);
-        base = mix(base, vec3(0.47, 0.44, 0.39) * mix(grain, vec3(1.0), 0.15), clamp(rockW * 0.9 + wb.r * (1.0 - meadow) * 0.35, 0.0, 1.0));
+        base = mix(base, vec3(0.5, 0.47, 0.41) * mix(grain, vec3(1.0), 0.15), clamp(rockW * 0.9 + wb.r * (1.0 - meadow) * 0.35, 0.0, 1.0) * (1.0 - wsn));
         float capL = sL + (noise(vP.xz * 1.3) - 0.5) * 0.1;
         float cap = smoothstep(capL - 0.04, capL + 0.05, hgt + (noise(vP.xz * 7.0) - 0.5) * 0.1 + (noise(vP.xz * 23.0) - 0.5) * 0.04) * (1.0 - smoothstep(0.32, 0.55, stp)) * wb.r;
+        // (and in winter, where the country about is under snow, the mountain is under it too, down its gentler slopes to its foot,
+        //  though the chart drew it as bare rock; only the crags too steep to hold it stay dark)
+        if (dry > 0.85 && wb.r > 0.02) { vec3 chB = texture2D(map, vUv, 5.0).rgb; float snB = smoothstep(0.7, 0.84, dot(chB, vec3(0.299, 0.587, 0.114)));
+          float wcap = max(snow, snB) * wb.r * (1.0 - smoothstep(0.22, 0.48, stp + (noise(vP.xz * 6.0) - 0.5) * 0.16)) * smoothstep(0.25, 0.55, noise(vP.xz * 2.2) * 0.5 + noise(vP.xz * 8.0) * 0.2 + 0.4);
+          cap = max(cap, wcap); }
         { vec3 sg = texture(gTex, vec3(p1 * 0.7, 8.0)).rgb / max(gMean[8], vec3(0.05)); float sgl = dot(sg, vec3(0.3, 0.59, 0.11));
           // (the snow's own grain, and its shaded hollows a little blue, as the snowfields of a print are tinted)
           base = mix(base, mix(vec3(0.78, 0.82, 0.9), vec3(0.95, 0.955, 0.96), clamp(0.55 + (sgl - 1.0) * 0.8 + max(dot(N, L), 0.0) * 0.4, 0.0, 1.0)), clamp(cap, 0.0, 1.0)); }
+        // (the rock broken into crags and gullies, ridged as weathered stone is, so a mountain is not a smooth lump of clay;
+        //  laid on as a fine relief the light can catch, and let go with distance before it could shimmer)
+        { float mk = mtn * (0.35 + rockW * 0.65) * (1.0 - far * 0.8), mkB = mtn * (1.0 - smoothstep(35.0, 80.0, distance(vP, camPos)));
+          if (mkB > 0.02) {
+            vec2 rq = vP.xz + vec2(noise(vP.xz * 1.1), noise(vP.xz * 1.1 + 5.0)) * 0.6;
+            float r1 = 1.0 - abs(noise(rq * 2.4) * 2.0 - 1.0), r2 = 1.0 - abs(noise(rq * 6.1 + 3.1) * 2.0 - 1.0);
+            // (and the larger spurs and valleys between them, which still tell from far off)
+            float r0 = 1.0 - abs(noise(rq * 0.85 + 9.1) * 2.0 - 1.0);
+            float hb = (r1 * r1 * 0.6 + r2 * r2 * 0.3 + noise(vP.xz * 17.0) * 0.1) * mk * 0.085 * (1.0 - cap * 0.6) + r0 * r0 * mkB * 0.2;
+            vec3 dpx = dFdx(vP), dpy = dFdy(vP), q1 = cross(dpy, N), q2 = cross(N, dpx); float dt = dot(dpx, q1);
+            vec3 gb = sign(dt) * (dFdx(hb) * q1 + dFdy(hb) * q2);
+            N = normalize(abs(dt) * N - gb);
+            base *= (1.0 - (1.0 - r1) * (1.0 - r1) * 0.22 * mk) * (1.0 - (1.0 - r0) * (1.0 - r0) * 0.12 * mkB);   // (the gullies' shadowed clefts)
+            // (the stone in its beds, paler and darker bands lying across the slope, and grey-gold lichen on the crags' tops)
+            float bed = noise(vec2(hgt * 38.0 + noise(vP.xz * 0.8) * 3.0, 0.5)) * 0.7 + noise(vP.xz * 3.0) * 0.3;
+            base *= 1.0 + (bed - 0.5) * 0.24 * rockW * (1.0 - cap);
+            base = mix(base, vec3(0.6, 0.57, 0.44), smoothstep(0.75, 0.95, r1) * smoothstep(0.5, 0.8, noise(vP.xz * 7.0)) * 0.35 * rockW * (1.0 - cap));
+          } }
         // (the roads: beaten earth, rutted and puddled, the grass trodden thin along its verges; snow packed pale on it in winter)
         float rd = texture2D(roadM, vUv).r;
         if (rd > 0.01) {
@@ -432,7 +495,13 @@ const terrainMat = new THREE.ShaderMaterial({
       col *= mix(1.0, 0.82, smoothstep(0.3, 0.9, shade) * land * max(relief, 0.6));
       if (pond > 0.001) {   // (the marsh pools: black water with the sky in it, paler as you look across it; ice in winter)
         vec3 V = normalize(camPos - vP); float fr = pow(1.0 - clamp(V.y, 0.0, 1.0), 2.5);
-        vec3 pw = mix(vec3(0.2, 0.25, 0.25), vec3(0.62, 0.67, 0.68), 0.38 + fr * 0.5) * (1.0 + (noise(vP.xz * vec2(6.0, 11.0) + time * 0.12) - 0.5) * 0.1);
+        // (peat-dark at the banks, where the water lies shallow over the mud and the reeds shade it; the sky only out in the middle)
+        vec3 pw = mix(vec3(0.16, 0.18, 0.15), vec3(0.5, 0.56, 0.58), (0.22 + fr * 0.45) * (0.45 + 0.55 * pdeep)) * (1.0 + (noise(vP.xz * vec2(6.0, 11.0) + time * 0.12) - 0.5) * 0.1);
+        pw = mix(pw, vec3(0.2, 0.17, 0.11), (1.0 - pdeep) * 0.35);
+        pw = mix(pw, vec3(0.4, 0.46, 0.48), smoothstep(10.0, 34.0, distance(vP, camPos)) * 0.55);   // (from far off, the sky's light on them: not black holes in the marsh)
+        // (duckweed and scum lying in the still corners)
+        float dw = smoothstep(0.62, 0.78, noise(vP.xz * 9.0) * 0.6 + noise(vP.xz * 27.0) * 0.4) * (1.0 - pdeep * 0.8) * (1.0 - smoothstep(0.6, 0.85, dry));
+        pw = mix(pw, vec3(0.3, 0.36, 0.14) * (0.85 + 0.3 * noise(vP.xz * 60.0)), dw * 0.8);
         pw += vec3(1.0, 0.97, 0.88) * 0.1 * smoothstep(0.86, 0.97, noise(vP.xz * vec2(3.0, 12.0) + vec2(time * 0.05, time * 0.2)));
         pw = mix(pw, vec3(0.6, 0.66, 0.7) * (0.86 + 0.14 * noise(vP.xz * 5.0)) + vec3(0.12) * smoothstep(0.7, 0.9, noise(vP.xz * vec2(2.0, 9.0))), smoothstep(0.8, 0.9, dry));
         col = mix(col, pw, pond * 0.95); }
@@ -443,8 +512,10 @@ const terrainMat = new THREE.ShaderMaterial({
       float sea = 1.0 - land;
       // (the water: a deep green-blue toward the middle, paler over the shallows by the shore, still with the sheet's own tone in it)
       float deep = smoothstep(0.0, 0.18, (${(SEA * HS + 0.004).toFixed(4)} - vH / max(relief, 0.001)) * 6.0);
-      vec3 water = mix(vec3(0.46, 0.58, 0.56), vec3(0.22, 0.34, 0.38), deep) * (0.85 + cl * 0.3);
-      col = mix(col, water * (0.92 + var * 0.1), sea * 0.75);
+      vec3 water = mix(vec3(0.44, 0.57, 0.55), vec3(0.19, 0.31, 0.37), deep) * (0.85 + min(cl, 0.45) * 0.3);
+      // (the flat chart's snow and ice is not let through the water as a grey smudge: the sea ice is drawn on its own)
+      float chW = smoothstep(0.66, 0.82, cl) * (1.0 - smoothstep(0.08, 0.18, sat));
+      col = mix(col, water * (0.92 + var * 0.1), sea * mix(0.75, 1.0, chW));
       // (the sky in the water, stronger as the eye looks across it; a fine chop on it; glints in short streaks along the wind,
       //  not the broad white blotches there were)
       // (the swell: long low waves rolling in, lit on their faces and darker in their troughs, gentler in the shallows and
@@ -452,9 +523,18 @@ const terrainMat = new THREE.ShaderMaterial({
       if (sea > 0.5) { vec2 q = vP.xz; float sw = 0.0;
         sw += cos(dot(q, vec2(0.83, 0.56)) * 5.1 - time * 0.9) * 0.5; sw += cos(dot(q, vec2(0.6, -0.8)) * 7.3 - time * 1.2 + 1.7) * 0.3; sw += cos(dot(q, vec2(0.97, 0.24)) * 11.0 - time * 1.6 + 4.1) * 0.2;
         sw += (noise(q * 3.0 + time * 0.1) - 0.5) * 0.6;
-        col *= 1.0 + sw * 0.05 * deep * (1.0 - smoothstep(6.0, 22.0, distance(vP, camPos))); }
+        col *= 1.0 + sw * 0.05 * deep * (1.0 - smoothstep(6.0, 22.0, distance(vP, camPos)));
+        // (near the eye, the fine chop the wind raises: each little wave lit on its windward face and its lee in shade, the sky
+        //  caught more on the faces turned from you; let go further off, where it would only shimmer)
+        float nearS = (1.0 - smoothstep(3.0, 13.0, distance(vP, camPos))) * (0.35 + 0.65 * deep);
+        if (nearS > 0.01) { vec2 rp = mat2(0.8, -0.6, 0.6, 0.8) * vP.xz * vec2(7.0, 12.0) + vec2(time * 0.35, time * 0.6);
+          float h0 = noise(rp) + noise(rp * 2.3 + 4.0) * 0.5, hx = noise(rp + vec2(0.06, 0.0)) + noise((rp + vec2(0.06, 0.0)) * 2.3 + 4.0) * 0.5, hz = noise(rp + vec2(0.0, 0.06)) + noise((rp + vec2(0.0, 0.06)) * 2.3 + 4.0) * 0.5;
+          vec3 Nr = normalize(vec3(-(hx - h0) * 7.0, 1.0, -(hz - h0) * 7.0)), Vs = normalize(camPos - vP);
+          col *= 1.0 + (dot(Nr, L) - L.y) * 0.9 * nearS;
+          float frR = pow(1.0 - clamp(dot(Nr, Vs), 0.0, 1.0), 3.0), fr0 = pow(1.0 - clamp(Vs.y, 0.0, 1.0), 3.0);
+          col = mix(col, vec3(0.6, 0.66, 0.68), clamp(frR - fr0, 0.0, 1.0) * 0.6 * nearS); } }
       { vec3 V = normalize(camPos - vP); float fr = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0);
-        col = mix(col, vec3(0.62, 0.67, 0.68), sea * fr * 0.5);
+        col = mix(col, vec3(0.6, 0.66, 0.68), sea * fr * 0.4);
         col *= 1.0 + (noise(vP.xz * vec2(5.0, 9.0) + vec2(time * 0.21, time * 0.13)) - 0.5) * 0.09 * sea * (1.0 - smoothstep(10.0, 30.0, distance(vP, camPos))); }
       float gl = smoothstep(0.82, 0.97, noise(vP.xz * vec2(3.0, 11.0) + vec2(time * 0.09, time * 0.3))) * smoothstep(0.55, 0.85, noise(vP.xz * 0.8 - time * 0.03));
       col += sea * gl * 0.12 * vec3(1.0, 0.98, 0.9);
@@ -465,6 +545,32 @@ const terrainMat = new THREE.ShaderMaterial({
       col = mix(col, col * vec3(0.66, 0.7, 0.7), wl * sea * mix(0.3, 0.5, smoothstep(3.0, 12.0, distance(vP, camPos))) * (1.0 - smoothstep(18.0, 40.0, distance(vP, camPos))));
       float surf = 1.0 - smoothstep(0.0, 0.016, sd - (sin(time * 1.3 + vP.x * 4.0 + vP.z * 3.0) * 0.5 + 0.5) * 0.008);
       col = mix(col, vec3(0.86, 0.88, 0.84), surf * sea * 0.4);
+      // (the pack ice where the chart has the sea frozen: floes jostled together, white on top and blue-grey at their broken
+      //  edges, dark water open in the leads between them, the pack breaking up into loose floes toward its edge)
+      if (sea > 0.5 && chW > 0.02) {
+        float dI = distance(vP, camPos), aaF = clamp((dI - 6.0) / 50.0, 0.0, 1.0);
+        float pk = chW + (noise(vP.xz * 1.3 + 4.1) - 0.5) * 0.4 + (noise(vP.xz * 4.3) - 0.5) * 0.14;
+        vec2 wq = vec2(noise(vP.xz * 2.1), noise(vP.xz * 2.1 + 7.7)) * 0.9 + vec2(noise(vP.xz * 6.0), noise(vP.xz * 6.0 - 3.1)) * 0.25;
+        vec3 cb = cells(vP.xz * 1.15 + wq), cs = cells(vP.xz * 3.2 + wq * 1.6 + 11.0);
+        float cov = smoothstep(0.4, 0.75, pk);   // (how close the pack is: open toward its edge, all but shut in the middle)
+        // (the big floes split again into smaller ones where the pack loosens)
+        float brk = smoothstep(0.8, 0.45, pk), sep = mix(cb.y, min(cb.y, cs.y), brk);
+        // (most of the joins are only a pressure ridge; here and there one has opened into a lead of black water)
+        float wint = smoothstep(0.8, 0.9, dry), opn = smoothstep(0.5, 0.7, noise(vP.xz * 0.9 + cb.z * 3.0) + (1.0 - cov) * 0.6) * (1.0 - 0.5 * wint);
+        float lw = mix(0.012, 0.07, opn) * (1.0 + (noise(vP.xz * 9.0) - 0.5) * 0.8);
+        float lead = (1.0 - smoothstep(lw * 0.6, lw, sep)) * mix(0.0, 1.0, smoothstep(0.15, 0.5, opn + (1.0 - cov)));
+        float there = smoothstep(0.3, 0.62, pk + (cs.z - 0.5) * 0.35 * brk);
+        float floe = there * (1.0 - lead * (1.0 - aaF));
+        floe = mix(floe, smoothstep(0.38, 0.68, pk), aaF);
+        vec3 sg = texture(gTex, vec3(vP.xz * 1.6, 8.0)).rgb / max(gMean[8], vec3(0.05)); float sgl = dot(sg, vec3(0.3, 0.59, 0.11));
+        vec3 iceC = mix(vec3(0.8, 0.85, 0.89), vec3(0.94, 0.945, 0.95), clamp(0.6 + (cb.z - 0.5) * 0.35 + (sgl - 1.0) * 0.6, 0.0, 1.0));
+        float ridge = (1.0 - smoothstep(0.0, 0.035, sep)) * (1.0 - opn) * (1.0 - aaF);
+        iceC = mix(iceC, vec3(0.97, 0.97, 0.97), ridge * 0.5);
+        iceC *= 1.0 - smoothstep(0.035, 0.012, abs(sep - 0.045)) * (1.0 - opn) * 0.08 * (1.0 - aaF);   // (the ridge's shadow)
+        iceC = mix(iceC, vec3(0.6, 0.71, 0.77), (1.0 - smoothstep(lw, lw + 0.05, sep)) * opn * 0.6 * (1.0 - aaF));   // (blue at a floe's broken edge)
+        col = mix(col, vec3(0.5, 0.57, 0.6) * (0.9 + 0.1 * noise(vP.xz * 7.0)), wint * 0.7 * smoothstep(0.3, 0.6, pk));   // (in winter the leads skinned over with new grey ice)
+        col = mix(col, iceC, floe); }
+      col *= tint;
       // what you know, and what you see now
       float kn = texture2D(known, vUv).a;
       vec4 dm = texture2D(dim, vUv);
@@ -473,7 +579,19 @@ const terrainMat = new THREE.ShaderMaterial({
       //  stained; its edge torn, ragged and fibrous, a little paler where it was torn, and casting a soft shadow on the land it
       //  has been drawn back from, as a sheet lying on the table would)
       float mot = noise(vP.xz * 0.35) * 0.6 + noise(vP.xz * 1.3) * 0.25 + noise(vP.xz * 4.0) * 0.15;
-      vec3 vellum = vec3(0.30, 0.24, 0.16) * (0.78 + 0.4 * mot);
+      vec3 vellum = vec3(0.33, 0.265, 0.175) * (0.78 + 0.4 * mot);
+      { float dV = distance(vP, camPos), nearV = 1.0 - smoothstep(12.0, 45.0, dV);
+        // (the skin's own grain, fine fibres running one way; foxing, the small brown spots old vellum takes; the faint tide-lines
+        //  of a stain long dried; and the sheet a little cockled, catching the light on its rises)
+        float fib = noise(vP.xz * vec2(42.0, 7.0) + noise(vP.xz * 3.0) * 2.0) * 0.6 + noise(vP.xz * vec2(90.0, 14.0)) * 0.4;
+        vellum *= 1.0 + (fib - 0.5) * 0.1 * nearV;
+        vec2 fq = vP.xz * 1.7 + 31.0 + vec2(noise(vP.xz * 4.0), noise(vP.xz * 4.0 + 9.0)) * 0.5; vec3 fx = cells(fq);
+        float fox = (1.0 - smoothstep(0.0, 0.05 + fx.z * fx.z * 0.16, fx.x + (noise(vP.xz * 18.0) - 0.5) * 0.05)) * step(0.88, fract(fx.z * 7.31)) * smoothstep(0.35, 0.7, noise(vP.xz * 0.45 + 3.0));
+        vellum = mix(vellum, vellum * vec3(0.74, 0.62, 0.5), fox * 0.55 * nearV);
+        float tn = noise(vP.xz * 0.2 + 5.0) * 4.0, tide = smoothstep(0.1, 0.0, abs(fract(tn) - 0.5) - 0.42) * smoothstep(0.62, 0.8, noise(vP.xz * 0.11 - 2.0));
+        vellum = mix(vellum, vellum * vec3(0.86, 0.8, 0.7), tide * 0.25);
+        float ck = noise(vP.xz * 0.7 + 1.3) * 0.7 + noise(vP.xz * 1.9) * 0.3;
+        vellum *= 0.9 + 0.2 * smoothstep(0.2, 0.8, ck + (noise((vP.xz + vec2(-0.25, -0.2)) * 0.7 + 1.3) - noise(vP.xz * 0.7 + 1.3)) * 2.0); }
       float rag = (noise(vP.xz * 2.6 + 7.0) - 0.5) * 0.26 + (noise(vP.xz * 9.0 - 3.0) - 0.5) * 0.1 + (noise(vP.xz * 31.0) - 0.5) * 0.04;
       float ed = kn + rag, aaE = fwidth(ed) * 0.8 + 0.004;
       float paper = 1.0 - smoothstep(0.45 - aaE, 0.45 + aaE, ed);
@@ -629,6 +747,10 @@ function buildGround(season) {
   for (const k of ['A', 'B', 'C']) { const tx = new THREE.CanvasTexture(sheets[k].canvas); tx.flipY = true; const o = U['mix' + k].value; U['mix' + k].value = tx; if (o) o.dispose(); }
   buildMarsh(sheets.B);
   U.dry.value = { spring: 0, summer: 0.25, autumn: 0.7, winter: 0.9 }[season] || 0;
+  // (the light of the season, on the land and on everything standing on it: clear in spring, warm in summer, low and golden in
+  //  autumn, cold and pale in winter)
+  { const T = { spring: [1.0, 1.0, 0.98, 0xfff0d4], summer: [1.03, 1.0, 0.93, 0xfff0c8], autumn: [1.06, 0.97, 0.86, 0xffe0ac], winter: [0.92, 0.96, 1.04, 0xe6ecf6] }[season] || [1, 1, 1, 0xfff0d4];
+    U.tint.value.set(T[0], T[1], T[2]); sun.color.setHex(T[3]); }
   { const hs = W.mtnH || [], qn = (W.style === 'earth' ? { spring: 0.88, summer: 0.95, autumn: 0.9, winter: 0.66 } : { spring: 0.95, summer: 0.98, autumn: 0.96, winter: 0.75 })[season] ?? 0.95; U.snowLine.value = hs.length ? hs[Math.min(hs.length - 1, Math.floor(hs.length * qn))] : 1.3; } riverMat.uniforms.ice0.value = season === 'winter' ? 1 : 0; if (W.style === 'earth') riverMat.uniforms.iceLat.value.set(W.lat0, W.latH, 1);
 }
 // ===========================================================================================================================
@@ -733,7 +855,14 @@ function sculpt() {
       const n = Math.max(4, Math.ceil(len / 0.03)), pts = [];
       for (let k = 0; k <= n; k++) { const t = k / n, s = 1 - t, b0 = s * s * s, b1 = 3 * s * s * t, b2 = 3 * s * t * t, b3 = t * t * t, sw = Math.sin(Math.PI * t) ** 2 * bend * 0.8;
         pts.push([b0 * a[0] + b1 * P1[0] + b2 * P2[0] + b3 * out[0] + px * sw, b0 * a[1] + b1 * P1[1] + b2 * P2[1] + b3 * out[1] + pz * sw, t]); }
-      courses.push({ i, u, to: hasTo ? to : -1, toSea: hasTo && tl[to].type === 0, pts });
+      // (and the lesser windings a river makes in its own bed, wider as it grows: the same everywhere a course passes, so two
+      //  stretches meeting wind on together; let go at the mouth, so it still runs out into the sea)
+      const toSea = hasTo && tl[to].type === 0, amp = 0.055 + Math.min(3, Math.log2(flow[i] || 1)) * 0.016;
+      for (const p of pts) { const k = amp * (toSea ? sstep(1, 0.75, p[2]) : 1);
+        const x0 = p[0], z0 = p[1];
+        p[0] += (gnoise(x0 * 1.6 + 11.1, z0 * 1.6 - 4.2) * 0.75 + gnoise(x0 * 3.9 - 2.6, z0 * 3.9 + 8.3) * 0.25) * k;
+        p[1] += (gnoise(x0 * 1.6 - 7.3, z0 * 1.6 + 2.9) * 0.75 + gnoise(x0 * 3.9 + 5.4, z0 * 3.9 - 1.8) * 0.25) * k; }
+      courses.push({ i, u, to: hasTo ? to : -1, toSea, pts });
     }
   }
   // (each tile's water level: below the lowest ground its course crosses, and never above the tile upstream of it)
@@ -861,6 +990,7 @@ function buildWorld() {
   if (chart.width > maxT || chart.height > maxT) { const k = maxT / Math.max(chart.width, chart.height); src = document.createElement('canvas'); src.width = Math.round(chart.width * k); src.height = Math.round(chart.height * k); src.getContext('2d').drawImage(chart, 0, 0, src.width, src.height); }
   const tex = new THREE.CanvasTexture(src); tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); tex.generateMipmaps = true;
   U.map.value = tex;
+  if (!chartSrc) { chartSrc = src; snowCache.clear(); }   // (so where the snow and the ice lie can be read from the first turn, not only once the season turns)
   updateFog();
   const nx = Math.min(F.LW, innerWidth <= 760 ? 560 : Math.max(1000, Math.round(W.w * 16))), nz = Math.round(nx * F.LH / F.LW);   // (fine enough everywhere to cut a river's channel: about sixteen points to a unit of the table)
   const pos = new Float32Array((nx + 1) * (nz + 1) * 3), uv = new Float32Array((nx + 1) * (nz + 1) * 2);
@@ -904,8 +1034,14 @@ function buildTable() {
   { const wt = ld('rough_wood'); wt.repeat.set((W.w + 4) / 10, 1);
     const wood = new THREE.MeshLambertMaterial({ map: wt, color: 0x5a3820 }), gilt = new THREE.MeshLambertMaterial({ color: 0x6a5228 });
     const board = new THREE.Mesh(new THREE.BoxGeometry(W.w + 4, 0.8, W.d + 4), wood); board.position.set(cx, y0 - 0.46, cz); tg.add(board);
+    // (the gilt bead: a row of round gilded beads catching the lamp, drawn once and laid along each side of the frame)
+    const beadTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.fillStyle = '#4a3818'; g.fillRect(0, 0, 64, 64);
+      const gr = g.createRadialGradient(24, 22, 2, 32, 32, 28); gr.addColorStop(0, '#c8a860'); gr.addColorStop(0.3, '#8e7034'); gr.addColorStop(0.8, '#5a4420'); gr.addColorStop(1, '#3a2a10');
+      g.fillStyle = gr; g.beginPath(); g.arc(32, 32, 27, 0, 7); g.fill(); return c; })();
     const ring = (m0, w, top, h, mat) => { for (const [bw, bd, x, z] of [[W.w + 2 * (m0 + w), w, cx, -m0 - w / 2], [W.w + 2 * (m0 + w), w, cx, W.d + m0 + w / 2], [w, W.d + 2 * m0, -m0 - w / 2, cz], [w, W.d + 2 * m0, W.w + m0 + w / 2, cz]]) {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(bw, h, bd), mat); b.position.set(x, top - h / 2, z); tg.add(b); } };
+      let m = mat; if (mat === gilt) { const t = new THREE.CanvasTexture(beadTex); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(Math.max(1, Math.round(bw / (w * 0.7))), Math.max(1, Math.round(bd / (w * 0.7)))); t.anisotropy = 4;
+        m = new THREE.MeshPhongMaterial({ map: t, color: 0x9a8a6a, specular: 0x3a2c14, shininess: 30 }); }
+      const b = new THREE.Mesh(new THREE.BoxGeometry(bw, h, bd), m); b.position.set(x, top - h / 2, z); tg.add(b); } };
     ring(0, 0.22, y0 + 0.05, 0.2, gilt);
     ring(0.22, 1.5, y0 + 0.12, 0.3, wood);
     ring(1.72, 0.28, y0 + 0.06, 0.3, new THREE.MeshLambertMaterial({ map: wt, color: 0x4a2e18 })); }
@@ -919,7 +1055,7 @@ function buildTable() {
   // (a letter, folded, under a red seal)
   prop(k => { k.add(Gm.box(1.8, 0.03, 1.2), 0x9a8e72, M(0, 0.015, 0), 0.008); k.add(Gm.box(1.8, 0.012, 0.02), 0xa89c80, M(0, 0.032, -0.2), 0); k.add(Gm.cyl(0.16, 0.18, 0.04, 16), 0x8a1e1e, M(0.2, 0.045, 0.1), 0.006); }, W.w + 3.3, W.d * 0.3, -0.35, 2.0);
   // (a pewter inkwell, its quill standing in it)
-  prop(k => { k.add(Gm.cyl(0.42, 0.5, 0.3, 20), 0x7a7a76, M(0, 0.15, 0), 0.01); k.add(Gm.cyl(0.16, 0.2, 0.14, 14), 0x6e6e6a, M(0, 0.37, 0), 0.008); k.add(Gm.cyl(0.11, 0.11, 0.02, 12), 0x141210, M(0, 0.44, 0), 0);
+  prop(k => { k.add(Gm.cyl(0.42, 0.5, 0.3, 20), 0x4e5052, M(0, 0.15, 0), 0.01); k.add(Gm.cyl(0.52, 0.52, 0.03, 20), 0x44464a, M(0, 0.015, 0), 0.008); k.add(Gm.cyl(0.16, 0.2, 0.14, 14), 0x484a4c, M(0, 0.37, 0), 0.008); k.add(Gm.cyl(0.11, 0.11, 0.02, 12), 0x141210, M(0, 0.44, 0), 0);
     const q = k.at(M(0, 0.42, 0, 0.42, 0.6, 0)); q.add(Gm.cyl(0.012, 0.02, 2.4, 6), 0xd8ceb6, M(0, 1.2, 0), 0.004); q.add(Gm.ball(1, 8), 0xece6d8, M(0.05, 1.7, 0, 0, 0, 0.1, 0.16, 0.9, 0.03), 0.004); }, W.w * 0.72, -3.6, 0.3, 2.0);
 }
 // the fog: the game's own masks of the known and the watched land, laid over the sheet (redrawn after each move and turn)
@@ -1763,7 +1899,8 @@ function defenceWorks(k, bl, gate, star, winter) {
 }
 // (a town's ground: trodden earth with a ragged edge, laid on the land and following it, and about it a band of worn, thin grass;
 //  not a raised round counter, which is what a cylinder of earth looked like)
-function townGround(k, r, earth, worn, seed) {
+function townGround(k, r, earth, worn, seed, inGround) {
+  if (inGround) return;   // (a town's earth is painted into the ground's own marks: see paintGroundMarks)
   let sd = (seed >>> 0) % 2147483646 + 1; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, ph = [rnd() * 6, rnd() * 6, rnd() * 6];
   const ragged = (R, amt) => { const sh = new THREE.Shape(); for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, f = 1 + amt * (Math.sin(a * 3 + ph[0]) * 0.5 + Math.sin(a * 7 + ph[1]) * 0.3 + Math.sin(a * 13 + ph[2]) * 0.2);
     const x = Math.cos(a) * R * f, z = Math.sin(a) * R * f; if (i) sh.lineTo(x, z); else sh.moveTo(x, z); } const g = new THREE.ShapeGeometry(sh, 2); g.rotateX(-Math.PI / 2); return g; };
@@ -1779,7 +1916,7 @@ function worldTownKit(c, nCol, winter, style) {
   let sd = (c.x * 73856093 ^ c.y * 19349663) >>> 0 || 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647, pick = a => a[(rnd() * a.length) | 0];
   const urban = ['east', 'south', 'hindu', 'abyssinia', 'maya', 'andes'].includes(style), THATCH = [0xb89a58, 0xa88a4c, 0xc4a866], SNOWY = winter;
   // (the ground: beaten earth, and in the towns a paved square)
-  townGround(k, 0.44, SNOWY ? 0xd8d8d2 : style === 'south' ? 0x9a8462 : 0x5c5040, SNOWY ? 0xc8ccc4 : style === 'south' ? 0x8a8458 : 0x5c5e3a, (c.x * 31 + c.y * 17) | 0);
+  townGround(k, 0.44, SNOWY ? 0xd8d8d2 : style === 'south' ? 0x9a8462 : 0x5c5040, SNOWY ? 0xc8ccc4 : style === 'south' ? 0x8a8458 : 0x5c5e3a, (c.x * 31 + c.y * 17) | 0, true);
   if (urban) k.tex('cobblestone_floor_01').add(Gm.cyl(0.1, 0.1, 0.004, 20), SNOWY ? 0xe6e8ea : style === 'south' ? 0xc8b48a : 0x9a9078, M(0, 0.009, 0), 0);
   const roofSnow = (hk, w, d, h, rh) => { if (SNOWY) hk.add(prism, SNOWC, M(0, h + rh * 0.22, 0, 0, 0, 0, w * 0.62, rh * 0.58, d * 1.08), 0); };
   // (one dwelling, in the people's manner)
@@ -1904,7 +2041,7 @@ function townKit(c, nCol, winter) {
     if (rnd() < 0.6) hk.add(Gm.box(0.012, 0.03, 0.012), 0x7a5a48, M(w * 0.25, h + w * 0.28, d * 0.2), INK);   // (a chimney)
   };
   // (the ground of the town: beaten earth, a small cobbled market square with its well)
-  townGround(k, 0.44, winter ? 0xd8d8d2 : 0x5c5040, winter ? 0xc8ccc4 : 0x5c5e3a, (c.x * 31 + c.y * 17) | 0);
+  townGround(k, 0.44, winter ? 0xd8d8d2 : 0x5c5040, winter ? 0xc8ccc4 : 0x5c5e3a, (c.x * 31 + c.y * 17) | 0, true);
   (winter ? k : k.tex('cobblestone_floor_01')).add(Gm.cyl(0.1, 0.1, 0.004, 20), winter ? 0xe6e8ea : 0x9a9078, M(0, 0.009, 0), 0);
   k.tex('castle_brick_01').add(Gm.cyl(0.012, 0.013, 0.012, 10), 0xa49a84, M(0.02, 0.016, -0.02), 0.002); k.add(Gm.box(0.002, 0.03, 0.002), WOOD, M(0.02, 0.03, -0.032), 0); k.add(Gm.box(0.002, 0.03, 0.002), WOOD, M(0.02, 0.03, -0.008), 0); k.add(Gm.box(0.003, 0.003, 0.03), WOOD, M(0.02, 0.045, -0.02), 0);
   // (the houses packed in blocks between the streets that run in from the gates, back to back, the blocks filling outward from
@@ -1919,7 +2056,7 @@ function townKit(c, nCol, winter) {
       const a = i / cnt * Math.PI * 2 + off, x = Math.sin(a) * r, z = Math.cos(a) * r;
       if (streets.some(s0 => Math.abs(Math.atan2(Math.sin(a - s0), Math.cos(a - s0))) * r < 0.032)) continue;
       if (keep.some(([kx, kz, kr]) => Math.hypot(x - kx, z - kz) < kr)) continue;
-      if (placed >= n) { if (!winter && rnd() < 0.6) { const gk = k.at(M(x, 0, z, 0, a, 0)); gk.add(Gm.box(0.05, 0.004, 0.04), [0x5e7a36, 0x6a8a3a, 0x4e6a30][(rnd() * 3) | 0], M(0, 0.01, 0), 0); gk.add(Gm.ball(0.012, 8), 0x4a6a2e, M(0.012, 0.022, 0.006, 0, 0, 0, 1, 0.9, 1), 0.0015); } continue; }
+      if (placed >= n) { if (!winter && rnd() < 0.6) { const gk = k.at(M(x, 0, z, 0, a, 0)); gk.add(Gm.box(0.05, 0.004, 0.04), [0x56462c, 0x4e4028, 0x5c4c32][(rnd() * 3) | 0], M(0, 0.01, 0), 0); { const gc = [0x4a5e2c, 0x56662e, 0x3e5228][(rnd() * 3) | 0]; for (let q = -1; q <= 1; q++) gk.add(Gm.box(0.044, 0.004, 0.006), gc, M(0, 0.013, q * 0.012), 0); }   /* (a kitchen garden: dug earth, the beds in rows) */ gk.add(Gm.ball(0.012, 8), 0x3e542a, M(0.016, 0.022, 0.012, 0, 0, 0, 1, 0.9, 1), 0.0015); } continue; }
       const w = (Math.PI * 2 * r / cnt) * (0.86 + rnd() * 0.08), d = 0.046 + rnd() * 0.006, h = 0.05 + rnd() * 0.03 + Math.min(0.04, pop * 0.003) + (rings.length - ri) * 0.004;
       house(x, z, ri % 2 ? a : a + Math.PI, w, d, h, rnd() < 0.25); placed++;
     }
@@ -1934,7 +2071,12 @@ function townKit(c, nCol, winter) {
   }
   // (a capital's palace: a long front under a dome)
   if (cap) { const pk = k.at(M(-0.27, 0, -0.14, 0, -0.9, 0, 1.3));
-    pk.tex('clay_plaster').add(Gm.box(0.2, 0.09, 0.09), 0xece2c8, M(0, 0.045, 0), INK); pk.add(Gm.box(0.21, 0.012, 0.1), 0x6a6460, M(0, 0.095, 0), INK);
+    pk.tex('clay_plaster').add(Gm.box(0.2, 0.09, 0.09), 0xece2c8, M(0, 0.045, 0), INK); pk.add(Gm.box(0.21, 0.008, 0.1), 0xb8ae98, M(0, 0.093, 0), INK);
+    // (its front: two storeys of tall windows, quoins at the corners, a pedimented door in the middle, under a slated roof)
+    pk.add(prism, winter ? 0xe8ecf0 : 0x5a5450, M(0, 0.097, 0, 0, Math.PI / 2, 0, 0.096, 0.064, 0.205), INK / 0.08);
+    for (const sz of [-1, 1]) { for (const wy of [0.03, 0.067]) for (let q = -3; q <= 3; q++) { if (sz > 0 && wy < 0.05 && q === 0) continue; pk.add(Gm.box(0.011, wy < 0.05 ? 0.02 : 0.017, 0.002), 0x2e2a26, M(q * 0.026, wy, sz * 0.0455), 0); }
+      for (const sx of [-1, 1]) pk.add(Gm.box(0.008, 0.088, 0.093), 0xd6cab0, M(sx * 0.097, 0.044, 0), 0); }
+    pk.add(Gm.box(0.018, 0.034, 0.003), 0x3a2a1a, M(0, 0.017, 0.0458), 0); pk.add(prism, 0xd6cab0, M(0, 0.036, 0.047, 0, 0, 0, 0.032, 0.022, 0.004), 0);
     pk.add(Gm.cyl(0.04, 0.045, 0.05, 14), 0xece2c8, M(0, 0.125, 0), INK); pk.add(new THREE.SphereGeometry(0.042, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), winter ? 0xe8ecf0 : 0x5e8a7a, M(0, 0.15, 0), INK);
     pk.add(Gm.box(0.004, 0.06, 0.004), 0x3a2a1a, M(0, 0.22, 0), 0); pk.add(Gm.box(0.04, 0.026, 0.003), nCol, M(0.021, 0.24, 0), 0.002);
   }
@@ -2002,7 +2144,7 @@ function wheel(k, x, y, z, r, rot = 0) {   // (a spoked wheel, standing upright,
 function cart(k, x, z, rot) { const ck = k.at(M(x, 0, z, 0, rot, 0)).lay(false); ck.tex('rough_wood').add(Gm.box(0.05, 0.016, 0.07), WOOD, M(0, 0.03, 0), 0.003); for (const s of [-1, 1]) wheel(ck, s * 0.03, 0.02, 0, 0.02); ck.add(Gm.box(0.004, 0.004, 0.06), WOOD, M(0, 0.025, 0.06), 0); }
 function hayrick(k, x, z, s = 1) { const hk = k.lay(false); hk.add(Gm.cyl(0.02 * s, 0.024 * s, 0.025 * s, 12), 0xc8a050, M(x, 0.0125 * s, z), 0.003); hk.add(Gm.cone(0.026 * s, 0.03 * s, 12), 0xb89040, M(x, 0.04 * s, z), 0.003); }
 // (field crops by season: [crop, ploughed])
-const FIELDS = { spring: [[0x7aa046, 0x6a4e30, 0x8aa84e]], summer: [[0xc8a848, 0x86a040, 0xd0b050]], autumn: [[0xb09050, 0x6a4e30, 0xa48448]], winter: [[0xe6e8e6, 0xd8dcdc, 0xe0e2e0]] };
+const FIELDS = { spring: [[0x6a8c3e, 0x6a4e30, 0x789646]], summer: [[0xc8a848, 0x86a040, 0xd0b050]], autumn: [[0xb09050, 0x6a4e30, 0xa48448]], winter: [[0xe6e8e6, 0xd8dcdc, 0xe0e2e0]] };
 function fields(k, x0, z0, nx, nz, cw, cd, rot, season, rnd) {
   const fk = k.at(M(x0, 0, z0, 0, rot, 0)).lay(true), cols = FIELDS[season][0], winter = season === 'winter';
   for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
@@ -2380,7 +2522,11 @@ function paintGroundMarks() {
   // (the marks: ragged blots, softened at the edge. Drawn sharp on a layer of their own and softened all at once, a layer for each
 //  softness: softening each blot on its own was hundreds of blurs of the whole sheet on the graphics card, which on the map of
 //  Europe, with its many towns' lanes, was more than the card would bear: it gave up and the table went blank)
-  const groups = new Map(); for (const m of groundMarks) { const b = Math.round(Math.max(0.8, m.r * 0.25 * px) * 2) / 2; if (!groups.has(b)) groups.set(b, []); groups.get(b).push(m); }
+  // (each town's ground: beaten earth trodden out from its streets, its edge ragged and run into a verge of worn grass, laid into
+  //  the ground itself so it takes the land's own grain and light: not a flat counter the town stands on)
+  const townMarks = []; for (const p of pieces.values()) if (p.userData.kind === 'town' && !p.userData.gone) { const x = p.position.x, z = p.position.z, sd = (Math.abs(Math.round(x * 97 + z * 61)) % 9973) + 1;
+    townMarks.push({ x, z, r: 0.52, col: 'rgb(105,0,0)', rag: 0.32, seed: sd }, { x, z, r: 0.4, col: 'rgb(150,0,0)', rag: 0.28, seed: sd + 3 }, { x: x + 0.03, z: z - 0.02, r: 0.22, col: 'rgb(90,0,0)', rag: 0.4, seed: sd + 7 }); }
+  const groups = new Map(); for (const m of [...groundMarks, ...townMarks]) { const b = Math.round(Math.max(0.8, m.r * 0.25 * px) * 2) / 2; if (!groups.has(b)) groups.set(b, []); groups.get(b).push(m); }
   const lc = markLayer || (markLayer = document.createElement('canvas')); lc.width = MW; lc.height = MH; const lg = lc.getContext('2d');
   for (const [blur, list] of groups) {
     lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, MW, MH); lg.globalCompositeOperation = 'lighter';
@@ -2519,7 +2665,7 @@ function featureKit(kind, sd, season, gf, info) {
       const gk = k.lay(true).tex('castle_brick_01');
       for (let i = 0; i < 7; i++) { const x = (rnd() - 0.5) * 0.3, z = (rnd() - 0.5) * 0.26, w = 0.05 + rnd() * 0.04, d = 0.04 + rnd() * 0.03, r = rnd() * 0.4;
         const sk = k.at(M(x, 0, z, 0, r, 0)).lay(true);
-        for (const [a, b, L, rr] of [[0, -d / 2, w, 0], [0, d / 2, w, 0], [-w / 2, 0, d, Math.PI / 2], [w / 2, 0, d, Math.PI / 2]]) if (rnd() < 0.8) sk.tex('rock_face_03').add(lumpy(new THREE.BoxGeometry(L, 0.007, 0.013, 4, 1, 1), 0.0015, 150), rnd() < 0.5 ? 0x7e7a70 : 0x6e6a62, M(a, 0.002, b, 0, rr, 0), 0.0015); }
+        for (const [a, b, L, rr] of [[0, -d / 2, w, 0], [0, d / 2, w, 0], [-w / 2, 0, d, Math.PI / 2], [w / 2, 0, d, Math.PI / 2]]) if (rnd() < 0.8) sk.tex('rock_face_03').add(lumpy(new THREE.BoxGeometry(L, 0.007, 0.016, 4, 1, 1), 0.0015, 150), rnd() < 0.5 ? 0x5e6252 : 0x52584a, M(a, 0.002, b, 0, rr, 0), 0.0015); }   /* (moss and turf grown over the old stones) */
       const ck = k.at(M(0.12, 0, 0.1)).lay(false).tex('castle_brick_01'); ck.add(Gm.box(0.008, 0.05, 0.006), 0x9a927e, M(0, 0.025, 0, 0, 0, 0.08), 0.0015); ck.add(Gm.box(0.026, 0.007, 0.006), 0x9a927e, M(0, 0.04, 0, 0, 0, 0.08), 0.0015);
       for (const [x, z] of [[-0.2, -0.16], [0.2, -0.16], [0.2, 0.16], [-0.2, 0.16]]) k.lay(false).add(Gm.box(0.003, 0.03, 0.003), 0xc8b490, M(x, 0.015, z), 0);
       const fl = k.at(M(-0.2, 0, -0.16)).lay(false); fl.add(Gm.cyl(0.0015, 0.0015, 0.07, 4), 0x6a5034, M(0, 0.035, 0), 0); fl.add(Gm.box(0.022, 0.014, 0.001), 0xd8cfb8, M(0.011, 0.062, 0), 0.001);
@@ -2566,7 +2712,7 @@ function featureKit(kind, sd, season, gf, info) {
           // (the garden behind: beds in rows, a fence)
           const gx = x + sa * side * 0.075, gz = z - ca * side * 0.075;
           if (land(gx, gz) && rnd() < 0.8) { const gk = k.at(M(gx, 0, gz, 0, a, 0)).lay(true);
-            for (let b = 0; b < 3; b++) gk.add(new THREE.BoxGeometry(0.014, 0.004, 0.05, 1, 1, 3), winter ? 0xd8d8d2 : [0x5a4630, 0x6a8a3a, 0x7a9a44][b], M((b - 1) * 0.018, 0.003, 0), 0); }
+            for (let b = 0; b < 3; b++) gk.add(new THREE.BoxGeometry(0.014, 0.004, 0.05, 1, 1, 3), winter ? 0xd8d8d2 : [0x52422c, 0x4a5e2c, 0x56662e][b], M((b - 1) * 0.018, 0.003, 0), 0); }
           if (winter) continue;
           if (rnd() < 0.3) { const ox = x + sa * side * 0.13, oz = z - ca * side * 0.13; if (land(ox, oz)) for (let t = 0; t < 3; t++) { const tx = ox + (rnd() - 0.5) * 0.06, tz = oz + (rnd() - 0.5) * 0.06, ok = k.lay(false);
             ok.add(Gm.cyl(0.002, 0.003, 0.02, 5), 0x4e3a26, M(tx, 0.01, tz), 0); ok.add(Gm.ball(0.014, 8), autumn ? 0xa8742e : 0x5e7e38, M(tx, 0.027, tz, 0, 0, 0, 1, 0.85, 1), 0.0015); } }   // (an orchard)
@@ -2643,8 +2789,13 @@ function featureKit(kind, sd, season, gf, info) {
     case 'w-salt_marsh': {
       // (the Salt Marsh: the sea let into square pans to dry, white salt raked into heaps along the banks, the boiling-house smoking)
       const pk = k.at(M(0.02, 0, 0.03, 0, 0.3, 0));
-      for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { const x = (i - 1.5) * 0.085 + (rnd() - 0.5) * 0.01, z = (j - 1) * 0.085 + (rnd() - 0.5) * 0.01, c = (i * 5 + j * 3) % 4 === 0 ? 0xe4e4dc : (i + j) % 2 ? 0x34505a : 0x46646a, sw = 0.066 + rnd() * 0.012, sd = 0.066 + rnd() * 0.012;
-        pk.lay(true).add(new THREE.BoxGeometry(sw, 0.003, sd, 3, 1, 3), c, M(x, 0.002, z), 0); pk.lay(true).add(new THREE.BoxGeometry(sw + 0.014, 0.0024, sd + 0.014, 3, 1, 3), 0x4a3c2c, M(x, 0.0012, z), 0); }
+      // (the pans run from the sea's side, where the brine stands deep and grey, to the far side, where it has dried to a crust;
+      //  dug by hand, no two quite square or quite the same, the banks between them of the marsh's own mud)
+      const BRINE = [0x34403e, 0x3c4846, 0x44504c], DRY = [0x6a6c64, 0x7a7a70], CRUST = [0xa8a598, 0xb6b2a4];
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { if (rnd() < 0.08) continue;
+        const x = (i - 1.5) * 0.085 + (rnd() - 0.5) * 0.014, z = (j - 1) * 0.085 + (rnd() - 0.5) * 0.014, st = i + (rnd() - 0.5) * 1.2, pickC = a => a[(rnd() * a.length) | 0];
+        const c = st < 1.4 ? pickC(BRINE) : st < 2.6 ? pickC(DRY) : pickC(CRUST), sw = 0.058 + rnd() * 0.022, sd = 0.058 + rnd() * 0.022, ry = (rnd() - 0.5) * 0.12;
+        pk.lay(true).add(new THREE.BoxGeometry(sw, 0.003, sd, 3, 1, 3), c, M(x, 0.002, z, 0, ry, 0), 0); pk.lay(true).add(new THREE.BoxGeometry(sw + 0.016, 0.0024, sd + 0.016, 3, 1, 3), 0x3e3428, M(x, 0.0012, z, 0, ry, 0), 0); }
       for (let i = 0; i < 6; i++) pk.lay(false).add(Gm.cone(0.016, 0.02, 10), 0xf4f4f0, M(-0.19 + i * 0.024, 0.01, 0.15), 0.0015);
       bldg(pk, 0.22, -0.08, 0.2, 0.07, 0.06, 0.04, { wall: 0xc8b898, roof: 0x7a5a44, roofTex: 'rough_wood', winter }); chimneyStack(pk, 0.235, -0.08, 0.075, 0.008);
       emit.push({ kind: 'chimney', x: 0.02 + 0.235 * Math.cos(0.3) - 0.08 * Math.sin(0.3), z: 0.03 - 0.235 * Math.sin(0.3) - 0.08 * Math.cos(0.3), h: 0.08 });
@@ -2917,9 +3068,12 @@ function colourTex(nCol, fac) {
   const t = new THREE.CanvasTexture(c); OWN_TEX.add(t); return t;
 }
 const flockTex = (() => {   // (a base's flocked top: grass, with a little earth and stones)
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#6e7a42'; g.fillRect(0, 0, 128, 128);
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#56602f'; g.fillRect(0, 0, 128, 128);
   let sd = 5; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  for (let k = 0; k < 900; k++) { g.fillStyle = ['#5c6a36', '#86904e', '#7a6a42', '#4e5a2c', '#9aa060'][(r() * 5) | 0]; g.fillRect(r() * 128, r() * 128, 2 + r() * 2, 2 + r() * 2); }
+  for (let k = 0; k < 900; k++) { g.fillStyle = ['#4c5828', '#727c40', '#6a5c38', '#3e4822', '#848a50'][(r() * 5) | 0]; g.fillRect(r() * 128, r() * 128, 2 + r() * 2, 2 + r() * 2); }
+  // (tufts of longer grass, and a few patches of bare earth worn through)
+  for (let k = 0; k < 10; k++) { g.fillStyle = 'rgba(96, 78, 52, 0.55)'; g.beginPath(); g.ellipse(r() * 128, r() * 128, 4 + r() * 6, 3 + r() * 4, r() * 3, 0, 7); g.fill(); }
+  g.lineWidth = 1; for (let k = 0; k < 160; k++) { const x = r() * 128, y = r() * 128; g.strokeStyle = ['#8a9050', '#5a6630', '#a09a5a'][(r() * 3) | 0]; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 3, y - 2 - r() * 3); g.stroke(); }
   for (let k = 0; k < 14; k++) { g.fillStyle = '#9a9488'; g.beginPath(); g.arc(r() * 128, r() * 128, 1.5 + r() * 2, 0, 7); g.fill(); }
   const t = new THREE.CanvasTexture(c); return t;
 })();
@@ -2929,7 +3083,7 @@ const flockSnow = (() => {   // (and in winter: snow, trodden, with the grass sh
   for (let k = 0; k < 500; k++) { g.fillStyle = ['#d4dae2', '#f6f8fa', '#c8ced6', '#7a8458', '#b8bec8'][(r() * 5) | 0]; g.fillRect(r() * 128, r() * 128, 2 + r() * 3, 2 + r() * 2); }
   return new THREE.CanvasTexture(c);
 })();
-const SEASON_FLOCK = { spring: 0xc8ccb4, summer: 0xd0cab0, autumn: 0xccb080, winter: 0xffffff };   // (the base's flock a little greyed, to sit in the meadow's own green)
+const SEASON_FLOCK = { spring: 0xb8bca4, summer: 0xbeb89e, autumn: 0xbca074, winter: 0xffffff };   // (the base's flock a little greyed, to sit in the meadow's own green)
 // (a figure's limbs move in its shader: legs stride and arms swing on the march, each man a little out of step with the next;
 //  horses' legs go in diagonal pairs; a blade arm comes up and over in the charge; they breathe, standing)
 function animShader(mat, A) {
@@ -3549,6 +3703,7 @@ function cullBlocks() {
   const treeR = Math.max(3.5 + cam.dist * 0.3, (6 + cam.dist * 0.45) * lodK);
   // (the stand-ins thin out with distance, and with the card's budget: far off a wood is a scatter of its trees on the painted ground)
   const farR = treeR + 8 + cam.dist * 1.1;
+  U.canSeg.value.set(camera.position.x, camera.position.z, cam.tx, cam.tz); U.canR.value.set(treeR + farR * 0.15, treeR + farR * 0.55);
   // (the modelled trees and their stand-ins are both judged by the larger block they lie in, so a wood is either the one or the other:
   //  judged each by its own block, the two overlapped near the eye and left gaps further off)
   // (distance is reckoned from the line between the eye and the point it looks at, so the foreground counts as near as it is)
@@ -3743,7 +3898,7 @@ function syncBoats(dt) {
     const want = new Set(), winter = E('currentSeason') === 'winter';
     for (const [x, y, pop, s] of towns) {
       const [tx, tz] = hexCentre(x, y); if (Math.hypot(tx - cam.tx, tz - cam.tz) > R) continue;
-      if (winter && snowAt(tx, tz)) continue;
+      if ((winter || chartSrc) && snowAt(tx, tz)) continue;   // (no boat out on the ice, in winter or in the pack ice of the far north)
       const n = Math.min(4, 1 + Math.floor(pop / 3)); let sd = (x * 7919 + y * 104729) >>> 0 || 3; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
       for (let q = 0; q < n; q++) { const key = x + ',' + y + ':' + q; want.add(key); if (BOATS.list.has(key)) continue;
         const [sx, sy] = s[(rnd() * s.length) | 0], [hx, hz] = hexCentre(sx, sy); let ax = hx, az = hz, ok = false;
@@ -3889,7 +4044,7 @@ function syncBorders() {
     if (riverNear(px, pz) || groundAt(px, pz) < (SEA * HS + 0.006) * U.relief.value) continue;
     // (along the edge, not across it: the stone faces over the line)
     q.setFromAxisAngle(up, Math.atan2(bx - ax, bz - az)); pos.set(px, groundAt(px, pz) - 0.002, pz); m4.compose(pos, q, one.set(0.85, 0.85, 0.85));
-    ink.setMatrixAt(n, m4); body.setMatrixAt(n, m4); cap.setMatrixAt(n, m4); cap.setColorAt(n, c.set(cols[list[i + 4]] || '#888888')); n++;
+    ink.setMatrixAt(n, m4); body.setMatrixAt(n, m4); cap.setMatrixAt(n, m4); cap.setColorAt(n, c.set(cols[list[i + 4]] || '#888888').lerp(BSTONE.weather || (BSTONE.weather = new THREE.Color(0xa8a090)), 0.5)); n++;   /* (the realm's colour on the stone weathered, as old paint is: marking the line, not shouting it) */
   }
   for (const im of [ink, body, cap]) { im.count = n; im.instanceMatrix.needsUpdate = true; } if (cap.instanceColor) cap.instanceColor.needsUpdate = true;
 }
@@ -4027,7 +4182,7 @@ setInterval(frame, 16);   // (by a timer as well as the screen, so the table sti
     ['top', 'endTurn', 'legend'].forEach(id => $(id) && ($(id).style.display = ''));
     $('card0').style.display = 'none';
     setInterval(() => { if (!busy) tidyGame(); }, 500);
-    window.LAB = { coal: () => [...COAL.list.keys()], setHover, route: () => ROUTE.ims ? ROUTE.ims.rod.count : -1, barges: () => BARGE.list.map(o => [o.g.position.x, o.g.position.z]), boatPos: () => { const o = [...BOATS.list.values()][0]; return o ? [o.b.position.x, o.b.position.z] : [0, 0]; }, herds: () => [...HERDS.list.keys()], deer: () => [...DEER.list.keys()], trav: () => TRAV.list.map(o => o.kind), boats: () => [...BOATS.list.keys()], birds: () => BIRDS.flocks.map(f => [f.kind, f.birds.length, +f.cx.toFixed(1), +f.cz.toFixed(1), +f.fade.toFixed(2)]), refreshSeason, snowAt, hexCentre, chartSrc: () => chartSrc, lod: () => lodK, treeMeshes: () => treeMeshes, syncFeatures, feats: () => feats, U, terrainMat, renderer, cam, scene, camera, W: () => W, E, G, frame, clickHex, orderHex, endTurn, lookAtHex, updateFog, pieces, fights, figCache };
+    window.LAB = { works: () => [...works.values()].map(w => [+w.userData.cx.toFixed(2), +w.userData.cz.toFixed(2), w.userData.kind || w.userData.imp || '']), coal: () => [...COAL.list.keys()], setHover, route: () => ROUTE.ims ? ROUTE.ims.rod.count : -1, barges: () => BARGE.list.map(o => [o.g.position.x, o.g.position.z]), boatPos: () => { const o = [...BOATS.list.values()][0]; return o ? [o.b.position.x, o.b.position.z] : [0, 0]; }, herds: () => [...HERDS.list.keys()], deer: () => [...DEER.list.keys()], trav: () => TRAV.list.map(o => o.kind), boats: () => [...BOATS.list.keys()], birds: () => BIRDS.flocks.map(f => [f.kind, f.birds.length, +f.cx.toFixed(1), +f.cz.toFixed(1), +f.fade.toFixed(2)]), refreshSeason, snowAt, hexCentre, chartSrc: () => chartSrc, lod: () => lodK, treeMeshes: () => treeMeshes, syncFeatures, feats: () => feats, U, terrainMat, renderer, cam, scene, camera, W: () => W, E, G, frame, clickHex, orderHex, endTurn, lookAtHex, updateFog, pieces, fights, figCache };
   } catch (e) { $('card0').innerHTML = 'The table could not be set up<small>' + String(e && e.stack || e).replace(/</g, '&lt;') + '</small>'; console.error(e); }
 })();
 </script>
